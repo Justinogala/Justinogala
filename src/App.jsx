@@ -11,7 +11,8 @@ import { AdminSettingsProvider } from '@/context/AdminSettingsContext';
 import { NotificationProvider } from '@/context/NotificationContext'; 
 import { WorkspaceProvider } from '@/context/WorkspaceContext';
 import { AdvancedVideoCallProvider } from '@/context/AdvancedVideoCallContext';
-import { CallStateProvider } from '@/context/CallStateContext'; 
+import { CallStateProvider } from '@/context/CallStateContext';
+import { WebSocketChatProvider } from '@/context/WebSocketChatContext'; 
 
 // Components
 import ScrollToTop from '@/components/ScrollToTop';
