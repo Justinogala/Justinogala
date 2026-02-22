@@ -1,13 +1,14 @@
 # Munal - AI Meeting Companion PRD
 
 ## Original Problem Statement
-User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be extracted, set up, fixed, and displayed. Then requested to add modern chat features.
+User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be extracted, set up, fixed, and displayed. Then requested to add modern chat features and real-time WebSocket messaging.
 
 ## Architecture
 - **Frontend**: React 18 + Vite + Tailwind CSS + Radix UI components
-- **Backend**: FastAPI (Python) with MongoDB
+- **Backend**: FastAPI (Python) with MongoDB + WebSocket support
 - **Database**: MongoDB (local)
 - **Auth**: Custom JWT-based authentication (localStorage)
+- **Real-time**: WebSocket with REST API polling fallback
 - **Storage**: Supabase (optional, localStorage fallback)
 
 ## User Personas
@@ -24,6 +25,7 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - Team workspaces
 - Analytics dashboard
 - **Modern chat features**
+- **Real-time messaging**
 
 ## What's Been Implemented (Jan 2026)
 
@@ -49,12 +51,37 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] Fixed MessageList.jsx users undefined error
 - [x] Fixed App.jsx parsing error with ToastContextProvider
 
+### Real-time Messaging (Session 3)
+- [x] **WebSocket Backend** - FastAPI WebSocket endpoint at `/ws/chat/{user_id}`
+- [x] **Connection Manager** - Manages active connections, presence, typing indicators
+- [x] **Chat REST API** - `/api/chat/messages` for CRUD operations
+- [x] **Online Users API** - `/api/chat/online-users` endpoint
+- [x] **User Status API** - `/api/chat/user-status/{user_id}` endpoint
+- [x] **WebSocket Client Hook** - `useWebSocketChat.js` for real-time connectivity
+- [x] **WebSocket Context** - `WebSocketChatContext.jsx` for global state management
+- [x] **Polling Fallback** - Automatic fallback to REST API when WebSocket unavailable
+- [x] **Typing Indicators** - Real-time typing status
+- [x] **Read Receipts** - Message read status tracking
+- [x] **Presence System** - Online/offline status for users
+- [x] **Connection Status UI** - Banner showing connection state with reconnect option
+
 ## Components Created
 1. `/app/src/components/chat/GifPicker.jsx`
 2. `/app/src/components/chat/PollCreator.jsx`
 3. `/app/src/components/chat/ContactSharePicker.jsx`
 4. `/app/src/components/chat/ScheduleMessagePicker.jsx`
 5. `/app/src/components/chat/EnhancedMessageInput.jsx`
+6. `/app/src/hooks/useWebSocketChat.js`
+7. `/app/src/context/WebSocketChatContext.jsx`
+
+## Backend Endpoints
+- `GET /api/` - Health check
+- `GET /api/chat/messages/{user_id}/{partner_id}` - Get conversation messages
+- `POST /api/chat/messages` - Create new message
+- `PUT /api/chat/messages/read` - Mark messages as read
+- `GET /api/chat/online-users` - Get online users list
+- `GET /api/chat/user-status/{user_id}` - Get user online status
+- `WS /ws/chat/{user_id}` - WebSocket connection for real-time messaging
 
 ## Prioritized Backlog
 
@@ -62,18 +89,17 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - None currently - app is functional
 
 ### P1 (High Priority)
+- Configure Kubernetes ingress for WebSocket routing (`/ws/*` → port 8001)
+- Integrate real GIPHY API for live GIF search
 - Configure actual Supabase/backend for authentication
-- Set up OpenAI API key for transcription features
-- Integrate real GIPHY API for GIF picker
 
 ### P2 (Medium Priority)
-- Mobile menu improvements
-- Theme toggle accessibility
-- PWA enhancements
+- Add push notifications for new messages
+- Implement message search functionality
+- Add group chat support
 
 ## Next Tasks
-1. Configure OpenAI API for transcription functionality
-2. Set up actual authentication flow with backend
-3. Test transcription upload and processing
-4. Verify workspace collaboration features
-5. Integrate real GIPHY API for live GIF search
+1. Configure ingress for WebSocket support
+2. Integrate GIPHY API for live GIF search
+3. Set up OpenAI API for transcription functionality
+4. Add message persistence with pagination
