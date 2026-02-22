@@ -1,0 +1,266 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useWebSocketChat } from '@/hooks/useWebSocketChat';
+import { useAuth } from '@/context/AuthContext';
+
+const WebSocketChatContext = createContext(null);
+
+export const WebSocketChatProvider = ({ children }) => {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState({});  // {conversationId: [messages]}
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const [typingUsers, setTypingUsers] = useState({});  // {conversationId: userId}
+  const [unreadCounts, setUnreadCounts] = useState({});  // {conversationId: count}
+
+  // Get conversation ID for two users
+  const getConversationId = useCallback((userId1, userId2) => {
+    return [userId1, userId2].sort().join('_');
+  }, []);
+
+  // Handle new message
+  const handleMessage = useCallback((messageData) => {
+    const convId = getConversationId(messageData.sender_id, messageData.receiver_id);
+    
+    setMessages(prev => {
+      const convMessages = prev[convId] || [];
+      // Avoid duplicates
+      if (convMessages.find(m => m.id === messageData.id)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [convId]: [...convMessages, messageData]
+      };
+    });
+
+    // Update unread count if message is from someone else
+    if (user && messageData.sender_id !== user.id) {
+      setUnreadCounts(prev => ({
+        ...prev,
+        [convId]: (prev[convId] || 0) + 1
+      }));
+    }
+  }, [user, getConversationId]);
+
+  // Handle presence updates
+  const handlePresence = useCallback((data) => {
+    setOnlineUsers(prev => {
+      const newSet = new Set(prev);
+      if (data.status === 'online') {
+        newSet.add(data.user_id);
+      } else {
+        newSet.delete(data.user_id);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Handle typing indicators
+  const handleTyping = useCallback((data) => {
+    setTypingUsers(prev => {
+      if (data.is_typing) {
+        return { ...prev, [data.conversation_id]: data.user_id };
+      } else {
+        const newTyping = { ...prev };
+        delete newTyping[data.conversation_id];
+        return newTyping;
+      }
+    });
+
+    // Clear typing after 3 seconds (in case we miss the stop event)
+    setTimeout(() => {
+      setTypingUsers(prev => {
+        const newTyping = { ...prev };
+        if (newTyping[data.conversation_id] === data.user_id) {
+          delete newTyping[data.conversation_id];
+        }
+        return newTyping;
+      });
+    }, 3000);
+  }, []);
+
+  // Handle read receipts
+  const handleReadReceipt = useCallback((data) => {
+    const { message_ids, read_by } = data;
+    
+    // Update message read status
+    setMessages(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(convId => {
+        updated[convId] = updated[convId].map(msg => 
+          message_ids.includes(msg.id) ? { ...msg, is_read: true } : msg
+        );
+      });
+      return updated;
+    });
+  }, []);
+
+  // Initialize WebSocket
+  const {
+    isConnected,
+    connectionError,
+    sendMessage: wsSendMessage,
+    sendTypingIndicator,
+    sendReadReceipt,
+    reconnect
+  } = useWebSocketChat(
+    user?.id,
+    handleMessage,
+    handlePresence,
+    handleTyping,
+    handleReadReceipt
+  );
+
+  // Fetch initial online users
+  useEffect(() => {
+    const fetchOnlineUsers = async () => {
+      try {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+        const response = await fetch(`${backendUrl}/api/chat/online-users`);
+        if (response.ok) {
+          const data = await response.json();
+          setOnlineUsers(new Set(data.online_users));
+        }
+      } catch (err) {
+        console.error('Error fetching online users:', err);
+      }
+    };
+
+    if (user) {
+      fetchOnlineUsers();
+    }
+  }, [user]);
+
+  // Send message wrapper
+  const sendMessage = useCallback(async (receiverId, content, messageType = 'text', attachments = []) => {
+    if (!user) return false;
+
+    // Try WebSocket first
+    const sent = wsSendMessage(receiverId, content, messageType, attachments);
+    
+    if (!sent) {
+      // Fallback to REST API
+      try {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+        const response = await fetch(`${backendUrl}/api/chat/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender_id: user.id,
+            receiver_id: receiverId,
+            content,
+            message_type: messageType,
+            attachments
+          })
+        });
+        return response.ok;
+      } catch (err) {
+        console.error('Error sending message via REST:', err);
+        return false;
+      }
+    }
+    
+    return sent;
+  }, [user, wsSendMessage]);
+
+  // Load conversation history
+  const loadConversationHistory = useCallback(async (partnerId) => {
+    if (!user) return [];
+    
+    const convId = getConversationId(user.id, partnerId);
+    
+    // If we already have messages, return them
+    if (messages[convId]?.length > 0) {
+      return messages[convId];
+    }
+
+    try {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+      const response = await fetch(`${backendUrl}/api/chat/messages/${user.id}/${partnerId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(prev => ({
+          ...prev,
+          [convId]: data.messages
+        }));
+        return data.messages;
+      }
+    } catch (err) {
+      console.error('Error loading conversation:', err);
+    }
+    return [];
+  }, [user, messages, getConversationId]);
+
+  // Mark messages as read
+  const markAsRead = useCallback(async (messageIds, senderId) => {
+    if (!user || messageIds.length === 0) return;
+    
+    // Send read receipt via WebSocket
+    sendReadReceipt(messageIds, senderId);
+    
+    // Clear unread count for this conversation
+    const convId = getConversationId(user.id, senderId);
+    setUnreadCounts(prev => ({
+      ...prev,
+      [convId]: 0
+    }));
+  }, [user, sendReadReceipt, getConversationId]);
+
+  // Get messages for a conversation
+  const getConversationMessages = useCallback((partnerId) => {
+    if (!user) return [];
+    const convId = getConversationId(user.id, partnerId);
+    return messages[convId] || [];
+  }, [user, messages, getConversationId]);
+
+  // Check if user is typing
+  const isUserTyping = useCallback((partnerId) => {
+    if (!user) return false;
+    const convId = getConversationId(user.id, partnerId);
+    return typingUsers[convId] === partnerId;
+  }, [user, typingUsers, getConversationId]);
+
+  // Check if user is online
+  const isUserOnline = useCallback((userId) => {
+    return onlineUsers.has(userId);
+  }, [onlineUsers]);
+
+  const value = {
+    // Connection state
+    isConnected,
+    connectionError,
+    reconnect,
+    
+    // Users
+    onlineUsers: Array.from(onlineUsers),
+    isUserOnline,
+    
+    // Messages
+    sendMessage,
+    getConversationMessages,
+    loadConversationHistory,
+    markAsRead,
+    
+    // Typing
+    sendTypingIndicator,
+    isUserTyping,
+    
+    // Unread
+    unreadCounts
+  };
+
+  return (
+    <WebSocketChatContext.Provider value={value}>
+      {children}
+    </WebSocketChatContext.Provider>
+  );
+};
+
+export const useWebSocketChatContext = () => {
+  const context = useContext(WebSocketChatContext);
+  if (!context) {
+    throw new Error('useWebSocketChatContext must be used within a WebSocketChatProvider');
+  }
+  return context;
+};
+
+export default WebSocketChatContext;
