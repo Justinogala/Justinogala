@@ -141,8 +141,8 @@ export const WebSocketChatProvider = ({ children }) => {
     if (!sent) {
       // Fallback to REST API
       try {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-        const response = await fetch(`${backendUrl}/api/chat/messages`, {
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/chat/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
