@@ -240,6 +240,18 @@ export default defineConfig({
 		react(),
 		addTransformIndexHtml
 	],
+	esbuild: {
+		loader: 'jsx',
+		include: /src\/.*\.js$/,
+		exclude: [],
+	},
+	optimizeDeps: {
+		esbuildOptions: {
+			loader: {
+				'.js': 'jsx',
+			},
+		},
+	},
 	server: {
 		cors: true,
 		headers: {
