@@ -114,8 +114,9 @@ export const WebSocketChatProvider = ({ children }) => {
   useEffect(() => {
     const fetchOnlineUsers = async () => {
       try {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-        const response = await fetch(`${backendUrl}/api/chat/online-users`);
+        // Use current location as base URL for API calls
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/chat/online-users`);
         if (response.ok) {
           const data = await response.json();
           setOnlineUsers(new Set(data.online_users));
