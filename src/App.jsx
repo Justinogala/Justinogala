@@ -386,9 +386,7 @@ function App() {
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Suspense>
-                          <ToastContextProvider>
-                            <Toaster />
-                          </ToastContextProvider>
+                          <Toaster />
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>
                     </WorkspaceProvider>
@@ -399,6 +397,7 @@ function App() {
           </AdminAuthProvider>
         </AuthProvider>
       </ThemeProvider>
+    </ToastContextProvider>
     </ErrorBoundary>
   );
 }
