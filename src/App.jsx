@@ -399,8 +399,8 @@ function App() {
           </AdminSettingsProvider>
         </AdminAuthProvider>
       </AuthProvider>
-    </ThemeProvider>
-    </ToastContextProvider>
+        </ThemeProvider>
+      </ToastContextProvider>
     </ErrorBoundary>
   );
 }
