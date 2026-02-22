@@ -24,15 +24,20 @@ import ContactSharePicker from './ContactSharePicker';
 const MessageInputArea = ({ onSendMessage, disabled }) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [attachments, setAttachments] = useState([]);
   
   const textareaRef = useRef(null);
   const emojiTriggerRef = useRef(null);
+  const gifTriggerRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (emojiTriggerRef.current && !emojiTriggerRef.current.contains(event.target)) {
         setShowEmojiPicker(false);
+      }
+      if (gifTriggerRef.current && !gifTriggerRef.current.contains(event.target)) {
+        setShowGifPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -71,10 +76,26 @@ const MessageInputArea = ({ onSendMessage, disabled }) => {
     setMessage(prev => prev + emoji);
   };
 
+  const handleGifSelect = (gif) => {
+    setAttachments(prev => [...prev, { 
+      type: 'gif', 
+      url: gif.url, 
+      name: `GIF: ${gif.title}`
+    }]);
+  };
+
   const handleAttachment = (attachment) => {
-    if (attachment.url) {
+    if (attachment.url || attachment.type) {
       setAttachments(prev => [...prev, attachment]);
     }
+  };
+
+  const handlePollCreate = (poll) => {
+    setAttachments(prev => [...prev, poll]);
+  };
+
+  const handleContactShare = (contact) => {
+    setAttachments(prev => [...prev, contact]);
   };
 
   const removeAttachment = (index) => {
