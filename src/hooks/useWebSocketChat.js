@@ -60,11 +60,22 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      // Set connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.log('[WebSocket] Connection timeout, falling back to polling');
+          ws.close();
+          startPolling();
+        }
+      }, 5000);
+
       ws.onopen = () => {
+        clearTimeout(connectionTimeout);
         console.log('[WebSocket] Connected');
         setIsConnected(true);
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
+        stopPolling(); // Stop polling if was active
 
         // Start ping interval to keep connection alive
         pingIntervalRef.current = setInterval(() => {
