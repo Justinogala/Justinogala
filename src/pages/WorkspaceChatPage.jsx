@@ -160,10 +160,10 @@ const WorkspaceChatPage = () => {
                 />
               )}
 
-              <MessageInput 
-                onSend={handleSendMessage}
-                onTyping={handleTyping}
-                isSending={isSending}
+              <EnhancedMessageInput 
+                onSendMessage={handleSendMessage}
+                disabled={isSending}
+                placeholder="Type a message to your team..."
               />
             </>
           ) : (
