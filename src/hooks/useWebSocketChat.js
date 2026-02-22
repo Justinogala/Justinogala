@@ -164,6 +164,9 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
       }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
       if (wsRef.current) {
         wsRef.current.close(1000, 'Component unmounted');
       }
