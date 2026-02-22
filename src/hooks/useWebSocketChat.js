@@ -188,9 +188,16 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
       wsRef.current.send(JSON.stringify(message));
       return true;
     }
+    
+    // If using polling or WebSocket not available, return false to use REST API
+    if (usePolling) {
+      console.log('[Chat] Using REST API for message (polling mode)');
+      return false;
+    }
+    
     console.warn('[WebSocket] Cannot send message - not connected');
     return false;
-  }, []);
+  }, [usePolling]);
 
   // Send typing indicator
   const sendTypingIndicator = useCallback((receiverId, isTyping) => {
@@ -201,6 +208,7 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         is_typing: isTyping
       }));
     }
+    // Typing indicators are best-effort, no fallback needed
   }, []);
 
   // Send read receipt
@@ -212,6 +220,7 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         sender_id: senderId
       }));
     }
+    // Read receipts can also be sent via REST if needed
   }, []);
 
   // Manual reconnect
