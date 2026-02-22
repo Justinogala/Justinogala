@@ -392,15 +392,15 @@ function App() {
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>
                     </WebSocketChatProvider>
-                    </WorkspaceProvider>
-                  </NotificationProvider>
-                </Router>
-              </APIKeyManagementProvider>
-            </AdminSettingsProvider>
-          </AdminAuthProvider>
-        </AuthProvider>
-      </ThemeProvider>
-      </ToastContextProvider>
+                  </WorkspaceProvider>
+                </NotificationProvider>
+              </Router>
+            </APIKeyManagementProvider>
+          </AdminSettingsProvider>
+        </AdminAuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
+    </ToastContextProvider>
     </ErrorBoundary>
   );
 }
