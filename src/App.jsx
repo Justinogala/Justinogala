@@ -205,24 +205,25 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <AdminAuthProvider>
-            <AdminSettingsProvider>
-              <APIKeyManagementProvider>
-                <Router>
-                  <NotificationProvider>
-                    <WorkspaceProvider>
-                      <AdvancedVideoCallProvider>
-                        <CallStateProvider>
-                          <AnnouncementManager />
-                          <MunalAIChatWrapper />
-                          <ScrollToTop />
-                          <InstallPrompt />
-                          <OfflineIndicator />
-                          
-                          <Suspense fallback={
-                            <div className="min-h-screen flex items-center justify-center bg-violet-50 dark:bg-slate-950">
+      <ToastContextProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AdminAuthProvider>
+              <AdminSettingsProvider>
+                <APIKeyManagementProvider>
+                  <Router>
+                    <NotificationProvider>
+                      <WorkspaceProvider>
+                        <AdvancedVideoCallProvider>
+                          <CallStateProvider>
+                            <AnnouncementManager />
+                            <MunalAIChatWrapper />
+                            <ScrollToTop />
+                            <InstallPrompt />
+                            <OfflineIndicator />
+                            
+                            <Suspense fallback={
+                              <div className="min-h-screen flex items-center justify-center bg-violet-50 dark:bg-slate-950">
                               <LoadingSpinner size="large" />
                             </div>
                           }>
