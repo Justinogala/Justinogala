@@ -385,7 +385,9 @@ function App() {
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Suspense>
-                          <Toaster />
+                          <ToastContextProvider>
+                            <Toaster />
+                          </ToastContextProvider>
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>
                     </WorkspaceProvider>
