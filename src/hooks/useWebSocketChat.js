@@ -1,216 +1,71 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const WS_RECONNECT_DELAY = 3000;
-const WS_PING_INTERVAL = 30000;
-const POLL_INTERVAL = 3000; // Polling fallback interval
+const POLL_INTERVAL = 5000; // Poll every 5 seconds for new messages
 
 export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onReadReceipt) => {
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Always "connected" in REST mode
   const [connectionError, setConnectionError] = useState(null);
-  const [usePolling, setUsePolling] = useState(false);
-  const wsRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
-  const pingIntervalRef = useRef(null);
   const pollIntervalRef = useRef(null);
-  const reconnectAttemptsRef = useRef(0);
-  const lastMessageTimestampRef = useRef(null);
-  const maxReconnectAttempts = 3; // Reduced for faster fallback to polling
 
-  // Get WebSocket URL from environment
-  const getWsUrl = useCallback(() => {
-    // Use the same host as the current page
-    const wsHost = window.location.host;
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    return `${wsProtocol}://${wsHost}/ws/chat/${userId}`;
-  }, [userId]);
-
-  // Polling fallback
+  // Start polling for messages (REST API fallback)
   const startPolling = useCallback(() => {
-    if (pollIntervalRef.current) return; // Already polling
+    if (pollIntervalRef.current || !userId) return;
     
-    console.log('[Chat] Starting polling fallback');
-    setUsePolling(true);
-    setIsConnected(true); // Consider connected via polling
+    console.log('[Chat] REST API mode active');
+    setIsConnected(true);
     setConnectionError(null);
     
-    const poll = async () => {
-      // In a real implementation, this would fetch new messages since lastTimestamp
-      // For now, we just mark as connected
-    };
-    
-    poll();
-    pollIntervalRef.current = setInterval(poll, POLL_INTERVAL);
-  }, []);
+    // Poll interval for checking new messages (in real app, would fetch from API)
+    pollIntervalRef.current = setInterval(() => {
+      // Polling logic would go here
+      // For now, messages are fetched on conversation load
+    }, POLL_INTERVAL);
+  }, [userId]);
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
-    setUsePolling(false);
   }, []);
 
-  const connect = useCallback(() => {
-    if (!userId) return;
-    
-    // Skip WebSocket connection attempt - use REST API directly
-    // WebSocket requires ingress configuration for /ws/* routing
-    console.log('[Chat] Using REST API mode (WebSocket not configured)');
-    startPolling();
-  }, [userId, startPolling]);
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('[WebSocket] Message received:', data.type);
-
-          switch (data.type) {
-            case 'new_message':
-              onMessage?.(data.data);
-              break;
-            case 'presence':
-              onPresence?.(data);
-              break;
-            case 'typing':
-              onTyping?.(data);
-              break;
-            case 'read_receipt':
-              onReadReceipt?.(data);
-              break;
-            case 'pong':
-              // Keep-alive response, no action needed
-              break;
-            default:
-              console.log('[WebSocket] Unknown message type:', data.type);
-          }
-        } catch (err) {
-          console.error('[WebSocket] Error parsing message:', err);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('[WebSocket] Error:', error);
-        setConnectionError('Connection error');
-      };
-
-      ws.onclose = (event) => {
-        console.log('[WebSocket] Disconnected:', event.code, event.reason);
-        setIsConnected(false);
-        
-        // Clear ping interval
-        if (pingIntervalRef.current) {
-          clearInterval(pingIntervalRef.current);
-          pingIntervalRef.current = null;
-        }
-
-        // Attempt to reconnect if not a clean close
-        if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
-          reconnectAttemptsRef.current++;
-          console.log(`[WebSocket] Reconnecting... Attempt ${reconnectAttemptsRef.current}`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, WS_RECONNECT_DELAY * reconnectAttemptsRef.current);
-        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          // Max reconnect attempts reached, fall back to polling
-          console.log('[WebSocket] Max reconnect attempts reached, falling back to polling');
-          startPolling();
-        }
-      };
-    } catch (err) {
-      console.error('[WebSocket] Connection error:', err);
-      setConnectionError(err.message);
-      startPolling(); // Fall back to polling on error
-    }
-  }, [userId, getWsUrl, onMessage, onPresence, onTyping, onReadReceipt, startPolling, stopPolling]);
-
-  // Connect on mount
+  // Initialize on mount
   useEffect(() => {
     if (userId) {
-      connect();
+      startPolling();
     }
 
     return () => {
-      // Cleanup on unmount
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-      }
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close(1000, 'Component unmounted');
-      }
+      stopPolling();
     };
-  }, [userId, connect]);
+  }, [userId, startPolling, stopPolling]);
 
-  // Send message
+  // Send message - always returns false to use REST API
   const sendMessage = useCallback((receiverId, content, messageType = 'text', attachments = []) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      const message = {
-        type: 'message',
-        data: {
-          receiver_id: receiverId,
-          content,
-          message_type: messageType,
-          attachments
-        }
-      };
-      wsRef.current.send(JSON.stringify(message));
-      return true;
-    }
-    
-    // If using polling or WebSocket not available, return false to use REST API
-    if (usePolling) {
-      console.log('[Chat] Using REST API for message (polling mode)');
-      return false;
-    }
-    
-    console.warn('[WebSocket] Cannot send message - not connected');
+    // Return false to indicate WebSocket not available, use REST API
     return false;
-  }, [usePolling]);
-
-  // Send typing indicator
-  const sendTypingIndicator = useCallback((receiverId, isTyping) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'typing',
-        receiver_id: receiverId,
-        is_typing: isTyping
-      }));
-    }
-    // Typing indicators are best-effort, no fallback needed
   }, []);
 
-  // Send read receipt
+  // Send typing indicator (no-op in REST mode)
+  const sendTypingIndicator = useCallback((receiverId, isTyping) => {
+    // Typing indicators not supported in REST mode
+  }, []);
+
+  // Send read receipt (no-op in REST mode, handled via REST API)
   const sendReadReceipt = useCallback((messageIds, senderId) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN && messageIds.length > 0) {
-      wsRef.current.send(JSON.stringify({
-        type: 'read_receipt',
-        message_ids: messageIds,
-        sender_id: senderId
-      }));
-    }
-    // Read receipts can also be sent via REST if needed
+    // Read receipts handled via REST API in context
   }, []);
 
   // Manual reconnect
   const reconnect = useCallback(() => {
     stopPolling();
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    reconnectAttemptsRef.current = 0;
-    connect();
-  }, [connect, stopPolling]);
+    startPolling();
+  }, [startPolling, stopPolling]);
 
   return {
     isConnected,
     connectionError,
-    usePolling,
+    usePolling: true,
     sendMessage,
     sendTypingIndicator,
     sendReadReceipt,
