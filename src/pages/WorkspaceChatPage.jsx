@@ -6,7 +6,7 @@ import { messagingService } from '@/services/messagingService';
 import PageTransition from '@/components/PageTransition';
 import UserListSidebar from '@/components/chat/UserListSidebar';
 import MessageList from '@/components/chat/MessageList';
-import MessageInput from '@/components/chat/MessageInput';
+import EnhancedMessageInput from '@/components/chat/EnhancedMessageInput';
 import UserInfoHeader from '@/components/chat/UserInfoHeader';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
