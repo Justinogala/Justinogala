@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/context/AuthContext';
-import { messagingService } from '@/services/messagingService';
+import { useWebSocketChatContext } from '@/context/WebSocketChatContext';
 import PageTransition from '@/components/PageTransition';
 import UserListSidebar from '@/components/chat/UserListSidebar';
 import MessageList from '@/components/chat/MessageList';
 import EnhancedMessageInput from '@/components/chat/EnhancedMessageInput';
 import UserInfoHeader from '@/components/chat/UserInfoHeader';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wifi, WifiOff } from 'lucide-react';
 
 const WorkspaceChatPage = () => {
   const { user: currentUser } = useAuth(); // In a real app, this comes from auth context
