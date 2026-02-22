@@ -9,8 +9,7 @@ import MessageList from '@/components/chat/MessageList';
 import EnhancedMessageInput from '@/components/chat/EnhancedMessageInput';
 import UserInfoHeader from '@/components/chat/UserInfoHeader';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Wifi, WifiOff, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 const WorkspaceChatPage = () => {
   const { user: currentUser } = useAuth();
