@@ -131,7 +131,7 @@ const WorkspaceChatPage = () => {
 
   return (
     <PageTransition>
-      <div className="flex h-[calc(100vh-64px)] w-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
+      <div className="flex w-full bg-slate-50 dark:bg-slate-950 overflow-hidden -m-4 sm:-m-6 lg:-m-8" style={{height: 'calc(100vh - 64px)'}}>
         <Helmet><title>Workspace Chat | Munal</title></Helmet>
 
         {/* Sidebar */}
@@ -142,12 +142,12 @@ const WorkspaceChatPage = () => {
         />
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 relative h-[calc(100vh-64px)]">
+        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 relative">
           {selectedUserId ? (
             <>
               <UserInfoHeader user={selectedUser} />
               
-              <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
                 {isLoadingMessages ? (
                   <div className="flex-1 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
