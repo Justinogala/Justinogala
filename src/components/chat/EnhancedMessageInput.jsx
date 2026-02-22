@@ -29,7 +29,7 @@ import PollCreator from './PollCreator';
 import ContactSharePicker from './ContactSharePicker';
 import ScheduleMessagePicker from './ScheduleMessagePicker';
 
-const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a message..." }) => {
+const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a message...", onTyping }) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
