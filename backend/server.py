@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,9 +6,11 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Dict, Optional, Set
 import uuid
+import json
 from datetime import datetime, timezone
+import asyncio
 
 
 ROOT_DIR = Path(__file__).parent
@@ -25,11 +27,18 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Define Models
+
+# ============== Models ==============
+
 class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -37,7 +46,243 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
-# Add your routes to the router instead of directly to app
+class ChatMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sender_id: str
+    receiver_id: str
+    content: str
+    message_type: str = "text"  # text, image, file, gif, location, poll, contact, voice
+    attachments: List[dict] = []
+    is_read: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = None
+
+class ChatMessageCreate(BaseModel):
+    sender_id: str
+    receiver_id: str
+    content: str
+    message_type: str = "text"
+    attachments: List[dict] = []
+
+class UserPresence(BaseModel):
+    user_id: str
+    status: str = "online"  # online, offline, away, busy
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class TypingIndicator(BaseModel):
+    user_id: str
+    conversation_id: str
+    is_typing: bool
+
+
+# ============== WebSocket Connection Manager ==============
+
+class ConnectionManager:
+    """Manages WebSocket connections for real-time messaging"""
+    
+    def __init__(self):
+        # Map user_id to their WebSocket connections (user can have multiple tabs)
+        self.active_connections: Dict[str, Set[WebSocket]] = {}
+        # Track user presence
+        self.user_presence: Dict[str, UserPresence] = {}
+        # Track typing indicators
+        self.typing_users: Dict[str, Dict[str, bool]] = {}  # {conversation_id: {user_id: is_typing}}
+    
+    async def connect(self, websocket: WebSocket, user_id: str):
+        """Accept a new WebSocket connection"""
+        await websocket.accept()
+        
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = set()
+        
+        self.active_connections[user_id].add(websocket)
+        
+        # Update presence
+        self.user_presence[user_id] = UserPresence(
+            user_id=user_id,
+            status="online",
+            last_seen=datetime.now(timezone.utc)
+        )
+        
+        logger.info(f"User {user_id} connected. Total connections: {len(self.active_connections)}")
+        
+        # Broadcast presence update to all users
+        await self.broadcast_presence(user_id, "online")
+    
+    def disconnect(self, websocket: WebSocket, user_id: str):
+        """Remove a WebSocket connection"""
+        if user_id in self.active_connections:
+            self.active_connections[user_id].discard(websocket)
+            
+            # If no more connections, user is offline
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
+                self.user_presence[user_id] = UserPresence(
+                    user_id=user_id,
+                    status="offline",
+                    last_seen=datetime.now(timezone.utc)
+                )
+                logger.info(f"User {user_id} disconnected. Total connections: {len(self.active_connections)}")
+    
+    async def send_personal_message(self, message: dict, user_id: str):
+        """Send a message to a specific user (all their connections)"""
+        if user_id in self.active_connections:
+            disconnected = []
+            for websocket in self.active_connections[user_id]:
+                try:
+                    await websocket.send_json(message)
+                except Exception as e:
+                    logger.error(f"Error sending to {user_id}: {e}")
+                    disconnected.append(websocket)
+            
+            # Clean up disconnected sockets
+            for ws in disconnected:
+                self.active_connections[user_id].discard(ws)
+    
+    async def broadcast_to_conversation(self, message: dict, sender_id: str, receiver_id: str):
+        """Send message to both participants in a conversation"""
+        await self.send_personal_message(message, sender_id)
+        await self.send_personal_message(message, receiver_id)
+    
+    async def broadcast_presence(self, user_id: str, status: str):
+        """Broadcast user presence to all connected users"""
+        presence_msg = {
+            "type": "presence",
+            "user_id": user_id,
+            "status": status,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        for uid in self.active_connections:
+            await self.send_personal_message(presence_msg, uid)
+    
+    async def broadcast_typing(self, user_id: str, conversation_id: str, is_typing: bool, receiver_id: str):
+        """Broadcast typing indicator to conversation partner"""
+        typing_msg = {
+            "type": "typing",
+            "user_id": user_id,
+            "conversation_id": conversation_id,
+            "is_typing": is_typing,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        await self.send_personal_message(typing_msg, receiver_id)
+    
+    def get_online_users(self) -> List[str]:
+        """Get list of online user IDs"""
+        return list(self.active_connections.keys())
+    
+    def is_user_online(self, user_id: str) -> bool:
+        """Check if a user is online"""
+        return user_id in self.active_connections and len(self.active_connections[user_id]) > 0
+
+
+# Global connection manager
+manager = ConnectionManager()
+
+
+# ============== WebSocket Endpoint ==============
+
+@app.websocket("/ws/chat/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket endpoint for real-time chat"""
+    await manager.connect(websocket, user_id)
+    
+    try:
+        while True:
+            # Receive message from client
+            data = await websocket.receive_json()
+            message_type = data.get("type", "message")
+            
+            if message_type == "message":
+                # Handle new chat message
+                msg_data = data.get("data", {})
+                
+                # Create message in database
+                message = ChatMessage(
+                    sender_id=user_id,
+                    receiver_id=msg_data.get("receiver_id"),
+                    content=msg_data.get("content", ""),
+                    message_type=msg_data.get("message_type", "text"),
+                    attachments=msg_data.get("attachments", [])
+                )
+                
+                # Save to MongoDB
+                doc = message.model_dump()
+                doc['created_at'] = doc['created_at'].isoformat()
+                if doc['updated_at']:
+                    doc['updated_at'] = doc['updated_at'].isoformat()
+                await db.chat_messages.insert_one(doc)
+                
+                # Prepare message for broadcast
+                broadcast_msg = {
+                    "type": "new_message",
+                    "data": {
+                        "id": message.id,
+                        "sender_id": message.sender_id,
+                        "receiver_id": message.receiver_id,
+                        "content": message.content,
+                        "message_type": message.message_type,
+                        "attachments": message.attachments,
+                        "is_read": message.is_read,
+                        "created_at": doc['created_at'],
+                        "timestamp": doc['created_at']
+                    }
+                }
+                
+                # Send to both sender and receiver
+                await manager.broadcast_to_conversation(
+                    broadcast_msg, 
+                    message.sender_id, 
+                    message.receiver_id
+                )
+                
+                logger.info(f"Message from {user_id} to {message.receiver_id}")
+            
+            elif message_type == "typing":
+                # Handle typing indicator
+                receiver_id = data.get("receiver_id")
+                is_typing = data.get("is_typing", False)
+                conversation_id = f"{min(user_id, receiver_id)}_{max(user_id, receiver_id)}"
+                
+                await manager.broadcast_typing(user_id, conversation_id, is_typing, receiver_id)
+            
+            elif message_type == "read_receipt":
+                # Handle read receipts
+                message_ids = data.get("message_ids", [])
+                sender_id = data.get("sender_id")
+                
+                # Update messages as read in database
+                if message_ids:
+                    await db.chat_messages.update_many(
+                        {"id": {"$in": message_ids}},
+                        {"$set": {"is_read": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+                    )
+                
+                # Notify sender that messages were read
+                read_receipt_msg = {
+                    "type": "read_receipt",
+                    "message_ids": message_ids,
+                    "read_by": user_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                await manager.send_personal_message(read_receipt_msg, sender_id)
+            
+            elif message_type == "ping":
+                # Keep-alive ping
+                await websocket.send_json({"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()})
+    
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_id)
+        await manager.broadcast_presence(user_id, "offline")
+        logger.info(f"User {user_id} disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error for {user_id}: {e}")
+        manager.disconnect(websocket, user_id)
+
+
+# ============== REST API Endpoints ==============
+
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -46,25 +291,97 @@ async def root():
 async def create_status_check(input: StatusCheckCreate):
     status_dict = input.model_dump()
     status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
     doc = status_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
-    
     _ = await db.status_checks.insert_one(doc)
     return status_obj
 
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
     status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
     for check in status_checks:
         if isinstance(check['timestamp'], str):
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
     return status_checks
+
+
+# Chat REST endpoints (for initial load and history)
+
+@api_router.get("/chat/messages/{user_id}/{partner_id}")
+async def get_conversation_messages(user_id: str, partner_id: str, limit: int = 50, offset: int = 0):
+    """Get messages between two users"""
+    messages = await db.chat_messages.find(
+        {
+            "$or": [
+                {"sender_id": user_id, "receiver_id": partner_id},
+                {"sender_id": partner_id, "receiver_id": user_id}
+            ]
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
+    
+    # Reverse to get chronological order
+    messages.reverse()
+    return {"messages": messages, "total": len(messages)}
+
+@api_router.post("/chat/messages")
+async def create_message(message: ChatMessageCreate):
+    """Create a new message (REST fallback for non-WebSocket clients)"""
+    msg = ChatMessage(**message.model_dump())
+    doc = msg.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    if doc['updated_at']:
+        doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    await db.chat_messages.insert_one(doc)
+    
+    # If receiver is online, send via WebSocket
+    if manager.is_user_online(msg.receiver_id):
+        broadcast_msg = {
+            "type": "new_message",
+            "data": {
+                "id": msg.id,
+                "sender_id": msg.sender_id,
+                "receiver_id": msg.receiver_id,
+                "content": msg.content,
+                "message_type": msg.message_type,
+                "attachments": msg.attachments,
+                "is_read": msg.is_read,
+                "created_at": doc['created_at'],
+                "timestamp": doc['created_at']
+            }
+        }
+        await manager.send_personal_message(broadcast_msg, msg.receiver_id)
+    
+    return {"id": msg.id, "created_at": doc['created_at']}
+
+@api_router.put("/chat/messages/read")
+async def mark_messages_read(message_ids: List[str], reader_id: str):
+    """Mark messages as read"""
+    result = await db.chat_messages.update_many(
+        {"id": {"$in": message_ids}},
+        {"$set": {"is_read": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"modified_count": result.modified_count}
+
+@api_router.get("/chat/online-users")
+async def get_online_users():
+    """Get list of currently online users"""
+    return {"online_users": manager.get_online_users()}
+
+@api_router.get("/chat/user-status/{user_id}")
+async def get_user_status(user_id: str):
+    """Get user's online status"""
+    is_online = manager.is_user_online(user_id)
+    presence = manager.user_presence.get(user_id)
+    
+    return {
+        "user_id": user_id,
+        "is_online": is_online,
+        "status": presence.status if presence else "offline",
+        "last_seen": presence.last_seen.isoformat() if presence else None
+    }
+
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -72,17 +389,10 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
