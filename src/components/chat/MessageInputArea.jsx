@@ -1,20 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Smile, MoreVertical } from 'lucide-react';
+import { Send, Smile, MoreVertical, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 
 // Import custom components
 import EmojiPicker from './EmojiPicker';
+import GifPicker from './GifPicker';
 import FileUploadHandler from './FileUploadHandler';
 import ImageUploadHandler from './ImageUploadHandler';
 import VoiceMessageRecorder from './VoiceMessageRecorder';
 import LocationPicker from './LocationPicker';
+import PollCreator from './PollCreator';
+import ContactSharePicker from './ContactSharePicker';
 
 const MessageInputArea = ({ onSendMessage, disabled }) => {
   const [message, setMessage] = useState('');
