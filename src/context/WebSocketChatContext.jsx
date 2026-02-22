@@ -175,8 +175,8 @@ export const WebSocketChatProvider = ({ children }) => {
     }
 
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-      const response = await fetch(`${backendUrl}/api/chat/messages/${user.id}/${partnerId}`);
+      const baseUrl = window.location.origin;
+      const response = await fetch(`${baseUrl}/api/chat/messages/${user.id}/${partnerId}`);
       if (response.ok) {
         const data = await response.json();
         setMessages(prev => ({
