@@ -228,25 +228,6 @@ const WorkspaceChatPage = () => {
               <p className="text-slate-500 dark:text-slate-400 max-w-sm">
                 Select a team member from the sidebar to start collaborating in real-time.
               </p>
-              
-              {/* Connection status indicator */}
-              <div className={`mt-4 flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
-                isConnected 
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-              }`}>
-                {isConnected ? (
-                  <>
-                    <Wifi className="w-4 h-4" />
-                    <span>Connected</span>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="w-4 h-4" />
-                    <span>Connecting...</span>
-                  </>
-                )}
-              </div>
             </div>
           )}
         </div>
