@@ -225,16 +225,18 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
 
   // Manual reconnect
   const reconnect = useCallback(() => {
+    stopPolling();
     if (wsRef.current) {
       wsRef.current.close();
     }
     reconnectAttemptsRef.current = 0;
     connect();
-  }, [connect]);
+  }, [connect, stopPolling]);
 
   return {
     isConnected,
     connectionError,
+    usePolling,
     sendMessage,
     sendTypingIndicator,
     sendReadReceipt,
