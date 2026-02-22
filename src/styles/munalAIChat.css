@@ -1,0 +1,55 @@
+.munal-ai-gradient {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.munal-ai-glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .munal-ai-glass {
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.munal-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.munal-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.munal-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 20px;
+}
+
+.munal-typing-dot {
+  animation: munalTyping 1.4s infinite ease-in-out both;
+}
+
+.munal-typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.munal-typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes munalTyping {
+  0%, 80%, 100% { 
+    transform: scale(0);
+  } 
+  40% { 
+    transform: scale(1);
+  }
+}
+
+.munal-message-bubble-user {
+  border-top-right-radius: 4px;
+}
+
+.munal-message-bubble-ai {
+  border-top-left-radius: 4px;
+}

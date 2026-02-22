@@ -1,0 +1,101 @@
+
+/* Voice Chat Specific Styles */
+
+.voice-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Pulse Animation for Recording Indicator */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.8);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.recording-pulse {
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+.mic-active-ring::before {
+  content: '';
+  position: absolute;
+  left: 0; 
+  top: 0;
+  right: 0; 
+  bottom: 0;
+  border-radius: 50%;
+  border: 2px solid #ef4444;
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Transcript Area Scrolling */
+.transcript-area {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.dark .transcript-area {
+  scrollbar-color: #334155 transparent;
+}
+
+.transcript-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transcript-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.transcript-area::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 20px;
+}
+
+.dark .transcript-area::-webkit-scrollbar-thumb {
+  background-color: #334155;
+}
+
+/* Glassmorphism effects */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Hover scales */
+.hover-scale-sm {
+  transition: transform 0.2s ease;
+}
+.hover-scale-sm:hover {
+  transform: scale(1.05);
+}
+
+.hover-scale-md {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hover-scale-md:hover {
+  transform: scale(1.1);
+}

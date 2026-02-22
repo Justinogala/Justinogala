@@ -1,0 +1,89 @@
+
+/* Mobile-First Design System */
+
+:root {
+  /* Fluid Typography Scale */
+  --font-size-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --font-size-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  --font-size-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --font-size-lg: clamp(1.125rem, 1.05rem + 0.375vw, 1.25rem);
+  --font-size-xl: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
+  --font-size-2xl: clamp(1.5rem, 1.35rem + 0.75vw, 2rem);
+  --font-size-3xl: clamp(1.875rem, 1.5rem + 1vw, 2.5rem);
+  --font-size-4xl: clamp(2.25rem, 1.8rem + 1.5vw, 3.5rem);
+
+  /* Responsive Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* Touch Targets */
+  --touch-target-size: 44px;
+}
+
+/* Base Mobile Optimization */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Touch-friendly base classes */
+.touch-target {
+  min-height: var(--touch-target-size);
+  min-width: var(--touch-target-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fluid Text Utilities */
+.text-fluid-xs { font-size: var(--font-size-xs); }
+.text-fluid-sm { font-size: var(--font-size-sm); }
+.text-fluid-base { font-size: var(--font-size-base); }
+.text-fluid-lg { font-size: var(--font-size-lg); }
+.text-fluid-xl { font-size: var(--font-size-xl); }
+.text-fluid-2xl { font-size: var(--font-size-2xl); }
+.text-fluid-3xl { font-size: var(--font-size-3xl); }
+.text-fluid-4xl { font-size: var(--font-size-4xl); }
+
+/* Responsive Grid Helper */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Safe Area Padding for Mobiles with Notches */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}

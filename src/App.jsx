@@ -1,0 +1,402 @@
+
+import React, { Suspense, lazy, useEffect } from 'react';
+import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
+
+// Context Providers
+import { ThemeProvider } from '@/context/ThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { AdminAuthProvider } from '@/context/AdminAuthContext';
+import { APIKeyManagementProvider } from '@/context/APIKeyManagementContext';
+import { AdminSettingsProvider } from '@/context/AdminSettingsContext';
+import { NotificationProvider } from '@/context/NotificationContext'; 
+import { WorkspaceProvider } from '@/context/WorkspaceContext';
+import { AdvancedVideoCallProvider } from '@/context/AdvancedVideoCallContext';
+import { CallStateProvider } from '@/context/CallStateContext'; 
+
+// Components
+import ScrollToTop from '@/components/ScrollToTop';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import AdminProtectedRoute from '@/components/AdminProtectedRoute';
+import PageTransition from '@/components/PageTransition';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import { Toaster } from '@/components/ui/toaster';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import AnnouncementManager from '@/components/AnnouncementManager'; 
+import MunalAIChatWrapper from '@/components/MunalAIChatWrapper';
+
+// Services
+import { audioRingingService } from '@/services/audioRingingService';
+import { registerServiceWorker } from '@/utils/serviceWorkerManager';
+
+// PWA
+import InstallPrompt from '@/components/pwa/InstallPrompt';
+import OfflineIndicator from '@/components/pwa/OfflineIndicator';
+
+// Styles
+import '@/styles/responsive.css';
+
+// Layouts
+const AdminLayout = lazy(() => import('@/layouts/AdminLayout'));
+const UserLayout = lazy(() => import('@/layouts/UserLayout'));
+
+// Critical Pages
+import LandingPage from '@/pages/LandingPage';
+import LoginPage from '@/pages/LoginPage';
+import SignupPage from '@/pages/SignupPage';
+import AdminLoginPage from '@/pages/AdminLoginPage';
+import AdminDashboard from '@/pages/AdminDashboard'; 
+
+// Feature Pages
+const FeatureOverviewPage = lazy(() => import('@/pages/features/FeatureOverviewPage'));
+const FeatureMeetingsPage = lazy(() => import('@/pages/features/FeatureMeetingsPage'));
+const FeatureTranscriptionsPage = lazy(() => import('@/pages/features/FeatureTranscriptionsPage'));
+const FeatureVideoConferencingPage = lazy(() => import('@/pages/features/FeatureVideoConferencingPage'));
+const FeatureSearchPage = lazy(() => import('@/pages/features/FeatureSearchPage'));
+const FeatureChatMessagingPage = lazy(() => import('@/pages/features/FeatureChatMessagingPage'));
+const FeatureTeamsPage = lazy(() => import('@/pages/features/FeatureTeamsPage'));
+const FeatureFileManagementPage = lazy(() => import('@/pages/features/FeatureFileManagementPage'));
+const FeatureAnalyticsPage = lazy(() => import('@/pages/features/FeatureAnalyticsPage'));
+const FeatureVoiceChatPage = lazy(() => import('@/pages/features/FeatureVoiceChatPage'));
+const FeatureCalendarIntegrationPage = lazy(() => import('@/pages/features/FeatureCalendarIntegrationPage'));
+
+// User Pages
+const UserDashboard = lazy(() => import('@/pages/user/UserDashboard')); 
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const PricingPage = lazy(() => import('@/pages/PricingPage'));
+const MeetingDetailPage = lazy(() => import('@/pages/MeetingDetailPage'));
+const SharedMeetingPage = lazy(() => import('@/pages/SharedMeetingPage'));
+const WorkspaceDetailPage = lazy(() => import('@/pages/WorkspaceDetailPage'));
+const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
+
+// AI Pages
+const TranscriptionPage = lazy(() => import('@/pages/TranscriptionPage'));
+const NewTranscriptionPage = lazy(() => import('@/pages/NewTranscriptionPage')); 
+const TranscriptionManagementPage = lazy(() => import('@/pages/TranscriptionManagementPage')); 
+const TranscriptionHistoryPage = lazy(() => import('@/pages/TranscriptionHistoryPage')); 
+const TranscriptionDetailPage = lazy(() => import('@/pages/TranscriptionDetailPage'));
+const SummarizationPage = lazy(() => import('@/pages/SummarizationPage'));
+const APIKeyConfigurationPage = lazy(() => import('@/pages/APIKeyConfigurationPage'));
+
+// Chat Pages
+const VoiceChatPage = lazy(() => import('@/pages/VoiceChatPage'));
+const VideoCallPage = lazy(() => import('@/pages/VideoCallPage'));
+const WorkspaceChatPage = lazy(() => import('@/pages/WorkspaceChatPage')); 
+const VideoConferencingPage = lazy(() => import('@/pages/VideoConferencingPage')); 
+const RecentChatsPage = lazy(() => import('@/pages/RecentChatsPage'));
+
+// Video & Meetings
+const AdvancedVideoCallInterface = lazy(() => import('@/components/video/AdvancedVideoCallInterface'));
+const MeetingCallPage = lazy(() => import('@/pages/MeetingCallPage'));
+const MeetingCalendarPage = lazy(() => import('@/pages/MeetingCalendarPage'));
+const MeetingListPage = lazy(() => import('@/pages/MeetingListPage'));
+const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
+
+// Payment Pages
+const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
+const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'));
+const UserBillingPage = lazy(() => import('@/pages/UserBillingPage'));
+const UserPaymentMethodsPage = lazy(() => import('@/pages/user/UserPaymentMethodsPage'));
+const UserPaymentHistoryPage = lazy(() => import('@/pages/user/UserPaymentHistoryPage'));
+const UserPaymentCheckoutPage = lazy(() => import('@/pages/user/UserPaymentCheckoutPage'));
+
+// Analytics & Reports
+const AnalyticsDashboardPage = lazy(() => import('@/pages/AnalyticsDashboardPage'));
+const ReportManagementPage = lazy(() => import('@/pages/ReportManagementPage'));
+
+// Auth Pages
+const OTPLoginPage = lazy(() => import('@/pages/OTPLoginPage'));
+const PasswordResetPage = lazy(() => import('@/pages/PasswordResetPage'));
+const PasswordUpdatePage = lazy(() => import('@/pages/PasswordUpdatePage'));
+const UserProfilePage = lazy(() => import('@/pages/UserProfilePage'));
+const UserSettingsPage = lazy(() => import('@/pages/UserSettingsPage'));
+
+// Portal & Support
+const WorkspacesPage = lazy(() => import('@/pages/WorkspacesPage'));
+const HelpPage = lazy(() => import('@/pages/HelpPage'));
+const SupportPage = lazy(() => import('@/pages/SupportPage'));
+const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
+const UserSupportTicketsPage = lazy(() => import('@/pages/UserSupportTicketsPage'));
+const UserSupportTicketDetailPage = lazy(() => import('@/pages/UserSupportTicketDetailPage'));
+const UserWorkspace = lazy(() => import('@/pages/UserWorkspace'));
+const ChatMessagesPage = lazy(() => import('@/pages/ChatMessagesPage'));
+
+// Use Cases
+const UseCasesIndex = lazy(() => import('@/pages/UseCases/UseCasesIndex'));
+const SalesTeams = lazy(() => import('@/pages/UseCases/SalesTeams'));
+const CustomerSuccess = lazy(() => import('@/pages/UseCases/CustomerSuccess'));
+const ProductTeams = lazy(() => import('@/pages/UseCases/ProductTeams'));
+const EngineeringTeams = lazy(() => import('@/pages/UseCases/EngineeringTeams'));
+const HRRecruiting = lazy(() => import('@/pages/UseCases/HRRecruiting'));
+
+// Resources
+const ResourcesIndex = lazy(() => import('@/pages/Resources/ResourcesIndex'));
+const Documentation = lazy(() => import('@/pages/Resources/Documentation'));
+const APIReference = lazy(() => import('@/pages/Resources/APIReference'));
+const Blog = lazy(() => import('@/pages/Resources/Blog'));
+const Community = lazy(() => import('@/pages/Resources/Community'));
+
+// Downloads
+const DownloadsIndex = lazy(() => import('@/pages/Downloads/DownloadsIndex'));
+const ChromeExtension = lazy(() => import('@/pages/Downloads/ChromeExtension'));
+const DesktopApp = lazy(() => import('@/pages/Downloads/DesktopApp'));
+const MobileApp = lazy(() => import('@/pages/Downloads/MobileApp'));
+
+// Company
+const About = lazy(() => import('@/pages/Company/About'));
+const Careers = lazy(() => import('@/pages/Company/Careers'));
+const Press = lazy(() => import('@/pages/Company/Press'));
+
+// Product
+const Pricing = lazy(() => import('@/pages/Product/Pricing'));
+const Security = lazy(() => import('@/pages/Product/Security'));
+const Roadmap = lazy(() => import('@/pages/Product/Roadmap'));
+
+// Legal
+const Contact = lazy(() => import('@/pages/Legal/Contact'));
+const Privacy = lazy(() => import('@/pages/Legal/Privacy'));
+const Terms = lazy(() => import('@/pages/Legal/Terms'));
+const ContactFormPage = lazy(() => import('@/pages/ContactFormPage'));
+
+// Admin Pages
+const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
+const AdminSettings = lazy(() => import('@/pages/AdminSettings'));
+const AdminAnalytics = lazy(() => import('@/pages/AdminAnalytics'));
+const AdminReports = lazy(() => import('@/pages/AdminReports'));
+const AdminProfile = lazy(() => import('@/pages/AdminProfile'));
+const AdminContent = lazy(() => import('@/pages/AdminContent'));
+const AdminWorkspace = lazy(() => import('@/pages/AdminWorkspace'));
+const AdminSystemHealthPage = lazy(() => import('@/pages/AdminSystemHealthPage'));
+const AdminTicketsPage = lazy(() => import('@/pages/AdminTicketsPage'));
+const AdminSupportTicketsPage = lazy(() => import('@/pages/AdminSupportTicketsPage'));
+const AdminMessagesPage = lazy(() => import('@/pages/AdminMessagesPage'));
+const AdminBillingPage = lazy(() => import('@/pages/admin/AdminBillingPage'));
+const AdminUserManagementPage = lazy(() => import('@/pages/admin/AdminUserManagementPage'));
+const AdminPaymentGatewaysPage = lazy(() => import('@/pages/admin/AdminPaymentGatewaysPage'));
+const AdminAPISettingsPage = lazy(() => import('@/pages/admin/AdminAPISettingsPage'));
+const AdminIntegrationsPage = lazy(() => import('@/pages/admin/AdminIntegrationsPage'));
+const AdminAPILogs = lazy(() => import('@/pages/admin/AdminAPILogs'));
+const AdminIntegrationLogs = lazy(() => import('@/pages/admin/AdminIntegrationLogs'));
+const AdminSettingsPersistenceTest = lazy(() => import('@/pages/admin/AdminSettingsPersistenceTest'));
+const AdminTranscriptionSettingsPage = lazy(() => import('@/pages/admin/AdminTranscriptionSettingsPage')); 
+const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
+const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
+
+function App() {
+  useEffect(() => {
+    registerServiceWorker();
+    const handleInteraction = () => {
+      audioRingingService.resumeContext();
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <AdminAuthProvider>
+            <AdminSettingsProvider>
+              <APIKeyManagementProvider>
+                <Router>
+                  <NotificationProvider>
+                    <WorkspaceProvider>
+                      <AdvancedVideoCallProvider>
+                        <CallStateProvider>
+                          <AnnouncementManager />
+                          <MunalAIChatWrapper />
+                          <ScrollToTop />
+                          <InstallPrompt />
+                          <OfflineIndicator />
+                          
+                          <Suspense fallback={
+                            <div className="min-h-screen flex items-center justify-center bg-violet-50 dark:bg-slate-950">
+                              <LoadingSpinner size="large" />
+                            </div>
+                          }>
+                            <Routes>
+                              {/* Public Routes */}
+                              <Route path="/" element={<LandingPage />} />
+                              <Route path="/contact" element={<PageTransition><ContactFormPage /></PageTransition>} />
+                              <Route path="/features" element={<FeatureOverviewPage />} />
+                              <Route path="/features/overview" element={<FeatureOverviewPage />} />
+                              <Route path="/features/meetings" element={<FeatureMeetingsPage />} />
+                              <Route path="/features/transcriptions" element={<FeatureTranscriptionsPage />} />
+                              <Route path="/features/video-conferencing" element={<FeatureVideoConferencingPage />} />
+                              <Route path="/features/search" element={<FeatureSearchPage />} />
+                              <Route path="/features/chat-messaging" element={<FeatureChatMessagingPage />} />
+                              <Route path="/features/teams" element={<FeatureTeamsPage />} />
+                              <Route path="/features/file-management" element={<FeatureFileManagementPage />} />
+                              <Route path="/features/analytics" element={<FeatureAnalyticsPage />} />
+                              <Route path="/features/voice-chat" element={<FeatureVoiceChatPage />} />
+                              <Route path="/features/calendar-integration" element={<FeatureCalendarIntegrationPage />} />
+                              
+                              <Route path="/login" element={<LoginPage />} />
+                              <Route path="/login/otp" element={<OTPLoginPage />} />
+                              <Route path="/signup" element={<SignupPage />} />
+                              <Route path="/password-reset" element={<PasswordResetPage />} />
+                              <Route path="/pricing" element={<PricingPage />} />
+                              <Route path="/shared/:shareToken" element={<SharedMeetingPage />} />
+                              <Route path="/checkout/:planId" element={<CheckoutPage />} />
+
+                              <Route path="/update-password" element={
+                                <ProtectedRoute>
+                                  <PasswordUpdatePage />
+                                </ProtectedRoute>
+                              } />
+
+                              {/* Protected User Routes */}
+                              <Route element={
+                                <ProtectedRoute>
+                                  <UserLayout />
+                                </ProtectedRoute>
+                              }>
+                                <Route path="/dashboard" element={<UserDashboard />} />
+                                <Route path="/user/dashboard" element={<UserDashboard />} />
+                                <Route path="/meetings" element={<MeetingsPage />} />
+                                <Route path="/meeting/:id" element={<MeetingDetailPage />} />
+                                <Route path="/calendar" element={<MeetingCalendarPage />} />
+                                <Route path="/my-meetings" element={<MeetingListPage />} />
+                                
+                                <Route path="/transcriptions" element={<TranscriptionHistoryPage />} />
+                                <Route path="/transcription/new" element={<NewTranscriptionPage />} /> 
+                                <Route path="/transcriptions/manage" element={<TranscriptionManagementPage />} />
+                                <Route path="/transcriptions/:id" element={<TranscriptionDetailPage />} />
+                                <Route path="/transcribe-new" element={<TranscriptionPage />} />
+                                <Route path="/summarize" element={<SummarizationPage />} />
+                                
+                                <Route path="/voice-chat" element={<VoiceChatPage />} />
+                                <Route path="/video-call" element={<VideoCallPage />} />
+                                <Route path="/files" element={<FileManagementPage />} />
+                                
+                                <Route path="/workspaces" element={<WorkspacesPage />} />
+                                <Route path="/workspace/chat" element={<WorkspaceChatPage />} />
+                                <Route path="/workspace/video-conferencing" element={<VideoConferencingPage />} /> 
+                                <Route path="/workspace/:workspaceId/manage" element={<WorkspaceDetailPage />} />
+                                <Route path="/workspace/:id" element={<WorkspaceDetailPage />} /> 
+
+                                <Route path="/workspace/:workspaceId/call/:callId" element={<AdvancedVideoCallInterface />} />
+                                
+                                <Route path="/billing" element={<UserBillingPage />} />
+                                <Route path="/user/payment-methods" element={<UserPaymentMethodsPage />} />
+                                <Route path="/user/payment-history" element={<UserPaymentHistoryPage />} />
+                                <Route path="/user/checkout" element={<UserPaymentCheckoutPage />} />
+
+                                <Route path="/support" element={<SupportPage />} />
+                                <Route path="/support-tickets" element={<UserSupportTicketsPage />} />
+                                <Route path="/support-tickets/:ticketId" element={<UserSupportTicketDetailPage />} />
+                                <Route path="/messages" element={<MessagesPage />} />
+                                <Route path="/chat-messages" element={<ChatMessagesPage />} />
+                                <Route path="/recent-chats" element={<RecentChatsPage />} />
+                                
+                                <Route path="/integrations" element={<IntegrationsPage />} />
+                                <Route path="/integrations/settings" element={<IntegrationsPage />} />
+                                <Route path="/settings/api" element={<APISettingsPage />} />
+                                <Route path="/settings/api-keys" element={<APIKeyConfigurationPage />} />
+                                
+                                <Route path="/profile" element={<UserProfilePage />} />
+                                <Route path="/settings" element={<UserSettingsPage />} />
+                                <Route path="/help" element={<HelpPage />} />
+                                <Route path="/settings/billing" element={<UserBillingPage />} />
+                                <Route path="/my-workspaces" element={<UserWorkspace />} />
+                                <Route path="/analytics" element={<AnalyticsDashboardPage />} />
+                              </Route>
+
+                              <Route path="/meeting/:id/live" element={
+                                <ProtectedRoute>
+                                  <MeetingCallPage />
+                                </ProtectedRoute>
+                              } />
+                              
+                              <Route path="/use-cases" element={<UseCasesIndex />} />
+                              <Route path="/use-cases/sales" element={<SalesTeams />} />
+                              <Route path="/use-cases/customer-success" element={<CustomerSuccess />} />
+                              <Route path="/use-cases/product" element={<ProductTeams />} />
+                              <Route path="/use-cases/engineering" element={<EngineeringTeams />} />
+                              <Route path="/use-cases/hr" element={<HRRecruiting />} />
+
+                              <Route path="/resources" element={<ResourcesIndex />} />
+                              <Route path="/resources/docs" element={<Documentation />} />
+                              <Route path="/resources/api" element={<APIReference />} />
+                              <Route path="/resources/blog" element={<Blog />} />
+                              <Route path="/resources/community" element={<Community />} />
+
+                              <Route path="/downloads" element={<DownloadsIndex />} />
+                              <Route path="/downloads/chrome-extension" element={<ChromeExtension />} />
+                              <Route path="/downloads/desktop-app" element={<DesktopApp />} />
+                              <Route path="/downloads/mobile-app" element={<MobileApp />} />
+
+                              <Route path="/company/about" element={<About />} />
+                              <Route path="/company/careers" element={<Careers />} />
+                              <Route path="/company/press" element={<Press />} />
+                              <Route path="/contact" element={<Contact />} />
+
+                              <Route path="/product/pricing" element={<PricingPage />} />
+                              <Route path="/product/security" element={<Security />} />
+                              <Route path="/product/roadmap" element={<Roadmap />} />
+
+                              <Route path="/legal/privacy" element={<Privacy />} />
+                              <Route path="/legal/terms" element={<Terms />} />
+                              <Route path="/legal/contact" element={<Contact />} />
+
+                              {/* Admin Routes */}
+                              <Route path="/admin/login" element={<AdminLoginPage />} />
+                              <Route path="/admin" element={
+                                <AdminProtectedRoute>
+                                  <AdminLayout />
+                                </AdminProtectedRoute>
+                              }>
+                                <Route index element={<AdminDashboard />} />
+                                <Route path="dashboard" element={<AdminDashboard />} />
+                                <Route path="users" element={<AdminUserManagementPage />} />
+                                <Route path="settings" element={<AdminSettings />} />
+                                <Route path="analytics" element={<AdminAnalytics />} /> 
+                                <Route path="reports" element={<AdminReports />} /> 
+                                <Route path="billing" element={<AdminBillingPage />} />
+                                <Route path="workspaces" element={<AdminWorkspace />} />
+                                <Route path="profile" element={<AdminProfile />} />
+                                <Route path="content" element={<AdminContent />} />
+                                <Route path="health" element={<AdminSystemHealthPage />} />
+                                <Route path="tickets" element={<AdminTicketsPage />} />
+                                <Route path="support-tickets" element={<AdminSupportTicketsPage />} />
+                                <Route path="messages" element={<AdminMessagesPage />} />
+                                <Route path="api-settings" element={<AdminAPISettingsPage />} />
+                                <Route path="integrations" element={<AdminIntegrationsPage />} />
+                                <Route path="payment-gateways" element={<AdminPaymentGatewaysPage />} />
+                                <Route path="transcription-settings" element={<AdminTranscriptionSettingsPage />} />
+                                <Route path="api-logs" element={<AdminAPILogs />} />
+                                <Route path="integration-logs" element={<AdminIntegrationLogs />} />
+                                <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
+                                <Route path="*" element={<AdminDashboard />} />
+                              </Route>
+                              
+                              <Route path="*" element={<NotFound />} />
+                            </Routes>
+                          </Suspense>
+                          <Toaster />
+                        </CallStateProvider>
+                      </AdvancedVideoCallProvider>
+                    </WorkspaceProvider>
+                  </NotificationProvider>
+                </Router>
+              </APIKeyManagementProvider>
+            </AdminSettingsProvider>
+          </AdminAuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;

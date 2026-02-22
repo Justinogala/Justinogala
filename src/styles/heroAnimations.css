@@ -1,0 +1,138 @@
+
+/* Optimized GPU-accelerated animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Floating Animation */
+@keyframes hero-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-hero-float {
+  animation: hero-float 6s ease-in-out infinite;
+}
+
+.animate-hero-float-slow {
+  animation: hero-float 8s ease-in-out infinite;
+}
+
+.animate-hero-float-fast {
+  animation: hero-float 4s ease-in-out infinite;
+}
+
+/* Pulse Animation */
+@keyframes hero-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+.animate-hero-pulse {
+  animation: hero-pulse 4s ease-in-out infinite;
+}
+
+/* Rotate Animation */
+@keyframes hero-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-hero-rotate {
+  animation: hero-rotate 15s linear infinite;
+}
+
+.animate-hero-rotate-slow {
+  animation: hero-rotate 25s linear infinite;
+}
+
+/* Gradient Shift */
+@keyframes hero-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: hero-gradient-shift 8s ease infinite;
+}
+
+/* Wave Effect */
+@keyframes hero-wave {
+  0%, 100% {
+    transform: skewY(0deg);
+  }
+  50% {
+    transform: skewY(2deg);
+  }
+}
+
+.animate-hero-wave {
+  animation: hero-wave 6s ease-in-out infinite;
+}
+
+/* Glow Effect */
+@keyframes hero-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.6));
+  }
+}
+
+.animate-hero-glow {
+  animation: hero-glow 3s ease-in-out infinite;
+}
+
+/* Stagger Delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-1000 { animation-delay: 1s; }
+.delay-2000 { animation-delay: 2s; }
+.delay-3000 { animation-delay: 3s; }
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-float,
+  .animate-hero-float-slow,
+  .animate-hero-float-fast,
+  .animate-hero-pulse,
+  .animate-hero-rotate,
+  .animate-hero-rotate-slow,
+  .animate-gradient-shift,
+  .animate-hero-wave,
+  .animate-hero-glow {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

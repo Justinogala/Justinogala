@@ -1,0 +1,146 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+@import './styles/spacing.css';
+@import './styles/heroAnimations.css';
+@import './styles/notifications.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Rich Purple Theme Palette - Matches Violet Tailwind Colors */
+  --primary-purple: #7C3AED;   /* Violet 600 */
+  --secondary-purple: #8B5CF6; /* Violet 500 */
+  --tertiary-purple: #A78BFA;  /* Violet 400 */
+  --dark-purple: #6D28D9;      /* Violet 700 */
+  --deep-purple: #5B21B6;      /* Violet 800 */
+  --light-purple: #EDE9FE;     /* Violet 50 */
+  
+  /* Modern Palette & Gradients */
+  --primary-gradient: linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%); /* Violet 700 -> 600 */
+  --secondary-gradient: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); /* Violet 600 -> 500 */
+  --accent-gradient: linear-gradient(135deg, #F59E0B 0%, #F97316 100%); /* Amber to Orange */
+  
+  /* Glassmorphism Tokens - Light Mode */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(124, 58, 237, 0.15); 
+  --glass-shadow: 0 8px 32px 0 rgba(124, 58, 237, 0.1);
+  --glass-blur: 16px;
+
+  /* Base Colors */
+  --bg-primary: #FFFFFF; 
+  --bg-secondary: #F5F3FF; /* Violet 50 */
+  --text-primary: #1E1B4B; /* Indigo 950 */
+  --text-secondary: #6B7280; 
+  
+  /* Semantic */
+  --accent: #7C3AED;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --border: #E5E7EB;
+  --radius: 0.75rem; 
+}
+
+[data-theme="dark"] {
+  /* Glassmorphism Tokens - Dark Mode */
+  --glass-bg: rgba(15, 23, 42, 0.75);
+  --glass-border: rgba(139, 92, 246, 0.25);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+
+  /* Base Colors */
+  --bg-primary: #0F172A; /* Slate 900 */
+  --bg-secondary: #1E1B4B; /* Indigo 950 */
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  
+  --accent: #A78BFA; /* Violet 400 for dark mode */
+  --success: #34D399;
+  --warning: #FBBF24;
+  --error: #F87171;
+  --border: #374151;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary transition-colors duration-300;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    @apply text-text-primary tracking-tight;
+  }
+
+  input, textarea, select {
+    @apply text-gray-900 dark:text-white transition-all duration-200 caret-violet-600;
+  }
+
+  input::placeholder, textarea::placeholder {
+    @apply text-gray-400 dark:text-gray-500 opacity-80;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    @apply ring-2 ring-violet-500/50 border-violet-500 outline-none;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Utilities */
+  .glass-panel {
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-violet-100 dark:border-violet-900/40 shadow-lg shadow-violet-500/5;
+  }
+  
+  .glass-card {
+    @apply bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-violet-50 dark:border-violet-900/30 shadow-sm hover:shadow-violet-200/50 dark:hover:shadow-violet-900/50 transition-all duration-300;
+  }
+
+  .glass-button {
+    @apply bg-white/80 dark:bg-slate-800/80 hover:bg-violet-50 dark:hover:bg-violet-900/30 backdrop-blur-sm border border-violet-200 dark:border-violet-700 shadow-sm hover:shadow-md transition-all duration-300 active:scale-95;
+  }
+
+  .text-gradient-primary {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-secondary {
+    background: var(--secondary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  /* Purple Frame Utilities */
+  .purple-frame {
+    @apply border border-violet-200 dark:border-violet-800 rounded-xl shadow-lg shadow-violet-100 dark:shadow-violet-900/20 bg-white dark:bg-slate-900;
+  }
+  
+  .purple-glow {
+    @apply shadow-[0_0_20px_rgba(124,58,237,0.25)] dark:shadow-[0_0_20px_rgba(139,92,246,0.15)];
+  }
+
+  /* Specific Input Styling for Purple Theme Consistency */
+  .input-purple {
+    @apply bg-violet-600 text-white placeholder-violet-200/70 border-violet-500 focus:border-violet-400 focus:ring-violet-500/20 shadow-inner dark:bg-violet-900/60 dark:border-violet-700 dark:text-violet-100 dark:placeholder-violet-400;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-violet-300 dark:bg-violet-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-violet-500 dark:bg-violet-600;
+}

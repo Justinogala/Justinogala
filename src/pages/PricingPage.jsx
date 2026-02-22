@@ -1,0 +1,373 @@
+import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { motion } from 'framer-motion';
+import { Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import Header from '@/components/Header';
+
+const PricingPage = () => {
+  const navigate = useNavigate();
+  const [expandedFaq, setExpandedFaq] = useState(null);
+
+  const pricingTiers = [
+    {
+      name: 'Free',
+      price: '$0',
+      period: '/month',
+      description: 'Perfect for trying out Munal',
+      features: [
+        { text: '100 transcription minutes/month', included: true },
+        { text: 'AI-powered transcription', included: true },
+        { text: 'Basic AI summaries', included: true },
+        { text: 'Action item extraction', included: true },
+        { text: 'Limited exports (5/month)', included: true },
+        { text: 'AI chat with meetings', included: false },
+        { text: 'Team workspaces', included: false },
+        { text: 'Priority support', included: false },
+        { text: 'Custom integrations', included: false }
+      ],
+      cta: 'Start Free',
+      popular: false
+    },
+    {
+      name: 'Pro',
+      price: '$29',
+      period: '/month',
+      description: 'For professionals who need more from Munal',
+      features: [
+        { text: '500 transcription minutes/month', included: true },
+        { text: 'AI-powered transcription', included: true },
+        { text: 'Advanced AI summaries', included: true },
+        { text: 'Action item extraction', included: true },
+        { text: 'Unlimited exports', included: true },
+        { text: 'AI chat with meetings', included: true },
+        { text: 'Advanced search & filters', included: true },
+        { text: 'Priority support', included: true },
+        { text: 'Custom integrations', included: false }
+      ],
+      cta: 'Start Pro Trial',
+      popular: true
+    },
+    {
+      name: 'Business',
+      price: '$99',
+      period: '/month',
+      description: 'For teams and organizations using Munal',
+      features: [
+        { text: '2000 transcription minutes/month', included: true },
+        { text: 'AI-powered transcription', included: true },
+        { text: 'Advanced AI summaries', included: true },
+        { text: 'Action item extraction', included: true },
+        { text: 'Unlimited exports', included: true },
+        { text: 'AI chat with meetings', included: true },
+        { text: 'Team workspaces & collaboration', included: true },
+        { text: 'Dedicated support manager', included: true },
+        { text: 'Custom integrations & API', included: true }
+      ],
+      cta: 'Contact Sales',
+      popular: false
+    }
+  ];
+
+  const comparisonFeatures = [
+    { category: 'Transcription', features: [
+      { name: 'Monthly minutes', free: '100', pro: '500', business: '2000' },
+      { name: 'AI accuracy', free: 'Standard', pro: 'High', business: 'Highest' },
+      { name: 'Speaker identification', free: true, pro: true, business: true },
+      { name: 'Custom vocabulary', free: false, pro: true, business: true }
+    ]},
+    { category: 'AI Features', features: [
+      { name: 'Meeting summaries', free: 'Basic', pro: 'Advanced', business: 'Advanced' },
+      { name: 'Action item extraction', free: true, pro: true, business: true },
+      { name: 'AI chat', free: false, pro: true, business: true },
+      { name: 'Custom prompts', free: false, pro: false, business: true }
+    ]},
+    { category: 'Collaboration', features: [
+      { name: 'Team members', free: '1', pro: '5', business: 'Unlimited' },
+      { name: 'Shared workspaces', free: false, pro: false, business: true },
+      { name: 'Comments & annotations', free: false, pro: true, business: true },
+      { name: 'Role-based access', free: false, pro: false, business: true }
+    ]},
+    { category: 'Support', features: [
+      { name: 'Email support', free: true, pro: true, business: true },
+      { name: 'Priority support', free: false, pro: true, business: true },
+      { name: 'Dedicated manager', free: false, pro: false, business: true },
+      { name: 'Phone support', free: false, pro: false, business: true }
+    ]}
+  ];
+
+  const faqs = [
+    {
+      question: 'How does the transcription minute limit work?',
+      answer: 'Your monthly limit resets on the same day each month. Unused minutes do not roll over. If you exceed your limit, you can upgrade your plan or purchase additional minutes.'
+    },
+    {
+      question: 'Can I change plans at any time?',
+      answer: 'Yes! You can upgrade or downgrade your plan at any time. When upgrading, you\'ll be charged the prorated difference. When downgrading, the change takes effect at your next billing cycle.'
+    },
+    {
+      question: 'What file formats are supported?',
+      answer: 'We support MP3, WAV, M4A, and MP4 files. Maximum file size is 100MB per upload. For larger files, please contact our support team.'
+    },
+    {
+      question: 'Is my data secure?',
+      answer: 'Absolutely. We use industry-standard encryption for data in transit and at rest. Your recordings and transcripts are never shared with third parties and are stored securely on our servers.'
+    },
+    {
+      question: 'Do you offer refunds?',
+      answer: 'We offer a 14-day money-back guarantee on all paid plans. If you\'re not satisfied, contact us within 14 days of your purchase for a full refund.'
+    },
+    {
+      question: 'Can I get a custom plan for my organization?',
+      answer: 'Yes! If you need more than 2000 minutes per month or have specific requirements, please contact our sales team to discuss a custom enterprise plan.'
+    }
+  ];
+
+  const renderFeatureValue = (value) => {
+    if (typeof value === 'boolean') {
+      return value ? (
+        <Check className="w-5 h-5 text-green-600 dark:text-green-400 mx-auto" />
+      ) : (
+        <X className="w-5 h-5 text-gray-400 dark:text-gray-600 mx-auto" />
+      );
+    }
+    return <span className="text-gray-900 dark:text-white font-medium">{value}</span>;
+  };
+
+  return (
+    <>
+      <Helmet>
+        <title>Pricing - Munal</title>
+        <meta name="description" content="Choose the perfect Munal plan for your meeting transcription needs. Start free or upgrade for advanced features." />
+      </Helmet>
+
+      <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
+        <Header />
+
+        {/* Hero Section */}
+        <section className="relative py-16 md:py-24 pt-header-mobile md:pt-header-tablet lg:pt-header-desktop overflow-hidden bg-gray-50 dark:bg-slate-900/50">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center mb-12"
+            >
+              <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
+                Simple, Transparent Munal Pricing
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                Choose the plan that fits your needs. All plans include a 14-day free trial.
+              </p>
+            </motion.div>
+
+            {/* Pricing Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+              {pricingTiers.map((tier, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card 
+                    hover 
+                    className={`h-full relative flex flex-col bg-white dark:bg-slate-900 ${
+                      tier.popular 
+                        ? 'border-2 border-indigo-500 shadow-2xl dark:shadow-indigo-900/20' 
+                        : 'border border-gray-200 dark:border-slate-800 shadow-lg'
+                    }`}
+                  >
+                    {tier.popular && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-1 rounded-full text-sm font-semibold text-white shadow-lg">
+                        Most Popular
+                      </div>
+                    )}
+                    <CardContent className="pt-8 flex-1 flex flex-col">
+                      <div className="text-center mb-6">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{tier.name}</h3>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{tier.description}</p>
+                        <div className="mb-4">
+                          <span className="text-5xl font-bold text-gray-900 dark:text-white">{tier.price}</span>
+                          <span className="text-gray-500 dark:text-gray-400 font-medium">{tier.period}</span>
+                        </div>
+                      </div>
+
+                      <ul className="space-y-3 mb-8 flex-1">
+                        {tier.features.map((feature, i) => (
+                          <li key={i} className="flex items-start gap-3">
+                            {feature.included ? (
+                              <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                            ) : (
+                              <X className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-0.5" />
+                            )}
+                            <span className={feature.included ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500 line-through'}>
+                              {feature.text}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <Button 
+                        className="w-full h-12 text-base font-semibold"
+                        variant={tier.popular ? 'default' : 'outline'}
+                        onClick={() => navigate('/signup')}
+                      >
+                        {tier.cta}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Comparison Table */}
+        <section className="py-16 bg-white dark:bg-slate-950">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+                Detailed Feature Comparison
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 text-lg">
+                See exactly what's included in each plan
+              </p>
+            </motion.div>
+
+            <div className="max-w-5xl mx-auto overflow-x-auto border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm">
+              <table className="w-full min-w-[800px]">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
+                    <th className="text-left py-4 px-6 text-gray-600 dark:text-gray-400 font-semibold w-1/4">Feature</th>
+                    <th className="text-center py-4 px-4 text-gray-900 dark:text-white font-bold w-1/4">Free</th>
+                    <th className="text-center py-4 px-4 text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50/50 dark:bg-indigo-900/10 w-1/4">Pro</th>
+                    <th className="text-center py-4 px-4 text-gray-900 dark:text-white font-bold w-1/4">Business</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                  {comparisonFeatures.map((category, catIndex) => (
+                    <React.Fragment key={catIndex}>
+                      <tr>
+                        <td colSpan="4" className="py-4 px-6 bg-gray-50/50 dark:bg-slate-900/50">
+                          <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider">{category.category}</h3>
+                        </td>
+                      </tr>
+                      {category.features.map((feature, featIndex) => (
+                        <tr key={featIndex} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="py-4 px-6 text-gray-700 dark:text-gray-300 font-medium">{feature.name}</td>
+                          <td className="py-4 px-4 text-center">{renderFeatureValue(feature.free)}</td>
+                          <td className="py-4 px-4 text-center bg-indigo-50/20 dark:bg-indigo-900/5">{renderFeatureValue(feature.pro)}</td>
+                          <td className="py-4 px-4 text-center">{renderFeatureValue(feature.business)}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-16 bg-gray-50 dark:bg-slate-900/50">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 text-lg">
+                Got questions? We've got answers.
+              </p>
+            </motion.div>
+
+            <div className="max-w-3xl mx-auto space-y-4">
+              {faqs.map((faq, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card 
+                    className="cursor-pointer border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
+                    onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white pr-8">{faq.question}</h3>
+                        {expandedFaq === index ? (
+                          <ChevronUp className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      {expandedFaq === index && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-4 text-gray-600 dark:text-gray-300 leading-relaxed"
+                        >
+                          {faq.answer}
+                        </motion.p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-16 bg-white dark:bg-slate-950">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="max-w-4xl mx-auto text-center"
+            >
+              <Card className="bg-gradient-to-br from-indigo-600 to-purple-700 border-0 shadow-2xl overflow-hidden relative">
+                {/* Decorative circles */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl"></div>
+                
+                <CardContent className="py-16 px-6 relative z-10">
+                  <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                    Ready to Get Started with Munal?
+                  </h2>
+                  <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
+                    Try Munal free for 14 days. No credit card required.
+                  </p>
+                  <Button 
+                    size="lg" 
+                    className="bg-white text-indigo-700 hover:bg-indigo-50 h-14 px-8 text-lg font-semibold shadow-lg"
+                    onClick={() => navigate('/signup')}
+                  >
+                    Start Your Free Trial
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </section>
+      </div>
+    </>
+  );
+};
+
+export default PricingPage;

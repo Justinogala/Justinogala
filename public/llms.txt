@@ -1,0 +1,51 @@
+## Pages
+- [- EchoNote AI](/meetingdetail): No description available
+- [- Shared EchoNote AI](/sharedmeeting): No description available
+- [| Munal](/transcriptiondetail): No description available
+- [| Settings](/workspacedetail): No description available
+- [| Support - Munal](/usersupportticketdetail): No description available
+- [404: Page Not Found - Munal](/notfound): No description available
+- [Active Meeting | Munal AI](/meetingcall): Secure high-quality video conferencing session.
+- [Admin Login | Munal](/adminlogin): Secure admin portal login
+- [AI Summarization - Munal](/summarization): Generate concise summaries, action items, and key points from transcripts.
+- [Analytics Dashboard - Munal](/analyticsdashboard): No description available
+- [API Configuration | Munal](/apikeyconfiguration): No description available
+- [Billing & Subscription - Munal](/billingdashboard): No description available
+- [Calendar - Munal](/meetingcalendar): No description available
+- [Checkout - Munal](/checkout): No description available
+- [Contact Us - Munal AI](/contactform): Get in touch with the Munal AI team for support, sales, or general inquiries.
+- [Create Account - EchoNote AI](/createaccount): No description available
+- [Edit:  | Munal](/transcriptions): No description available
+- [Features | Munal - Powerful Tools for Modern Teams](/features): No description available
+- [File Management - Munal](/filemanagement): Manage your audio, video, and documents.
+- [History | Munal](/transcriptionhistory): No description available
+- [Integrations - Munal](/integrationsettings): No description available
+- [Login - Munal AI](/login): Log in to your Munal AI account for meeting intelligence.
+- [Manage Transcriptions | Munal](/transcriptionmanagement): No description available
+- [Meetings | Munal AI](/meetings): Manage your video conferences, schedule meetings, and view history.
+- [Messages - Admin | Munal AI](/adminmessages): No description available
+- [Messages | Munal](/chatmessages): No description available
+- [Munal - Collaborate, Transcribe, and Succeed Together](/landing): No description available
+- [Munal - Transform Your Meetings](/home): No description available
+- [My Meetings - Munal](/meetinglist): No description available
+- [My Profile - Munal](/userprofile): No description available
+- [New Transcription - Munal](/transcription): No description available
+- [New Transcription | Munal](/newtranscription): No description available
+- [OTP Login - Munal](/otplogin): No description available
+- [Plans & Pricing - Munal](/payment): Choose the perfect plan for your meeting transcription and AI summary needs.
+- [Pricing - Munal](/pricing): Choose the perfect Munal plan for your meeting transcription needs. Start free with 30 minutes/month or upgrade for advanced features.
+- [Profile Settings - Munal](/profile): Manage your account settings, profile information, and subscription plan.
+- [Recent Chats | Munal](/recentchats): No description available
+- [Reports - Munal](/reportmanagement): No description available
+- [Reset Password - Munal](/passwordreset): No description available
+- [Settings - Munal](/settings): Manage your account settings and preferences.
+- [Settings - Munal](/usersettings): Manage your account settings, notifications, and privacy.
+- [Sign Up - Munal AI](/signup): Create your Munal AI account to start automating your meeting notes.
+- [Support Tickets | Admin Portal](/adminsupporttickets): No description available
+- [Support Tickets | Munal](/usersupporttickets): No description available
+- [Update Password - Munal](/passwordupdate): No description available
+- [Video Conferencing | Munal](/videoconferencing): No description available
+- [Voice Chat - Munal](/voicechat): Real-time voice transcription and recording.
+- [Voice Chat History | Munal](/voicechathistory): No description available
+- [Workspace Chat | Munal](/workspacechat): No description available
+- [Workspaces | Munal](/workspaces): No description available

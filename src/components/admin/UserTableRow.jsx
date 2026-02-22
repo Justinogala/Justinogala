@@ -1,0 +1,58 @@
+
+import React from 'react';
+import { TableRow, TableCell } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import StatusBadge from './StatusBadge';
+import RoleBadge from './RoleBadge';
+import UserActionsMenu from './UserActionsMenu';
+
+const UserTableRow = ({ user, onAction }) => {
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <TableRow className="group hover:bg-violet-50/50 dark:hover:bg-slate-800/50 transition-colors">
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-9 w-9 border border-gray-200 dark:border-gray-700">
+            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            <AvatarFallback className="bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300 font-medium text-xs">
+              {getInitials(user.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {user.name}
+            </span>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="text-gray-500 dark:text-gray-400">
+        {user.email}
+      </TableCell>
+      <TableCell>
+        <RoleBadge role={user.role} />
+      </TableCell>
+      <TableCell>
+        <StatusBadge status={user.status} />
+      </TableCell>
+      <TableCell className="text-gray-600 dark:text-gray-300 font-medium text-sm">
+        {user.plan}
+      </TableCell>
+      <TableCell className="text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">
+        {user.joinDate}
+      </TableCell>
+      <TableCell className="text-right">
+        <UserActionsMenu user={user} onAction={onAction} />
+      </TableCell>
+    </TableRow>
+  );
+};
+
+export default UserTableRow;

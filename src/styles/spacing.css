@@ -1,0 +1,59 @@
+
+/* src/styles/spacing.css */
+:root {
+  /* Header Heights */
+  --header-height-mobile: 64px;  /* For sm breakpoint and below */
+  --header-height-tablet: 72px;  /* For md breakpoint */
+  --header-height-desktop: 80px; /* For lg breakpoint and above */
+}
+
+@media (min-width: 640px) { /* sm breakpoint */
+  :root {
+    --header-height-mobile: 64px; /* Still 64px for sm */
+  }
+}
+
+@media (min-width: 768px) { /* md breakpoint */
+  :root {
+    --header-height-mobile: 64px; /* Still 64px for md */
+    --header-height-tablet: 72px;
+  }
+}
+
+@media (min-width: 1024px) { /* lg breakpoint */
+  :root {
+    --header-height-desktop: 80px;
+    --header-height-tablet: 72px; /* Still 72px for lg */
+  }
+}
+
+/* Dynamic Padding based on Header Height */
+.pt-header-mobile {
+  padding-top: var(--header-height-mobile);
+}
+
+.md\:pt-header-tablet {
+  @media (min-width: 768px) { /* md breakpoint */
+    padding-top: var(--header-height-tablet);
+  }
+}
+
+.lg\:pt-header-desktop {
+  @media (min-width: 1024px) { /* lg breakpoint */
+    padding-top: var(--header-height-desktop);
+  }
+}
+
+.header-h-mobile {
+  height: var(--header-height-mobile);
+}
+.md\:header-h-tablet {
+  @media (min-width: 768px) {
+    height: var(--header-height-tablet);
+  }
+}
+.lg\:header-h-desktop {
+  @media (min-width: 1024px) {
+    height: var(--header-height-desktop);
+  }
+}

@@ -1,0 +1,54 @@
+
+/* src/tailwind.css */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+@import './styles/spacing.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary transition-colors duration-300;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Text Visibility Utilities */
+  .text-dark-visibility {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+  
+  .text-placeholder-visibility {
+    @apply placeholder:text-gray-500 dark:placeholder:text-gray-400 placeholder:opacity-70;
+  }
+
+  .bg-input-visibility {
+    @apply bg-white dark:bg-slate-900 border-gray-300 dark:border-gray-700;
+  }
+
+  /* Specific fix for light background inputs */
+  .input-light-bg {
+    @apply bg-white text-gray-900 border-gray-300 placeholder:text-gray-500 focus:ring-indigo-500;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-bg-secondary;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(59, 130, 246, 0.5);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accent;
+}
