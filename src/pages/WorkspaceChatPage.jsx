@@ -85,14 +85,34 @@ const WorkspaceChatPage = () => {
     }
   };
 
-  const handleSendMessage = async (text) => {
+  const handleSendMessage = async (text, attachments = []) => {
     if (!selectedUserId) return;
     
     setIsSending(true);
     try {
-      // Optimistic update handled by service subscription or local append?
-      // Service posts event, so we'll wait for that or just append locally for instant feedback
-      const newMsg = await messagingService.sendMessage(activeUser.id, selectedUserId, text);
+      // Build message content with attachments
+      let content = text;
+      
+      // Handle different attachment types
+      if (attachments.length > 0) {
+        for (const att of attachments) {
+          if (att.type === 'image' || att.type === 'gif') {
+            content += `\n[${att.type.toUpperCase()}: ${att.url}]`;
+          } else if (att.type === 'location') {
+            content += `\n[LOCATION: ${att.lat}, ${att.lng}]`;
+          } else if (att.type === 'poll') {
+            content += `\n[POLL: ${att.question}]`;
+          } else if (att.type === 'contact') {
+            content += `\n[CONTACT: ${att.name} - ${att.email}]`;
+          } else if (att.type === 'voice') {
+            content += `\n[VOICE MESSAGE: ${att.duration}s]`;
+          } else if (att.type === 'file') {
+            content += `\n[FILE: ${att.name}]`;
+          }
+        }
+      }
+      
+      const newMsg = await messagingService.sendMessage(activeUser.id, selectedUserId, content);
       setMessages(prev => [...prev, newMsg]);
     } catch (err) {
       toast({ variant: "destructive", title: "Failed to send" });
