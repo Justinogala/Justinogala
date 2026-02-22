@@ -137,13 +137,18 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, WS_RECONNECT_DELAY * reconnectAttemptsRef.current);
+        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          // Max reconnect attempts reached, fall back to polling
+          console.log('[WebSocket] Max reconnect attempts reached, falling back to polling');
+          startPolling();
         }
       };
     } catch (err) {
       console.error('[WebSocket] Connection error:', err);
       setConnectionError(err.message);
+      startPolling(); // Fall back to polling on error
     }
-  }, [userId, getWsUrl, onMessage, onPresence, onTyping, onReadReceipt]);
+  }, [userId, getWsUrl, onMessage, onPresence, onTyping, onReadReceipt, startPolling, stopPolling]);
 
   // Connect on mount
   useEffect(() => {
