@@ -192,27 +192,6 @@ const WorkspaceChatPage = () => {
 
         {/* Chat Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 relative">
-          {/* Connection Status Banner */}
-          {!isConnected && (
-            <div className="absolute top-0 left-0 right-0 z-50 bg-amber-500 text-white px-4 py-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <WifiOff className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {connectionError || 'Connecting to chat server...'}
-                </span>
-              </div>
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="text-white hover:bg-amber-600"
-                onClick={reconnect}
-              >
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Reconnect
-              </Button>
-            </div>
-          )}
-
           {selectedUserId ? (
             <>
               <UserInfoHeader 
