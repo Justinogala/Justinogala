@@ -236,19 +236,24 @@ logger.error = (msg, options) => {
 export default defineConfig({
 	customLogger: logger,
 	plugins: [
-		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), iframeRouteRestorationPlugin(), selectionModePlugin()] : []),
 		react(),
+		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), iframeRouteRestorationPlugin(), selectionModePlugin()] : []),
 		addTransformIndexHtml
 	],
 	esbuild: {
+		jsx: 'automatic',
 		loader: 'jsx',
-		include: /src\/.*\.js$/,
-		exclude: [],
+		include: [
+			/src\/.*\.js$/,
+			/src\/.*\.jsx$/,
+		],
 	},
 	optimizeDeps: {
+		force: true,
 		esbuildOptions: {
 			loader: {
 				'.js': 'jsx',
+				'.jsx': 'jsx',
 			},
 		},
 	},
