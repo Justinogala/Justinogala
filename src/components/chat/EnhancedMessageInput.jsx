@@ -78,11 +78,17 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
     target.style.height = 'auto';
     target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
     setMessage(target.value);
+    
+    // Trigger typing indicator
+    if (target.value.trim()) {
+      onTyping?.(true);
+    }
   };
 
   const insertEmoji = (emoji) => {
     setMessage(prev => prev + emoji);
     textareaRef.current?.focus();
+    onTyping?.(true);
   };
 
   const handleGifSelect = (gif) => {
