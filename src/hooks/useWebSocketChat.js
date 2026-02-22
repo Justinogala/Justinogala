@@ -53,37 +53,11 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
   const connect = useCallback(() => {
     if (!userId) return;
     
-    try {
-      const wsUrl = getWsUrl();
-      console.log('[WebSocket] Connecting to:', wsUrl);
-      
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      // Set connection timeout
-      const connectionTimeout = setTimeout(() => {
-        if (ws.readyState !== WebSocket.OPEN) {
-          console.log('[WebSocket] Connection timeout, falling back to polling');
-          ws.close();
-          startPolling();
-        }
-      }, 5000);
-
-      ws.onopen = () => {
-        clearTimeout(connectionTimeout);
-        console.log('[WebSocket] Connected');
-        setIsConnected(true);
-        setConnectionError(null);
-        reconnectAttemptsRef.current = 0;
-        stopPolling(); // Stop polling if was active
-
-        // Start ping interval to keep connection alive
-        pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'ping' }));
-          }
-        }, WS_PING_INTERVAL);
-      };
+    // Skip WebSocket connection attempt - use REST API directly
+    // WebSocket requires ingress configuration for /ws/* routing
+    console.log('[Chat] Using REST API mode (WebSocket not configured)');
+    startPolling();
+  }, [userId, startPolling]);
 
       ws.onmessage = (event) => {
         try {
