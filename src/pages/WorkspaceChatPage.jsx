@@ -15,11 +15,8 @@ const WorkspaceChatPage = () => {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   
-  // WebSocket chat context
+  // Chat context for messaging
   const {
-    isConnected,
-    connectionError,
-    reconnect,
     isUserOnline,
     sendMessage: wsSendMessage,
     getConversationMessages,
