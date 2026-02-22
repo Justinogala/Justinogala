@@ -14,10 +14,17 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
 
   // Get WebSocket URL from environment
   const getWsUrl = useCallback(() => {
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
-    // Convert http(s) to ws(s)
-    const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
-    const wsHost = backendUrl.replace(/^https?:\/\//, '');
+    // Vite uses import.meta.env, CRA uses process.env
+    const backendUrl = typeof import.meta !== 'undefined' 
+      ? import.meta.env?.VITE_BACKEND_URL || import.meta.env?.REACT_APP_BACKEND_URL || ''
+      : '';
+    
+    // If no env var, construct from current location
+    const wsHost = backendUrl 
+      ? backendUrl.replace(/^https?:\/\//, '') 
+      : window.location.host;
+    
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     return `${wsProtocol}://${wsHost}/ws/chat/${userId}`;
   }, [userId]);
 
