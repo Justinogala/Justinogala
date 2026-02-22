@@ -391,6 +391,7 @@ function App() {
                           <Toaster />
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>
+                    </WebSocketChatProvider>
                     </WorkspaceProvider>
                   </NotificationProvider>
                 </Router>
