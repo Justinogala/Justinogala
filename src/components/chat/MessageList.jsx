@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Check, CheckCheck } from 'lucide-react';
 import TypingIndicator from './TypingIndicator';
 
-const MessageList = ({ messages, currentUserId, users, isTyping }) => {
+const MessageList = ({ messages = [], currentUserId, users = [], isTyping }) => {
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -14,7 +14,10 @@ const MessageList = ({ messages, currentUserId, users, isTyping }) => {
     }
   }, [messages, isTyping]);
 
-  const getUser = (id) => users.find(u => u.id === id) || {};
+  const getUser = (id) => {
+    if (!users || !Array.isArray(users)) return { initials: '??', avatarColor: 'bg-slate-400' };
+    return users.find(u => u.id === id) || { initials: '??', avatarColor: 'bg-slate-400' };
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={scrollRef}>
