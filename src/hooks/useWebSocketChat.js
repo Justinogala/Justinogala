@@ -1,201 +1,181 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const POLL_INTERVAL = 2000; // Poll every 2 seconds for better real-time feel
 const API_BASE = window.location.origin;
 
 export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onReadReceipt) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
-  const [usePolling, setUsePolling] = useState(true);
-  const pollIntervalRef = useRef(null);
+  const [connectionType, setConnectionType] = useState(null); // 'sse' or 'ws' or 'polling'
+  
+  const eventSourceRef = useRef(null);
   const wsRef = useRef(null);
-  const lastMessageTimestampRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 3;
+  const maxReconnectAttempts = 5;
 
-  // Try to establish WebSocket connection
-  const connectWebSocket = useCallback(() => {
-    if (!userId || wsRef.current?.readyState === WebSocket.OPEN) return;
+  // Connect using Server-Sent Events (SSE) - more reliable with reverse proxies
+  const connectSSE = useCallback(() => {
+    if (!userId || eventSourceRef.current) return;
 
     try {
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${userId}`;
+      console.log('[Chat] Connecting via SSE...');
+      const eventSource = new EventSource(`${API_BASE}/api/chat/stream/${userId}`);
       
-      console.log('[Chat] Attempting WebSocket connection...');
-      const ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        console.log('[Chat] WebSocket connected');
+      eventSource.onopen = () => {
+        console.log('[Chat] SSE connection opened');
         setIsConnected(true);
         setConnectionError(null);
-        setUsePolling(false);
+        setConnectionType('sse');
         reconnectAttemptsRef.current = 0;
-        stopPolling();
       };
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          switch (data.type) {
-            case 'message':
-              onMessage?.(data.payload);
-              break;
-            case 'presence':
-              onPresence?.(data.payload);
-              break;
-            case 'typing':
-              onTyping?.(data.payload);
-              break;
-            case 'read_receipt':
-              onReadReceipt?.(data.payload);
-              break;
-            default:
-              console.log('[Chat] Unknown message type:', data.type);
-          }
-        } catch (err) {
-          console.error('[Chat] Error parsing WebSocket message:', err);
-        }
-      };
+      eventSource.addEventListener('connected', (event) => {
+        console.log('[Chat] SSE connected:', JSON.parse(event.data));
+      });
 
-      ws.onerror = (error) => {
-        console.warn('[Chat] WebSocket error, falling back to polling:', error);
-        setConnectionError('WebSocket connection failed');
-      };
+      eventSource.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE message received:', data);
+        onMessage?.(data);
+      });
 
-      ws.onclose = () => {
-        console.log('[Chat] WebSocket closed');
+      eventSource.addEventListener('message_sent', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE message sent confirmation:', data);
+        onMessage?.(data);
+      });
+
+      eventSource.addEventListener('presence', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE presence update:', data);
+        onPresence?.(data);
+      });
+
+      eventSource.addEventListener('typing', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE typing indicator:', data);
+        onTyping?.(data);
+      });
+
+      eventSource.addEventListener('read_receipt', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE read receipt:', data);
+        onReadReceipt?.(data);
+      });
+
+      eventSource.addEventListener('ping', () => {
+        // Keep-alive ping received, connection is healthy
+      });
+
+      eventSource.onerror = (error) => {
+        console.error('[Chat] SSE error:', error);
+        eventSource.close();
+        eventSourceRef.current = null;
         setIsConnected(false);
-        wsRef.current = null;
         
-        // Try to reconnect a few times, then fall back to polling
+        // Try to reconnect
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
-          setTimeout(connectWebSocket, 2000 * reconnectAttemptsRef.current);
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          console.log(`[Chat] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connectSSE();
+          }, delay);
         } else {
-          console.log('[Chat] Falling back to REST polling');
-          setUsePolling(true);
-          startPolling();
+          setConnectionError('Connection lost. Click to reconnect.');
+          setConnectionType('polling');
         }
       };
 
-      wsRef.current = ws;
+      eventSourceRef.current = eventSource;
     } catch (err) {
-      console.warn('[Chat] WebSocket not available, using REST polling');
-      setUsePolling(true);
-      startPolling();
+      console.error('[Chat] SSE connection failed:', err);
+      setConnectionError('Could not establish connection');
+      setConnectionType('polling');
     }
   }, [userId, onMessage, onPresence, onTyping, onReadReceipt]);
 
-  // Start polling for messages (REST API fallback)
-  const startPolling = useCallback(() => {
-    if (pollIntervalRef.current || !userId) return;
-    
-    console.log('[Chat] REST API polling mode active');
-    setIsConnected(true);
-    setConnectionError(null);
-    
-    const pollMessages = async () => {
-      // This is where you'd fetch new messages
-      // For now, the context handles message fetching per conversation
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-    
-    pollIntervalRef.current = setInterval(pollMessages, POLL_INTERVAL);
-  }, [userId]);
-
-  const stopPolling = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
   }, []);
 
-  // Initialize connection on mount
+  // Connect when userId changes
   useEffect(() => {
     if (userId) {
-      // Try WebSocket first, fall back to polling
-      connectWebSocket();
-      
-      // If WebSocket fails quickly, start polling as backup
-      const fallbackTimer = setTimeout(() => {
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-          setUsePolling(true);
-          setIsConnected(true);
-          startPolling();
-        }
-      }, 3000);
-      
-      return () => {
-        clearTimeout(fallbackTimer);
-        stopPolling();
-        if (wsRef.current) {
-          wsRef.current.close();
-          wsRef.current = null;
-        }
-      };
+      connectSSE();
     }
-  }, [userId, connectWebSocket, startPolling, stopPolling]);
+    
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, [userId, connectSSE]);
 
-  // Send message via WebSocket (returns false if WS not available)
-  const sendMessage = useCallback((receiverId, content, messageType = 'text', attachments = []) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'message',
-        payload: {
-          receiver_id: receiverId,
-          content,
-          message_type: messageType,
-          attachments
-        }
-      }));
-      return true;
-    }
-    return false; // Use REST API fallback
+  // Send message via REST API (SSE is receive-only)
+  const sendMessage = useCallback(async (receiverId, content, messageType = 'text', attachments = []) => {
+    // SSE doesn't support sending, always use REST
+    return false;
   }, []);
 
-  // Send typing indicator
-  const sendTypingIndicator = useCallback((receiverId, isTyping) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'typing',
-        payload: {
-          receiver_id: receiverId,
-          is_typing: isTyping
-        }
-      }));
+  // Send typing indicator via REST
+  const sendTypingIndicator = useCallback(async (receiverId, isTyping) => {
+    if (!userId) return;
+    
+    try {
+      await fetch(`${API_BASE}/api/chat/typing?user_id=${userId}&receiver_id=${receiverId}&is_typing=${isTyping}`, {
+        method: 'POST'
+      });
+    } catch (err) {
+      console.error('[Chat] Error sending typing indicator:', err);
     }
-    // No REST fallback for typing indicators (not critical)
-  }, []);
+  }, [userId]);
 
-  // Send read receipt
-  const sendReadReceipt = useCallback((messageIds, senderId) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'read_receipt',
-        payload: {
-          message_ids: messageIds,
-          sender_id: senderId
-        }
-      }));
+  // Send read receipt via REST
+  const sendReadReceipt = useCallback(async (messageIds, senderId) => {
+    if (!userId || messageIds.length === 0) return;
+    
+    try {
+      await fetch(`${API_BASE}/api/chat/messages/read?reader_id=${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messageIds)
+      });
+    } catch (err) {
+      console.error('[Chat] Error sending read receipt:', err);
     }
-    // REST fallback handled in context
-  }, []);
+  }, [userId]);
 
   // Manual reconnect
   const reconnect = useCallback(() => {
-    stopPolling();
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
     reconnectAttemptsRef.current = 0;
-    connectWebSocket();
-  }, [connectWebSocket, stopPolling]);
+    setConnectionError(null);
+    connectSSE();
+  }, [connectSSE]);
 
   return {
     isConnected,
     connectionError,
-    usePolling,
+    connectionType,
     sendMessage,
     sendTypingIndicator,
     sendReadReceipt,
