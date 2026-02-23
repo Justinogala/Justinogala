@@ -493,15 +493,65 @@ const QuickRecordPage = () => {
             {/* Preview Area */}
             <AnimatePresence mode="wait">
               {(isRecording || previewUrl || selectedRecording?.videoUrl) && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-gray-900 relative">
-                  {isRecording && <video ref={livePreviewRef} autoPlay muted playsInline className="w-full aspect-video object-contain" />}
-                  {previewUrl && !isRecording && <video src={previewUrl} controls className="w-full aspect-video object-contain" />}
-                  {selectedRecording?.videoUrl && !isRecording && !previewUrl && <video src={selectedRecording.videoUrl} controls autoPlay className="w-full aspect-video object-contain" />}
-                  
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }} 
+                  exit={{ opacity: 0, height: 0 }} 
+                  className="bg-gray-900 relative"
+                >
                   {isRecording && (
-                    <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                      <div className={cn("w-3 h-3 rounded-full", isPaused ? "bg-yellow-500" : "bg-red-500 animate-pulse")} />
-                      <span className="text-white text-sm font-medium">{formatTime(recordingTime)}</span>
+                    <video 
+                      ref={livePreviewRef} 
+                      autoPlay 
+                      muted 
+                      playsInline 
+                      className="w-full aspect-video object-contain bg-black"
+                    />
+                  )}
+                  {previewUrl && !isRecording && (
+                    <video 
+                      src={previewUrl} 
+                      controls 
+                      className="w-full aspect-video object-contain" 
+                    />
+                  )}
+                  {selectedRecording?.videoUrl && !isRecording && !previewUrl && (
+                    <video 
+                      src={selectedRecording.videoUrl} 
+                      controls 
+                      autoPlay 
+                      className="w-full aspect-video object-contain" 
+                    />
+                  )}
+                  
+                  {/* Live Recording Indicator */}
+                  {isRecording && (
+                    <div className="absolute top-4 left-4 flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-red-600 px-3 py-1.5 rounded-full shadow-lg">
+                        <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                        <span className="text-white text-sm font-semibold">LIVE</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                        <Clock className="w-4 h-4 text-white" />
+                        <span className="text-white text-sm font-medium tabular-nums">{formatTime(recordingTime)}</span>
+                      </div>
+                      {isPaused && (
+                        <div className="flex items-center gap-2 bg-yellow-500 px-3 py-1.5 rounded-full">
+                          <Pause className="w-4 h-4 text-black" />
+                          <span className="text-black text-sm font-semibold">PAUSED</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Recording Type Badge */}
+                  {isRecording && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                      {recordingType === 'screen' ? (
+                        <><Monitor className="w-4 h-4 text-blue-400" /><span className="text-white text-sm">Screen</span></>
+                      ) : (
+                        <><Camera className="w-4 h-4 text-purple-400" /><span className="text-white text-sm">Camera</span></>
+                      )}
                     </div>
                   )}
                   
