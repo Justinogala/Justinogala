@@ -543,6 +543,160 @@ async def delete_recording(user_id: str, recording_id: str):
         logger.error(f"Error deleting recording: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.put("/recordings/{user_id}/{recording_id}")
+async def update_recording(user_id: str, recording_id: str, update: RecordingUpdate):
+    """Update recording title or category"""
+    try:
+        update_data = {}
+        if update.title is not None:
+            update_data["title"] = update.title
+        if update.category is not None:
+            update_data["category"] = update.category
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No update data provided")
+        
+        result = await db.recordings.update_one(
+            {"id": recording_id, "user_id": user_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        return {"message": "Recording updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/recordings/{user_id}/{recording_id}/share")
+async def share_recording(user_id: str, recording_id: str, share_data: RecordingShare):
+    """Share a recording with other users or generate a public link"""
+    try:
+        recording = await db.recordings.find_one({"id": recording_id, "user_id": user_id})
+        
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        update_data = {
+            "is_shared": True,
+            "shared_with": share_data.share_with_users
+        }
+        
+        # Generate share token for public sharing
+        if share_data.is_public:
+            share_token = str(uuid.uuid4())[:8]
+            update_data["share_token"] = share_token
+        
+        await db.recordings.update_one(
+            {"id": recording_id},
+            {"$set": update_data}
+        )
+        
+        response = {"message": "Recording shared successfully"}
+        if share_data.is_public:
+            response["share_url"] = f"/shared/recording/{update_data.get('share_token', recording.get('share_token'))}"
+        
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sharing recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/recordings/{user_id}/{recording_id}/share")
+async def unshare_recording(user_id: str, recording_id: str):
+    """Remove sharing from a recording"""
+    try:
+        result = await db.recordings.update_one(
+            {"id": recording_id, "user_id": user_id},
+            {"$set": {"is_shared": False, "share_token": None, "shared_with": []}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        return {"message": "Sharing removed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error unsharing recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/recordings/shared/{share_token}")
+async def get_shared_recording(share_token: str):
+    """Get a publicly shared recording by share token"""
+    try:
+        recording = await db.recordings.find_one(
+            {"share_token": share_token, "is_shared": True},
+            {"_id": 0}
+        )
+        
+        if not recording:
+            raise HTTPException(status_code=404, detail="Shared recording not found")
+        
+        # Check if expired
+        if recording.get("expires_at") and recording["expires_at"] < datetime.now(timezone.utc):
+            await db.recordings.delete_one({"share_token": share_token})
+            raise HTTPException(status_code=404, detail="Recording has expired")
+        
+        # Convert datetime objects
+        if "created_at" in recording:
+            recording["created_at"] = recording["created_at"].isoformat()
+        if "expires_at" in recording:
+            recording["expires_at"] = recording["expires_at"].isoformat()
+        
+        return recording
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching shared recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/recordings/{user_id}/categories")
+async def get_recording_categories(user_id: str):
+    """Get all unique categories for a user's recordings"""
+    try:
+        pipeline = [
+            {"$match": {"user_id": user_id}},
+            {"$group": {"_id": "$category", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]
+        
+        categories = await db.recordings.aggregate(pipeline).to_list(50)
+        
+        return {
+            "categories": [
+                {"name": cat["_id"] or "Uncategorized", "count": cat["count"]}
+                for cat in categories
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching categories: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/recordings/{user_id}/shared-with-me")
+async def get_recordings_shared_with_me(user_id: str):
+    """Get recordings that have been shared with this user"""
+    try:
+        recordings = await db.recordings.find(
+            {"shared_with": user_id, "is_shared": True},
+            {"_id": 0, "file_data": 0}
+        ).sort("created_at", -1).to_list(100)
+        
+        for rec in recordings:
+            if "created_at" in rec:
+                rec["created_at"] = rec["created_at"].isoformat()
+            if "expires_at" in rec:
+                rec["expires_at"] = rec["expires_at"].isoformat()
+        
+        return {"recordings": recordings}
+    except Exception as e:
+        logger.error(f"Error fetching shared recordings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # Include the router in the main app
 app.include_router(api_router)
