@@ -197,6 +197,21 @@ const WorkspaceChatPage = () => {
 
         {/* Chat Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 relative">
+          {/* Connection Status */}
+          {!isConnected && (
+            <div className="absolute top-0 left-0 right-0 bg-yellow-500 text-yellow-900 text-xs text-center py-1 z-50">
+              Reconnecting...
+            </div>
+          )}
+          {isConnected && connectionType === 'sse' && (
+            <div className="absolute top-0 right-4 z-50">
+              <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-b-md">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                Live
+              </div>
+            </div>
+          )}
+          
           {selectedUserId ? (
             <>
               <UserInfoHeader 
