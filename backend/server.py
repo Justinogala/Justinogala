@@ -77,6 +77,28 @@ class TypingIndicator(BaseModel):
     is_typing: bool
 
 
+class Recording(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    recording_type: str  # 'screen' or 'camera'
+    duration: int  # in seconds
+    file_size: int  # in bytes
+    file_data: str  # base64 encoded video data
+    mime_type: str = "video/webm"
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7))
+
+class RecordingCreate(BaseModel):
+    user_id: str
+    title: str
+    recording_type: str
+    duration: int
+    file_data: str  # base64 encoded
+    mime_type: str = "video/webm"
+
+
 # ============== WebSocket Connection Manager ==============
 
 class ConnectionManager:
