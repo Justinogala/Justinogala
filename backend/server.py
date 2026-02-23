@@ -511,8 +511,11 @@ async def mark_messages_read(message_ids: List[str], reader_id: str):
 
 @api_router.get("/chat/online-users")
 async def get_online_users():
-    """Get list of currently online users"""
-    return {"online_users": manager.get_online_users()}
+    """Get list of currently online users (from both WebSocket and SSE)"""
+    ws_users = set(manager.get_online_users())
+    sse_users = set(sse_manager.get_online_users())
+    all_online = list(ws_users | sse_users)
+    return {"online_users": all_online}
 
 @api_router.get("/chat/user-status/{user_id}")
 async def get_user_status(user_id: str):
