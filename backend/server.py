@@ -406,6 +406,125 @@ async def get_user_status(user_id: str):
     }
 
 
+# ============== Recording Endpoints ==============
+
+@api_router.post("/recordings")
+async def create_recording(recording: RecordingCreate):
+    """Save a new recording (stored for 7 days)"""
+    try:
+        # First, clean up expired recordings
+        await db.recordings.delete_many({
+            "expires_at": {"$lt": datetime.now(timezone.utc)}
+        })
+        
+        # Calculate file size from base64 data
+        file_size = len(recording.file_data) * 3 // 4  # Approximate decoded size
+        
+        doc = {
+            "id": str(uuid.uuid4()),
+            "user_id": recording.user_id,
+            "title": recording.title,
+            "recording_type": recording.recording_type,
+            "duration": recording.duration,
+            "file_size": file_size,
+            "file_data": recording.file_data,
+            "mime_type": recording.mime_type,
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=7)
+        }
+        
+        await db.recordings.insert_one(doc)
+        
+        # Return without the file_data to reduce response size
+        return {
+            "id": doc["id"],
+            "user_id": doc["user_id"],
+            "title": doc["title"],
+            "recording_type": doc["recording_type"],
+            "duration": doc["duration"],
+            "file_size": doc["file_size"],
+            "mime_type": doc["mime_type"],
+            "created_at": doc["created_at"].isoformat(),
+            "expires_at": doc["expires_at"].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error saving recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/recordings/{user_id}")
+async def get_user_recordings(user_id: str):
+    """Get all recordings for a user (excluding expired ones)"""
+    try:
+        # Clean up expired recordings first
+        await db.recordings.delete_many({
+            "expires_at": {"$lt": datetime.now(timezone.utc)}
+        })
+        
+        # Get user's recordings without file_data to reduce response size
+        recordings = await db.recordings.find(
+            {"user_id": user_id},
+            {"_id": 0, "file_data": 0}
+        ).sort("created_at", -1).to_list(100)
+        
+        # Convert datetime objects to ISO strings
+        for rec in recordings:
+            if "created_at" in rec:
+                rec["created_at"] = rec["created_at"].isoformat()
+            if "expires_at" in rec:
+                rec["expires_at"] = rec["expires_at"].isoformat()
+        
+        return {"recordings": recordings}
+    except Exception as e:
+        logger.error(f"Error fetching recordings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/recordings/{user_id}/{recording_id}")
+async def get_recording(user_id: str, recording_id: str):
+    """Get a specific recording with file data"""
+    try:
+        recording = await db.recordings.find_one(
+            {"id": recording_id, "user_id": user_id},
+            {"_id": 0}
+        )
+        
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        # Check if expired
+        if recording.get("expires_at") and recording["expires_at"] < datetime.now(timezone.utc):
+            await db.recordings.delete_one({"id": recording_id})
+            raise HTTPException(status_code=404, detail="Recording has expired")
+        
+        # Convert datetime objects
+        if "created_at" in recording:
+            recording["created_at"] = recording["created_at"].isoformat()
+        if "expires_at" in recording:
+            recording["expires_at"] = recording["expires_at"].isoformat()
+        
+        return recording
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/recordings/{user_id}/{recording_id}")
+async def delete_recording(user_id: str, recording_id: str):
+    """Delete a recording"""
+    try:
+        result = await db.recordings.delete_one({"id": recording_id, "user_id": user_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        return {"message": "Recording deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
