@@ -16,19 +16,30 @@ export const WebSocketChatProvider = ({ children }) => {
     return [userId1, userId2].sort().join('_');
   }, []);
 
-  // Handle new message
+  // Handle new message from SSE
   const handleMessage = useCallback((messageData) => {
     const convId = getConversationId(messageData.sender_id, messageData.receiver_id);
     
     setMessages(prev => {
       const convMessages = prev[convId] || [];
-      // Avoid duplicates
-      if (convMessages.find(m => m.id === messageData.id)) {
-        return prev;
+      
+      // Check if this is a confirmation of our sent message (avoid duplicates)
+      const existingIndex = convMessages.findIndex(m => 
+        m.id === messageData.id || 
+        (m.sending && m.content === messageData.content && m.sender_id === messageData.sender_id)
+      );
+      
+      if (existingIndex >= 0) {
+        // Update existing message (remove sending state)
+        const updated = [...convMessages];
+        updated[existingIndex] = { ...messageData, sending: false };
+        return { ...prev, [convId]: updated };
       }
+      
+      // New message from someone else
       return {
         ...prev,
-        [convId]: [...convMessages, messageData]
+        [convId]: [...convMessages, { ...messageData, sending: false }]
       };
     });
 
