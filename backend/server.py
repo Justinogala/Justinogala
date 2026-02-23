@@ -520,15 +520,36 @@ async def get_online_users():
 @api_router.get("/chat/user-status/{user_id}")
 async def get_user_status(user_id: str):
     """Get user's online status"""
-    is_online = manager.is_user_online(user_id)
+    ws_online = manager.is_user_online(user_id)
+    sse_online = sse_manager.is_user_online(user_id)
+    is_online = ws_online or sse_online
     presence = manager.user_presence.get(user_id)
     
     return {
         "user_id": user_id,
         "is_online": is_online,
-        "status": presence.status if presence else "offline",
+        "status": "online" if is_online else (presence.status if presence else "offline"),
         "last_seen": presence.last_seen.isoformat() if presence else None
     }
+
+@api_router.post("/chat/typing")
+async def send_typing_indicator(user_id: str, receiver_id: str, is_typing: bool):
+    """Send typing indicator to receiver"""
+    typing_data = {
+        "user_id": user_id,
+        "is_typing": is_typing,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Send via SSE
+    if sse_manager.is_user_online(receiver_id):
+        await sse_manager.send_to_user(receiver_id, "typing", typing_data)
+    
+    # Also send via WebSocket if connected
+    if manager.is_user_online(receiver_id):
+        await manager.broadcast_typing(user_id, f"{user_id}_{receiver_id}", is_typing, receiver_id)
+    
+    return {"status": "sent"}
 
 
 # ============== Recording Endpoints ==============
