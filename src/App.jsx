@@ -269,6 +269,7 @@ function App() {
                               }>
                                 <Route path="/dashboard" element={<UserDashboard />} />
                                 <Route path="/user/dashboard" element={<UserDashboard />} />
+                                <Route path="/quick-record" element={<QuickRecordPage />} />
                                 <Route path="/meetings" element={<MeetingsPage />} />
                                 <Route path="/meeting/:id" element={<MeetingDetailPage />} />
                                 <Route path="/calendar" element={<MeetingCalendarPage />} />
