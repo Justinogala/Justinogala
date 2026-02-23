@@ -135,33 +135,74 @@ export const WebSocketChatProvider = ({ children }) => {
   const sendMessage = useCallback(async (receiverId, content, messageType = 'text', attachments = []) => {
     if (!user) return false;
 
-    // Try WebSocket first
-    const sent = wsSendMessage(receiverId, content, messageType, attachments);
+    const convId = getConversationId(user.id, receiverId);
+    const tempId = `temp_${Date.now()}`;
+    const timestamp = new Date().toISOString();
     
-    if (!sent) {
-      // Fallback to REST API
-      try {
-        const baseUrl = window.location.origin;
-        const response = await fetch(`${baseUrl}/api/chat/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sender_id: user.id,
-            receiver_id: receiverId,
-            content,
-            message_type: messageType,
-            attachments
-          })
-        });
-        return response.ok;
-      } catch (err) {
-        console.error('Error sending message via REST:', err);
+    // Optimistically add message to state immediately
+    const optimisticMessage = {
+      id: tempId,
+      sender_id: user.id,
+      receiver_id: receiverId,
+      content,
+      message_type: messageType,
+      attachments,
+      is_read: false,
+      created_at: timestamp,
+      timestamp,
+      sending: true
+    };
+    
+    setMessages(prev => ({
+      ...prev,
+      [convId]: [...(prev[convId] || []), optimisticMessage]
+    }));
+
+    // Send via REST API (SSE will receive the confirmation)
+    try {
+      const baseUrl = window.location.origin;
+      const response = await fetch(`${baseUrl}/api/chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_id: user.id,
+          receiver_id: receiverId,
+          content,
+          message_type: messageType,
+          attachments
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Replace temp message with real one
+        setMessages(prev => ({
+          ...prev,
+          [convId]: prev[convId].map(msg => 
+            msg.id === tempId 
+              ? { ...optimisticMessage, id: data.id, created_at: data.created_at, sending: false }
+              : msg
+          )
+        }));
+        return true;
+      } else {
+        // Remove failed message
+        setMessages(prev => ({
+          ...prev,
+          [convId]: prev[convId].filter(msg => msg.id !== tempId)
+        }));
         return false;
       }
+    } catch (err) {
+      console.error('Error sending message via REST:', err);
+      // Remove failed message
+      setMessages(prev => ({
+        ...prev,
+        [convId]: prev[convId].filter(msg => msg.id !== tempId)
+      }));
+      return false;
     }
-    
-    return sent;
-  }, [user, wsSendMessage]);
+  }, [user, getConversationId]);
 
   // Load conversation history
   const loadConversationHistory = useCallback(async (partnerId) => {
