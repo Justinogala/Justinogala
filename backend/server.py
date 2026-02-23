@@ -633,30 +633,28 @@ async def create_recording(recording: RecordingCreate):
     except Exception as e:
         logger.error(f"Error saving recording: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-            "file_size": doc["file_size"],
-            "mime_type": doc["mime_type"],
-            "category": doc["category"],
-            "is_shared": doc["is_shared"],
-            "created_at": doc["created_at"].isoformat(),
-            "expires_at": doc["expires_at"].isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Error saving recording: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/recordings/{user_id}")
 async def get_user_recordings(user_id: str):
     """Get all recordings for a user (excluding expired ones)"""
     try:
         # Clean up expired recordings first
-        await db.recordings.delete_many({
+        expired = await db.recordings.find({
             "expires_at": {"$lt": datetime.now(timezone.utc)}
-        })
+        }).to_list(100)
         
-        # Get user's recordings without file_data to reduce response size
+        for exp_rec in expired:
+            if exp_rec.get("gridfs_id"):
+                try:
+                    await fs_recordings.delete(ObjectId(exp_rec["gridfs_id"]))
+                except Exception:
+                    pass
+            await db.recordings.delete_one({"id": exp_rec["id"]})
+        
+        # Get user's recordings without gridfs_id (internal)
         recordings = await db.recordings.find(
             {"user_id": user_id},
-            {"_id": 0, "file_data": 0}
+            {"_id": 0, "gridfs_id": 0}
         ).sort("created_at", -1).to_list(100)
         
         # Convert datetime objects to ISO strings
