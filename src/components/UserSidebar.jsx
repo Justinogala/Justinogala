@@ -95,31 +95,57 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
         {/* Main Menu */}
         <div className="space-y-1">
           {menuItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={isMobile ? onClose : undefined}
-              className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-3 lg:py-2.5 rounded-lg transition-all duration-200 group relative overflow-hidden touch-target",
-                item.highlight && !isActive
-                  ? "text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                  : "text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5",
-                isActive && "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium",
-                collapsed && "justify-center px-2"
-              )}
-              title={collapsed ? item.label : undefined}
-            >
-              <item.icon className={cn(
-                "w-5 h-5 shrink-0", 
-                collapsed ? "mr-0" : "mr-1",
-                item.highlight && "text-rose-500"
-              )} />
-              {!collapsed && (
-                <span className="truncate text-sm md:text-base">
-                  {item.label}
-                </span>
-              )}
-            </NavLink>
+            item.external ? (
+              <a
+                key={item.path}
+                href={item.path}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={isMobile ? onClose : undefined}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 lg:py-2.5 rounded-lg transition-all duration-200 group relative overflow-hidden touch-target",
+                  "text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5",
+                  collapsed && "justify-center px-2"
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <item.icon className={cn("w-5 h-5 shrink-0", collapsed ? "mr-0" : "mr-1")} />
+                {!collapsed && (
+                  <span className="truncate text-sm md:text-base flex-1">
+                    {item.label}
+                  </span>
+                )}
+                {!collapsed && (
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500" />
+                )}
+              </a>
+            ) : (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={isMobile ? onClose : undefined}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-3 py-3 lg:py-2.5 rounded-lg transition-all duration-200 group relative overflow-hidden touch-target",
+                  item.highlight && !isActive
+                    ? "text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                    : "text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5",
+                  isActive && "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium",
+                  collapsed && "justify-center px-2"
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <item.icon className={cn(
+                  "w-5 h-5 shrink-0", 
+                  collapsed ? "mr-0" : "mr-1",
+                  item.highlight && "text-rose-500"
+                )} />
+                {!collapsed && (
+                  <span className="truncate text-sm md:text-base">
+                    {item.label}
+                  </span>
+                )}
+              </NavLink>
+            )
           ))}
         </div>
 
