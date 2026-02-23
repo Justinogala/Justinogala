@@ -775,6 +775,9 @@ const QuickRecordPage = () => {
                             <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><ChevronDown className="w-4 h-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => openEditDialog(recording)}><Edit2 className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openShareDialog(recording)}><Share2 className="w-4 h-4 mr-2" />Share</DropdownMenuItem>
                             <DropdownMenuSeparator />
