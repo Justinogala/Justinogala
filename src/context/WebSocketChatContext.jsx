@@ -281,6 +281,7 @@ export const WebSocketChatProvider = ({ children }) => {
     // Connection state
     isConnected,
     connectionError,
+    connectionType,
     reconnect,
     
     // Users
@@ -288,14 +289,17 @@ export const WebSocketChatProvider = ({ children }) => {
     isUserOnline,
     
     // Messages
+    messages, // Expose raw messages for direct subscription
     sendMessage,
     getConversationMessages,
     loadConversationHistory,
     markAsRead,
+    getConversationId,
     
     // Typing
     sendTypingIndicator,
     isUserTyping,
+    typingUsers,
     
     // Unread
     unreadCounts
