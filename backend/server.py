@@ -558,28 +558,54 @@ async def send_typing_indicator(user_id: str, receiver_id: str, is_typing: bool)
     return {"status": "sent"}
 
 
-# ============== Recording Endpoints ==============
+# ============== Recording Endpoints (GridFS Storage) ==============
 
 @api_router.post("/recordings")
 async def create_recording(recording: RecordingCreate):
-    """Save a new recording (stored for 7 days)"""
+    """Save a new recording to GridFS (stored for 7 days)"""
     try:
         # First, clean up expired recordings
-        await db.recordings.delete_many({
+        expired = await db.recordings.find({
             "expires_at": {"$lt": datetime.now(timezone.utc)}
-        })
+        }).to_list(100)
         
-        # Calculate file size from base64 data
-        file_size = len(recording.file_data) * 3 // 4  # Approximate decoded size
+        for exp_rec in expired:
+            # Delete file from GridFS
+            if exp_rec.get("gridfs_id"):
+                try:
+                    await fs_recordings.delete(ObjectId(exp_rec["gridfs_id"]))
+                except Exception:
+                    pass
+            await db.recordings.delete_one({"id": exp_rec["id"]})
         
+        # Decode base64 file data
+        file_bytes = base64.b64decode(recording.file_data)
+        file_size = len(file_bytes)
+        
+        # Generate unique ID
+        recording_id = str(uuid.uuid4())
+        
+        # Upload file to GridFS
+        gridfs_id = await fs_recordings.upload_from_stream(
+            f"{recording_id}.webm",
+            io.BytesIO(file_bytes),
+            metadata={
+                "recording_id": recording_id,
+                "user_id": recording.user_id,
+                "mime_type": recording.mime_type,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        )
+        
+        # Save metadata to recordings collection (without file data)
         doc = {
-            "id": str(uuid.uuid4()),
+            "id": recording_id,
             "user_id": recording.user_id,
             "title": recording.title,
             "recording_type": recording.recording_type,
             "duration": recording.duration,
             "file_size": file_size,
-            "file_data": recording.file_data,
+            "gridfs_id": str(gridfs_id),
             "mime_type": recording.mime_type,
             "category": recording.category,
             "is_shared": False,
@@ -591,13 +617,22 @@ async def create_recording(recording: RecordingCreate):
         
         await db.recordings.insert_one(doc)
         
-        # Return without the file_data to reduce response size
         return {
             "id": doc["id"],
             "user_id": doc["user_id"],
             "title": doc["title"],
             "recording_type": doc["recording_type"],
             "duration": doc["duration"],
+            "file_size": doc["file_size"],
+            "mime_type": doc["mime_type"],
+            "category": doc["category"],
+            "is_shared": doc["is_shared"],
+            "created_at": doc["created_at"].isoformat(),
+            "expires_at": doc["expires_at"].isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error saving recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
             "file_size": doc["file_size"],
             "mime_type": doc["mime_type"],
             "category": doc["category"],
