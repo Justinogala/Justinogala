@@ -85,6 +85,7 @@ const VideoCallPage = lazy(() => import('@/pages/VideoCallPage'));
 const WorkspaceChatPage = lazy(() => import('@/pages/WorkspaceChatPage')); 
 const VideoConferencingPage = lazy(() => import('@/pages/VideoConferencingPage')); 
 const RecentChatsPage = lazy(() => import('@/pages/RecentChatsPage'));
+const QuickRecordPage = lazy(() => import('@/pages/QuickRecordPage'));
 
 // Video & Meetings
 const AdvancedVideoCallInterface = lazy(() => import('@/components/video/AdvancedVideoCallInterface'));
