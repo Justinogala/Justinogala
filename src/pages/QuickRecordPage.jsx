@@ -115,7 +115,7 @@ const QuickRecordPage = () => {
     try {
       const [recResponse, catResponse] = await Promise.all([
         fetch(`${API_BASE}/api/recordings/${userId}`),
-        fetch(`${API_BASE}/api/recordings/${userId}/categories`)
+        fetch(`${API_BASE}/api/recordings/user/${userId}/categories`)
       ]);
       
       if (recResponse.ok) {
