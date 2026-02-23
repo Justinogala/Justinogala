@@ -472,22 +472,30 @@ async def create_message(message: ChatMessageCreate):
     
     await db.chat_messages.insert_one(doc)
     
-    # If receiver is online, send via WebSocket
+    # Prepare message data for broadcast
+    message_data = {
+        "id": msg.id,
+        "sender_id": msg.sender_id,
+        "receiver_id": msg.receiver_id,
+        "content": msg.content,
+        "message_type": msg.message_type,
+        "attachments": msg.attachments,
+        "is_read": msg.is_read,
+        "created_at": doc['created_at'],
+        "timestamp": doc['created_at']
+    }
+    
+    # Send via SSE (Server-Sent Events) - more reliable
+    if sse_manager.is_user_online(msg.receiver_id):
+        await sse_manager.send_to_user(msg.receiver_id, "message", message_data)
+    
+    # Also send to sender for confirmation
+    if sse_manager.is_user_online(msg.sender_id):
+        await sse_manager.send_to_user(msg.sender_id, "message_sent", message_data)
+    
+    # Fallback: If receiver is online via WebSocket, send there too
     if manager.is_user_online(msg.receiver_id):
-        broadcast_msg = {
-            "type": "new_message",
-            "data": {
-                "id": msg.id,
-                "sender_id": msg.sender_id,
-                "receiver_id": msg.receiver_id,
-                "content": msg.content,
-                "message_type": msg.message_type,
-                "attachments": msg.attachments,
-                "is_read": msg.is_read,
-                "created_at": doc['created_at'],
-                "timestamp": doc['created_at']
-            }
-        }
+        broadcast_msg = {"type": "new_message", "data": message_data}
         await manager.send_personal_message(broadcast_msg, msg.receiver_id)
     
     return {"id": msg.id, "created_at": doc['created_at']}
