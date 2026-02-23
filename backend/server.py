@@ -219,6 +219,105 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
+# ============== SSE (Server-Sent Events) for Real-time Chat ==============
+
+class SSEManager:
+    """Manages Server-Sent Events connections for real-time updates"""
+    
+    def __init__(self):
+        self.connections: Dict[str, asyncio.Queue] = {}
+        self.user_queues: Dict[str, List[asyncio.Queue]] = defaultdict(list)
+    
+    async def connect(self, user_id: str) -> asyncio.Queue:
+        """Create a new SSE connection for a user"""
+        queue = asyncio.Queue()
+        self.user_queues[user_id].append(queue)
+        logger.info(f"SSE: User {user_id} connected. Total connections: {len(self.user_queues[user_id])}")
+        return queue
+    
+    def disconnect(self, user_id: str, queue: asyncio.Queue):
+        """Remove an SSE connection"""
+        if user_id in self.user_queues:
+            if queue in self.user_queues[user_id]:
+                self.user_queues[user_id].remove(queue)
+            if not self.user_queues[user_id]:
+                del self.user_queues[user_id]
+        logger.info(f"SSE: User {user_id} disconnected")
+    
+    async def send_to_user(self, user_id: str, event_type: str, data: dict):
+        """Send an event to all connections of a specific user"""
+        if user_id in self.user_queues:
+            event = {"type": event_type, "data": data}
+            for queue in self.user_queues[user_id]:
+                try:
+                    await queue.put(event)
+                except Exception as e:
+                    logger.error(f"SSE: Error sending to {user_id}: {e}")
+    
+    async def broadcast_presence(self, user_id: str, status: str):
+        """Broadcast user presence to all connected users"""
+        event_data = {
+            "user_id": user_id,
+            "status": status,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        for uid in self.user_queues:
+            await self.send_to_user(uid, "presence", event_data)
+    
+    def get_online_users(self) -> List[str]:
+        """Get list of users with active SSE connections"""
+        return list(self.user_queues.keys())
+    
+    def is_user_online(self, user_id: str) -> bool:
+        """Check if user has active SSE connection"""
+        return user_id in self.user_queues and len(self.user_queues[user_id]) > 0
+
+
+# Global SSE manager
+sse_manager = SSEManager()
+
+
+async def event_generator(user_id: str):
+    """Generate SSE events for a user"""
+    queue = await sse_manager.connect(user_id)
+    
+    # Broadcast that user is online
+    await sse_manager.broadcast_presence(user_id, "online")
+    
+    try:
+        # Send initial connection success
+        yield f"event: connected\ndata: {json.dumps({'user_id': user_id, 'status': 'connected'})}\n\n"
+        
+        while True:
+            try:
+                # Wait for events with timeout (for keep-alive)
+                event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                yield f"event: {event['type']}\ndata: {json.dumps(event['data'])}\n\n"
+            except asyncio.TimeoutError:
+                # Send keep-alive ping
+                yield f"event: ping\ndata: {json.dumps({'timestamp': datetime.now(timezone.utc).isoformat()})}\n\n"
+    except asyncio.CancelledError:
+        pass
+    finally:
+        sse_manager.disconnect(user_id, queue)
+        # Broadcast that user is offline
+        await sse_manager.broadcast_presence(user_id, "offline")
+
+
+@api_router.get("/chat/stream/{user_id}")
+async def chat_stream(user_id: str):
+    """SSE endpoint for real-time chat updates"""
+    return StreamingResponse(
+        event_generator(user_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        }
+    )
+
+
 # ============== WebSocket Endpoint ==============
 
 @app.websocket("/ws/chat/{user_id}")
