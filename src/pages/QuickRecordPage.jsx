@@ -607,7 +607,7 @@ const QuickRecordPage = () => {
                 <>
                   <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Record Your Video</h2>
-                    <p className="text-gray-500 dark:text-gray-400">Choose how you'd like to record</p>
+                    <p className="text-gray-500 dark:text-gray-400">Choose how you&apos;d like to record</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
