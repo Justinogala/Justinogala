@@ -713,7 +713,7 @@ async def get_recordings_shared_with_me(user_id: str):
 
 @api_router.get("/recordings/{user_id}/{recording_id}")
 async def get_recording(user_id: str, recording_id: str):
-    """Get a specific recording with file data"""
+    """Get a specific recording with file data from GridFS"""
     try:
         recording = await db.recordings.find_one(
             {"id": recording_id, "user_id": user_id},
@@ -725,14 +725,35 @@ async def get_recording(user_id: str, recording_id: str):
         
         # Check if expired
         if recording.get("expires_at") and recording["expires_at"] < datetime.now(timezone.utc):
+            # Delete from GridFS
+            if recording.get("gridfs_id"):
+                try:
+                    await fs_recordings.delete(ObjectId(recording["gridfs_id"]))
+                except Exception:
+                    pass
             await db.recordings.delete_one({"id": recording_id})
             raise HTTPException(status_code=404, detail="Recording has expired")
+        
+        # Fetch file data from GridFS
+        file_data = None
+        if recording.get("gridfs_id"):
+            try:
+                grid_out = await fs_recordings.open_download_stream(ObjectId(recording["gridfs_id"]))
+                file_bytes = await grid_out.read()
+                file_data = base64.b64encode(file_bytes).decode('utf-8')
+            except Exception as e:
+                logger.error(f"Error reading from GridFS: {e}")
         
         # Convert datetime objects
         if "created_at" in recording:
             recording["created_at"] = recording["created_at"].isoformat()
         if "expires_at" in recording:
             recording["expires_at"] = recording["expires_at"].isoformat()
+        
+        # Add file data to response
+        recording["file_data"] = file_data
+        # Remove internal gridfs_id from response
+        recording.pop("gridfs_id", None)
         
         return recording
     except HTTPException:
@@ -741,14 +762,63 @@ async def get_recording(user_id: str, recording_id: str):
         logger.error(f"Error fetching recording: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/recordings/{user_id}/{recording_id}/stream")
+async def stream_recording(user_id: str, recording_id: str):
+    """Stream a recording directly (for video playback without base64)"""
+    try:
+        recording = await db.recordings.find_one(
+            {"id": recording_id, "user_id": user_id},
+            {"_id": 0}
+        )
+        
+        if not recording:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        if not recording.get("gridfs_id"):
+            raise HTTPException(status_code=404, detail="Recording file not found")
+        
+        # Stream from GridFS
+        grid_out = await fs_recordings.open_download_stream(ObjectId(recording["gridfs_id"]))
+        
+        async def file_iterator():
+            while True:
+                chunk = await grid_out.read(1024 * 1024)  # 1MB chunks
+                if not chunk:
+                    break
+                yield chunk
+        
+        return StreamingResponse(
+            file_iterator(),
+            media_type=recording.get("mime_type", "video/webm"),
+            headers={
+                "Content-Disposition": f"inline; filename={recording_id}.webm"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error streaming recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.delete("/recordings/{user_id}/{recording_id}")
 async def delete_recording(user_id: str, recording_id: str):
-    """Delete a recording"""
+    """Delete a recording and its GridFS file"""
     try:
-        result = await db.recordings.delete_one({"id": recording_id, "user_id": user_id})
+        # First get the recording to find GridFS ID
+        recording = await db.recordings.find_one({"id": recording_id, "user_id": user_id})
         
-        if result.deleted_count == 0:
+        if not recording:
             raise HTTPException(status_code=404, detail="Recording not found")
+        
+        # Delete from GridFS
+        if recording.get("gridfs_id"):
+            try:
+                await fs_recordings.delete(ObjectId(recording["gridfs_id"]))
+            except Exception as e:
+                logger.warning(f"Could not delete GridFS file: {e}")
+        
+        # Delete metadata
+        await db.recordings.delete_one({"id": recording_id, "user_id": user_id})
         
         return {"message": "Recording deleted successfully"}
     except HTTPException:
