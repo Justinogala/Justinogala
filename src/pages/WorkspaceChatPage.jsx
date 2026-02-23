@@ -18,12 +18,16 @@ const WorkspaceChatPage = () => {
   // Chat context for messaging
   const {
     isUserOnline,
+    messages: contextMessages,
     sendMessage: wsSendMessage,
     getConversationMessages,
+    getConversationId,
     loadConversationHistory,
     markAsRead,
     sendTypingIndicator,
-    isUserTyping
+    isUserTyping,
+    isConnected,
+    connectionType
   } = useWebSocketChatContext();
   
   // For demo: use current user or fallback
@@ -36,9 +40,14 @@ const WorkspaceChatPage = () => {
   const [isSending, setIsSending] = useState(false);
   const typingTimeoutRef = useRef(null);
 
-  // Get messages from WebSocket context or local state
+  // Get conversation ID for current selection
+  const conversationId = selectedUserId && activeUser 
+    ? getConversationId(activeUser.id, selectedUserId)
+    : null;
+
+  // Get messages from WebSocket context - subscribe to contextMessages changes
   const messages = selectedUserId 
-    ? getConversationMessages(selectedUserId) 
+    ? (contextMessages[conversationId] || getConversationMessages(selectedUserId))
     : localMessages;
 
   // Check if selected user is typing
