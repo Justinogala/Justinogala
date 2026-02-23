@@ -49,7 +49,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: Mic, label: 'Voice Chat', path: '/voice-chat' },
     { icon: Briefcase, label: 'Workspaces', path: '/workspaces' },
     { icon: MessageSquare, label: 'Chat', path: '/workspace/chat' },
-    { icon: Video, label: 'Calls', path: '/workspace/video-conferencing' },
+    { icon: Video, label: 'Calls', path: 'https://conferencing.jizira.com/', external: true },
     { icon: HardDrive, label: 'Files', path: '/files' },
   ];
 
