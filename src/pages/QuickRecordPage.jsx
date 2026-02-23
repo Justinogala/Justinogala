@@ -206,10 +206,21 @@ const QuickRecordPage = () => {
       }
       
       streamRef.current = stream;
-      if (livePreviewRef.current) {
-        livePreviewRef.current.srcObject = stream;
-        livePreviewRef.current.play();
-      }
+      
+      // Set recording state FIRST so the video element renders
+      setIsRecording(true);
+      setIsPaused(false);
+      setRecordingTime(0);
+      setRecordedBlob(null);
+      setPreviewUrl(null);
+      
+      // Use setTimeout to ensure the video element is rendered before attaching stream
+      setTimeout(() => {
+        if (livePreviewRef.current) {
+          livePreviewRef.current.srcObject = stream;
+          livePreviewRef.current.play().catch(e => console.log('Auto-play prevented:', e));
+        }
+      }, 100);
       
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
       const mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2500000 });
@@ -227,12 +238,6 @@ const QuickRecordPage = () => {
       
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start(1000);
-      
-      setIsRecording(true);
-      setIsPaused(false);
-      setRecordingTime(0);
-      setRecordedBlob(null);
-      setPreviewUrl(null);
       
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => {
