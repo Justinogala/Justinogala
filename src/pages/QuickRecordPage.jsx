@@ -388,6 +388,43 @@ const QuickRecordPage = () => {
     }
   };
 
+  // Download saved recording
+  const downloadSavedRecording = async (recording) => {
+    toast({ title: "Preparing download...", description: "Please wait while we fetch your recording." });
+    
+    try {
+      const response = await fetch(`${API_BASE}/api/recordings/${userId}/${recording.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Convert base64 to blob
+        const byteCharacters = atob(data.file_data);
+        const byteArray = new Uint8Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteArray[i] = byteCharacters.charCodeAt(i);
+        }
+        const blob = new Blob([byteArray], { type: data.mime_type || 'video/webm' });
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${recording.title.replace(/[^a-z0-9]/gi, '_')}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast({ title: "Download started", description: "Your recording is being downloaded." });
+      } else {
+        throw new Error('Failed to fetch recording');
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+      toast({ variant: "destructive", title: "Download failed", description: "Could not download recording." });
+    }
+  };
+
   // Share functions
   const openShareDialog = (recording) => {
     setShareRecording(recording);
