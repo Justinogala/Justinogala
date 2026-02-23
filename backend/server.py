@@ -87,6 +87,10 @@ class Recording(BaseModel):
     file_size: int  # in bytes
     file_data: str  # base64 encoded video data
     mime_type: str = "video/webm"
+    category: str = "Uncategorized"  # Recording category/folder
+    is_shared: bool = False  # Whether recording is shared
+    share_token: Optional[str] = None  # Token for shared access
+    shared_with: List[str] = []  # List of user IDs with access
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=7))
 
@@ -97,6 +101,15 @@ class RecordingCreate(BaseModel):
     duration: int
     file_data: str  # base64 encoded
     mime_type: str = "video/webm"
+    category: str = "Uncategorized"
+
+class RecordingUpdate(BaseModel):
+    title: Optional[str] = None
+    category: Optional[str] = None
+
+class RecordingShare(BaseModel):
+    share_with_users: List[str] = []  # User IDs to share with
+    is_public: bool = False  # Generate public share link
 
 
 # ============== WebSocket Connection Manager ==============
