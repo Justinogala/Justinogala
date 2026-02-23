@@ -558,6 +558,134 @@ async def send_typing_indicator(user_id: str, receiver_id: str, is_typing: bool)
     return {"status": "sent"}
 
 
+# ============== Chat File Upload Endpoints (GridFS Storage) ==============
+
+@api_router.post("/chat/upload")
+async def upload_chat_file(
+    file: UploadFile = File(...),
+    user_id: str = Form(...),
+    conversation_id: str = Form(...)
+):
+    """Upload a file for chat (images, documents, etc.)"""
+    try:
+        # Read file content
+        content = await file.read()
+        file_size = len(content)
+        
+        # Limit file size to 50MB
+        if file_size > 50 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 50MB.")
+        
+        # Generate unique file ID
+        file_id = str(uuid.uuid4())
+        
+        # Determine file type
+        content_type = file.content_type or "application/octet-stream"
+        filename = file.filename or f"file_{file_id}"
+        
+        # Upload to GridFS
+        gridfs_id = await fs_chat_files.upload_from_stream(
+            filename,
+            io.BytesIO(content),
+            metadata={
+                "file_id": file_id,
+                "user_id": user_id,
+                "conversation_id": conversation_id,
+                "original_filename": filename,
+                "content_type": content_type,
+                "file_size": file_size,
+                "uploaded_at": datetime.now(timezone.utc).isoformat()
+            }
+        )
+        
+        # Save metadata
+        doc = {
+            "id": file_id,
+            "gridfs_id": str(gridfs_id),
+            "user_id": user_id,
+            "conversation_id": conversation_id,
+            "filename": filename,
+            "content_type": content_type,
+            "file_size": file_size,
+            "created_at": datetime.now(timezone.utc)
+        }
+        await db.chat_files.insert_one(doc)
+        
+        return {
+            "id": file_id,
+            "filename": filename,
+            "content_type": content_type,
+            "file_size": file_size,
+            "url": f"/api/chat/files/{file_id}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading chat file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/chat/files/{file_id}")
+async def get_chat_file(file_id: str):
+    """Download/stream a chat file"""
+    try:
+        file_doc = await db.chat_files.find_one({"id": file_id})
+        
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if not file_doc.get("gridfs_id"):
+            raise HTTPException(status_code=404, detail="File data not found")
+        
+        # Stream from GridFS
+        grid_out = await fs_chat_files.open_download_stream(ObjectId(file_doc["gridfs_id"]))
+        
+        async def file_iterator():
+            while True:
+                chunk = await grid_out.read(1024 * 1024)  # 1MB chunks
+                if not chunk:
+                    break
+                yield chunk
+        
+        return StreamingResponse(
+            file_iterator(),
+            media_type=file_doc.get("content_type", "application/octet-stream"),
+            headers={
+                "Content-Disposition": f"inline; filename=\"{file_doc.get('filename', 'file')}\""
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting chat file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/chat/files/{file_id}")
+async def delete_chat_file(file_id: str, user_id: str = Query(...)):
+    """Delete a chat file"""
+    try:
+        file_doc = await db.chat_files.find_one({"id": file_id, "user_id": user_id})
+        
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Delete from GridFS
+        if file_doc.get("gridfs_id"):
+            try:
+                await fs_chat_files.delete(ObjectId(file_doc["gridfs_id"]))
+            except Exception as e:
+                logger.warning(f"Could not delete GridFS file: {e}")
+        
+        # Delete metadata
+        await db.chat_files.delete_one({"id": file_id})
+        
+        return {"message": "File deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting chat file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============== Recording Endpoints (GridFS Storage) ==============
 
 @api_router.post("/recordings")
