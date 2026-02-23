@@ -77,8 +77,18 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Live Preview** - Real-time preview while recording
 - [x] **Recording Controls** - Pause/Resume and Stop functionality
 - [x] **Post-Recording Actions** - Download, Record Again, Discard options
-- [x] **5-minute Limit** - Maximum recording time enforced
+- [x] **30-minute Limit** - Maximum recording time enforced
 - [x] **Sidebar Menu Item** - Quick Record added to user sidebar with highlight
+- [x] **7-Day Auto-Delete** - Recordings auto-expire after 7 days
+- [x] **Recording Categories** - Organize recordings into folders (Meetings, Tutorials, Presentations, Bug Reports, Personal)
+- [x] **Share Recordings** - Generate public share links for recordings
+- [x] **Edit Recordings** - Update title and category of saved recordings
+- [x] **Category Filtering** - Filter recordings by category in sidebar
+
+### Chat Improvements (Feb 23, 2026)
+- [x] **Real GIPHY Integration** - Live GIF search using GIPHY API with trending, categories, and search
+- [x] **Improved WebSocket Hook** - Better fallback mechanism with reconnection logic
+- [x] **REST Polling Fallback** - Automatic fallback when WebSocket unavailable
 
 ## Components Created
 1. `/app/src/components/chat/GifPicker.jsx`
