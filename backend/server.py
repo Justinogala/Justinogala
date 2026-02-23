@@ -1,8 +1,8 @@
-from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form, Query
+from fastapi.responses import StreamingResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 import os
 import logging
 from pathlib import Path
@@ -14,6 +14,8 @@ from datetime import datetime, timezone, timedelta
 import asyncio
 import base64
 from collections import defaultdict
+from bson import ObjectId
+import io
 
 
 ROOT_DIR = Path(__file__).parent
@@ -23,6 +25,10 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# GridFS buckets for file storage
+fs_recordings = AsyncIOMotorGridFSBucket(db, bucket_name="recordings")
+fs_chat_files = AsyncIOMotorGridFSBucket(db, bucket_name="chat_files")
 
 # Create the main app without a prefix
 app = FastAPI()
