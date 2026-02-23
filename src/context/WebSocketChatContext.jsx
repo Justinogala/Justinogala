@@ -105,11 +105,11 @@ export const WebSocketChatProvider = ({ children }) => {
     });
   }, []);
 
-  // Initialize WebSocket
+  // Initialize WebSocket/SSE connection
   const {
     isConnected,
     connectionError,
-    sendMessage: wsSendMessage,
+    connectionType,
     sendTypingIndicator,
     sendReadReceipt,
     reconnect
