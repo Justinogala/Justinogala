@@ -697,48 +697,6 @@ async def get_shared_recording(share_token: str):
         logger.error(f"Error fetching shared recording: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/recordings/{user_id}/categories")
-async def get_recording_categories(user_id: str):
-    """Get all unique categories for a user's recordings"""
-    try:
-        pipeline = [
-            {"$match": {"user_id": user_id}},
-            {"$group": {"_id": "$category", "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}}
-        ]
-        
-        categories = await db.recordings.aggregate(pipeline).to_list(50)
-        
-        return {
-            "categories": [
-                {"name": cat["_id"] or "Uncategorized", "count": cat["count"]}
-                for cat in categories
-            ]
-        }
-    except Exception as e:
-        logger.error(f"Error fetching categories: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/recordings/{user_id}/shared-with-me")
-async def get_recordings_shared_with_me(user_id: str):
-    """Get recordings that have been shared with this user"""
-    try:
-        recordings = await db.recordings.find(
-            {"shared_with": user_id, "is_shared": True},
-            {"_id": 0, "file_data": 0}
-        ).sort("created_at", -1).to_list(100)
-        
-        for rec in recordings:
-            if "created_at" in rec:
-                rec["created_at"] = rec["created_at"].isoformat()
-            if "expires_at" in rec:
-                rec["expires_at"] = rec["expires_at"].isoformat()
-        
-        return {"recordings": recordings}
-    except Exception as e:
-        logger.error(f"Error fetching shared recordings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 # Include the router in the main app
 app.include_router(api_router)
