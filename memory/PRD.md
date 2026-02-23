@@ -89,6 +89,12 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Real GIPHY Integration** - Live GIF search using GIPHY API with trending, categories, and search
 - [x] **Improved WebSocket Hook** - Better fallback mechanism with reconnection logic
 - [x] **REST Polling Fallback** - Automatic fallback when WebSocket unavailable
+- [x] **Server-Sent Events (SSE)** - Real-time chat via `/api/chat/stream/{user_id}` endpoint
+- [x] **SSE Message Delivery** - Messages sent via REST, received in real-time via SSE
+- [x] **SSE Presence System** - Online/offline status broadcast to all connected users
+- [x] **SSE Typing Indicators** - Real-time typing status via SSE
+- [x] **Auto-reconnect Logic** - Exponential backoff reconnection on connection loss
+- [x] **Keep-alive Pings** - 30-second keep-alive to maintain connection
 
 ## Components Created
 1. `/app/src/components/chat/GifPicker.jsx`
