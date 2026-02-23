@@ -442,6 +442,10 @@ async def create_recording(recording: RecordingCreate):
             "file_size": file_size,
             "file_data": recording.file_data,
             "mime_type": recording.mime_type,
+            "category": recording.category,
+            "is_shared": False,
+            "share_token": None,
+            "shared_with": [],
             "created_at": datetime.now(timezone.utc),
             "expires_at": datetime.now(timezone.utc) + timedelta(days=7)
         }
@@ -457,6 +461,8 @@ async def create_recording(recording: RecordingCreate):
             "duration": doc["duration"],
             "file_size": doc["file_size"],
             "mime_type": doc["mime_type"],
+            "category": doc["category"],
+            "is_shared": doc["is_shared"],
             "created_at": doc["created_at"].isoformat(),
             "expires_at": doc["expires_at"].isoformat()
         }
