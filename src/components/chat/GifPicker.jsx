@@ -1,54 +1,115 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, Loader2, Sparkles } from 'lucide-react';
+import { Search, X, Loader2, Sparkles, TrendingUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-// Trending GIF categories and sample GIFs (using placeholder URLs for demo)
-const TRENDING_GIFS = [
-  { id: '1', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHJxZ2w5aHZ0ZnBqaXR3cWFyd2QyaGJqZ2F0OWRpbWQzMWNrY2JtbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0MYt5jPR6QX5pnqM/giphy.gif', title: 'thumbs up' },
-  { id: '2', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHJxZ2w5aHZ0ZnBqaXR3cWFyd2QyaGJqZ2F0OWRpbWQzMWNrY2JtbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/26u4cqiYI30juCOGY/giphy.gif', title: 'celebration' },
-  { id: '3', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHJxZ2w5aHZ0ZnBqaXR3cWFyd2QyaGJqZ2F0OWRpbWQzMWNrY2JtbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oriO0OEd9QIDdllqo/giphy.gif', title: 'thank you' },
-  { id: '4', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHJxZ2w5aHZ0ZnBqaXR3cWFyd2QyaGJqZ2F0OWRpbWQzMWNrY2JtbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l4q8cJzGdR9J8w3hS/giphy.gif', title: 'clap' },
-  { id: '5', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHJxZ2w5aHZ0ZnBqaXR3cWFyd2QyaGJqZ2F0OWRpbWQzMWNrY2JtbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7abldj0b3rxrZUxW/giphy.gif', title: 'high five' },
-  { id: '6', url: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHJxZ2w5aHZ0ZnBqaXR3cWFyd2QyaGJqZ2F0OWRpbWQzMWNrY2JtbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT0xeJpnrWC4XWblEk/giphy.gif', title: 'mind blown' },
-];
+// GIPHY API configuration - using public beta key for demo
+// In production, use your own API key from https://developers.giphy.com/
+const GIPHY_API_KEY = 'dc6zaTOxFJmzC'; // Public beta key
+const GIPHY_API_BASE = 'https://api.giphy.com/v1/gifs';
 
-const CATEGORIES = ['Trending', 'Reactions', 'Celebrate', 'Thanks', 'Yes', 'No', 'Love', 'Sad'];
+const CATEGORIES = ['Trending', 'Reactions', 'Celebrate', 'Thanks', 'Yes', 'No', 'Love', 'Sad', 'Funny', 'OMG'];
 
 const GifPicker = ({ isOpen, onClose, onSelect }) => {
   const [search, setSearch] = useState('');
-  const [gifs, setGifs] = useState(TRENDING_GIFS);
+  const [gifs, setGifs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState('Trending');
+  const [error, setError] = useState(null);
 
-  // Simulate GIF search (in real app, use GIPHY API)
-  const searchGifs = async (query) => {
+  // Fetch trending GIFs
+  const fetchTrending = async () => {
     setIsLoading(true);
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Filter mock GIFs based on query (in real app, call GIPHY API)
-    const filtered = TRENDING_GIFS.filter(gif => 
-      gif.title.toLowerCase().includes(query.toLowerCase())
-    );
-    setGifs(filtered.length > 0 ? filtered : TRENDING_GIFS);
-    setIsLoading(false);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${GIPHY_API_BASE}/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=g`
+      );
+      const data = await response.json();
+      if (data.data) {
+        setGifs(data.data.map(gif => ({
+          id: gif.id,
+          url: gif.images.fixed_height.url,
+          preview: gif.images.fixed_height_small.url || gif.images.fixed_height.url,
+          title: gif.title,
+          width: gif.images.fixed_height.width,
+          height: gif.images.fixed_height.height
+        })));
+      }
+    } catch (err) {
+      console.error('Error fetching trending GIFs:', err);
+      setError('Failed to load GIFs');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  useEffect(() => {
-    if (search) {
-      const debounce = setTimeout(() => searchGifs(search), 300);
-      return () => clearTimeout(debounce);
-    } else {
-      setGifs(TRENDING_GIFS);
+  // Search GIFs
+  const searchGifs = async (query) => {
+    if (!query.trim()) {
+      fetchTrending();
+      return;
     }
-  }, [search]);
+    
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `${GIPHY_API_BASE}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=g`
+      );
+      const data = await response.json();
+      if (data.data) {
+        setGifs(data.data.map(gif => ({
+          id: gif.id,
+          url: gif.images.fixed_height.url,
+          preview: gif.images.fixed_height_small.url || gif.images.fixed_height.url,
+          title: gif.title,
+          width: gif.images.fixed_height.width,
+          height: gif.images.fixed_height.height
+        })));
+      }
+    } catch (err) {
+      console.error('Error searching GIFs:', err);
+      setError('Failed to search GIFs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load trending on mount
+  useEffect(() => {
+    if (isOpen) {
+      fetchTrending();
+    }
+  }, [isOpen]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const debounce = setTimeout(() => {
+      if (search) {
+        searchGifs(search);
+      } else if (activeCategory === 'Trending') {
+        fetchTrending();
+      } else {
+        searchGifs(activeCategory.toLowerCase());
+      }
+    }, 300);
+    
+    return () => clearTimeout(debounce);
+  }, [search, isOpen]);
 
   const handleCategoryClick = (category) => {
     setActiveCategory(category);
-    setSearch(category === 'Trending' ? '' : category.toLowerCase());
+    setSearch('');
+    if (category === 'Trending') {
+      fetchTrending();
+    } else {
+      searchGifs(category.toLowerCase());
+    }
   };
 
   if (!isOpen) return null;
@@ -79,6 +140,7 @@ const GifPicker = ({ isOpen, onClose, onSelect }) => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search GIFs..." 
               className="pl-9 h-9 text-sm bg-gray-50 dark:bg-slate-800"
+              data-testid="gif-search-input"
             />
           </div>
         </div>
@@ -89,12 +151,13 @@ const GifPicker = ({ isOpen, onClose, onSelect }) => {
             <button
               key={cat}
               onClick={() => handleCategoryClick(cat)}
-              className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+              className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors flex items-center gap-1 ${
                 activeCategory === cat 
                   ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-800 dark:text-gray-400 dark:hover:bg-slate-700'
               }`}
             >
+              {cat === 'Trending' && <TrendingUp className="w-3 h-3" />}
               {cat}
             </button>
           ))}
@@ -105,6 +168,19 @@ const GifPicker = ({ isOpen, onClose, onSelect }) => {
           {isLoading ? (
             <div className="flex items-center justify-center h-48">
               <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-48 text-center px-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={fetchTrending}>
+                Try Again
+              </Button>
+            </div>
+          ) : gifs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-center px-4">
+              <Sparkles className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">No GIFs found</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Try a different search term</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
@@ -118,9 +194,10 @@ const GifPicker = ({ isOpen, onClose, onSelect }) => {
                     onClose();
                   }}
                   className="aspect-video bg-gray-100 dark:bg-slate-800 rounded-lg overflow-hidden relative group"
+                  data-testid={`gif-item-${gif.id}`}
                 >
                   <img 
-                    src={gif.url} 
+                    src={gif.preview || gif.url} 
                     alt={gif.title}
                     className="w-full h-full object-cover"
                     loading="lazy"
@@ -136,7 +213,14 @@ const GifPicker = ({ isOpen, onClose, onSelect }) => {
 
         {/* Footer */}
         <div className="p-2 border-t border-gray-100 dark:border-slate-800 text-center">
-          <span className="text-[10px] text-gray-400">Powered by GIPHY</span>
+          <a 
+            href="https://giphy.com/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[10px] text-gray-400 hover:text-purple-500 transition-colors"
+          >
+            Powered by GIPHY
+          </a>
         </div>
       </motion.div>
     </AnimatePresence>
