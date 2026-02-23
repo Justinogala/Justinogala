@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const MAX_RECORDING_TIME = 5 * 60; // 5 minutes in seconds
+const MAX_RECORDING_TIME = 30 * 60; // 30 minutes in seconds
 
 const QuickRecordPage = () => {
   const { toast } = useToast();
@@ -332,9 +332,6 @@ const QuickRecordPage = () => {
           </div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">Quick Record</h1>
         </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          Recording for <span className="font-semibold text-gray-900 dark:text-white">Product Feedback</span>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -579,7 +576,7 @@ const QuickRecordPage = () => {
                 </Button>
 
                 <p className="text-center text-sm text-gray-400 dark:text-gray-500 mt-4">
-                  Maximum recording time: 5 minutes
+                  Maximum recording time: 30 minutes
                 </p>
               </>
             )}
