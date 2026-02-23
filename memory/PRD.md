@@ -88,6 +88,7 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 5. `/app/src/components/chat/EnhancedMessageInput.jsx`
 6. `/app/src/hooks/useWebSocketChat.js`
 7. `/app/src/context/WebSocketChatContext.jsx`
+8. `/app/src/pages/QuickRecordPage.jsx`
 
 ## Backend Endpoints
 - `GET /api/` - Health check
