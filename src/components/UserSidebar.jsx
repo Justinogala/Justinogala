@@ -100,13 +100,19 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
               onClick={isMobile ? onClose : undefined}
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-3 py-3 lg:py-2.5 rounded-lg transition-all duration-200 group relative overflow-hidden touch-target",
-                "text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5",
+                item.highlight && !isActive
+                  ? "text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                  : "text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5",
                 isActive && "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium",
                 collapsed && "justify-center px-2"
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className={cn("w-5 h-5 shrink-0", collapsed ? "mr-0" : "mr-1")} />
+              <item.icon className={cn(
+                "w-5 h-5 shrink-0", 
+                collapsed ? "mr-0" : "mr-1",
+                item.highlight && "text-rose-500"
+              )} />
               {!collapsed && (
                 <span className="truncate text-sm md:text-base">
                   {item.label}
