@@ -18,12 +18,19 @@ import {
   MessageSquare, 
   Video,
   CircleDot,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Coins,
+  Tag,
+  Receipt,
+  Percent
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { motion, AnimatePresence } from 'framer-motion';
 import { motion } from 'framer-motion';
 
 const UserSidebar = ({ className, onClose, isMobile }) => {
