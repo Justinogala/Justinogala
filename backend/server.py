@@ -1068,6 +1068,100 @@ async def get_shared_recording(share_token: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== Transcript Analysis Endpoint ==============
+
+class TranscriptAnalysisRequest(BaseModel):
+    text: str
+    analysis_types: List[str] = ["summary", "key_points", "action_items", "sentiment", "topics"]
+
+@api_router.post("/transcripts/analyze")
+async def analyze_transcript(request: TranscriptAnalysisRequest):
+    """Analyze a transcript using AI to extract insights"""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        llm_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not llm_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Truncate text if too long (to avoid token limits)
+        max_chars = 15000
+        text = request.text[:max_chars] if len(request.text) > max_chars else request.text
+        
+        # Create system prompt for analysis
+        system_prompt = """You are an expert meeting transcript analyzer. Analyze the given transcript and provide structured insights.
+        
+Always respond in valid JSON format with the following structure:
+{
+    "summary": "A concise 2-3 sentence summary of the main discussion",
+    "key_points": ["Point 1", "Point 2", "Point 3", ...],
+    "action_items": [{"task": "Task description", "assignee": "Person name or 'Unassigned'", "priority": "high/medium/low"}],
+    "sentiment": {"overall": "positive/neutral/negative", "score": 0.0-1.0, "highlights": ["Notable emotional moments"]},
+    "topics": [{"name": "Topic name", "relevance": 0.0-1.0}],
+    "speakers": [{"name": "Speaker name", "talk_time_percent": 0-100, "key_contributions": ["Contribution 1"]}],
+    "questions_raised": ["Question 1", "Question 2"],
+    "decisions_made": ["Decision 1", "Decision 2"]
+}
+
+Only include the sections that are relevant based on the transcript content. If a section has no data, use an empty array or appropriate default."""
+
+        # Initialize chat
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"transcript_analysis_{uuid.uuid4()}",
+            system_message=system_prompt
+        ).with_model("openai", "gpt-5.2")
+        
+        # Create analysis request
+        analysis_prompt = f"""Analyze this meeting transcript and provide insights:
+
+---TRANSCRIPT START---
+{text}
+---TRANSCRIPT END---
+
+Provide a comprehensive analysis in JSON format."""
+
+        user_message = UserMessage(text=analysis_prompt)
+        
+        # Get response
+        response = await chat.send_message(user_message)
+        
+        # Try to parse as JSON
+        try:
+            # Clean up response if it has markdown code blocks
+            cleaned_response = response.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]
+            if cleaned_response.startswith("```"):
+                cleaned_response = cleaned_response[3:]
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]
+            
+            analysis_result = json.loads(cleaned_response.strip())
+        except json.JSONDecodeError:
+            # If parsing fails, return raw response
+            analysis_result = {
+                "summary": response,
+                "key_points": [],
+                "action_items": [],
+                "sentiment": {"overall": "neutral", "score": 0.5},
+                "topics": [],
+                "raw_response": response
+            }
+        
+        return {
+            "success": True,
+            "analysis": analysis_result,
+            "analyzed_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing transcript: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
