@@ -305,6 +305,9 @@ function App() {
                                 <Route path="/user/payment-methods" element={<UserPaymentMethodsPage />} />
                                 <Route path="/user/payment-history" element={<UserPaymentHistoryPage />} />
                                 <Route path="/user/checkout" element={<UserPaymentCheckoutPage />} />
+                                <Route path="/user/plans" element={<UserPlansPage />} />
+                                <Route path="/user/coupons" element={<UserCouponsPage />} />
+                                <Route path="/user/transactions" element={<UserTransactionsPage />} />
 
                                 <Route path="/support" element={<SupportPage />} />
                                 <Route path="/support-tickets" element={<UserSupportTicketsPage />} />
@@ -387,6 +390,10 @@ function App() {
                                 <Route path="api-settings" element={<AdminAPISettingsPage />} />
                                 <Route path="integrations" element={<AdminIntegrationsPage />} />
                                 <Route path="payment-gateways" element={<AdminPaymentGatewaysPage />} />
+                                <Route path="plans" element={<AdminPlansPage />} />
+                                <Route path="coupons" element={<AdminCouponsPage />} />
+                                <Route path="tax-rates" element={<AdminTaxRatesPage />} />
+                                <Route path="transactions" element={<AdminTransactionsPage />} />
                                 <Route path="transcription-settings" element={<AdminTranscriptionSettingsPage />} />
                                 <Route path="api-logs" element={<AdminAPILogs />} />
                                 <Route path="integration-logs" element={<AdminIntegrationLogs />} />
