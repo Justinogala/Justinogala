@@ -101,6 +101,9 @@ const UserBillingPage = lazy(() => import('@/pages/UserBillingPage'));
 const UserPaymentMethodsPage = lazy(() => import('@/pages/user/UserPaymentMethodsPage'));
 const UserPaymentHistoryPage = lazy(() => import('@/pages/user/UserPaymentHistoryPage'));
 const UserPaymentCheckoutPage = lazy(() => import('@/pages/user/UserPaymentCheckoutPage'));
+const UserPlansPage = lazy(() => import('@/pages/user/UserPlansPage'));
+const UserCouponsPage = lazy(() => import('@/pages/user/UserCouponsPage'));
+const UserTransactionsPage = lazy(() => import('@/pages/user/UserTransactionsPage'));
 
 // Analytics & Reports
 const AnalyticsDashboardPage = lazy(() => import('@/pages/AnalyticsDashboardPage'));
@@ -181,6 +184,10 @@ const AdminAPILogs = lazy(() => import('@/pages/admin/AdminAPILogs'));
 const AdminIntegrationLogs = lazy(() => import('@/pages/admin/AdminIntegrationLogs'));
 const AdminSettingsPersistenceTest = lazy(() => import('@/pages/admin/AdminSettingsPersistenceTest'));
 const AdminTranscriptionSettingsPage = lazy(() => import('@/pages/admin/AdminTranscriptionSettingsPage')); 
+const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'));
+const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage'));
+const AdminTaxRatesPage = lazy(() => import('@/pages/admin/AdminTaxRatesPage'));
+const AdminTransactionsPage = lazy(() => import('@/pages/admin/AdminTransactionsPage'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 
