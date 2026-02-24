@@ -1,12 +1,13 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Menu, Bell, Search, Settings } from 'lucide-react';
+import { Menu, Search, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
+import NotificationBell from '@/components/NotificationBell';
 
 const UserHeader = ({ onMenuClick }) => {
   const { user } = useAuth();
