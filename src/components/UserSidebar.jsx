@@ -31,12 +31,12 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { motion } from 'framer-motion';
 
 const UserSidebar = ({ className, onClose, isMobile }) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [paymentsOpen, setPaymentsOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -61,9 +61,11 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: HardDrive, label: 'Files', path: '/files' },
   ];
 
-  const paymentItems = [
+  const paymentSubItems = [
     { icon: CreditCard, label: 'Payment Methods', path: '/user/payment-methods' },
-    { icon: DollarSign, label: 'History', path: '/user/payment-history' },
+    { icon: DollarSign, label: 'Plans & Billing', path: '/user/plans' },
+    { icon: Tag, label: 'My Coupons', path: '/user/coupons' },
+    { icon: Receipt, label: 'Transaction History', path: '/user/transactions' },
   ];
 
   // Mobile sidebar is fixed width, desktop can collapse
