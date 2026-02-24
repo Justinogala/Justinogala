@@ -158,32 +158,65 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
           ))}
         </div>
 
-        {/* Payments Section */}
+        {/* Manage Payments Section */}
         <div className="space-y-1">
-           {!collapsed && <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Payments</p>}
-           {collapsed && <div className="h-px bg-gray-100 dark:bg-gray-800 mx-2 mb-2"></div>}
-           
-           {paymentItems.map((item) => (
-             <NavLink
-               key={item.path}
-               to={item.path}
-               onClick={isMobile ? onClose : undefined}
-               className={({ isActive }) => cn(
-                 "flex items-center gap-3 px-3 py-3 lg:py-2.5 rounded-lg transition-all duration-200 group relative overflow-hidden touch-target",
-                 "text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5",
-                 isActive && "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 font-medium",
-                 collapsed && "justify-center px-2"
-               )}
-               title={collapsed ? item.label : undefined}
-             >
-               <item.icon className={cn("w-5 h-5 shrink-0", collapsed ? "mr-0" : "mr-1")} />
-               {!collapsed && (
-                 <span className="truncate text-sm md:text-base">
-                   {item.label}
-                 </span>
-               )}
-             </NavLink>
-           ))}
+          {!collapsed && <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Payments</p>}
+          {collapsed && <div className="h-px bg-gray-100 dark:bg-gray-800 mx-2 mb-2"></div>}
+          
+          {/* Collapsible Payment Menu */}
+          <button
+            onClick={() => !collapsed && setPaymentsOpen(!paymentsOpen)}
+            className={cn(
+              "flex items-center justify-between w-full px-3 py-3 lg:py-2.5 rounded-lg transition-all duration-200 group",
+              paymentsOpen 
+                ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" 
+                : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-white",
+              collapsed && "justify-center px-2"
+            )}
+            title={collapsed ? "Manage Payments" : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <Coins className={cn(
+                "w-5 h-5 shrink-0",
+                paymentsOpen ? "text-amber-500" : "text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300"
+              )} />
+              {!collapsed && <span className="text-sm md:text-base font-medium">Manage Payments</span>}
+            </div>
+            {!collapsed && (
+              paymentsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+          
+          <AnimatePresence>
+            {paymentsOpen && !collapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-1 py-1">
+                  {paymentSubItems.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={isMobile ? onClose : undefined}
+                      className={({ isActive }) => cn(
+                        "flex items-center gap-3 pl-10 pr-3 py-2.5 rounded-lg text-sm transition-all duration-200 group",
+                        isActive 
+                          ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium" 
+                          : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-gray-200"
+                      )}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Support & Settings Group */}
