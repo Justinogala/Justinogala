@@ -1,11 +1,12 @@
 import React from 'react';
-import { Menu, Bell, Search, LogOut } from 'lucide-react';
+import { Menu, Search, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { useNavigate } from 'react-router-dom';
+import NotificationBell from '@/components/NotificationBell';
 
 const AdminHeader = ({ onMenuClick }) => {
   const { adminUser, logout } = useAdminAuth();
