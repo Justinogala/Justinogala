@@ -146,19 +146,39 @@ const TextToAudioPage = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (audioUrl) {
-      const a = document.createElement('a');
-      a.href = audioUrl;
-      a.download = `speech_${voice}_${Date.now()}.mp3`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Download started",
-        description: "Your audio file is being downloaded"
-      });
+      try {
+        // Fetch the blob from the object URL
+        const response = await fetch(audioUrl);
+        const blob = await response.blob();
+        
+        // Create a new blob with explicit MIME type
+        const typedBlob = new Blob([blob], { type: 'audio/mpeg' });
+        const downloadUrl = URL.createObjectURL(typedBlob);
+        
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `speech_${voice}_${Date.now()}.mp3`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Clean up
+        URL.revokeObjectURL(downloadUrl);
+        
+        toast({
+          title: "Download started",
+          description: "Your audio file is being downloaded"
+        });
+      } catch (error) {
+        console.error('Download error:', error);
+        toast({
+          variant: "destructive",
+          title: "Download failed",
+          description: "Could not download the audio file"
+        });
+      }
     }
   };
 
