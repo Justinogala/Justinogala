@@ -1,8 +1,7 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import MunalAIChatWidget from './MunalAIChatWidget';
 import { munalAIChatService } from '@/services/munalAIChatService';
 import { useToast } from '@/components/ui/use-toast';
-import { APIKeyManagementContext } from '@/context/APIKeyManagementContext';
 
 const MunalAIChatContainer = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,8 +10,9 @@ const MunalAIChatContainer = () => {
   const [isTyping, setIsTyping] = useState(false);
   const { toast } = useToast();
   
-  // Use the context to check for API key validity
-  const { isValid: isApiKeyValid, isLoading: isKeyLoading } = useContext(APIKeyManagementContext);
+  // AI is always configured since we use backend Emergent LLM Key
+  const isApiKeyValid = true;
+  const isKeyLoading = false;
 
   // Initial welcome message
   useEffect(() => {
@@ -25,29 +25,10 @@ const MunalAIChatContainer = () => {
         }
       ]);
     }
-  }, []);
+  }, [messages.length]);
 
   const handleSendMessage = async (content) => {
-    // Pre-flight check
-    if (!isApiKeyValid) {
-      toast({
-        title: "Configuration Required",
-        description: "Please configure your OpenAI API Key in settings to use Munal AI.",
-        variant: "destructive"
-      });
-      
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content, timestamp: new Date() },
-        { 
-          role: 'assistant', 
-          content: "I cannot process your request because the OpenAI API Key is missing or invalid. Please check your settings.", 
-          timestamp: new Date(), 
-          isError: true 
-        }
-      ]);
-      return;
-    }
+    if (!content.trim()) return;
 
     // Add User Message
     const userMsg = { role: 'user', content, timestamp: new Date() };
@@ -57,7 +38,7 @@ const MunalAIChatContainer = () => {
     try {
       // Prepare history for API (last 10 messages context)
       const apiMessages = [...messages, userMsg]
-        .filter(m => !m.isError) // Filter out error messages
+        .filter(m => !m.isError)
         .slice(-10)
         .map(({ role, content }) => ({ role, content }));
 
@@ -101,7 +82,7 @@ const MunalAIChatContainer = () => {
           // Add error message to chat
           setMessages(prev => [
             ...prev,
-            { role: 'assistant', content: `Error: ${error || "Connection failed."}`, timestamp: new Date(), isError: true }
+            { role: 'assistant', content: `Sorry, I encountered an error: ${error || "Connection failed."}`, timestamp: new Date(), isError: true }
           ]);
         }
       );
