@@ -235,6 +235,7 @@ logger.error = (msg, options) => {
 
 export default defineConfig({
 	customLogger: logger,
+	envPrefix: ['VITE_', 'REACT_APP_'],
 	plugins: [
 		react(),
 		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), iframeRouteRestorationPlugin(), selectionModePlugin()] : []),
