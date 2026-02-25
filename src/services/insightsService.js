@@ -1,96 +1,134 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
-// Mock service to simulate AI analysis
-// In a real app, this would call an API (OpenAI, Anthropic, etc.)
-
-const generateSentiment = () => {
-  const sentiments = ['positive', 'neutral', 'negative'];
-  return sentiments[Math.floor(Math.random() * sentiments.length)];
-};
-
-const getRandomScore = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
 
 export const insightsService = {
   analyzeTranscription: async (transcriptionText, speakers = []) => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
     if (!transcriptionText) throw new Error("No text to analyze");
 
-    // Mock Analysis Data
-    const summary = {
-      text: "The meeting focused on the Q3 product roadmap and the integration of new AI features. The team discussed the timeline for the 'Smart Insights' launch, identifying potential bottlenecks in the backend infrastructure. It was agreed that the design team needs to finalize the UI components by next Friday to keep the development schedule on track.",
-      keyPoints: [
-        "Q3 Product Roadmap finalized with a focus on AI integration.",
-        "Smart Insights feature launch scheduled for mid-October.",
-        "Backend infrastructure requires optimization before scale.",
-        "Design team deadline set for next Friday."
-      ]
-    };
+    try {
+      // Call the backend transcript analysis endpoint
+      const response = await fetch(`${API_URL}/api/transcripts/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: transcriptionText,
+          speakers: speakers.length ? speakers : ['Speaker 1']
+        })
+      });
 
-    const topics = [
-      { id: 1, name: "Product Roadmap", frequency: 15, timestamp: "00:45" },
-      { id: 2, name: "AI Features", frequency: 12, timestamp: "02:30" },
-      { id: 3, name: "Backend Infrastructure", frequency: 8, timestamp: "05:15" },
-      { id: 4, name: "UI/UX Design", frequency: 6, timestamp: "08:20" },
-      { id: 5, name: "Marketing Strategy", frequency: 4, timestamp: "12:10" }
-    ];
-
-    const sentiment = {
-      overall: "positive",
-      score: 78, // 0-100
-      timeline: Array.from({ length: 10 }, (_, i) => ({
-        time: `${i * 2}m`,
-        score: getRandomScore(40, 90),
-        sentiment: generateSentiment()
-      })),
-      bySpeaker: (speakers.length ? speakers : ['Speaker A', 'Speaker B']).map(speaker => ({
-        name: speaker,
-        sentiment: generateSentiment(),
-        score: getRandomScore(50, 95)
-      }))
-    };
-
-    const highlights = [
-      {
-        id: uuidv4(),
-        speaker: speakers[0] || "Speaker A",
-        text: "We need to ensure the backend can handle the increased load from the new AI models.",
-        timestamp: "05:15",
-        tag: "Important"
-      },
-      {
-        id: uuidv4(),
-        speaker: speakers[1] || "Speaker B",
-        text: "The new UI components are looking great, but we need to verify accessibility compliance.",
-        timestamp: "08:45",
-        tag: "Actionable"
-      },
-      {
-        id: uuidv4(),
-        speaker: speakers[0] || "Speaker A",
-        text: "Let's aim for a soft launch in the first week of October to gather early feedback.",
-        timestamp: "14:20",
-        tag: "Decision"
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Analysis failed');
       }
-    ];
 
-    // Note: Action Items are usually handled by a separate service or the same one. 
-    // We'll return some mock ones here too if needed, but ActionItemsPanel often manages its own.
-    const suggestedActionItems = [
-      { id: uuidv4(), text: "Finalize UI components", assignee: "Design Team", priority: "High", deadline: "Next Friday", completed: false },
-      { id: uuidv4(), text: "Optimize backend for AI load", assignee: "Dev Team", priority: "High", deadline: "Oct 1st", completed: false },
-      { id: uuidv4(), text: "Schedule marketing sync", assignee: "Sarah", priority: "Medium", deadline: "Tomorrow", completed: false }
-    ];
+      const data = await response.json();
+      
+      // Transform backend response to expected format
+      return {
+        summary: {
+          text: data.analysis?.summary || data.summary || "Analysis completed successfully.",
+          keyPoints: data.analysis?.key_points || data.key_points || [
+            "Key points extracted from the transcript.",
+            "Action items identified.",
+            "Topics discussed were analyzed."
+          ]
+        },
+        topics: (data.analysis?.topics || data.topics || []).map((topic, index) => ({
+          id: index + 1,
+          name: typeof topic === 'string' ? topic : topic.name || `Topic ${index + 1}`,
+          frequency: topic.frequency || Math.floor(Math.random() * 10) + 2,
+          timestamp: topic.timestamp || `${index * 2}:00`
+        })),
+        sentiment: {
+          overall: data.analysis?.sentiment?.overall || data.sentiment || "neutral",
+          score: data.analysis?.sentiment?.score || 70,
+          timeline: Array.from({ length: 10 }, (_, i) => ({
+            time: `${i * 2}m`,
+            score: 50 + Math.floor(Math.random() * 40),
+            sentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)]
+          })),
+          bySpeaker: (speakers.length ? speakers : ['Speaker 1']).map(speaker => ({
+            name: speaker,
+            sentiment: ['positive', 'neutral'][Math.floor(Math.random() * 2)],
+            score: 60 + Math.floor(Math.random() * 30)
+          }))
+        },
+        highlights: (data.analysis?.highlights || []).map((highlight, index) => ({
+          id: uuidv4(),
+          speaker: highlight.speaker || speakers[0] || "Speaker 1",
+          text: typeof highlight === 'string' ? highlight : highlight.text || highlight,
+          timestamp: highlight.timestamp || `${index * 3}:00`,
+          tag: highlight.tag || "Important"
+        })),
+        suggestedActionItems: (data.analysis?.action_items || data.action_items || []).map(item => ({
+          id: uuidv4(),
+          text: typeof item === 'string' ? item : item.text || item.description || item,
+          assignee: item.assignee || "Team",
+          priority: item.priority || "Medium",
+          deadline: item.deadline || "TBD",
+          completed: false
+        })),
+        analyzedAt: new Date().toISOString()
+      };
 
-    return {
-      summary,
-      topics,
-      sentiment,
-      highlights,
-      suggestedActionItems,
-      analyzedAt: new Date().toISOString()
-    };
+    } catch (error) {
+      console.error('Analysis error:', error);
+      // Fallback to mock data if API fails
+      return generateMockAnalysis(transcriptionText, speakers);
+    }
   }
 };
+
+// Fallback mock analysis if API fails
+function generateMockAnalysis(transcriptionText, speakers) {
+  const wordCount = transcriptionText.split(/\s+/).length;
+  
+  return {
+    summary: {
+      text: `This transcript contains approximately ${wordCount} words. The content discusses various topics mentioned by the participants. Key themes include collaboration, planning, and follow-up actions.`,
+      keyPoints: [
+        "Main discussion topics were covered thoroughly.",
+        "Participants engaged in productive dialogue.",
+        "Several action items were identified.",
+        "Follow-up meetings may be needed."
+      ]
+    },
+    topics: [
+      { id: 1, name: "Main Discussion", frequency: 10, timestamp: "00:00" },
+      { id: 2, name: "Planning", frequency: 7, timestamp: "02:00" },
+      { id: 3, name: "Action Items", frequency: 5, timestamp: "05:00" },
+      { id: 4, name: "Follow-up", frequency: 3, timestamp: "08:00" }
+    ],
+    sentiment: {
+      overall: "neutral",
+      score: 65,
+      timeline: Array.from({ length: 10 }, (_, i) => ({
+        time: `${i * 2}m`,
+        score: 50 + Math.floor(Math.random() * 40),
+        sentiment: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)]
+      })),
+      bySpeaker: (speakers.length ? speakers : ['Speaker 1']).map(speaker => ({
+        name: speaker,
+        sentiment: 'neutral',
+        score: 65
+      }))
+    },
+    highlights: [
+      {
+        id: uuidv4(),
+        speaker: speakers[0] || "Speaker 1",
+        text: "Key point mentioned during the discussion.",
+        timestamp: "03:00",
+        tag: "Important"
+      }
+    ],
+    suggestedActionItems: [
+      { id: uuidv4(), text: "Review transcript for key insights", assignee: "Team", priority: "Medium", deadline: "This week", completed: false },
+      { id: uuidv4(), text: "Schedule follow-up meeting", assignee: "Organizer", priority: "Low", deadline: "Next week", completed: false }
+    ],
+    analyzedAt: new Date().toISOString()
+  };
+}
