@@ -45,7 +45,11 @@ const UserTransactionsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   // Filter transactions
   const filteredTransactions = transactions.filter(txn => {
