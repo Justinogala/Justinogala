@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Check, Zap, Star, Crown, ArrowRight } from 'lucide-react';
+import { Check, Zap, Star, Crown, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,26 +8,33 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const UserPlansPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(null);
   
-  // Mock current plan data
+  // Current plan data (could be fetched from backend)
   const currentPlan = {
-    name: 'Pro',
-    price: 29,
-    renewalDate: '2025-02-15',
+    name: 'Free',
+    price: 0,
+    renewalDate: null,
     usage: {
-      meetings: { used: 45, limit: 100 },
-      storage: { used: 2.5, limit: 10 },
-      transcriptions: { used: 120, limit: 500 }
+      meetings: { used: 3, limit: 5 },
+      storage: { used: 0.2, limit: 1 },
+      transcriptions: { used: 15, limit: 30 }
     }
   };
 
   const plans = [
     {
       id: 'free',
+      packageId: 'free',
       name: 'Free',
       icon: Zap,
       price: { monthly: 0, annual: 0 },
@@ -42,6 +49,7 @@ const UserPlansPage = () => {
     },
     {
       id: 'pro',
+      packageId: isAnnual ? 'pro_annual' : 'pro_monthly',
       name: 'Pro',
       icon: Star,
       price: { monthly: 29, annual: 290 },
@@ -58,6 +66,7 @@ const UserPlansPage = () => {
     },
     {
       id: 'enterprise',
+      packageId: isAnnual ? 'enterprise_annual' : 'enterprise_monthly',
       name: 'Enterprise',
       icon: Crown,
       price: { monthly: 99, annual: 990 },
@@ -76,11 +85,61 @@ const UserPlansPage = () => {
     }
   ];
 
-  const handleUpgrade = (planId) => {
-    toast({
-      title: "Upgrade initiated",
-      description: `Redirecting to checkout for ${planId} plan...`
-    });
+  const handleUpgrade = async (plan) => {
+    if (plan.price.monthly === 0) {
+      toast({
+        title: "Free Plan",
+        description: "You're already on the free plan or it's automatically available."
+      });
+      return;
+    }
+
+    setCheckoutLoading(plan.id);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/payments/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          package_id: plan.packageId,
+          origin_url: window.location.origin,
+          user_id: user?.id || null,
+          user_email: user?.email || null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const data = await response.json();
+
+      if (data.requires_payment === false) {
+        toast({
+          title: "Plan Activated",
+          description: `${plan.name} plan is now active!`
+        });
+        return;
+      }
+
+      if (data.checkout_url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.checkout_url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        variant: "destructive",
+        title: "Payment Error",
+        description: error.message || "Failed to initiate payment. Please try again."
+      });
+    } finally {
+      setCheckoutLoading(null);
+    }
   };
 
   const handleCancelPlan = () => {
@@ -90,6 +149,8 @@ const UserPlansPage = () => {
       description: "Please contact support to cancel your subscription."
     });
   };
+
+  const isCurrent = (planName) => planName === currentPlan.name;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto" data-testid="user-plans-page">
@@ -107,9 +168,16 @@ const UserPlansPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-lg">Current Plan: {currentPlan.name}</CardTitle>
-              <CardDescription>Next billing date: {new Date(currentPlan.renewalDate).toLocaleDateString()}</CardDescription>
+              <CardDescription>
+                {currentPlan.renewalDate 
+                  ? `Next billing date: ${new Date(currentPlan.renewalDate).toLocaleDateString()}`
+                  : 'No active subscription'
+                }
+              </CardDescription>
             </div>
-            <Badge className="bg-indigo-600 text-white">${currentPlan.price}/month</Badge>
+            <Badge className="bg-indigo-600 text-white">
+              {currentPlan.price === 0 ? 'Free' : `$${currentPlan.price}/month`}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -137,14 +205,16 @@ const UserPlansPage = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between border-t pt-4">
-          <Button variant="outline" onClick={handleCancelPlan} className="text-red-600 border-red-200 hover:bg-red-50">
-            Cancel Subscription
-          </Button>
-          <Button variant="outline">
-            Update Payment Method
-          </Button>
-        </CardFooter>
+        {currentPlan.price > 0 && (
+          <CardFooter className="flex justify-between border-t pt-4">
+            <Button variant="outline" onClick={handleCancelPlan} className="text-red-600 border-red-200 hover:bg-red-50">
+              Cancel Subscription
+            </Button>
+            <Button variant="outline">
+              Update Payment Method
+            </Button>
+          </CardFooter>
+        )}
       </Card>
 
       {/* Billing Toggle */}
@@ -163,14 +233,15 @@ const UserPlansPage = () => {
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {plans.map((plan) => {
-          const isCurrent = plan.name === currentPlan.name;
+          const planIsCurrent = isCurrent(plan.name);
           const price = isAnnual ? plan.price.annual : plan.price.monthly;
           const Icon = plan.icon;
+          const isLoading = checkoutLoading === plan.id;
           
           return (
             <Card 
               key={plan.id} 
-              className={`relative ${plan.popular ? 'border-2 border-indigo-500 shadow-lg shadow-indigo-500/10' : ''} ${isCurrent ? 'ring-2 ring-green-500' : ''}`}
+              className={`relative ${plan.popular ? 'border-2 border-indigo-500 shadow-lg shadow-indigo-500/10' : ''} ${planIsCurrent ? 'ring-2 ring-green-500' : ''}`}
               data-testid={`plan-card-${plan.id}`}
             >
               {plan.popular && (
@@ -178,7 +249,7 @@ const UserPlansPage = () => {
                   <Badge className="bg-indigo-600 text-white px-3">Most Popular</Badge>
                 </div>
               )}
-              {isCurrent && (
+              {planIsCurrent && (
                 <div className="absolute -top-3 right-4">
                   <Badge className="bg-green-600 text-white px-3">Current Plan</Badge>
                 </div>
@@ -210,12 +281,19 @@ const UserPlansPage = () => {
               <CardFooter>
                 <Button 
                   className={`w-full ${plan.popular ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
-                  variant={isCurrent ? "outline" : "default"}
-                  disabled={isCurrent}
-                  onClick={() => handleUpgrade(plan.id)}
+                  variant={planIsCurrent ? "outline" : "default"}
+                  disabled={planIsCurrent || isLoading}
+                  onClick={() => handleUpgrade(plan)}
                   data-testid={`select-plan-${plan.id}`}
                 >
-                  {isCurrent ? 'Current Plan' : (
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : planIsCurrent ? (
+                    'Current Plan'
+                  ) : (
                     <>
                       {plan.price.monthly === 0 ? 'Get Started' : 'Upgrade'} 
                       <ArrowRight className="w-4 h-4 ml-2" />
