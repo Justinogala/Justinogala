@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL;
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
 
 export const munalAIChatService = {
   /**
@@ -10,8 +10,11 @@ export const munalAIChatService = {
    * @param {Function} onError - Callback for errors
    */
   sendMessageStream: async (messages, onChunk, onComplete, onError) => {
+    const apiUrl = API_URL || window.location.origin;
+    console.log('Munal AI Chat - API URL:', apiUrl);
+    
     try {
-      const response = await fetch(`${API_URL}/api/ai/chat`, {
+      const response = await fetch(`${apiUrl}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
