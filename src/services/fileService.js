@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL;
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
 
 /**
  * Service to handle file operations using backend GridFS storage.
@@ -15,6 +15,8 @@ export const fileService = {
    * @param {function} onProgress - Callback for progress (0-100)
    */
   uploadFile: async (file, bucket, path, onProgress) => {
+    const apiUrl = API_URL || window.location.origin;
+    
     try {
       // Get user ID from localStorage
       const userData = localStorage.getItem('munal_auth');
