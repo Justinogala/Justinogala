@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Search, Download, Filter, Receipt, Calendar, CreditCard, CheckCircle, Clock, XCircle, Eye, FileText } from 'lucide-react';
+import { Search, Download, Filter, Receipt, Calendar, CreditCard, CheckCircle, Clock, XCircle, Eye, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -15,106 +16,72 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const UserTransactionsPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState([]);
 
-  // Mock transactions data
-  const [transactions] = useState([
-    {
-      id: 'txn_001',
-      invoiceId: 'INV-2025-001',
-      date: '2025-01-15',
-      description: 'Pro Plan - Monthly',
-      amount: 29.00,
-      currency: 'USD',
-      status: 'completed',
-      paymentMethod: 'Visa ****4242',
-      type: 'subscription'
-    },
-    {
-      id: 'txn_002',
-      invoiceId: 'INV-2024-012',
-      date: '2024-12-15',
-      description: 'Pro Plan - Monthly',
-      amount: 29.00,
-      currency: 'USD',
-      status: 'completed',
-      paymentMethod: 'Visa ****4242',
-      type: 'subscription'
-    },
-    {
-      id: 'txn_003',
-      invoiceId: 'INV-2024-011',
-      date: '2024-11-15',
-      description: 'Pro Plan - Monthly',
-      amount: 29.00,
-      currency: 'USD',
-      status: 'completed',
-      paymentMethod: 'Visa ****4242',
-      type: 'subscription'
-    },
-    {
-      id: 'txn_004',
-      invoiceId: 'INV-2024-010',
-      date: '2024-10-20',
-      description: 'Storage Add-on 5GB',
-      amount: 9.99,
-      currency: 'USD',
-      status: 'completed',
-      paymentMethod: 'Mastercard ****8888',
-      type: 'addon'
-    },
-    {
-      id: 'txn_005',
-      invoiceId: 'INV-2024-009',
-      date: '2024-10-15',
-      description: 'Pro Plan - Monthly',
-      amount: 29.00,
-      currency: 'USD',
-      status: 'failed',
-      paymentMethod: 'Visa ****4242',
-      type: 'subscription'
-    },
-    {
-      id: 'txn_006',
-      invoiceId: 'INV-2024-008',
-      date: '2024-09-15',
-      description: 'Pro Plan - Monthly',
-      amount: 29.00,
-      currency: 'USD',
-      status: 'refunded',
-      paymentMethod: 'Visa ****4242',
-      type: 'subscription'
+  useEffect(() => {
+    fetchTransactions();
+  }, [user]);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (user?.id) params.append('user_id', user.id);
+      if (user?.email) params.append('user_email', user.email);
+
+      const response = await fetch(`${API_URL}/api/payments/transactions?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data.transactions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   // Filter transactions
   const filteredTransactions = transactions.filter(txn => {
-    const matchesSearch = txn.invoiceId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         txn.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || txn.status === statusFilter;
+    const matchesSearch = txn.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         txn.package_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         txn.session_id?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || txn.payment_status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   // Calculate stats
   const stats = {
-    total: transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amount, 0),
-    thisMonth: transactions.filter(t => t.status === 'completed' && t.date.startsWith('2025-01')).reduce((sum, t) => sum + t.amount, 0),
-    pending: transactions.filter(t => t.status === 'pending').length
+    total: transactions.filter(t => t.payment_status === 'paid').reduce((sum, t) => sum + (t.amount || 0), 0),
+    thisMonth: transactions.filter(t => {
+      const txnDate = new Date(t.created_at);
+      const now = new Date();
+      return t.payment_status === 'paid' && 
+             txnDate.getMonth() === now.getMonth() && 
+             txnDate.getFullYear() === now.getFullYear();
+    }).reduce((sum, t) => sum + (t.amount || 0), 0),
+    pending: transactions.filter(t => t.payment_status === 'pending').length
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"><CheckCircle className="w-3 h-3 mr-1" /> Completed</Badge>;
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"><CheckCircle className="w-3 h-3 mr-1" /> Paid</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"><Clock className="w-3 h-3 mr-1" /> Pending</Badge>;
       case 'failed':
-        return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"><XCircle className="w-3 h-3 mr-1" /> Failed</Badge>;
+      case 'expired':
+        return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"><XCircle className="w-3 h-3 mr-1" /> {status}</Badge>;
       case 'refunded':
         return <Badge variant="secondary"><Receipt className="w-3 h-3 mr-1" /> Refunded</Badge>;
       default:
@@ -127,10 +94,10 @@ const UserTransactionsPage = () => {
     setDetailsOpen(true);
   };
 
-  const handleDownloadInvoice = (invoiceId) => {
+  const handleDownloadInvoice = (txnId) => {
     toast({
       title: "Downloading invoice",
-      description: `Preparing ${invoiceId} for download...`
+      description: `Preparing invoice for download...`
     });
   };
 
@@ -200,7 +167,7 @@ const UserTransactionsPage = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                placeholder="Search by invoice ID or description..."
+                placeholder="Search by ID or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -214,7 +181,7 @@ const UserTransactionsPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="failed">Failed</SelectItem>
                 <SelectItem value="refunded">Refunded</SelectItem>
@@ -227,76 +194,84 @@ const UserTransactionsPage = () => {
       {/* Transactions Table */}
       <Card>
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTransactions.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-gray-500">
-                    No transactions found matching your criteria
-                  </TableCell>
+                  <TableHead>Transaction ID</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filteredTransactions.map((txn) => (
-                  <TableRow key={txn.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50" data-testid={`transaction-row-${txn.id}`}>
-                    <TableCell>
-                      <span className="font-mono text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                        {txn.invoiceId}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-gray-500">
-                      {new Date(txn.date).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{txn.description}</p>
-                        <p className="text-xs text-gray-400">{txn.paymentMethod}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold">
-                      ${txn.amount.toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(txn.status)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleViewDetails(txn)}
-                          data-testid={`view-details-${txn.id}`}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDownloadInvoice(txn.invoiceId)}
-                          data-testid={`download-invoice-${txn.id}`}
-                        >
-                          <FileText className="w-4 h-4" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-gray-500">
+                      {transactions.length === 0 ? 'No transactions yet' : 'No transactions found matching your criteria'}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredTransactions.map((txn) => (
+                    <TableRow key={txn.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50" data-testid={`transaction-row-${txn.id}`}>
+                      <TableCell>
+                        <span className="font-mono text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                          {txn.id?.slice(0, 8)}...
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-gray-500">
+                        {txn.created_at ? new Date(txn.created_at).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        }) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">{txn.package_name || 'Subscription'}</p>
+                          <p className="text-xs text-gray-400">Session: {txn.session_id?.slice(0, 12)}...</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        ${(txn.amount || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(txn.payment_status)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleViewDetails(txn)}
+                            data-testid={`view-details-${txn.id}`}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {txn.payment_status === 'paid' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDownloadInvoice(txn.id)}
+                              data-testid={`download-invoice-${txn.id}`}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </Card>
 
@@ -311,40 +286,46 @@ const UserTransactionsPage = () => {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Invoice ID</p>
-                  <p className="font-medium font-mono">{selectedTransaction.invoiceId}</p>
-                </div>
-                <div>
                   <p className="text-gray-500">Transaction ID</p>
                   <p className="font-medium font-mono">{selectedTransaction.id}</p>
                 </div>
                 <div>
+                  <p className="text-gray-500">Session ID</p>
+                  <p className="font-medium font-mono text-xs">{selectedTransaction.session_id}</p>
+                </div>
+                <div>
                   <p className="text-gray-500">Date</p>
-                  <p className="font-medium">{new Date(selectedTransaction.date).toLocaleDateString()}</p>
+                  <p className="font-medium">{selectedTransaction.created_at ? new Date(selectedTransaction.created_at).toLocaleString() : '-'}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Status</p>
-                  {getStatusBadge(selectedTransaction.status)}
+                  {getStatusBadge(selectedTransaction.payment_status)}
                 </div>
                 <div>
                   <p className="text-gray-500">Amount</p>
-                  <p className="font-medium text-lg">${selectedTransaction.amount.toFixed(2)} {selectedTransaction.currency}</p>
+                  <p className="font-medium text-lg">${(selectedTransaction.amount || 0).toFixed(2)} {selectedTransaction.currency?.toUpperCase()}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Payment Method</p>
-                  <p className="font-medium">{selectedTransaction.paymentMethod}</p>
+                  <p className="text-gray-500">Package</p>
+                  <p className="font-medium">{selectedTransaction.package_name || '-'}</p>
                 </div>
               </div>
               
-              <div className="border-t pt-4">
-                <p className="text-gray-500 text-sm">Description</p>
-                <p className="font-medium">{selectedTransaction.description}</p>
-              </div>
+              {selectedTransaction.metadata && Object.keys(selectedTransaction.metadata).length > 0 && (
+                <div className="border-t pt-4">
+                  <p className="text-gray-500 text-sm mb-2">Metadata</p>
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 text-xs font-mono">
+                    {JSON.stringify(selectedTransaction.metadata, null, 2)}
+                  </div>
+                </div>
+              )}
               
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => handleDownloadInvoice(selectedTransaction.invoiceId)}>
-                  <Download className="w-4 h-4 mr-2" /> Download Invoice
-                </Button>
+                {selectedTransaction.payment_status === 'paid' && (
+                  <Button variant="outline" onClick={() => handleDownloadInvoice(selectedTransaction.id)}>
+                    <Download className="w-4 h-4 mr-2" /> Download Invoice
+                  </Button>
+                )}
               </div>
             </div>
           )}
