@@ -658,6 +658,76 @@ async def upload_chat_file(
         logger.error(f"Error uploading chat file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class ChatFileUploadJSON(BaseModel):
+    user_id: str
+    file_name: str
+    file_data: str  # base64 encoded
+    content_type: str = "application/octet-stream"
+    category: str = "documents"
+    conversation_id: str = "general"
+
+@api_router.post("/chat/files/upload")
+async def upload_chat_file_json(request: ChatFileUploadJSON):
+    """Upload a file for chat using JSON (base64 encoded)"""
+    try:
+        # Decode base64 file data
+        try:
+            content = base64.b64decode(request.file_data)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid base64 file data")
+        
+        file_size = len(content)
+        
+        # Limit file size to 50MB
+        if file_size > 50 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 50MB.")
+        
+        # Generate unique file ID
+        file_id = str(uuid.uuid4())
+        
+        # Upload to GridFS
+        gridfs_id = await fs_chat_files.upload_from_stream(
+            request.file_name,
+            io.BytesIO(content),
+            metadata={
+                "file_id": file_id,
+                "user_id": request.user_id,
+                "conversation_id": request.conversation_id,
+                "original_filename": request.file_name,
+                "content_type": request.content_type,
+                "file_size": file_size,
+                "category": request.category,
+                "uploaded_at": datetime.now(timezone.utc).isoformat()
+            }
+        )
+        
+        # Save metadata
+        doc = {
+            "id": file_id,
+            "gridfs_id": str(gridfs_id),
+            "user_id": request.user_id,
+            "conversation_id": request.conversation_id,
+            "filename": request.file_name,
+            "content_type": request.content_type,
+            "file_size": file_size,
+            "category": request.category,
+            "created_at": datetime.now(timezone.utc)
+        }
+        await db.chat_files.insert_one(doc)
+        
+        return {
+            "file_id": file_id,
+            "filename": request.file_name,
+            "content_type": request.content_type,
+            "file_size": file_size,
+            "url": f"/api/chat/files/{file_id}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading chat file (JSON): {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/chat/files/{file_id}")
 async def get_chat_file(file_id: str):
     """Download/stream a chat file"""
