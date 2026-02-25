@@ -1602,32 +1602,31 @@ Keep responses focused and under 300 words unless more detail is specifically re
 async def ai_chat(request: AIChatRequest):
     """AI chat endpoint using OpenAI via Emergent LLM Key"""
     try:
-        from emergentintegrations.llm.openai import OpenAILLM, OpenAIMessage, OpenAIMessageRole
+        from emergentintegrations.llm.openai import LlmChat, UserMessage
         
         # Get API key
         api_key = os.environ.get('EMERGENT_LLM_KEY')
         if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
-        # Initialize OpenAI LLM
-        llm = OpenAILLM(api_key=api_key)
+        # Initialize chat with system message
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"ai_chat_{uuid.uuid4()}",
+            system_message=MUNAL_AI_SYSTEM_PROMPT
+        ).with_model("openai", "gpt-4o")
         
-        # Build messages with system prompt
-        messages = [
-            OpenAIMessage(role=OpenAIMessageRole.SYSTEM, content=MUNAL_AI_SYSTEM_PROMPT)
-        ]
+        # Build conversation context
+        for msg in request.messages[:-1]:  # All messages except last
+            if msg.role == "user":
+                await chat.send_message(UserMessage(text=msg.content))
         
-        for msg in request.messages:
-            role = OpenAIMessageRole.USER if msg.role == "user" else OpenAIMessageRole.ASSISTANT
-            messages.append(OpenAIMessage(role=role, content=msg.content))
+        # Send the last user message and get response
+        last_msg = request.messages[-1] if request.messages else None
+        if not last_msg or last_msg.role != "user":
+            raise HTTPException(status_code=400, detail="Last message must be from user")
         
-        # Generate response
-        response = await llm.generate_response(
-            messages=messages,
-            model=request.model,
-            max_tokens=request.max_tokens,
-            temperature=request.temperature
-        )
+        response = await chat.send_message(UserMessage(text=last_msg.content))
         
         return {
             "success": True,
