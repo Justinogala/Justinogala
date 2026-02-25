@@ -1441,6 +1441,142 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# ============== Text-to-Speech Endpoints ==============
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "alloy"  # alloy, ash, coral, echo, fable, nova, onyx, sage, shimmer
+    model: str = "tts-1"  # tts-1 or tts-1-hd
+    speed: float = 1.0  # 0.25 to 4.0
+
+# Available TTS voices with descriptions
+TTS_VOICES = {
+    "alloy": {"name": "Alloy", "gender": "neutral", "description": "Neutral, balanced voice"},
+    "ash": {"name": "Ash", "gender": "male", "description": "Clear, articulate male voice"},
+    "coral": {"name": "Coral", "gender": "female", "description": "Warm, friendly female voice"},
+    "echo": {"name": "Echo", "gender": "male", "description": "Smooth, calm male voice"},
+    "fable": {"name": "Fable", "gender": "neutral", "description": "Expressive, storytelling voice"},
+    "nova": {"name": "Nova", "gender": "female", "description": "Energetic, upbeat female voice"},
+    "onyx": {"name": "Onyx", "gender": "male", "description": "Deep, authoritative male voice"},
+    "sage": {"name": "Sage", "gender": "female", "description": "Wise, measured female voice"},
+    "shimmer": {"name": "Shimmer", "gender": "female", "description": "Bright, cheerful female voice"}
+}
+
+@api_router.get("/tts/voices")
+async def get_tts_voices():
+    """Get available TTS voices"""
+    return {
+        "voices": [
+            {"id": k, **v} for k, v in TTS_VOICES.items()
+        ],
+        "models": [
+            {"id": "tts-1", "name": "Standard", "description": "Fast, good quality"},
+            {"id": "tts-1-hd", "name": "HD", "description": "High quality, slower"}
+        ]
+    }
+
+@api_router.post("/tts/generate")
+async def generate_speech(request: TTSRequest):
+    """Generate speech from text using OpenAI TTS"""
+    try:
+        from emergentintegrations.llm.openai import OpenAITextToSpeech
+        
+        # Validate text length
+        if len(request.text) > 4096:
+            raise HTTPException(status_code=400, detail="Text exceeds maximum length of 4096 characters")
+        
+        if len(request.text.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Text cannot be empty")
+        
+        # Validate voice
+        if request.voice not in TTS_VOICES:
+            raise HTTPException(status_code=400, detail=f"Invalid voice. Choose from: {', '.join(TTS_VOICES.keys())}")
+        
+        # Validate speed
+        if request.speed < 0.25 or request.speed > 4.0:
+            raise HTTPException(status_code=400, detail="Speed must be between 0.25 and 4.0")
+        
+        # Get API key
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="TTS service not configured")
+        
+        # Initialize TTS
+        tts = OpenAITextToSpeech(api_key=api_key)
+        
+        # Generate speech
+        audio_bytes = await tts.generate_speech(
+            text=request.text,
+            model=request.model,
+            voice=request.voice,
+            speed=request.speed,
+            response_format="mp3"
+        )
+        
+        # Return audio as streaming response
+        return Response(
+            content=audio_bytes,
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": f"attachment; filename=speech_{request.voice}.mp3"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"TTS generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/tts/generate-base64")
+async def generate_speech_base64(request: TTSRequest):
+    """Generate speech and return as base64 for embedding"""
+    try:
+        from emergentintegrations.llm.openai import OpenAITextToSpeech
+        
+        # Validate text length
+        if len(request.text) > 4096:
+            raise HTTPException(status_code=400, detail="Text exceeds maximum length of 4096 characters")
+        
+        if len(request.text.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Text cannot be empty")
+        
+        # Validate voice
+        if request.voice not in TTS_VOICES:
+            raise HTTPException(status_code=400, detail=f"Invalid voice. Choose from: {', '.join(TTS_VOICES.keys())}")
+        
+        # Get API key
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="TTS service not configured")
+        
+        # Initialize TTS
+        tts = OpenAITextToSpeech(api_key=api_key)
+        
+        # Generate speech as base64
+        audio_base64 = await tts.generate_speech_base64(
+            text=request.text,
+            model=request.model,
+            voice=request.voice,
+            speed=request.speed,
+            response_format="mp3"
+        )
+        
+        return {
+            "success": True,
+            "audio_base64": audio_base64,
+            "format": "mp3",
+            "voice": request.voice,
+            "text_length": len(request.text)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"TTS generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
