@@ -112,10 +112,12 @@ const TextToAudioPage = () => {
       }
 
       // Get audio blob with correct MIME type
-      const audioBlob = await response.blob();
+      const rawBlob = await response.blob();
       
-      // Create blob with explicit audio/mpeg type
-      const typedBlob = new Blob([audioBlob], { type: 'audio/mpeg' });
+      // Create blob with explicit audio/mpeg type and store it
+      const typedBlob = new Blob([rawBlob], { type: 'audio/mpeg' });
+      setAudioBlob(typedBlob);
+      
       const url = URL.createObjectURL(typedBlob);
       setAudioUrl(url);
 
