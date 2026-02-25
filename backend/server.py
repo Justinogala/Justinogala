@@ -1644,36 +1644,34 @@ async def ai_chat(request: AIChatRequest):
 async def ai_chat_stream(request: AIChatRequest):
     """AI chat with streaming response"""
     try:
-        from emergentintegrations.llm.openai import OpenAILLM, OpenAIMessage, OpenAIMessageRole
+        from emergentintegrations.llm.openai import LlmChat, UserMessage
         
         # Get API key
         api_key = os.environ.get('EMERGENT_LLM_KEY')
         if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
-        # Initialize OpenAI LLM
-        llm = OpenAILLM(api_key=api_key)
+        # Initialize chat
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"ai_chat_stream_{uuid.uuid4()}",
+            system_message=MUNAL_AI_SYSTEM_PROMPT
+        ).with_model("openai", "gpt-4o")
         
-        # Build messages with system prompt
-        messages = [
-            OpenAIMessage(role=OpenAIMessageRole.SYSTEM, content=MUNAL_AI_SYSTEM_PROMPT)
-        ]
-        
-        for msg in request.messages:
-            role = OpenAIMessageRole.USER if msg.role == "user" else OpenAIMessageRole.ASSISTANT
-            messages.append(OpenAIMessage(role=role, content=msg.content))
+        # Get the last user message
+        last_msg = request.messages[-1] if request.messages else None
+        if not last_msg or last_msg.role != "user":
+            raise HTTPException(status_code=400, detail="Last message must be from user")
         
         async def generate():
             full_response = ""
-            async for chunk in llm.generate_response_stream(
-                messages=messages,
-                model=request.model,
-                max_tokens=request.max_tokens,
-                temperature=request.temperature
-            ):
-                full_response += chunk
-                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-            yield f"data: {json.dumps({'done': True, 'full_response': full_response})}\n\n"
+            try:
+                async for chunk in chat.stream_message(UserMessage(text=last_msg.content)):
+                    full_response += chunk
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                yield f"data: {json.dumps({'done': True, 'full_response': full_response})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
         
         return StreamingResponse(generate(), media_type="text/event-stream")
         
