@@ -130,6 +130,15 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - Add group chat support
 - Cloud storage migration for production
 
+### Text to Audio Feature (Feb 25, 2026)
+- [x] **Backend TTS Endpoints** - `/api/tts/voices`, `/api/tts/generate`, `/api/tts/generate-base64`
+- [x] **OpenAI TTS Integration** - Using emergentintegrations library with EMERGENT_LLM_KEY
+- [x] **9 Voice Options** - Male (Ash, Echo, Onyx), Female (Coral, Nova, Sage, Shimmer), Neutral (Alloy, Fable)
+- [x] **Quality Options** - Standard (tts-1) and HD (tts-1-hd) models
+- [x] **Speed Control** - Adjustable 0.25x to 4x speed
+- [x] **Audio Player** - Play/pause controls with download option
+- [x] **User Sidebar Menu** - "Text to Audio" menu item with Volume2 icon
+
 ### Stripe Payment Integration (Feb 25, 2026)
 - [x] **Backend Payment Endpoints** - `/api/payments/packages`, `/api/payments/checkout`, `/api/payments/status/{session_id}`, `/api/payments/transactions`, `/api/payments/transactions/all`, `/api/webhook/stripe`
 - [x] **Subscription Packages** - Free, Pro Monthly ($29), Pro Annual ($290), Enterprise Monthly ($99), Enterprise Annual ($990)
