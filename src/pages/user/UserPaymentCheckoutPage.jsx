@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
 
 const UserPaymentCheckoutPage = () => {
   const navigate = useNavigate();

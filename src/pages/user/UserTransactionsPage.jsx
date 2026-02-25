@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
 
 const UserTransactionsPage = () => {
   const { toast } = useToast();
