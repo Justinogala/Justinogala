@@ -190,6 +190,7 @@ const TextToAudioPage = () => {
   const handleClear = () => {
     setText('');
     setAudioUrl(null);
+    setAudioBlob(null);
     setIsPlaying(false);
     if (audioRef.current) {
       audioRef.current.pause();
