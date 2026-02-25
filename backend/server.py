@@ -1577,6 +1577,114 @@ async def generate_speech_base64(request: TTSRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== AI Chat Endpoints ==============
+
+class AIChatMessage(BaseModel):
+    role: str
+    content: str
+
+class AIChatRequest(BaseModel):
+    messages: List[AIChatMessage]
+    model: str = "gpt-4o"
+    max_tokens: int = 1000
+    temperature: float = 0.7
+
+MUNAL_AI_SYSTEM_PROMPT = """You are Munal AI, an intelligent assistant specialized in helping users with:
+- Meeting transcriptions and summaries
+- Audio/video content analysis
+- Scheduling and productivity tips
+- General questions about the Munal platform
+
+You are friendly, helpful, and concise. When users ask about transcriptions or meetings, provide actionable advice.
+Keep responses focused and under 300 words unless more detail is specifically requested."""
+
+@api_router.post("/ai/chat")
+async def ai_chat(request: AIChatRequest):
+    """AI chat endpoint using OpenAI via Emergent LLM Key"""
+    try:
+        from emergentintegrations.llm.openai import OpenAILLM, OpenAIMessage, OpenAIMessageRole
+        
+        # Get API key
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Initialize OpenAI LLM
+        llm = OpenAILLM(api_key=api_key)
+        
+        # Build messages with system prompt
+        messages = [
+            OpenAIMessage(role=OpenAIMessageRole.SYSTEM, content=MUNAL_AI_SYSTEM_PROMPT)
+        ]
+        
+        for msg in request.messages:
+            role = OpenAIMessageRole.USER if msg.role == "user" else OpenAIMessageRole.ASSISTANT
+            messages.append(OpenAIMessage(role=role, content=msg.content))
+        
+        # Generate response
+        response = await llm.generate_response(
+            messages=messages,
+            model=request.model,
+            max_tokens=request.max_tokens,
+            temperature=request.temperature
+        )
+        
+        return {
+            "success": True,
+            "response": response,
+            "model": request.model
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/ai/chat/stream")
+async def ai_chat_stream(request: AIChatRequest):
+    """AI chat with streaming response"""
+    try:
+        from emergentintegrations.llm.openai import OpenAILLM, OpenAIMessage, OpenAIMessageRole
+        
+        # Get API key
+        api_key = os.environ.get('EMERGENT_LLM_KEY')
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Initialize OpenAI LLM
+        llm = OpenAILLM(api_key=api_key)
+        
+        # Build messages with system prompt
+        messages = [
+            OpenAIMessage(role=OpenAIMessageRole.SYSTEM, content=MUNAL_AI_SYSTEM_PROMPT)
+        ]
+        
+        for msg in request.messages:
+            role = OpenAIMessageRole.USER if msg.role == "user" else OpenAIMessageRole.ASSISTANT
+            messages.append(OpenAIMessage(role=role, content=msg.content))
+        
+        async def generate():
+            full_response = ""
+            async for chunk in llm.generate_response_stream(
+                messages=messages,
+                model=request.model,
+                max_tokens=request.max_tokens,
+                temperature=request.temperature
+            ):
+                full_response += chunk
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'full_response': full_response})}\n\n"
+        
+        return StreamingResponse(generate(), media_type="text/event-stream")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI chat stream error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
