@@ -3,6 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
 
 /**
+ * Get the API URL with fallback
+ */
+const getApiUrl = () => API_URL || window.location.origin;
+
+/**
  * Service to handle file operations using backend GridFS storage.
  */
 export const fileService = {
@@ -15,7 +20,7 @@ export const fileService = {
    * @param {function} onProgress - Callback for progress (0-100)
    */
   uploadFile: async (file, bucket, path, onProgress) => {
-    const apiUrl = API_URL || window.location.origin;
+    const apiUrl = getApiUrl();
     
     try {
       // Get user ID from localStorage
@@ -30,7 +35,7 @@ export const fileService = {
       if (onProgress) onProgress(30);
 
       // Upload to backend
-      const response = await fetch(`${API_URL}/api/chat/files/upload`, {
+      const response = await fetch(`${apiUrl}/api/chat/files/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +70,7 @@ export const fileService = {
           bucket,
           path: `${path}/${file.name}`,
           uploadedAt: new Date().toISOString(),
-          url: `${API_URL}/api/chat/files/${data.file_id}`
+          url: `${apiUrl}/api/chat/files/${data.file_id}`
         }
       };
     } catch (error) {
@@ -78,8 +83,9 @@ export const fileService = {
    * Download/stream a file from GridFS
    */
   downloadFile: async (fileId) => {
+    const apiUrl = getApiUrl();
     try {
-      const response = await fetch(`${API_URL}/api/chat/files/${fileId}`);
+      const response = await fetch(`${apiUrl}/api/chat/files/${fileId}`);
       if (!response.ok) {
         throw new Error('Download failed');
       }
@@ -95,19 +101,21 @@ export const fileService = {
    * Get file URL for streaming/embedding
    */
   getFileUrl: (fileId) => {
-    return `${API_URL}/api/chat/files/${fileId}`;
+    const apiUrl = getApiUrl();
+    return `${apiUrl}/api/chat/files/${fileId}`;
   },
 
   /**
    * Delete a file
    */
   deleteFile: async (fileId, userId) => {
+    const apiUrl = getApiUrl();
     try {
       const userData = localStorage.getItem('munal_auth');
       const user = userData ? JSON.parse(userData) : null;
       const actualUserId = userId || user?.id || 'anonymous';
 
-      const response = await fetch(`${API_URL}/api/chat/files/${fileId}?user_id=${actualUserId}`, {
+      const response = await fetch(`${apiUrl}/api/chat/files/${fileId}?user_id=${actualUserId}`, {
         method: 'DELETE'
       });
 
@@ -126,11 +134,12 @@ export const fileService = {
    * Get file metadata (for backwards compatibility)
    */
   getFileMetadata: async (fileId) => {
+    const apiUrl = getApiUrl();
     return { 
       success: true, 
       data: { 
         id: fileId, 
-        url: `${API_URL}/api/chat/files/${fileId}` 
+        url: `${apiUrl}/api/chat/files/${fileId}` 
       } 
     };
   }
