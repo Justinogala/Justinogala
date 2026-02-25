@@ -77,5 +77,13 @@ export const uploadFileService = {
    */
   getFilesByMessageId: async (messageId) => {
     return await messagingService.getMessageAttachments(messageId);
+  },
+
+  /**
+   * Get recent files for a user
+   */
+  getRecentFiles: async (userId, limit = 10) => {
+    // Return empty array for now - can be implemented with backend later
+    return [];
   }
 };
