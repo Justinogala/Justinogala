@@ -102,9 +102,12 @@ const TextToAudioPage = () => {
         })
       });
 
+      console.log('TTS Response status:', response.status);
+
       if (!response.ok) {
         // Clone response before reading to avoid consuming it
         const errorText = await response.text();
+        console.error('TTS Error:', errorText);
         let errorMessage = 'Failed to generate audio';
         try {
           const errorJson = JSON.parse(errorText);
@@ -117,6 +120,11 @@ const TextToAudioPage = () => {
 
       // Get audio blob with correct MIME type
       const rawBlob = await response.blob();
+      console.log('TTS Blob received:', rawBlob.size, 'bytes, type:', rawBlob.type);
+      
+      if (rawBlob.size < 100) {
+        throw new Error('Audio generation returned empty or invalid data');
+      }
       
       // Create blob with explicit audio/mpeg type and store it
       const typedBlob = new Blob([rawBlob], { type: 'audio/mpeg' });
