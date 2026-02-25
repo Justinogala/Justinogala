@@ -1144,7 +1144,7 @@ Only include the sections that are relevant based on the transcript content. If 
             api_key=llm_key,
             session_id=f"transcript_analysis_{uuid.uuid4()}",
             system_message=system_prompt
-        ).with_model("openai", "gpt-5.2")
+        ).with_model("openai", "gpt-4o")
         
         # Create analysis request
         analysis_prompt = f"""Analyze this meeting transcript and provide insights:
