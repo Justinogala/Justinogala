@@ -29,13 +29,13 @@ const UserPaymentCheckoutPage = () => {
     }
 
     if (sessionId) {
-      pollPaymentStatus(sessionId, 0);
+      pollPaymentStatusFn(sessionId, 0);
     } else {
       setStatus('failed');
     }
   }, [sessionId, urlStatus]);
 
-  const pollPaymentStatus = async (sid, attempt) => {
+  const pollPaymentStatusFn = async (sid, attempt) => {
     if (attempt >= maxPollAttempts) {
       setStatus('timeout');
       toast({
