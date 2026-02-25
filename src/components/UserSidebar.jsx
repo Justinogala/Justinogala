@@ -24,7 +24,8 @@ import {
   Coins,
   Tag,
   Receipt,
-  Percent
+  Percent,
+  Volume2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
