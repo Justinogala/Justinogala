@@ -82,10 +82,14 @@ const TextToAudioPage = () => {
 
     setLoading(true);
     setAudioUrl(null);
+    setAudioBlob(null);
     setIsPlaying(false);
 
+    const apiUrl = API_URL || window.location.origin;
+    console.log('TTS Request to:', `${apiUrl}/api/tts/generate`);
+
     try {
-      const response = await fetch(`${API_URL}/api/tts/generate`, {
+      const response = await fetch(`${apiUrl}/api/tts/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
