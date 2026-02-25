@@ -1,15 +1,15 @@
 # Munal - AI Meeting Companion PRD
 
 ## Original Problem Statement
-User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be extracted, set up, fixed, and displayed. Then requested to add modern chat features and real-time WebSocket messaging.
+User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be extracted, set up, fixed, and displayed. Then requested to add modern chat features, real-time WebSocket messaging, Quick Record feature, and comprehensive payment management pages.
 
 ## Architecture
-- **Frontend**: React 18 + Vite + Tailwind CSS + Radix UI components
-- **Backend**: FastAPI (Python) with MongoDB + WebSocket support
-- **Database**: MongoDB (local)
+- **Frontend**: React 18 + Vite + Tailwind CSS + Radix UI components + Shadcn/UI
+- **Backend**: FastAPI (Python) with MongoDB + SSE support
+- **Database**: MongoDB (with GridFS for file storage)
 - **Auth**: Custom JWT-based authentication (localStorage)
-- **Real-time**: WebSocket with REST API polling fallback
-- **Storage**: Supabase (optional, localStorage fallback)
+- **Real-time**: Server-Sent Events (SSE) with REST API fallback
+- **Storage**: MongoDB GridFS (7-day TTL for recordings)
 
 ## User Personas
 1. **Meeting Organizers** - Schedule, manage and transcribe meetings
@@ -130,8 +130,38 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - Implement message search functionality
 - Add group chat support
 
+### Manage Payments Feature (Feb 24, 2026)
+- [x] **User Plans & Billing Page** - `/user/plans` with plan comparison, usage stats, and billing toggle
+- [x] **User Coupons Page** - `/user/coupons` with active/expired coupons, copy codes, redeem functionality
+- [x] **User Transaction History** - `/user/transactions` with search, filters, export, and receipt views
+- [x] **User Payment Methods** - `/user/payment-methods` already existed with add/remove card functionality
+- [x] **Admin Plans Management** - `/admin/plans` with plan CRUD, pricing, and feature management
+- [x] **Admin Coupon Management** - `/admin/coupons` with create, toggle, delete coupons
+- [x] **Admin Tax Rates** - `/admin/tax-rates` with regional tax configuration
+- [x] **Admin Transactions View** - `/admin/transactions` with full transaction history, refund capability
+- [x] **User Sidebar Menu** - Collapsible "Manage Payments" menu with 4 submenu items
+- [x] **Admin Sidebar Menu** - Collapsible "Manage Payments" menu with 5 submenu items
+
+## Components Created
+1. `/app/src/components/chat/GifPicker.jsx`
+2. `/app/src/components/chat/PollCreator.jsx`
+3. `/app/src/components/chat/ContactSharePicker.jsx`
+4. `/app/src/components/chat/ScheduleMessagePicker.jsx`
+5. `/app/src/components/chat/EnhancedMessageInput.jsx`
+6. `/app/src/hooks/useWebSocketChat.js`
+7. `/app/src/context/WebSocketChatContext.jsx`
+8. `/app/src/pages/QuickRecordPage.jsx`
+9. `/app/src/pages/user/UserPlansPage.jsx` - User plans & billing
+10. `/app/src/pages/user/UserCouponsPage.jsx` - User coupons management
+11. `/app/src/pages/user/UserTransactionsPage.jsx` - User transaction history
+12. `/app/src/pages/admin/AdminPlansPage.jsx` - Admin plan management
+13. `/app/src/pages/admin/AdminCouponsPage.jsx` - Admin coupon management
+14. `/app/src/pages/admin/AdminTaxRatesPage.jsx` - Admin tax rate configuration
+15. `/app/src/pages/admin/AdminTransactionsPage.jsx` - Admin transaction overview
+
 ## Next Tasks
-1. Configure ingress for WebSocket support
-2. Integrate GIPHY API for live GIF search
-3. Set up OpenAI API for transcription functionality
-4. Add message persistence with pagination
+1. Implement actual Stripe payment integration for payment pages
+2. Connect chat file upload button to backend GridFS storage
+3. Activate GIPHY integration for chat GIFs
+4. Wire up AI Transcript Analysis display in transcription page
+5. Implement cloud storage solution for production recordings
