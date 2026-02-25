@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL;
 
 export const insightsService = {
   analyzeTranscription: async (transcriptionText, speakers = []) => {

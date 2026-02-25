@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL;
 
 const TextToAudioPage = () => {
   const { toast } = useToast();
