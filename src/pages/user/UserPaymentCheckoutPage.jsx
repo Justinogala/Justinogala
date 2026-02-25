@@ -69,7 +69,7 @@ const UserPaymentCheckoutPage = () => {
       } else if (data.payment_status === 'unpaid' && data.status === 'open') {
         // Still processing, continue polling
         setPollAttempts(attempt + 1);
-        setTimeout(() => pollPaymentStatus(sid, attempt + 1), pollInterval);
+        setTimeout(() => pollPaymentStatusFn(sid, attempt + 1), pollInterval);
       } else {
         // Unknown status, show as pending
         setStatus('pending');
@@ -79,7 +79,7 @@ const UserPaymentCheckoutPage = () => {
       setPollAttempts(attempt + 1);
       
       if (attempt + 1 < maxPollAttempts) {
-        setTimeout(() => pollPaymentStatus(sid, attempt + 1), pollInterval);
+        setTimeout(() => pollPaymentStatusFn(sid, attempt + 1), pollInterval);
       } else {
         setStatus('error');
       }
