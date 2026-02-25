@@ -2,16 +2,16 @@ const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
 
 export const munalAIChatService = {
   /**
-   * Sends a message to the AI backend and streams the response.
+   * Sends a message to the AI backend.
    * Uses Emergent LLM Key via backend - no user API key needed.
    * @param {Array} messages - Array of message objects { role, content }
-   * @param {Function} onChunk - Callback for each stream chunk
-   * @param {Function} onComplete - Callback when stream completes
+   * @param {Function} onChunk - Callback for simulated streaming chunks
+   * @param {Function} onComplete - Callback when response is ready
    * @param {Function} onError - Callback for errors
    */
   sendMessageStream: async (messages, onChunk, onComplete, onError) => {
     try {
-      const response = await fetch(`${API_URL}/api/ai/chat/stream`, {
+      const response = await fetch(`${API_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,44 +29,27 @@ export const munalAIChatService = {
         throw new Error(errorData.detail || `API Error: ${response.status}`);
       }
 
-      if (!response.body) {
-        throw new Error('Streaming not supported in this browser.');
+      const data = await response.json();
+      
+      if (!data.success || !data.response) {
+        throw new Error('Invalid response from AI service');
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let fullResponse = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
-          
-          try {
-            const data = JSON.parse(trimmedLine.replace('data: ', ''));
-            
-            if (data.chunk) {
-              fullResponse += data.chunk;
-              if (onChunk) onChunk(data.chunk);
-            }
-            
-            if (data.done) {
-              if (onComplete) onComplete(data.full_response || fullResponse);
-              return;
-            }
-          } catch (e) {
-            console.warn('Error parsing stream chunk', e);
-          }
+      // Simulate streaming by sending response in chunks for better UX
+      const fullResponse = data.response;
+      const words = fullResponse.split(' ');
+      let currentIndex = 0;
+      
+      const streamInterval = setInterval(() => {
+        if (currentIndex < words.length) {
+          const chunk = words[currentIndex] + (currentIndex < words.length - 1 ? ' ' : '');
+          if (onChunk) onChunk(chunk);
+          currentIndex++;
+        } else {
+          clearInterval(streamInterval);
+          if (onComplete) onComplete(fullResponse);
         }
-      }
-
-      if (onComplete) onComplete(fullResponse);
+      }, 30); // ~30ms per word for natural typing effect
 
     } catch (error) {
       console.error('Munal AI Chat Error:', error);
@@ -75,7 +58,7 @@ export const munalAIChatService = {
   },
 
   /**
-   * Send a non-streaming chat message
+   * Send a non-streaming chat message (direct response)
    */
   sendMessage: async (messages) => {
     try {
