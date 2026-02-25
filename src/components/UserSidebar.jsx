@@ -53,6 +53,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: CircleDot, label: 'Quick Record', path: '/quick-record', highlight: true },
+    { icon: Volume2, label: 'Text to Audio', path: '/text-to-audio' },
     { icon: Mic, label: 'Meetings', path: '/meetings' },
     { icon: FileText, label: 'Transcriptions', path: '/transcriptions' },
     { icon: Mic, label: 'Voice Chat', path: '/voice-chat' },
