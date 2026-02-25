@@ -28,6 +28,7 @@ const TextToAudioPage = () => {
   const [speed, setSpeed] = useState([1.0]);
   const [loading, setLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
+  const [audioBlob, setAudioBlob] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [voices, setVoices] = useState([]);
 
