@@ -1,20 +1,14 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
-// Mock delay to simulate network latency
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-const FILES_KEY = 'munal_files_metadata';
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
 
 /**
- * Service to handle file operations.
- * Currently implements a localStorage-based mock to satisfy prototyping constraints,
- * but structured to be easily replaced with Supabase Storage calls.
+ * Service to handle file operations using backend GridFS storage.
  */
 export const fileService = {
   
   /**
-   * Upload a file
+   * Upload a file to backend GridFS
    * @param {File} file - The file object
    * @param {string} bucket - 'audio-files', 'video-files', 'documents', 'avatars'
    * @param {string} path - Folder structure (e.g., workplace_id/meeting_id)
@@ -22,38 +16,56 @@ export const fileService = {
    */
   uploadFile: async (file, bucket, path, onProgress) => {
     try {
-      // Simulate network request start
-      await delay(500);
+      // Get user ID from localStorage
+      const userData = localStorage.getItem('munal_auth');
+      const user = userData ? JSON.parse(userData) : null;
+      const userId = user?.id || 'anonymous';
 
-      // Simulate progress
-      if (onProgress) {
-        for (let i = 10; i <= 100; i += 20) {
-          onProgress(i);
-          await delay(200);
-        }
+      // Convert file to base64
+      const base64 = await fileToBase64(file);
+      
+      // Start progress
+      if (onProgress) onProgress(30);
+
+      // Upload to backend
+      const response = await fetch(`${API_URL}/api/chat/files/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          file_name: file.name,
+          file_data: base64,
+          content_type: file.type,
+          category: bucket
+        })
+      });
+
+      if (onProgress) onProgress(70);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Upload failed');
       }
 
-      // In a real app, we would upload to Supabase here:
-      // const { data, error } = await supabase.storage.from(bucket).upload(`${path}/${file.name}`, file);
+      const data = await response.json();
+      
+      if (onProgress) onProgress(100);
 
-      // For prototype: Store metadata in localStorage
-      const fileId = uuidv4();
-      const metadata = {
-        id: fileId,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        bucket,
-        path: `${path}/${file.name}`,
-        uploadedAt: new Date().toISOString(),
-        url: URL.createObjectURL(file) // Note: This URL is temporary and only valid for the current session!
+      return { 
+        success: true, 
+        data: {
+          id: data.file_id,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          bucket,
+          path: `${path}/${file.name}`,
+          uploadedAt: new Date().toISOString(),
+          url: `${API_URL}/api/chat/files/${data.file_id}`
+        }
       };
-
-      const existingFiles = JSON.parse(localStorage.getItem(FILES_KEY) || '[]');
-      existingFiles.push(metadata);
-      localStorage.setItem(FILES_KEY, JSON.stringify(existingFiles));
-
-      return { success: true, data: metadata };
     } catch (error) {
       console.error('Upload error:', error);
       return { success: false, error: error.message };
@@ -61,77 +73,79 @@ export const fileService = {
   },
 
   /**
-   * Download a file
+   * Download/stream a file from GridFS
    */
-  downloadFile: async (bucket, path) => {
-    await delay(1000);
-    // Mock: just return success, we can't really download the binary from localstorage
-    return { success: true, message: 'File downloaded (mock)' };
+  downloadFile: async (fileId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/chat/files/${fileId}`);
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+      const blob = await response.blob();
+      return { success: true, data: blob };
+    } catch (error) {
+      console.error('Download error:', error);
+      return { success: false, error: error.message };
+    }
   },
 
   /**
-   * Generate a signed URL for private access
+   * Get file URL for streaming/embedding
    */
-  generateSignedUrl: async (bucket, path, expiresIn = 3600) => {
-    await delay(500);
-    // Mock: Return a dummy URL
-    return { 
-      success: true, 
-      signedUrl: `https://mock-storage.munal.com/${bucket}/${path}?token=mock-token` 
-    };
-  },
-  
-  /**
-   * Get public URL (for avatars)
-   */
-  getPublicUrl: (bucket, path) => {
-    return {
-      publicUrl: `https://mock-storage.munal.com/${bucket}/${path}`
-    };
-  },
-
-  /**
-   * List files based on criteria (simulating a database query)
-   */
-  listFiles: async ({ bucket, fileType, workplaceId }) => {
-    await delay(800);
-    const allFiles = JSON.parse(localStorage.getItem(FILES_KEY) || '[]');
-    
-    let filtered = allFiles;
-    if (bucket) filtered = filtered.filter(f => f.bucket === bucket);
-    if (fileType) filtered = filtered.filter(f => f.type.includes(fileType));
-    
-    // Sort by newest first
-    filtered.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-    
-    return { success: true, data: filtered };
+  getFileUrl: (fileId) => {
+    return `${API_URL}/api/chat/files/${fileId}`;
   },
 
   /**
    * Delete a file
    */
-  deleteFile: async (fileId) => {
-    await delay(600);
-    const allFiles = JSON.parse(localStorage.getItem(FILES_KEY) || '[]');
-    const newFiles = allFiles.filter(f => f.id !== fileId);
-    
-    if (allFiles.length === newFiles.length) {
-      return { success: false, error: 'File not found' };
+  deleteFile: async (fileId, userId) => {
+    try {
+      const userData = localStorage.getItem('munal_auth');
+      const user = userData ? JSON.parse(userData) : null;
+      const actualUserId = userId || user?.id || 'anonymous';
+
+      const response = await fetch(`${API_URL}/api/chat/files/${fileId}?user_id=${actualUserId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Delete failed');
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Delete error:', error);
+      return { success: false, error: error.message };
     }
-    
-    localStorage.setItem(FILES_KEY, JSON.stringify(newFiles));
-    return { success: true };
   },
 
   /**
-   * Get metadata
+   * Get file metadata (for backwards compatibility)
    */
   getFileMetadata: async (fileId) => {
-    await delay(300);
-    const allFiles = JSON.parse(localStorage.getItem(FILES_KEY) || '[]');
-    const file = allFiles.find(f => f.id === fileId);
-    
-    if (!file) return { success: false, error: 'File not found' };
-    return { success: true, data: file };
+    return { 
+      success: true, 
+      data: { 
+        id: fileId, 
+        url: `${API_URL}/api/chat/files/${fileId}` 
+      } 
+    };
   }
 };
+
+/**
+ * Convert File to base64 string
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      // Remove data:*/*;base64, prefix
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = error => reject(error);
+  });
+}
