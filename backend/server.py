@@ -1196,6 +1196,251 @@ Provide a comprehensive analysis in JSON format."""
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== Stripe Payment Endpoints ==============
+
+@api_router.get("/payments/packages")
+async def get_payment_packages():
+    """Get all available subscription packages"""
+    return {
+        "packages": [
+            {"id": k, **v} for k, v in SUBSCRIPTION_PACKAGES.items()
+        ]
+    }
+
+@api_router.post("/payments/checkout")
+async def create_checkout_session(request: CheckoutRequest):
+    """Create a Stripe checkout session for a subscription package"""
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        
+        # Validate package exists
+        if request.package_id not in SUBSCRIPTION_PACKAGES:
+            raise HTTPException(status_code=400, detail=f"Invalid package: {request.package_id}")
+        
+        package = SUBSCRIPTION_PACKAGES[request.package_id]
+        
+        # Skip checkout for free plan
+        if package["price"] == 0:
+            return {
+                "success": True,
+                "package": request.package_id,
+                "message": "Free plan activated",
+                "requires_payment": False
+            }
+        
+        # Get Stripe API key
+        stripe_api_key = os.environ.get('STRIPE_API_KEY')
+        if not stripe_api_key:
+            raise HTTPException(status_code=500, detail="Payment service not configured")
+        
+        # Build success and cancel URLs using frontend origin
+        success_url = f"{request.origin_url}/user/checkout?session_id={{CHECKOUT_SESSION_ID}}&status=success"
+        cancel_url = f"{request.origin_url}/user/plans?status=cancelled"
+        
+        # Initialize Stripe checkout
+        webhook_url = f"{request.origin_url}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+        
+        # Create metadata
+        metadata = {
+            "package_id": request.package_id,
+            "package_name": package["name"],
+            "user_id": request.user_id or "anonymous",
+            "user_email": request.user_email or "anonymous"
+        }
+        
+        # Create checkout session with amount from server-side package definition
+        checkout_request = CheckoutSessionRequest(
+            amount=package["price"],
+            currency="usd",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata=metadata
+        )
+        
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record BEFORE redirect
+        transaction_doc = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "user_id": request.user_id,
+            "user_email": request.user_email,
+            "package_id": request.package_id,
+            "package_name": package["name"],
+            "amount": package["price"],
+            "currency": "usd",
+            "payment_status": "pending",
+            "status": "initiated",
+            "metadata": metadata,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": None
+        }
+        
+        await db.payment_transactions.insert_one(transaction_doc)
+        logger.info(f"Created payment transaction: {transaction_doc['id']} for session: {session.session_id}")
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id,
+            "transaction_id": transaction_doc["id"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating checkout session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/payments/status/{session_id}")
+async def get_checkout_status(session_id: str):
+    """Get the status of a checkout session and update transaction"""
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        
+        stripe_api_key = os.environ.get('STRIPE_API_KEY')
+        if not stripe_api_key:
+            raise HTTPException(status_code=500, detail="Payment service not configured")
+        
+        # Initialize Stripe checkout
+        stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+        
+        # Get checkout status from Stripe
+        checkout_status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Find and update the transaction
+        transaction = await db.payment_transactions.find_one({"session_id": session_id})
+        
+        if transaction:
+            # Only update if status has changed and not already processed
+            if transaction.get("payment_status") != checkout_status.payment_status:
+                update_data = {
+                    "payment_status": checkout_status.payment_status,
+                    "status": "completed" if checkout_status.payment_status == "paid" else checkout_status.status,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+                
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": update_data}
+                )
+                logger.info(f"Updated transaction {transaction['id']} status to: {checkout_status.payment_status}")
+        
+        return {
+            "session_id": session_id,
+            "status": checkout_status.status,
+            "payment_status": checkout_status.payment_status,
+            "amount_total": checkout_status.amount_total,
+            "currency": checkout_status.currency,
+            "metadata": checkout_status.metadata
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting checkout status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/payments/transactions")
+async def get_user_transactions(user_id: Optional[str] = None, user_email: Optional[str] = None):
+    """Get payment transactions for a user"""
+    try:
+        query = {}
+        if user_id:
+            query["user_id"] = user_id
+        elif user_email:
+            query["user_email"] = user_email
+        
+        transactions = await db.payment_transactions.find(
+            query,
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(100)
+        
+        # Convert datetime objects to ISO strings
+        for txn in transactions:
+            if "created_at" in txn and hasattr(txn["created_at"], "isoformat"):
+                txn["created_at"] = txn["created_at"].isoformat()
+            if "updated_at" in txn and txn["updated_at"] and hasattr(txn["updated_at"], "isoformat"):
+                txn["updated_at"] = txn["updated_at"].isoformat()
+        
+        return {"transactions": transactions}
+        
+    except Exception as e:
+        logger.error(f"Error fetching transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/payments/transactions/all")
+async def get_all_transactions(skip: int = 0, limit: int = 50):
+    """Get all payment transactions (admin endpoint)"""
+    try:
+        transactions = await db.payment_transactions.find(
+            {},
+            {"_id": 0}
+        ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.payment_transactions.count_documents({})
+        
+        # Convert datetime objects to ISO strings
+        for txn in transactions:
+            if "created_at" in txn and hasattr(txn["created_at"], "isoformat"):
+                txn["created_at"] = txn["created_at"].isoformat()
+            if "updated_at" in txn and txn["updated_at"] and hasattr(txn["updated_at"], "isoformat"):
+                txn["updated_at"] = txn["updated_at"].isoformat()
+        
+        return {
+            "transactions": transactions,
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching all transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi import Request
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhooks"""
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        
+        stripe_api_key = os.environ.get('STRIPE_API_KEY')
+        if not stripe_api_key:
+            raise HTTPException(status_code=500, detail="Payment service not configured")
+        
+        # Get webhook body and signature
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature")
+        
+        stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url="")
+        
+        # Handle webhook
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        # Update transaction based on webhook event
+        if webhook_response.session_id:
+            update_data = {
+                "payment_status": webhook_response.payment_status,
+                "status": "completed" if webhook_response.payment_status == "paid" else webhook_response.event_type,
+                "updated_at": datetime.now(timezone.utc)
+            }
+            
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": update_data}
+            )
+            logger.info(f"Webhook updated session {webhook_response.session_id} to: {webhook_response.payment_status}")
+        
+        return {"received": True, "event_type": webhook_response.event_type}
+        
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
