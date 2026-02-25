@@ -90,7 +90,7 @@ const UserPaymentCheckoutPage = () => {
     if (sessionId) {
       setStatus('loading');
       setPollAttempts(0);
-      pollPaymentStatus(sessionId, 0);
+      pollPaymentStatusFn(sessionId, 0);
     }
   };
 
