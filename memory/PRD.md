@@ -121,14 +121,22 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - None currently - app is functional
 
 ### P1 (High Priority)
-- Connect chat file upload to backend GridFS
-- Wire up AI Transcript Analysis UI
+- None currently - core features complete
 
 ### P2 (Medium Priority)
 - Add push notifications for new messages
 - Implement message search functionality
 - Add group chat support
 - Cloud storage migration for production
+
+### Chat File Upload & AI Features (Feb 25, 2026)
+- [x] **File Upload to GridFS** - `POST /api/chat/files/upload` with JSON base64 encoding
+- [x] **File Download/Stream** - `GET /api/chat/files/{file_id}` from GridFS
+- [x] **File Delete** - `DELETE /api/chat/files/{file_id}`
+- [x] **AI Chat Endpoint** - `POST /api/ai/chat` using Emergent LLM Key with GPT-4o
+- [x] **AI Assistant Widget** - Works for all users without API key configuration
+- [x] **Transcript Analysis** - `POST /api/transcripts/analyze` with AI-powered insights
+- [x] **Insights Service** - Frontend service calls backend for transcript analysis
 
 ### Text to Audio Feature (Feb 25, 2026)
 - [x] **Backend TTS Endpoints** - `/api/tts/voices`, `/api/tts/generate`, `/api/tts/generate-base64`
