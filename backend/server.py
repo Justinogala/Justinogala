@@ -120,6 +120,40 @@ class RecordingShare(BaseModel):
     is_public: bool = False  # Generate public share link
 
 
+# ============== Payment Models ==============
+
+# Define fixed subscription packages (prices in USD)
+SUBSCRIPTION_PACKAGES = {
+    "free": {"name": "Free", "price": 0.00, "features": ["5 meetings/month", "1 GB storage", "30 min transcription"]},
+    "pro_monthly": {"name": "Pro Monthly", "price": 29.00, "features": ["100 meetings/month", "10 GB storage", "500 min transcription", "Priority support"]},
+    "pro_annual": {"name": "Pro Annual", "price": 290.00, "features": ["100 meetings/month", "10 GB storage", "500 min transcription", "Priority support", "2 months free"]},
+    "enterprise_monthly": {"name": "Enterprise Monthly", "price": 99.00, "features": ["Unlimited meetings", "100 GB storage", "Unlimited transcription", "24/7 support", "SSO"]},
+    "enterprise_annual": {"name": "Enterprise Annual", "price": 990.00, "features": ["Unlimited meetings", "100 GB storage", "Unlimited transcription", "24/7 support", "SSO", "2 months free"]}
+}
+
+class CheckoutRequest(BaseModel):
+    package_id: str
+    origin_url: str
+    user_id: Optional[str] = None
+    user_email: Optional[str] = None
+
+class PaymentTransaction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    session_id: str
+    user_id: Optional[str] = None
+    user_email: Optional[str] = None
+    package_id: str
+    package_name: str
+    amount: float
+    currency: str = "usd"
+    payment_status: str = "pending"  # pending, paid, failed, expired, refunded
+    status: str = "initiated"  # initiated, completed, cancelled, expired
+    metadata: Dict = {}
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[datetime] = None
+
+
 # ============== WebSocket Connection Manager ==============
 
 class ConnectionManager:
