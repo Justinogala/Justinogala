@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { Search, Download, Filter, Receipt, Calendar, CreditCard, CheckCircle, Clock, XCircle, Eye, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,11 +28,7 @@ const UserTransactionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [user]);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
