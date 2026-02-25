@@ -1,10 +1,9 @@
-import { API_CONFIG } from '@/config/apiConfig';
-import { transcriptionConfigService } from '@/services/transcriptionConfigService';
-import { MUNAL_AI_SYSTEM_PROMPT } from '@/data/munalAISystemPrompt';
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
 
 export const munalAIChatService = {
   /**
-   * Sends a message to OpenAI API and streams the response.
+   * Sends a message to the AI backend and streams the response.
+   * Uses Emergent LLM Key via backend - no user API key needed.
    * @param {Array} messages - Array of message objects { role, content }
    * @param {Function} onChunk - Callback for each stream chunk
    * @param {Function} onComplete - Callback when stream completes
@@ -12,56 +11,26 @@ export const munalAIChatService = {
    */
   sendMessageStream: async (messages, onChunk, onComplete, onError) => {
     try {
-      // 1. Try to get key from user settings (transcriptionConfigService)
-      // 2. Fallback to environment variable (API_CONFIG)
-      let apiKey = transcriptionConfigService.getOpenAIApiKey();
-      
-      if (!apiKey || apiKey.trim() === '') {
-        apiKey = API_CONFIG.OPENAI_API_KEY;
-      }
-
-      if (!apiKey) {
-        throw new Error('OpenAI API key is missing. Please configure it in Settings > API Keys.');
-      }
-
-      if (!apiKey.startsWith('sk-')) {
-        throw new Error('Invalid OpenAI API key format. Key should start with "sk-".');
-      }
-
-      // Prepare conversation with system prompt
-      const conversation = [
-        { role: 'system', content: MUNAL_AI_SYSTEM_PROMPT },
-        ...messages
-      ];
-
-      const response = await fetch(API_CONFIG.GPT_API_ENDPOINT, {
+      const response = await fetch(`${API_URL}/api/ai/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo', // Cost-effective and fast for chat widgets
-          messages: conversation,
-          stream: true,
-          temperature: 0.7,
-          max_tokens: 500
+          messages: messages.map(({ role, content }) => ({ role, content })),
+          model: 'gpt-4o',
+          max_tokens: 1000,
+          temperature: 0.7
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        if (response.status === 401) {
-           throw new Error('Invalid API Key. Please check your settings.');
-        }
-        if (response.status === 429) {
-           throw new Error('Rate limit exceeded. Please try again later.');
-        }
-        throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+        throw new Error(errorData.detail || `API Error: ${response.status}`);
       }
 
       if (!response.body) {
-        throw new Error('ReadableStream not supported in this browser.');
+        throw new Error('Streaming not supported in this browser.');
       }
 
       const reader = response.body.getReader();
@@ -77,20 +46,22 @@ export const munalAIChatService = {
 
         for (const line of lines) {
           const trimmedLine = line.trim();
-          if (!trimmedLine || trimmedLine === 'data: [DONE]') continue;
+          if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
           
-          if (trimmedLine.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(trimmedLine.replace('data: ', ''));
-              const content = data.choices[0]?.delta?.content;
-              
-              if (content) {
-                fullResponse += content;
-                if (onChunk) onChunk(content);
-              }
-            } catch (e) {
-              console.warn('Error parsing stream chunk', e);
+          try {
+            const data = JSON.parse(trimmedLine.replace('data: ', ''));
+            
+            if (data.chunk) {
+              fullResponse += data.chunk;
+              if (onChunk) onChunk(data.chunk);
             }
+            
+            if (data.done) {
+              if (onComplete) onComplete(data.full_response || fullResponse);
+              return;
+            }
+          } catch (e) {
+            console.warn('Error parsing stream chunk', e);
           }
         }
       }
@@ -100,6 +71,37 @@ export const munalAIChatService = {
     } catch (error) {
       console.error('Munal AI Chat Error:', error);
       if (onError) onError(error.message);
+    }
+  },
+
+  /**
+   * Send a non-streaming chat message
+   */
+  sendMessage: async (messages) => {
+    try {
+      const response = await fetch(`${API_URL}/api/ai/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: messages.map(({ role, content }) => ({ role, content })),
+          model: 'gpt-4o',
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, response: data.response };
+    } catch (error) {
+      console.error('Munal AI Chat Error:', error);
+      return { success: false, error: error.message };
     }
   }
 };
