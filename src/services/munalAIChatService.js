@@ -64,8 +64,10 @@ export const munalAIChatService = {
    * Send a non-streaming chat message (direct response)
    */
   sendMessage: async (messages) => {
+    const apiUrl = API_URL || window.location.origin;
+    
     try {
-      const response = await fetch(`${API_URL}/api/ai/chat`, {
+      const response = await fetch(`${apiUrl}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
