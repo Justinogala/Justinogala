@@ -121,14 +121,15 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - None currently - app is functional
 
 ### P1 (High Priority)
-- Configure Kubernetes ingress for WebSocket routing (`/ws/*` → port 8001)
-- Integrate real GIPHY API for live GIF search
-- Configure actual Supabase/backend for authentication
+- Implement Stripe payment integration for payment pages
+- Connect chat file upload to backend
+- Wire up AI Transcript Analysis UI
 
 ### P2 (Medium Priority)
 - Add push notifications for new messages
 - Implement message search functionality
 - Add group chat support
+- Cloud storage migration for production
 
 ### Manage Payments Feature (Feb 24, 2026)
 - [x] **User Plans & Billing Page** - `/user/plans` with plan comparison, usage stats, and billing toggle
