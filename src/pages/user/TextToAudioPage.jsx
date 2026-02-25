@@ -98,13 +98,24 @@ const TextToAudioPage = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to generate audio');
+        // Clone response before reading to avoid consuming it
+        const errorText = await response.text();
+        let errorMessage = 'Failed to generate audio';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.detail || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      // Get audio blob and create URL
+      // Get audio blob with correct MIME type
       const audioBlob = await response.blob();
-      const url = URL.createObjectURL(audioBlob);
+      
+      // Create blob with explicit audio/mpeg type
+      const typedBlob = new Blob([audioBlob], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(typedBlob);
       setAudioUrl(url);
 
       toast({
