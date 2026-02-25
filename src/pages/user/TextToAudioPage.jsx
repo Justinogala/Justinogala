@@ -149,26 +149,24 @@ const TextToAudioPage = () => {
     }
   };
 
-  const handleDownload = async () => {
-    if (audioUrl) {
+  const handleDownload = () => {
+    if (audioBlob) {
       try {
-        // Fetch the blob from the object URL
-        const response = await fetch(audioUrl);
-        const blob = await response.blob();
-        
-        // Create a new blob with explicit MIME type
-        const typedBlob = new Blob([blob], { type: 'audio/mpeg' });
-        const downloadUrl = URL.createObjectURL(typedBlob);
+        // Use the stored blob directly
+        const downloadUrl = URL.createObjectURL(audioBlob);
         
         const a = document.createElement('a');
         a.href = downloadUrl;
         a.download = `speech_${voice}_${Date.now()}.mp3`;
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
         
-        // Clean up
-        URL.revokeObjectURL(downloadUrl);
+        // Clean up after a short delay
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(downloadUrl);
+        }, 100);
         
         toast({
           title: "Download started",
