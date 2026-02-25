@@ -1,14 +1,16 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL;
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
 
 export const insightsService = {
   analyzeTranscription: async (transcriptionText, speakers = []) => {
     if (!transcriptionText) throw new Error("No text to analyze");
+    
+    const apiUrl = API_URL || window.location.origin;
 
     try {
       // Call the backend transcript analysis endpoint
-      const response = await fetch(`${API_URL}/api/transcripts/analyze`, {
+      const response = await fetch(`${apiUrl}/api/transcripts/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
