@@ -352,7 +352,7 @@ const AdminUserManagementPage = () => {
                       {/* Actions */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                             <MoreHorizontal className="w-5 h-5" />
                           </Button>
                         </DropdownMenuTrigger>
