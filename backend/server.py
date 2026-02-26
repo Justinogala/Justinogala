@@ -759,7 +759,7 @@ async def register_user(user_data: UserCreate):
         user_doc = {
             "id": user_id,
             "email": user_data.email.lower(),
-            "password": user_data.password,  # In production, hash this!
+            "password": user_data.password,
             "name": user_data.name,
             "full_name": user_data.name,
             "role": user_data.role,
@@ -768,10 +768,14 @@ async def register_user(user_data: UserCreate):
             "avatar": None,
             "created_at": now,
             "joined_date": now,
-            "last_active": now
+            "last_active": now,
+            "must_change_password": False
         }
         
         await db.users.insert_one(user_doc)
+        
+        # Generate JWT token
+        token = create_jwt_token(user_id, user_data.email.lower(), user_data.role)
         
         # Return user without password and _id
         user_doc.pop("password", None)
@@ -780,7 +784,7 @@ async def register_user(user_data: UserCreate):
         user_doc["joined_date"] = user_doc["joined_date"].isoformat()
         user_doc["last_active"] = user_doc["last_active"].isoformat()
         
-        return {"user": user_doc, "message": "User registered successfully"}
+        return {"user": user_doc, "token": token, "message": "User registered successfully"}
     except HTTPException:
         raise
     except Exception as e:
@@ -808,8 +812,8 @@ async def login_user(credentials: UserLogin):
             {"$set": {"last_active": datetime.now(timezone.utc)}}
         )
         
-        # Create session token
-        token = str(uuid.uuid4())
+        # Generate JWT token
+        token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
         
         # Return user data (without password and _id)
         user_data = {k: v for k, v in user.items() if k not in ["password", "_id"]}
@@ -823,6 +827,108 @@ async def login_user(credentials: UserLogin):
     except Exception as e:
         logger.error(f"Error logging in: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    """Request a password reset - sends temporary password via email"""
+    try:
+        user = await db.users.find_one({"email": request.email.lower()})
+        
+        if not user:
+            # Don't reveal if user exists or not for security
+            return {"message": "If an account exists with this email, a password reset email will be sent."}
+        
+        # Generate temporary password
+        temp_password = generate_temp_password()
+        
+        # Store temporary password and set flag
+        await db.users.update_one(
+            {"id": user["id"]},
+            {
+                "$set": {
+                    "temp_password": temp_password,
+                    "temp_password_expires": datetime.now(timezone.utc) + timedelta(hours=24),
+                    "must_change_password": True
+                }
+            }
+        )
+        
+        # Send email with temporary password
+        user_name = user.get("name") or user.get("full_name") or "User"
+        try:
+            await send_password_reset_email(request.email.lower(), temp_password, user_name)
+        except Exception as e:
+            logger.error(f"Failed to send reset email: {e}")
+            # Still return success to not reveal if email sending failed
+        
+        return {"message": "If an account exists with this email, a password reset email will be sent."}
+    except Exception as e:
+        logger.error(f"Error in forgot password: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred processing your request")
+
+@api_router.post("/auth/change-password")
+async def change_password(request: ResetPasswordRequest):
+    """Change password after logging in with temporary password"""
+    try:
+        user = await db.users.find_one({"email": request.email.lower()})
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # Check if using temp password
+        if user.get("temp_password"):
+            # Validate temp password
+            if user.get("temp_password") != request.temp_password:
+                raise HTTPException(status_code=401, detail="Invalid temporary password")
+            
+            # Check if temp password expired
+            if user.get("temp_password_expires") and user["temp_password_expires"] < datetime.now(timezone.utc):
+                raise HTTPException(status_code=401, detail="Temporary password has expired. Please request a new one.")
+        else:
+            # Using current password
+            if user.get("password") != request.temp_password:
+                raise HTTPException(status_code=401, detail="Invalid current password")
+        
+        # Validate new password
+        if len(request.new_password) < 6:
+            raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+        
+        # Update password and clear temp password
+        await db.users.update_one(
+            {"id": user["id"]},
+            {
+                "$set": {
+                    "password": request.new_password,
+                    "must_change_password": False
+                },
+                "$unset": {
+                    "temp_password": "",
+                    "temp_password_expires": ""
+                }
+            }
+        )
+        
+        # Generate new JWT token
+        token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
+        
+        # Return user data
+        user_data = {k: v for k, v in user.items() if k not in ["password", "_id", "temp_password", "temp_password_expires"]}
+        user_data["must_change_password"] = False
+        for key in ["created_at", "joined_date", "last_active"]:
+            if key in user_data and hasattr(user_data[key], 'isoformat'):
+                user_data[key] = user_data[key].isoformat()
+        
+        return {"user": user_data, "token": token, "message": "Password changed successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error changing password: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/auth/verify-token")
+async def verify_token(current_user: dict = Depends(get_current_user)):
+    """Verify if the current JWT token is valid"""
+    return {"valid": True, "user": current_user}
 
 @api_router.get("/users")
 async def get_all_users():
