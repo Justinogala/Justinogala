@@ -13,7 +13,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, Search, MoreVertical, Phone, Video, Info, Send, Smile,
   Paperclip, Image, Mic, Hash, Users, Settings, Bell, Star, Pin,
-  MessageSquare, Circle, CheckCheck, Clock, Sparkles, ChevronDown
+  MessageSquare, Circle, CheckCheck, Clock, Sparkles, ChevronDown,
+  MapPin, BarChart3, User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
