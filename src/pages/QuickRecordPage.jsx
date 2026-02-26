@@ -450,6 +450,14 @@ const QuickRecordPage = () => {
   const openShareDialog = (recording) => {
     setShareRecording(recording);
     setShareLink(recording.share_token ? `${window.location.origin}/shared/recording/${recording.share_token}` : '');
+    setSelectedMembers(recording.shared_with || []);
+    setShareTab('link');
+    setMemberSearch('');
+    
+    // Load team members
+    const members = teamService.getAllUsers(userId);
+    setTeamMembers(members);
+    
     setShareDialogOpen(true);
   };
 
@@ -460,7 +468,7 @@ const QuickRecordPage = () => {
       const response = await fetch(`${API_BASE}/api/recordings/${userId}/${shareRecording.id}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: true, share_with_users: [] })
+        body: JSON.stringify({ is_public: true, share_with_users: selectedMembers })
       });
       if (response.ok) {
         const data = await response.json();
@@ -475,6 +483,43 @@ const QuickRecordPage = () => {
       setIsSharing(false);
     }
   };
+
+  const shareWithMembers = async () => {
+    if (!shareRecording || selectedMembers.length === 0) return;
+    setIsSharing(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/recordings/${userId}/${shareRecording.id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_public: false, share_with_users: selectedMembers })
+      });
+      if (response.ok) {
+        await fetchRecordings();
+        toast({ 
+          title: "Recording shared!", 
+          description: `Shared with ${selectedMembers.length} team member${selectedMembers.length > 1 ? 's' : ''}.`
+        });
+        setShareDialogOpen(false);
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed to share" });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const toggleMemberSelection = (memberId) => {
+    setSelectedMembers(prev => 
+      prev.includes(memberId) 
+        ? prev.filter(id => id !== memberId)
+        : [...prev, memberId]
+    );
+  };
+
+  const filteredTeamMembers = teamMembers.filter(member => 
+    member.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    member.email.toLowerCase().includes(memberSearch.toLowerCase())
+  );
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(shareLink);
