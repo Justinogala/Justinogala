@@ -650,6 +650,32 @@ async def get_conversation_messages(user_id: str, partner_id: str, limit: int = 
     messages.reverse()
     return {"messages": messages, "total": len(messages)}
 
+@api_router.get("/admin/chat/messages/{user_id}")
+async def get_user_all_messages(user_id: str, limit: int = 100, offset: int = 0):
+    """Get all messages for a specific user (admin only) - both sent and received"""
+    messages = await db.chat_messages.find(
+        {"$or": [{"sender_id": user_id}, {"receiver_id": user_id}]},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(offset).limit(limit).to_list(length=limit)
+    
+    # Get unique user IDs from messages for partner info
+    partner_ids = set()
+    for msg in messages:
+        if msg['sender_id'] != user_id:
+            partner_ids.add(msg['sender_id'])
+        if msg['receiver_id'] != user_id:
+            partner_ids.add(msg['receiver_id'])
+    
+    # Fetch partner info
+    partners = {}
+    for pid in partner_ids:
+        partner = await db.users.find_one({"id": pid}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        if partner:
+            partners[pid] = partner
+    
+    return {"messages": messages, "total": len(messages), "partners": partners}
+
+
 @api_router.post("/chat/messages")
 async def create_message(message: ChatMessageCreate):
     """Create a new message (REST fallback for non-WebSocket clients)"""
