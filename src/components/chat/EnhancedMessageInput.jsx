@@ -31,22 +31,17 @@ import ScheduleMessagePicker from './ScheduleMessagePicker';
 const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a message...", onTyping }) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
   
   const textareaRef = useRef(null);
   const emojiTriggerRef = useRef(null);
-  const gifTriggerRef = useRef(null);
 
   // Close pickers when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (emojiTriggerRef.current && !emojiTriggerRef.current.contains(event.target)) {
         setShowEmojiPicker(false);
-      }
-      if (gifTriggerRef.current && !gifTriggerRef.current.contains(event.target)) {
-        setShowGifPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
