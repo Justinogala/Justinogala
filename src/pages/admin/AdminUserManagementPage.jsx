@@ -357,6 +357,12 @@ const AdminUserManagementPage = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedUser(user);
+                            setIsMessagesModalOpen(true);
+                          }}>
+                            <MessageSquare className="w-4 h-4 mr-2" /> View Messages
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditUser(user)}>
                             <Edit2 className="w-4 h-4 mr-2" /> Edit User
                           </DropdownMenuItem>
