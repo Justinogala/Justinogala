@@ -616,6 +616,199 @@ async def send_typing_indicator(user_id: str, receiver_id: str, is_typing: bool)
     return {"status": "sent"}
 
 
+# ============== User Management Endpoints ==============
+
+@api_router.post("/auth/register")
+async def register_user(user_data: UserCreate):
+    """Register a new user"""
+    try:
+        # Check if email already exists
+        existing = await db.users.find_one({"email": user_data.email.lower()})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Create user document
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        
+        user_doc = {
+            "id": user_id,
+            "email": user_data.email.lower(),
+            "password": user_data.password,  # In production, hash this!
+            "name": user_data.name,
+            "full_name": user_data.name,
+            "role": user_data.role,
+            "status": user_data.status,
+            "plan": user_data.plan,
+            "avatar": None,
+            "created_at": now,
+            "joined_date": now,
+            "last_active": now
+        }
+        
+        await db.users.insert_one(user_doc)
+        
+        # Return user without password and _id
+        user_doc.pop("password", None)
+        user_doc.pop("_id", None)
+        user_doc["created_at"] = user_doc["created_at"].isoformat()
+        user_doc["joined_date"] = user_doc["joined_date"].isoformat()
+        user_doc["last_active"] = user_doc["last_active"].isoformat()
+        
+        return {"user": user_doc, "message": "User registered successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error registering user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/auth/login")
+async def login_user(credentials: UserLogin):
+    """Login a user"""
+    try:
+        user = await db.users.find_one({"email": credentials.email.lower()})
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        if user.get("password") != credentials.password:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        if user.get("status") == "Suspended":
+            raise HTTPException(status_code=403, detail="Your account has been suspended")
+        
+        # Update last active
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"last_active": datetime.now(timezone.utc)}}
+        )
+        
+        # Create session token
+        token = str(uuid.uuid4())
+        
+        # Return user data (without password and _id)
+        user_data = {k: v for k, v in user.items() if k not in ["password", "_id"]}
+        for key in ["created_at", "joined_date", "last_active"]:
+            if key in user_data and hasattr(user_data[key], 'isoformat'):
+                user_data[key] = user_data[key].isoformat()
+        
+        return {"user": user_data, "token": token}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error logging in: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/users")
+async def get_all_users():
+    """Get all users (for admin)"""
+    try:
+        users_cursor = db.users.find({}, {"_id": 0, "password": 0}).sort("created_at", -1)
+        users = await users_cursor.to_list(length=1000)
+        
+        # Convert datetime to ISO string
+        for user in users:
+            for key in ["created_at", "joined_date", "last_active"]:
+                if key in user and hasattr(user[key], 'isoformat'):
+                    user[key] = user[key].isoformat()
+        
+        return {"users": users}
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/users/{user_id}")
+async def get_user(user_id: str):
+    """Get a single user by ID"""
+    try:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        for key in ["created_at", "joined_date", "last_active"]:
+            if key in user and hasattr(user[key], 'isoformat'):
+                user[key] = user[key].isoformat()
+        
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/users/{user_id}")
+async def update_user(user_id: str, updates: UserUpdate):
+    """Update a user"""
+    try:
+        # Check if user exists
+        existing = await db.users.find_one({"id": user_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Build update document
+        update_data = {}
+        if updates.name is not None:
+            update_data["name"] = updates.name
+            update_data["full_name"] = updates.name
+        if updates.email is not None:
+            # Check email uniqueness
+            email_check = await db.users.find_one({"email": updates.email.lower(), "id": {"$ne": user_id}})
+            if email_check:
+                raise HTTPException(status_code=400, detail="Email already in use")
+            update_data["email"] = updates.email.lower()
+        if updates.password is not None:
+            update_data["password"] = updates.password
+        if updates.role is not None:
+            update_data["role"] = updates.role
+        if updates.status is not None:
+            update_data["status"] = updates.status
+        if updates.plan is not None:
+            update_data["plan"] = updates.plan
+        if updates.avatar is not None:
+            update_data["avatar"] = updates.avatar
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No update data provided")
+        
+        await db.users.update_one({"id": user_id}, {"$set": update_data})
+        
+        # Return updated user
+        updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+        for key in ["created_at", "joined_date", "last_active"]:
+            if key in updated and hasattr(updated[key], 'isoformat'):
+                updated[key] = updated[key].isoformat()
+        
+        return {"user": updated, "message": "User updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str):
+    """Delete a user"""
+    try:
+        result = await db.users.delete_one({"id": user_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {"message": "User deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/users")
+async def create_user_admin(user_data: UserCreate):
+    """Create a user (admin endpoint)"""
+    # Reuse the register endpoint logic
+    return await register_user(user_data)
+
+
 # ============== Chat File Upload Endpoints (GridFS Storage) ==============
 
 @api_router.post("/chat/upload")
