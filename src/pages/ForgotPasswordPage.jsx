@@ -86,11 +86,11 @@ const ForgotPasswordPage = () => {
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Check Your Email</h1>
               <p className="text-gray-500 mb-6">
-                We've sent a temporary password to <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span>
+                We&apos;ve sent a temporary password to <span className="font-medium text-gray-700 dark:text-gray-300">{email}</span>
               </p>
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  <strong>Important:</strong> You'll be required to change your password after logging in with the temporary password.
+                  <strong>Important:</strong> You&apos;ll be required to change your password after logging in with the temporary password.
                 </p>
               </div>
               <Link to="/login">
