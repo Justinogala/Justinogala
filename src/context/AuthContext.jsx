@@ -78,29 +78,34 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
+  const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || window.location.origin;
+
   // --- Regular User Functions ---
   const login = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
-      await delay(800);
 
-      const usersJson = localStorage.getItem(USERS_KEY);
-      const users = usersJson ? JSON.parse(usersJson) : [];
-      const foundUser = users.find(u => u.email === email && u.password === password);
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-      if (!foundUser) throw new Error("Invalid email or password");
-      
-      if (foundUser.status === 'Suspended' || foundUser.status === 'suspended') {
-        throw new Error("Your account has been suspended. Please contact support.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Invalid email or password");
       }
 
+      const foundUser = data.user;
       const session = { 
         userId: foundUser.id, 
-        token: uuidv4(), 
+        token: data.token, 
         createdAt: new Date().toISOString() 
       };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
+      localStorage.setItem(AUTH_KEY, JSON.stringify(foundUser));
       setUser(foundUser);
       setIsAuthenticated(true);
       return { success: true, user: foundUser };
@@ -116,27 +121,20 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      await delay(800);
 
-      const usersJson = localStorage.getItem(USERS_KEY);
-      const users = usersJson ? JSON.parse(usersJson) : [];
-      if (users.some(u => u.email === email)) throw new Error("Email already registered");
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name })
+      });
 
-      const newUser = { 
-        id: uuidv4(), 
-        email, 
-        password, 
-        name: name,
-        full_name: name, // Ensure both exist for compatibility
-        plan: 'Free', 
-        status: 'Active',
-        avatar: null,
-        joinedDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        role: 'User'
-      };
-      users.push(newUser);
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Registration failed");
+      }
+
+      const newUser = data.user;
       
       // Notify sync service
       userDataSyncService.notifyChange('create', newUser.id, newUser);
@@ -147,6 +145,7 @@ export const AuthProvider = ({ children }) => {
         createdAt: new Date().toISOString() 
       };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
+      localStorage.setItem(AUTH_KEY, JSON.stringify(newUser));
       setUser(newUser);
       setIsAuthenticated(true);
       return { success: true, user: newUser };
