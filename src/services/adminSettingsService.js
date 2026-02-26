@@ -222,12 +222,35 @@ export const testAPIConnection = async (apiKey) => {
 };
 
 /**
- * Test SMTP email connection
+ * Test SMTP email connection by sending a real test email
  */
 export const testEmailConnection = async (smtpConfig) => {
-  // This could be enhanced to actually send a test email
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  return { success: true, message: "SMTP connection verified. Test email queued." };
+  try {
+    const response = await fetch(`${API_URL}/api/admin/smtp/test`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        smtpHost: smtpConfig.smtpHost,
+        smtpPort: smtpConfig.smtpPort || 587,
+        username: smtpConfig.smtpUser || smtpConfig.username || '',
+        password: smtpConfig.smtpPassword || smtpConfig.password || '',
+        senderName: smtpConfig.senderName || 'Munal System',
+        senderEmail: smtpConfig.senderEmail || smtpConfig.smtpUser || '',
+        recipientEmail: smtpConfig.testRecipient || smtpConfig.senderEmail || smtpConfig.smtpUser || '',
+        useTLS: smtpConfig.useTLS !== false
+      })
+    });
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      message: `Connection error: ${error.message}`
+    };
+  }
 };
 
 /**
