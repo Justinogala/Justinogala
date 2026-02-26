@@ -373,6 +373,7 @@ const WorkspaceChatPage = () => {
                     {messages.map((msg, index) => {
                       const isMine = msg.sender_id === activeUser?.id;
                       const sender = users.find(u => u.id === msg.sender_id);
+                      const hasAttachments = msg.attachments && msg.attachments.length > 0;
                       
                       return (
                         <motion.div
@@ -389,15 +390,140 @@ const WorkspaceChatPage = () => {
                               </AvatarFallback>
                             </Avatar>
                           )}
-                          <div className={cn("max-w-[70%]", isMine ? "items-end" : "items-start")}>
-                            <div className={cn(
-                              "px-4 py-3 rounded-2xl",
-                              isMine 
-                                ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm" 
-                                : "bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-bl-sm shadow-sm border border-gray-100 dark:border-gray-700"
-                            )}>
-                              <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                            </div>
+                          <div className={cn("max-w-[70%] flex flex-col gap-2", isMine ? "items-end" : "items-start")}>
+                            {/* Attachments */}
+                            {hasAttachments && (
+                              <div className="flex flex-col gap-2 w-full">
+                                {msg.attachments.map((att, attIdx) => (
+                                  <div key={attIdx}>
+                                    {att.type === 'image' && att.url && (
+                                      <a 
+                                        href={att.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="block rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                                      >
+                                        <img 
+                                          src={att.url} 
+                                          alt={att.name || 'Image'} 
+                                          className="max-w-full max-h-64 object-cover rounded-xl"
+                                        />
+                                      </a>
+                                    )}
+                                    {att.type === 'file' && (
+                                      <a 
+                                        href={att.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        download={att.name}
+                                        className={cn(
+                                          "flex items-center gap-3 p-3 rounded-xl transition-colors",
+                                          isMine 
+                                            ? "bg-white/20 hover:bg-white/30" 
+                                            : "bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600"
+                                        )}
+                                      >
+                                        <div className={cn(
+                                          "w-10 h-10 rounded-lg flex items-center justify-center",
+                                          isMine ? "bg-white/20" : "bg-indigo-100 dark:bg-indigo-900/30"
+                                        )}>
+                                          <Paperclip className={cn("w-5 h-5", isMine ? "text-white" : "text-indigo-600 dark:text-indigo-400")} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className={cn("text-sm font-medium truncate", isMine ? "text-white" : "text-gray-900 dark:text-white")}>
+                                            {att.name || 'Document'}
+                                          </p>
+                                          <p className={cn("text-xs", isMine ? "text-white/70" : "text-gray-500")}>
+                                            Click to download
+                                          </p>
+                                        </div>
+                                      </a>
+                                    )}
+                                    {att.type === 'location' && (
+                                      <div className={cn(
+                                        "p-3 rounded-xl",
+                                        isMine ? "bg-white/20" : "bg-gray-100 dark:bg-slate-700"
+                                      )}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <MapPin className={cn("w-4 h-4", isMine ? "text-white" : "text-indigo-500")} />
+                                          <span className={cn("text-sm font-medium", isMine ? "text-white" : "text-gray-900 dark:text-white")}>
+                                            Shared Location
+                                          </span>
+                                        </div>
+                                        {att.lat && att.lng && (
+                                          <a 
+                                            href={`https://www.openstreetmap.org/?mlat=${att.lat}&mlon=${att.lng}#map=16/${att.lat}/${att.lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={cn(
+                                              "text-xs underline",
+                                              isMine ? "text-white/80" : "text-indigo-600 dark:text-indigo-400"
+                                            )}
+                                          >
+                                            View on map
+                                          </a>
+                                        )}
+                                      </div>
+                                    )}
+                                    {att.type === 'poll' && (
+                                      <div className={cn(
+                                        "p-3 rounded-xl",
+                                        isMine ? "bg-white/20" : "bg-gray-100 dark:bg-slate-700"
+                                      )}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <BarChart3 className={cn("w-4 h-4", isMine ? "text-white" : "text-orange-500")} />
+                                          <span className={cn("text-sm font-medium", isMine ? "text-white" : "text-gray-900 dark:text-white")}>
+                                            {att.question || 'Poll'}
+                                          </span>
+                                        </div>
+                                        {att.options && att.options.map((opt, optIdx) => (
+                                          <div key={optIdx} className={cn(
+                                            "text-xs py-1 px-2 rounded mb-1",
+                                            isMine ? "bg-white/10 text-white" : "bg-white dark:bg-slate-600 text-gray-700 dark:text-gray-200"
+                                          )}>
+                                            {opt.text}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {att.type === 'contact' && (
+                                      <div className={cn(
+                                        "p-3 rounded-xl flex items-center gap-3",
+                                        isMine ? "bg-white/20" : "bg-gray-100 dark:bg-slate-700"
+                                      )}>
+                                        <div className={cn(
+                                          "w-10 h-10 rounded-full flex items-center justify-center",
+                                          isMine ? "bg-white/20" : "bg-blue-100 dark:bg-blue-900/30"
+                                        )}>
+                                          <User className={cn("w-5 h-5", isMine ? "text-white" : "text-blue-600 dark:text-blue-400")} />
+                                        </div>
+                                        <div>
+                                          <p className={cn("text-sm font-medium", isMine ? "text-white" : "text-gray-900 dark:text-white")}>
+                                            {att.name}
+                                          </p>
+                                          <p className={cn("text-xs", isMine ? "text-white/70" : "text-gray-500")}>
+                                            {att.email || att.phone}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Text Message */}
+                            {msg.content && msg.content.trim() && (
+                              <div className={cn(
+                                "px-4 py-3 rounded-2xl",
+                                isMine 
+                                  ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm" 
+                                  : "bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-bl-sm shadow-sm border border-gray-100 dark:border-gray-700"
+                              )}>
+                                <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                              </div>
+                            )}
+                            
                             <div className={cn("flex items-center gap-1.5 mt-1 px-1", isMine ? "justify-end" : "justify-start")}>
                               <span className="text-[10px] text-gray-400">{formatTime(msg.timestamp || msg.created_at)}</span>
                               {isMine && (
