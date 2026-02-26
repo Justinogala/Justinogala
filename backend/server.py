@@ -706,6 +706,22 @@ class AdminSettingsUpdate(BaseModel):
     category: str  # e.g., 'general', 'email', 'api', 'security', 'notifications', 'system'
     settings: Dict
 
+def get_client_ip(request: Request) -> str:
+    """Extract client IP address from request headers"""
+    # Check for forwarded headers (when behind proxy/load balancer)
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        return real_ip
+    # Fall back to direct connection IP
+    return request.client.host if request.client else "unknown"
+
+def get_user_agent(request: Request) -> str:
+    """Extract user agent from request headers"""
+    return request.headers.get("user-agent", "unknown")
+
 @api_router.get("/admin/settings")
 async def get_all_admin_settings():
     """Get all admin settings from database"""
