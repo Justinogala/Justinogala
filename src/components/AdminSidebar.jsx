@@ -3,14 +3,78 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
-  CreditCard as Gateway, Shield, Search, Bell, ChevronLeft, ChevronRight,
-  Activity, BarChart3, FileText, Globe, Server, Database, Crown, Sparkles
+  CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+// NavItem Component - Moved outside to avoid nested component issues
+const NavItem = ({ link, index, collapsed, onClose, hoveredItem, setHoveredItem }) => (
+  <NavLink
+    to={link.path}
+    onClick={onClose}
+    onMouseEnter={() => setHoveredItem(index)}
+    onMouseLeave={() => setHoveredItem(null)}
+    className={({ isActive }) => cn(
+      "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+      isActive 
+        ? "bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20" 
+        : "hover:bg-white/50 dark:hover:bg-slate-800/50",
+      collapsed && "justify-center px-2"
+    )}
+    title={collapsed ? link.label : undefined}
+  >
+    {({ isActive }) => (
+      <>
+        <div className={cn(
+          "p-2 rounded-lg transition-all duration-200",
+          isActive || hoveredItem === index 
+            ? `bg-gradient-to-br ${link.gradient} shadow-lg ${isActive ? 'shadow-violet-500/30' : ''}` 
+            : "bg-white/60 dark:bg-slate-800/60 group-hover:bg-white dark:group-hover:bg-slate-700"
+        )}>
+          <link.icon className={cn(
+            "w-4 h-4 transition-colors",
+            isActive || hoveredItem === index ? "text-white" : "text-gray-500 dark:text-gray-400"
+          )} />
+        </div>
+        {!collapsed && (
+          <span className={cn(
+            "truncate text-sm font-medium flex-1",
+            isActive ? "text-violet-600 dark:text-violet-400" : "text-gray-600 dark:text-gray-300"
+          )}>
+            {link.label}
+          </span>
+        )}
+        {isActive && (
+          <motion.div 
+            layoutId="adminActiveIndicator"
+            className="absolute left-0 w-1 h-8 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-r-full"
+          />
+        )}
+      </>
+    )}
+  </NavLink>
+);
+
+// SubNavItem Component - Moved outside
+const SubNavItem = ({ link, onClose }) => (
+  <NavLink
+    to={link.path}
+    onClick={onClose}
+    className={({ isActive }) => cn(
+      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
+      isActive 
+        ? "bg-amber-100/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium" 
+        : "text-gray-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-gray-200"
+    )}
+  >
+    <link.icon className="w-4 h-4" />
+    <span>{link.label}</span>
+  </NavLink>
+);
 
 const AdminSidebar = ({ onClose, isMobile }) => {
   const { adminLogout, user } = useAuth();
@@ -47,71 +111,6 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500' },
     { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500' },
   ];
-
-  const allNavItems = [...primaryLinks, ...managementLinks, ...configLinks];
-
-  const NavItem = ({ link, index }) => (
-    <NavLink
-      to={link.path}
-      onClick={onClose}
-      onMouseEnter={() => setHoveredItem(index)}
-      onMouseLeave={() => setHoveredItem(null)}
-      className={({ isActive }) => cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
-        isActive 
-          ? "bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20" 
-          : "hover:bg-white/50 dark:hover:bg-slate-800/50",
-        collapsed && "justify-center px-2"
-      )}
-      title={collapsed ? link.label : undefined}
-    >
-      {({ isActive }) => (
-        <>
-          <div className={cn(
-            "p-2 rounded-lg transition-all duration-200",
-            isActive || hoveredItem === index 
-              ? `bg-gradient-to-br ${link.gradient} shadow-lg ${isActive ? 'shadow-violet-500/30' : ''}` 
-              : "bg-white/60 dark:bg-slate-800/60 group-hover:bg-white dark:group-hover:bg-slate-700"
-          )}>
-            <link.icon className={cn(
-              "w-4 h-4 transition-colors",
-              isActive || hoveredItem === index ? "text-white" : "text-gray-500 dark:text-gray-400"
-            )} />
-          </div>
-          {!collapsed && (
-            <span className={cn(
-              "truncate text-sm font-medium flex-1",
-              isActive ? "text-violet-600 dark:text-violet-400" : "text-gray-600 dark:text-gray-300"
-            )}>
-              {link.label}
-            </span>
-          )}
-          {isActive && (
-            <motion.div 
-              layoutId="adminActiveIndicator"
-              className="absolute left-0 w-1 h-8 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-r-full"
-            />
-          )}
-        </>
-      )}
-    </NavLink>
-  );
-
-  const SubNavItem = ({ link }) => (
-    <NavLink
-      to={link.path}
-      onClick={onClose}
-      className={({ isActive }) => cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
-        isActive 
-          ? "bg-amber-100/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium" 
-          : "text-gray-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-gray-200"
-      )}
-    >
-      <link.icon className="w-4 h-4" />
-      <span>{link.label}</span>
-    </NavLink>
-  );
 
   return (
     <motion.div 
@@ -185,7 +184,15 @@ const AdminSidebar = ({ onClose, isMobile }) => {
         {/* Dashboard */}
         <div className="space-y-1">
           {primaryLinks.map((link, index) => (
-            <NavItem key={link.path} link={link} index={index} />
+            <NavItem 
+              key={link.path} 
+              link={link} 
+              index={index} 
+              collapsed={collapsed}
+              onClose={onClose}
+              hoveredItem={hoveredItem}
+              setHoveredItem={setHoveredItem}
+            />
           ))}
         </div>
 
@@ -196,7 +203,15 @@ const AdminSidebar = ({ onClose, isMobile }) => {
           )}
           {collapsed && <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mx-2 mb-2" />}
           {managementLinks.map((link, index) => (
-            <NavItem key={link.path} link={link} index={primaryLinks.length + index} />
+            <NavItem 
+              key={link.path} 
+              link={link} 
+              index={primaryLinks.length + index} 
+              collapsed={collapsed}
+              onClose={onClose}
+              hoveredItem={hoveredItem}
+              setHoveredItem={setHoveredItem}
+            />
           ))}
         </div>
 
@@ -254,7 +269,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
               >
                 <div className="space-y-1 py-1 ml-4 pl-4 border-l-2 border-amber-200 dark:border-amber-700/50">
                   {paymentSubLinks.map((link) => (
-                    <SubNavItem key={link.path} link={link} />
+                    <SubNavItem key={link.path} link={link} onClose={onClose} />
                   ))}
                 </div>
               </motion.div>
@@ -269,7 +284,15 @@ const AdminSidebar = ({ onClose, isMobile }) => {
           )}
           {collapsed && <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mx-2 mb-2" />}
           {configLinks.map((link, index) => (
-            <NavItem key={link.path} link={link} index={primaryLinks.length + managementLinks.length + index} />
+            <NavItem 
+              key={link.path} 
+              link={link} 
+              index={primaryLinks.length + managementLinks.length + index} 
+              collapsed={collapsed}
+              onClose={onClose}
+              hoveredItem={hoveredItem}
+              setHoveredItem={setHoveredItem}
+            />
           ))}
         </div>
       </div>
