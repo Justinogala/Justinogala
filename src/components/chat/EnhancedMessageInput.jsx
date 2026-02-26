@@ -144,7 +144,7 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
                 exit={{ scale: 0.8, opacity: 0 }}
                 className="relative group bg-gray-50 dark:bg-slate-800 rounded-xl p-2 border border-gray-200 dark:border-slate-700 flex items-center gap-2 min-w-[140px] max-w-[200px] shadow-sm"
               >
-                {att.type === 'image' || att.type === 'gif' ? (
+                {att.type === 'image' ? (
                   <img src={att.url} alt="attachment" className="w-10 h-10 rounded-lg object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center text-lg">
