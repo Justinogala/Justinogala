@@ -1,41 +1,36 @@
-
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  Users, 
-  CreditCard,
-  Ticket, 
-  MessageSquare, 
-  LogOut,
-  Settings,
-  Zap,
-  Key,
-  Mic,
-  ChevronDown,
-  ChevronUp,
-  Coins,
-  Tag,
-  Receipt,
-  Percent,
-  CreditCard as Gateway
+  LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
+  Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
+  CreditCard as Gateway, Shield, Search, Bell, ChevronLeft, ChevronRight,
+  Activity, BarChart3, FileText, Globe, Server, Database, Crown, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const AdminSidebar = ({ onClose }) => {
-  const { adminLogout } = useAuth();
+const AdminSidebar = ({ onClose, isMobile }) => {
+  const { adminLogout, user } = useAuth();
+  const navigate = useNavigate();
   const [paymentsOpen, setPaymentsOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState(null);
+
+  const toggleCollapse = () => {
+    if (!isMobile) setCollapsed(!collapsed);
+  };
 
   const primaryLinks = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard', gradient: 'from-violet-500 to-indigo-500' },
   ];
 
   const managementLinks = [
-    { icon: Users, label: 'Users', path: '/admin/users' },
-    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets' },
-    { icon: MessageSquare, label: 'Messages', path: '/admin/messages' },
+    { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500' },
+    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-emerald-500 to-green-500' },
+    { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-pink-500 to-rose-500' },
   ];
 
   const paymentSubLinks = [
@@ -47,30 +42,56 @@ const AdminSidebar = ({ onClose }) => {
   ];
 
   const configLinks = [
-    { icon: Key, label: 'API Settings', path: '/admin/api-settings' },
-    { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings' },
-    { icon: Zap, label: 'Integrations', path: '/admin/integrations' },
-    { icon: Settings, label: 'Settings', path: '/admin/settings' },
+    { icon: Key, label: 'API Settings', path: '/admin/api-settings', gradient: 'from-amber-500 to-orange-500' },
+    { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500' },
+    { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500' },
+    { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500' },
   ];
 
-  const NavItem = ({ link }) => (
+  const allNavItems = [...primaryLinks, ...managementLinks, ...configLinks];
+
+  const NavItem = ({ link, index }) => (
     <NavLink
       to={link.path}
       onClick={onClose}
+      onMouseEnter={() => setHoveredItem(index)}
+      onMouseLeave={() => setHoveredItem(null)}
       className={({ isActive }) => cn(
-        "flex items-center gap-3 px-4 py-3 rounded-lg text-sm md:text-base transition-all duration-200 group touch-target",
+        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
         isActive 
-          ? "bg-indigo-600 text-white font-medium shadow-md shadow-indigo-500/20" 
-          : "text-slate-400 hover:bg-slate-800 hover:text-white"
+          ? "bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20" 
+          : "hover:bg-white/50 dark:hover:bg-slate-800/50",
+        collapsed && "justify-center px-2"
       )}
+      title={collapsed ? link.label : undefined}
     >
       {({ isActive }) => (
         <>
-          <link.icon className={cn(
-            "w-5 h-5 transition-transform duration-200 group-hover:scale-110",
-            isActive ? "text-white" : "text-slate-400 group-hover:text-white"
-          )} />
-          {link.label}
+          <div className={cn(
+            "p-2 rounded-lg transition-all duration-200",
+            isActive || hoveredItem === index 
+              ? `bg-gradient-to-br ${link.gradient} shadow-lg ${isActive ? 'shadow-violet-500/30' : ''}` 
+              : "bg-white/60 dark:bg-slate-800/60 group-hover:bg-white dark:group-hover:bg-slate-700"
+          )}>
+            <link.icon className={cn(
+              "w-4 h-4 transition-colors",
+              isActive || hoveredItem === index ? "text-white" : "text-gray-500 dark:text-gray-400"
+            )} />
+          </div>
+          {!collapsed && (
+            <span className={cn(
+              "truncate text-sm font-medium flex-1",
+              isActive ? "text-violet-600 dark:text-violet-400" : "text-gray-600 dark:text-gray-300"
+            )}>
+              {link.label}
+            </span>
+          )}
+          {isActive && (
+            <motion.div 
+              layoutId="adminActiveIndicator"
+              className="absolute left-0 w-1 h-8 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-r-full"
+            />
+          )}
         </>
       )}
     </NavLink>
@@ -81,80 +102,149 @@ const AdminSidebar = ({ onClose }) => {
       to={link.path}
       onClick={onClose}
       className={({ isActive }) => cn(
-        "flex items-center gap-3 pl-10 pr-4 py-2.5 rounded-lg text-sm transition-all duration-200 group",
+        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
         isActive 
-          ? "bg-amber-600/20 text-amber-400 font-medium" 
-          : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+          ? "bg-amber-100/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium" 
+          : "text-gray-500 dark:text-gray-400 hover:bg-white/60 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-gray-200"
       )}
     >
-      {({ isActive }) => (
-        <>
-          <link.icon className={cn(
-            "w-4 h-4",
-            isActive ? "text-amber-400" : "text-slate-500 group-hover:text-slate-300"
-          )} />
-          {link.label}
-        </>
-      )}
+      <link.icon className="w-4 h-4" />
+      <span>{link.label}</span>
     </NavLink>
   );
 
   return (
-    <div className="w-64 bg-slate-900 text-white min-h-screen flex flex-col border-r border-slate-800 h-full">
-      <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <span className="text-white font-bold text-sm">AD</span>
-          </div>
-          <span className="tracking-tight">Admin Portal</span>
-        </h2>
+    <motion.div 
+      className={cn(
+        "flex flex-col h-full bg-gradient-to-b from-slate-50/95 to-white/95 dark:from-slate-950/95 dark:to-slate-900/95 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50 transition-all duration-300",
+        isMobile ? "w-[280px] shadow-2xl" : collapsed ? "w-20" : "w-72"
+      )}
+      initial={false}
+      animate={{ width: isMobile ? 280 : (collapsed ? 80 : 288) }}
+    >
+      {/* Header */}
+      <div className={cn(
+        "p-4 flex items-center h-16 border-b border-gray-200/50 dark:border-gray-800/50",
+        collapsed ? "justify-center" : "justify-between"
+      )}>
+        {!collapsed && (
+          <motion.div 
+            className="flex items-center gap-3 cursor-pointer group" 
+            onClick={() => navigate('/admin/dashboard')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <div className="relative">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/30">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse" />
+            </div>
+            <div>
+              <span className="font-bold text-lg bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Admin</span>
+              <p className="text-[10px] text-gray-400 -mt-0.5">Control Center</p>
+            </div>
+          </motion.div>
+        )}
+        {collapsed && (
+          <motion.div 
+            className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 cursor-pointer"
+            onClick={() => navigate('/admin/dashboard')}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Shield className="w-5 h-5" />
+          </motion.div>
+        )}
+        {!isMobile && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleCollapse} 
+            className="hidden lg:flex h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-700">
-        {/* Dashboard Group */}
+      {/* Search Bar */}
+      {!collapsed && (
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-white/60 dark:bg-slate-800/60 rounded-xl text-gray-400 text-sm cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors group border border-gray-200/50 dark:border-gray-700/50">
+            <Search className="w-4 h-4" />
+            <span className="flex-1">Search admin...</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-[10px] font-medium shadow-sm">⌘K</kbd>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <div className="flex-1 py-2 px-3 space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+        
+        {/* Dashboard */}
         <div className="space-y-1">
-          {primaryLinks.map((link) => (
-            <NavItem key={link.path} link={link} />
+          {primaryLinks.map((link, index) => (
+            <NavItem key={link.path} link={link} index={index} />
           ))}
         </div>
 
-        {/* Management Group */}
+        {/* Management */}
         <div className="space-y-1">
-          <p className="px-4 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-            Management
-          </p>
-          {managementLinks.map((link) => (
-            <NavItem key={link.path} link={link} />
+          {!collapsed && (
+            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Management</p>
+          )}
+          {collapsed && <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mx-2 mb-2" />}
+          {managementLinks.map((link, index) => (
+            <NavItem key={link.path} link={link} index={primaryLinks.length + index} />
           ))}
         </div>
 
-        {/* Manage Payments Group */}
+        {/* Payments Section */}
         <div className="space-y-1">
+          {!collapsed && (
+            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Billing</p>
+          )}
+          {collapsed && <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mx-2 mb-2" />}
+          
           <button
-            onClick={() => setPaymentsOpen(!paymentsOpen)}
+            onClick={() => !collapsed && setPaymentsOpen(!paymentsOpen)}
             className={cn(
-              "flex items-center justify-between w-full px-4 py-3 rounded-lg text-sm md:text-base transition-all duration-200 group",
+              "flex items-center justify-between w-full px-3 py-2.5 rounded-xl transition-all duration-200 group",
               paymentsOpen 
-                ? "bg-amber-600/20 text-amber-400" 
-                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20" 
+                : "hover:bg-white/50 dark:hover:bg-slate-800/50",
+              collapsed && "justify-center px-2"
             )}
+            title={collapsed ? "Manage Payments" : undefined}
           >
             <div className="flex items-center gap-3">
-              <Coins className={cn(
-                "w-5 h-5 transition-transform duration-200",
-                paymentsOpen ? "text-amber-400" : "text-slate-400 group-hover:text-white"
-              )} />
-              <span className="font-medium">Manage Payments</span>
+              <div className={cn(
+                "p-2 rounded-lg transition-all duration-200",
+                paymentsOpen 
+                  ? "bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/30" 
+                  : "bg-white/60 dark:bg-slate-800/60 group-hover:bg-white dark:group-hover:bg-slate-700"
+              )}>
+                <Coins className={cn("w-4 h-4", paymentsOpen ? "text-white" : "text-gray-500 dark:text-gray-400")} />
+              </div>
+              {!collapsed && (
+                <span className={cn(
+                  "text-sm font-medium",
+                  paymentsOpen ? "text-amber-600 dark:text-amber-400" : "text-gray-600 dark:text-gray-300"
+                )}>
+                  Manage Payments
+                </span>
+              )}
             </div>
-            {paymentsOpen ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
+            {!collapsed && (
+              <motion.div animate={{ rotate: paymentsOpen ? 180 : 0 }}>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </motion.div>
             )}
           </button>
           
           <AnimatePresence>
-            {paymentsOpen && (
+            {paymentsOpen && !collapsed && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -162,7 +252,7 @@ const AdminSidebar = ({ onClose }) => {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="space-y-1 py-1">
+                <div className="space-y-1 py-1 ml-4 pl-4 border-l-2 border-amber-200 dark:border-amber-700/50">
                   {paymentSubLinks.map((link) => (
                     <SubNavItem key={link.path} link={link} />
                   ))}
@@ -172,27 +262,73 @@ const AdminSidebar = ({ onClose }) => {
           </AnimatePresence>
         </div>
 
-        {/* Configuration Group */}
+        {/* Configuration */}
         <div className="space-y-1">
-          <p className="px-4 text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-            Configuration
-          </p>
-          {configLinks.map((link) => (
-            <NavItem key={link.path} link={link} />
+          {!collapsed && (
+            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Configuration</p>
+          )}
+          {collapsed && <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mx-2 mb-2" />}
+          {configLinks.map((link, index) => (
+            <NavItem key={link.path} link={link} index={primaryLinks.length + managementLinks.length + index} />
           ))}
         </div>
       </div>
 
-      <div className="p-4 border-t border-slate-800 bg-slate-900/50 pb-safe">
-        <button 
-          onClick={adminLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm text-red-400 hover:bg-red-950/20 hover:text-red-300 transition-all duration-200 group touch-target"
-        >
-          <LogOut className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
-          <span className="font-medium">Logout</span>
-        </button>
+      {/* Admin Profile Footer */}
+      <div className="p-4 border-t border-gray-200/50 dark:border-gray-800/50 bg-gradient-to-r from-gray-50/80 to-gray-100/50 dark:from-slate-900/80 dark:to-slate-800/50 backdrop-blur-sm">
+        <div className={cn("flex items-center gap-3", collapsed ? "justify-center flex-col" : "")}>
+          <div className="relative">
+            <Avatar className="h-10 w-10 ring-2 ring-indigo-500/30 shadow-lg">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback className="bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 text-white font-bold text-sm">
+                AD
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
+          </div>
+          
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                  Admin
+                </p>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white bg-gradient-to-r from-indigo-500 to-violet-500">
+                  Super
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                admin@munal.com
+              </p>
+            </div>
+          )}
+          
+          {!collapsed && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              onClick={adminLogout}
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        
+        {collapsed && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="w-full h-8 mt-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+            onClick={adminLogout}
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
