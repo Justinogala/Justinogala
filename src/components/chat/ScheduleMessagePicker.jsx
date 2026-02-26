@@ -45,16 +45,14 @@ const ScheduleMessagePicker = ({ message, onSchedule }) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button 
+        <button 
           type="button" 
-          variant="ghost" 
-          size="icon" 
-          className="text-gray-500 hover:text-green-600 rounded-full"
-          title="Schedule Message"
+          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!message?.trim()}
         >
-          <Clock className="w-5 h-5" />
-        </Button>
+          <Clock className="w-4 h-4 text-green-500" />
+          <span>Schedule Message</span>
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800">
         <DialogHeader>
