@@ -94,6 +94,29 @@ const AdminAuditLogsPage = () => {
     fetchSummary();
   }, [fetchSummary]);
 
+  const handleExport = async (format) => {
+    setExporting(true);
+    try {
+      await exportAuditLogs(format, {
+        action: actionFilter || undefined,
+        category: categoryFilter || undefined,
+        limit: 1000
+      });
+      toast({ 
+        title: "Export Successful", 
+        description: `Audit logs exported as ${format.toUpperCase()}` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Export Failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const formatTimestamp = (ts) => {
     if (!ts) return 'Unknown';
     const date = new Date(ts);
