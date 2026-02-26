@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { 
   Monitor, Camera, Mic, Square, Download, Trash2, Play, Pause, RotateCcw, Video, 
   Clock, HardDrive, Loader2, FolderOpen, Share2, Link, Copy, Check, X, Edit2, 
-  ChevronDown, Users, Globe
+  ChevronDown, Users, Globe, UserPlus, Mail, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,6 +12,10 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { teamService } from '@/services/teamService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
