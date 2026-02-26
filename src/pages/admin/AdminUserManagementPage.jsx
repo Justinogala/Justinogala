@@ -398,6 +398,14 @@ const AdminUserManagementPage = () => {
       {/* Modals */}
       <AddUserModal isOpen={isAddUserModalOpen} onClose={() => setIsAddUserModalOpen(false)} onAddUser={handleAddUser} />
       <EditUserModal isOpen={isEditUserModalOpen} onClose={() => setIsEditUserModalOpen(false)} user={selectedUser} onUpdate={updateUser} />
+      <UserMessagesModal 
+        isOpen={isMessagesModalOpen} 
+        onClose={() => {
+          setIsMessagesModalOpen(false);
+          setSelectedUser(null);
+        }} 
+        user={selectedUser} 
+      />
     </div>
   );
 };
