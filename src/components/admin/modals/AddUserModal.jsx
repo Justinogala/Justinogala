@@ -19,7 +19,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { validateUserForm } from '@/utils/userFormValidation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
   const [formData, setFormData] = useState({
@@ -28,11 +28,12 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
     role: 'User',
     plan: 'Free',
     status: 'Active',
-    password: 'password123' // Default initial password
+    password: ''
   });
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,7 +54,14 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Custom validation including password
     const validation = validateUserForm(formData);
+    
+    // Additional password validation
+    if (!formData.password || formData.password.length < 6) {
+      validation.isValid = false;
+      validation.errors.password = 'Password must be at least 6 characters';
+    }
     
     if (!validation.isValid) {
       setErrors(validation.errors);
@@ -72,7 +80,7 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
           role: 'User',
           plan: 'Free',
           status: 'Active',
-          password: 'password123'
+          password: ''
         });
         setErrors({});
         onClose();
@@ -90,7 +98,7 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Add New User</DialogTitle>
           <DialogDescription className="text-gray-500 dark:text-gray-400">
-            Create a new user account. Default password is 'password123'.
+            Create a new user account with login credentials.
           </DialogDescription>
         </DialogHeader>
 
@@ -130,6 +138,34 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
               />
               {errors.email && (
                 <p className="text-xs text-red-500 animate-in slide-in-from-top-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter password (min. 6 characters)"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`bg-white dark:bg-slate-950 pr-10 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-xs text-red-500 animate-in slide-in-from-top-1">{errors.password}</p>
               )}
             </div>
 
