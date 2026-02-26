@@ -808,11 +808,19 @@ async def login_user(credentials: UserLogin):
             password_valid = True
         elif user.get("temp_password") and user.get("temp_password") == credentials.password:
             # Check if temp password is not expired
-            if user.get("temp_password_expires") and user["temp_password_expires"] >= datetime.now(timezone.utc):
+            temp_expires = user.get("temp_password_expires")
+            if temp_expires:
+                # Make sure both are timezone-aware for comparison
+                if temp_expires.tzinfo is None:
+                    temp_expires = temp_expires.replace(tzinfo=timezone.utc)
+                if temp_expires >= datetime.now(timezone.utc):
+                    password_valid = True
+                    using_temp_password = True
+                else:
+                    raise HTTPException(status_code=401, detail="Temporary password has expired. Please request a new one.")
+            else:
                 password_valid = True
                 using_temp_password = True
-            else:
-                raise HTTPException(status_code=401, detail="Temporary password has expired. Please request a new one.")
         
         if not password_valid:
             raise HTTPException(status_code=401, detail="Invalid email or password")
