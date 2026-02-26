@@ -4,18 +4,32 @@ import { useAuth } from '@/context/AuthContext';
 import { useWebSocketChatContext } from '@/context/WebSocketChatContext';
 import { messagingService } from '@/services/messagingService';
 import PageTransition from '@/components/PageTransition';
-import UserListSidebar from '@/components/chat/UserListSidebar';
-import MessageList from '@/components/chat/MessageList';
 import EnhancedMessageInput from '@/components/chat/EnhancedMessageInput';
-import UserInfoHeader from '@/components/chat/UserInfoHeader';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Loader2, Search, MoreVertical, Phone, Video, Info, Send, Smile,
+  Paperclip, Image, Mic, Hash, Users, Settings, Bell, Star, Pin,
+  MessageSquare, Circle, CheckCheck, Clock, Sparkles, ChevronDown
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const WorkspaceChatPage = () => {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   
-  // Chat context for messaging
   const {
     isUserOnline,
     messages: contextMessages,
@@ -30,7 +44,6 @@ const WorkspaceChatPage = () => {
     connectionType
   } = useWebSocketChatContext();
   
-  // For demo: use current user or fallback
   const activeUser = currentUser || messagingService.getAllUsers()[0];
 
   const [users, setUsers] = useState([]);
@@ -38,46 +51,44 @@ const WorkspaceChatPage = () => {
   const [localMessages, setLocalMessages] = useState([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const typingTimeoutRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
-  // Get conversation ID for current selection
   const conversationId = selectedUserId && activeUser 
     ? getConversationId(activeUser.id, selectedUserId)
     : null;
 
-  // Get messages from WebSocket context - subscribe to contextMessages changes
   const messages = selectedUserId 
     ? (contextMessages[conversationId] || getConversationMessages(selectedUserId))
     : localMessages;
 
-  // Check if selected user is typing
   const isTyping = selectedUserId ? isUserTyping(selectedUserId) : false;
 
-  // Initial Load - get users list
   useEffect(() => {
     setUsers(messagingService.getAllUsers());
   }, []);
 
-  // Load messages when user selected
   useEffect(() => {
     if (selectedUserId && activeUser) {
       loadMessages(selectedUserId);
     }
   }, [selectedUserId, activeUser?.id]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const loadMessages = async (partnerId) => {
     setIsLoadingMessages(true);
     try {
-      // Try to load from WebSocket context first (includes real-time messages)
       const msgs = await loadConversationHistory(partnerId);
       
-      // If no messages from WebSocket, fall back to local service
       if (!msgs || msgs.length === 0) {
         const localMsgs = await messagingService.getMessages(activeUser.id, partnerId);
         setLocalMessages(localMsgs);
       }
       
-      // Mark unread messages as read
       const unreadIds = msgs
         .filter(m => m.sender_id === partnerId && !m.is_read)
         .map(m => m.id);
@@ -98,45 +109,31 @@ const WorkspaceChatPage = () => {
     
     setIsSending(true);
     try {
-      // Determine message type based on attachments
       let messageType = 'text';
       if (attachments.length > 0) {
         const firstAtt = attachments[0];
         messageType = firstAtt.type || 'text';
       }
 
-      // Build message content
       let content = text;
       
-      // Append attachment info to content (for display purposes)
       if (attachments.length > 0) {
         for (const att of attachments) {
           if (att.type === 'image' || att.type === 'gif') {
             content += `\n[${att.type.toUpperCase()}: ${att.url}]`;
-          } else if (att.type === 'location') {
-            content += `\n[LOCATION: ${att.lat}, ${att.lng}]`;
-          } else if (att.type === 'poll') {
-            content += `\n[POLL: ${att.question}]`;
-          } else if (att.type === 'contact') {
-            content += `\n[CONTACT: ${att.name} - ${att.email}]`;
-          } else if (att.type === 'voice') {
-            content += `\n[VOICE MESSAGE: ${att.duration}s]`;
           } else if (att.type === 'file') {
             content += `\n[FILE: ${att.name}]`;
           }
         }
       }
       
-      // Send via WebSocket
       const sent = await wsSendMessage(selectedUserId, content, messageType, attachments);
       
       if (!sent) {
-        // Fallback to local service if WebSocket failed
         const newMsg = await messagingService.sendMessage(activeUser.id, selectedUserId, content);
         setLocalMessages(prev => [...prev, newMsg]);
       }
       
-      // Stop typing indicator
       sendTypingIndicator(selectedUserId, false);
       
     } catch (err) {
@@ -150,15 +147,12 @@ const WorkspaceChatPage = () => {
   const handleTyping = useCallback((isTypingNow) => {
     if (!selectedUserId) return;
     
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
     
-    // Send typing indicator
     sendTypingIndicator(selectedUserId, isTypingNow);
     
-    // Auto-stop typing after 2 seconds of inactivity
     if (isTypingNow) {
       typingTimeoutRef.current = setTimeout(() => {
         sendTypingIndicator(selectedUserId, false);
@@ -166,7 +160,6 @@ const WorkspaceChatPage = () => {
     }
   }, [selectedUserId, sendTypingIndicator]);
 
-  // Cleanup typing timeout on unmount
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
@@ -177,81 +170,307 @@ const WorkspaceChatPage = () => {
 
   const selectedUser = users.find(u => u.id === selectedUserId);
 
-  // Add online status to users
   const usersWithStatus = users.map(u => ({
     ...u,
     isOnline: isUserOnline(u.id)
   }));
 
+  const filteredUsers = usersWithStatus.filter(u => 
+    u.id !== activeUser?.id && 
+    (u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+     u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const formatTime = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getAvatarGradient = (index) => {
+    const gradients = [
+      'from-violet-500 to-purple-600',
+      'from-blue-500 to-cyan-500',
+      'from-emerald-500 to-green-500',
+      'from-amber-500 to-orange-500',
+      'from-rose-500 to-pink-500',
+      'from-indigo-500 to-blue-500',
+      'from-teal-500 to-cyan-500',
+      'from-fuchsia-500 to-pink-500',
+    ];
+    return gradients[index % gradients.length];
+  };
+
   return (
     <PageTransition>
-      <div className="flex w-full bg-slate-50 dark:bg-slate-950 overflow-hidden -m-4 sm:-m-6 lg:-m-8" style={{height: 'calc(100vh - 64px)'}}>
-        <Helmet><title>Workspace Chat | Munal</title></Helmet>
+      <div className="flex w-full overflow-hidden -m-4 sm:-m-6 lg:-m-8" style={{height: 'calc(100vh - 64px)'}}>
+        <Helmet><title>Chat | Munal AI</title></Helmet>
 
         {/* Sidebar */}
-        <UserListSidebar 
-          users={usersWithStatus.filter(u => u.id !== activeUser?.id)} 
-          selectedUserId={selectedUserId}
-          onSelectUser={setSelectedUserId}
-        />
-
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-950 relative">
-          {/* Connection Status */}
-          {!isConnected && (
-            <div className="absolute top-0 left-0 right-0 bg-yellow-500 text-yellow-900 text-xs text-center py-1 z-50">
-              Reconnecting...
+        <div className="flex flex-col w-80 flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-gray-200/50 dark:border-gray-800/50">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <div className="p-2 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl shadow-lg shadow-violet-500/25">
+                  <MessageSquare className="w-4 h-4 text-white" />
+                </div>
+                Messages
+              </h2>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                <Settings className="w-4 h-4 text-gray-500" />
+              </Button>
             </div>
-          )}
-          {isConnected && connectionType === 'sse' && (
-            <div className="absolute top-0 right-4 z-50">
-              <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-b-md">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                Live
+            
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input 
+                placeholder="Search conversations..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 bg-gray-100/80 dark:bg-slate-800/80 border-0 rounded-xl h-10"
+              />
+            </div>
+          </div>
+
+          {/* User List */}
+          <ScrollArea className="flex-1">
+            <div className="p-2">
+              {/* Online Now Section */}
+              {filteredUsers.filter(u => u.isOnline).length > 0 && (
+                <div className="mb-4">
+                  <p className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    Online Now — {filteredUsers.filter(u => u.isOnline).length}
+                  </p>
+                  <div className="space-y-1">
+                    {filteredUsers.filter(u => u.isOnline).map((user, index) => (
+                      <UserItem 
+                        key={user.id} 
+                        user={user} 
+                        index={index}
+                        isSelected={selectedUserId === user.id}
+                        onClick={() => setSelectedUserId(user.id)}
+                        gradient={getAvatarGradient(index)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* All Messages */}
+              <p className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                All Messages
+              </p>
+              <div className="space-y-1">
+                {filteredUsers.filter(u => !u.isOnline).map((user, index) => (
+                  <UserItem 
+                    key={user.id} 
+                    user={user} 
+                    index={index + filteredUsers.filter(u => u.isOnline).length}
+                    isSelected={selectedUserId === user.id}
+                    onClick={() => setSelectedUserId(user.id)}
+                    gradient={getAvatarGradient(index + filteredUsers.filter(u => u.isOnline).length)}
+                  />
+                ))}
               </div>
             </div>
-          )}
+          </ScrollArea>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-b from-gray-50 to-white dark:from-slate-950 dark:to-slate-900 relative">
+          {/* Connection Status */}
+          <AnimatePresence>
+            {isConnected && connectionType === 'sse' && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-3 right-4 z-50"
+              >
+                <div className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50/80 dark:bg-emerald-900/30 dark:text-emerald-400 px-3 py-1.5 rounded-full backdrop-blur-sm border border-emerald-200/50 dark:border-emerald-800/50 shadow-sm">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  Live
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
-          {selectedUserId ? (
+          {selectedUserId && selectedUser ? (
             <>
-              <UserInfoHeader 
-                user={selectedUser} 
-                isOnline={isUserOnline(selectedUserId)}
-              />
+              {/* Chat Header */}
+              <div className="flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-slate-800 shadow-lg">
+                      <AvatarFallback className={cn("text-white font-bold bg-gradient-to-br", getAvatarGradient(users.indexOf(selectedUser)))}>
+                        {selectedUser.initials || selectedUser.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className={cn(
+                      "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900",
+                      isUserOnline(selectedUserId) ? "bg-emerald-500" : "bg-gray-400"
+                    )} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedUser.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      {isUserOnline(selectedUserId) ? (
+                        <><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Active now</>
+                      ) : (
+                        'Offline'
+                      )}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
+                    <Phone className="w-5 h-5 text-gray-500" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
+                    <Video className="w-5 h-5 text-gray-500" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
+                    <Info className="w-5 h-5 text-gray-500" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
+                        <MoreVertical className="w-5 h-5 text-gray-500" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem><Star className="w-4 h-4 mr-2" /> Star conversation</DropdownMenuItem>
+                      <DropdownMenuItem><Pin className="w-4 h-4 mr-2" /> Pin to top</DropdownMenuItem>
+                      <DropdownMenuItem><Bell className="w-4 h-4 mr-2" /> Mute notifications</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-red-600"><Hash className="w-4 h-4 mr-2" /> Clear chat</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
               
-              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
                 {isLoadingMessages ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+                  <div className="flex-1 flex items-center justify-center h-full">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+                      <p className="text-sm text-gray-500">Loading messages...</p>
+                    </div>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center h-full">
+                    <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 rounded-3xl flex items-center justify-center mb-4 shadow-lg">
+                      <MessageSquare className="w-10 h-10 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No messages yet</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Say hello to start the conversation!</p>
                   </div>
                 ) : (
-                  <MessageList 
-                    messages={messages} 
-                    currentUserId={activeUser?.id}
-                    users={users}
-                    isTyping={isTyping}
-                  />
+                  <div className="space-y-4">
+                    {messages.map((msg, index) => {
+                      const isMine = msg.sender_id === activeUser?.id;
+                      const sender = users.find(u => u.id === msg.sender_id);
+                      
+                      return (
+                        <motion.div
+                          key={msg.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.02 }}
+                          className={cn("flex gap-3", isMine ? "justify-end" : "justify-start")}
+                        >
+                          {!isMine && (
+                            <Avatar className="h-8 w-8 mt-1">
+                              <AvatarFallback className={cn("text-white text-xs font-bold bg-gradient-to-br", getAvatarGradient(users.indexOf(sender)))}>
+                                {sender?.initials || sender?.name?.charAt(0) || '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div className={cn("max-w-[70%]", isMine ? "items-end" : "items-start")}>
+                            <div className={cn(
+                              "px-4 py-3 rounded-2xl",
+                              isMine 
+                                ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm" 
+                                : "bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-bl-sm shadow-sm border border-gray-100 dark:border-gray-700"
+                            )}>
+                              <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                            </div>
+                            <div className={cn("flex items-center gap-1.5 mt-1 px-1", isMine ? "justify-end" : "justify-start")}>
+                              <span className="text-[10px] text-gray-400">{formatTime(msg.timestamp || msg.created_at)}</span>
+                              {isMine && (
+                                <CheckCheck className={cn("w-3.5 h-3.5", msg.is_read ? "text-blue-500" : "text-gray-400")} />
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    
+                    {/* Typing Indicator */}
+                    <AnimatePresence>
+                      {isTyping && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="flex gap-3 items-center"
+                        >
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className={cn("text-white text-xs font-bold bg-gradient-to-br", getAvatarGradient(users.indexOf(selectedUser)))}>
+                              {selectedUser?.initials || selectedUser?.name?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-2xl rounded-bl-sm shadow-sm border border-gray-100 dark:border-gray-700">
+                            <div className="flex gap-1">
+                              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <div ref={messagesEndRef} />
+                  </div>
                 )}
               </div>
 
-              <EnhancedMessageInput 
-                onSendMessage={handleSendMessage}
-                disabled={isSending}
-                placeholder="Type a message to your team..."
-                onTyping={handleTyping}
-              />
+              {/* Message Input */}
+              <div className="px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50">
+                <EnhancedMessageInput 
+                  onSendMessage={handleSendMessage}
+                  disabled={isSending}
+                  placeholder={`Message ${selectedUser.name}...`}
+                  onTyping={handleTyping}
+                />
+              </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/50 dark:bg-slate-900/50">
-              <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 rounded-full flex items-center justify-center mb-6">
-                <svg className="w-10 h-10 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+            /* Empty State */
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <div className="relative mb-6">
+                <div className="w-24 h-24 bg-gradient-to-br from-violet-500/20 to-indigo-500/20 rounded-3xl flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-violet-500/30">
+                    <MessageSquare className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+                <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-amber-500" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2">Workspace Chat</h3>
-              <p className="text-slate-500 dark:text-slate-400 max-w-sm">
-                Select a team member from the sidebar to start collaborating in real-time.
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome to Chat</h3>
+              <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-6">
+                Select a team member from the sidebar to start a real-time conversation
               </p>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="flex -space-x-2">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className={cn("w-8 h-8 rounded-full bg-gradient-to-br ring-2 ring-white dark:ring-slate-900", getAvatarGradient(i))} />
+                  ))}
+                </div>
+                <span>{filteredUsers.length} team members available</span>
+              </div>
             </div>
           )}
         </div>
@@ -259,5 +478,56 @@ const WorkspaceChatPage = () => {
     </PageTransition>
   );
 };
+
+// User Item Component
+const UserItem = ({ user, index, isSelected, onClick, gradient }) => (
+  <motion.button
+    onClick={onClick}
+    className={cn(
+      "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left relative group",
+      isSelected 
+        ? "bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20" 
+        : "hover:bg-gray-100/80 dark:hover:bg-slate-800/80"
+    )}
+    whileHover={{ x: 4 }}
+    whileTap={{ scale: 0.98 }}
+  >
+    <div className="relative">
+      <Avatar className="h-11 w-11 ring-2 ring-white dark:ring-slate-900 shadow-sm">
+        <AvatarFallback className={cn("text-white font-bold bg-gradient-to-br", gradient)}>
+          {user.initials || user.name?.charAt(0)}
+        </AvatarFallback>
+      </Avatar>
+      <div className={cn(
+        "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900",
+        user.isOnline ? "bg-emerald-500" : "bg-gray-400"
+      )} />
+    </div>
+
+    <div className="flex-1 min-w-0">
+      <div className="flex justify-between items-center mb-0.5">
+        <span className={cn(
+          "font-semibold text-sm truncate",
+          isSelected ? "text-violet-600 dark:text-violet-400" : "text-gray-900 dark:text-white"
+        )}>
+          {user.name}
+        </span>
+        {user.isOnline && (
+          <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full font-bold">
+            Online
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+    </div>
+    
+    {isSelected && (
+      <motion.div 
+        layoutId="chatActiveIndicator"
+        className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-r-full" 
+      />
+    )}
+  </motion.button>
+);
 
 export default WorkspaceChatPage;
