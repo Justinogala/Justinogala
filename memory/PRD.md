@@ -288,6 +288,19 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Updated Header** - Glassmorphism header with gradient branding and sparkle icon
 - [x] **Consistent Design Language** - Matches user sidebar aesthetic with admin color scheme (indigo/violet)
 
+### Persistent Admin Settings (Feb 26, 2026)
+- [x] **MongoDB Backend API** - New endpoints for settings CRUD:
+  - `GET /api/admin/settings` - Fetch all settings
+  - `GET /api/admin/settings/{category}` - Fetch specific category
+  - `PUT /api/admin/settings/{category}` - Save settings (upsert)
+  - `DELETE /api/admin/settings/{category}` - Delete settings
+  - `POST /api/admin/settings/reset-defaults` - Reset all settings
+- [x] **Frontend Service Updates** - Both `adminSettingsService.js` and `adminSettingsPersistenceService.js` now use MongoDB API
+- [x] **Persistent Storage** - Settings saved to `admin_settings` collection in MongoDB
+- [x] **Survive Deployments** - SMTP, security, notifications, and system settings now persist across deployments
+- [x] **Caching** - 30-60 second cache to reduce API calls while keeping data fresh
+- [x] **Toast Notifications** - Clear feedback when settings are saved to database
+
 ## Next Tasks
 1. Complete admin-side Coupons and Tax Rates management logic
 2. Cloud storage migration (GridFS → AWS S3 for production)
