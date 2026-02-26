@@ -123,9 +123,10 @@ const QuickRecordPage = () => {
     }
     
     try {
-      const [recResponse, catResponse] = await Promise.all([
+      const [recResponse, catResponse, sharedResponse] = await Promise.all([
         fetch(`${API_BASE}/api/recordings/${userId}`),
-        fetch(`${API_BASE}/api/recordings/user/${userId}/categories`)
+        fetch(`${API_BASE}/api/recordings/user/${userId}/categories`),
+        fetch(`${API_BASE}/api/recordings/user/${userId}/shared-with-me`)
       ]);
       
       if (recResponse.ok) {
@@ -136,6 +137,16 @@ const QuickRecordPage = () => {
       if (catResponse.ok) {
         const data = await catResponse.json();
         setCategories(data.categories || []);
+      }
+
+      if (sharedResponse.ok) {
+        const data = await sharedResponse.json();
+        // Enrich with owner info
+        const enrichedShared = (data.recordings || []).map(rec => ({
+          ...rec,
+          ownerInfo: teamService.getUserById(rec.user_id)
+        }));
+        setSharedWithMe(enrichedShared);
       }
     } catch (err) {
       console.error('Error fetching recordings:', err);
