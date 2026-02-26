@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { Plus, Edit, Trash2, Copy, Tag, Percent, Calendar, Users, MoreVertical, CheckCircle, XCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  Plus, Edit, Trash2, Copy, Tag, Percent, Calendar, Users, 
+  MoreVertical, CheckCircle, XCircle, RefreshCw, Loader2, DollarSign,
+  Search, Filter
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
@@ -30,325 +35,522 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from '@/lib/utils';
+
+const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const AdminCouponsPage = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [coupons, setCoupons] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newCoupon, setNewCoupon] = useState({
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
+  
+  const [formData, setFormData] = useState({
     code: '',
-    type: 'percentage',
-    discount: '',
-    minPurchase: '',
-    maxUses: '',
-    expiryDate: ''
+    discount_type: 'percentage',
+    discount_value: '',
+    description: '',
+    max_uses: '',
+    max_uses_per_user: '1',
+    min_order_amount: '',
+    valid_until: '',
+    applicable_plans: [],
+    is_active: true
   });
 
-  const [coupons, setCoupons] = useState([
-    {
-      id: 'coup_1',
-      code: 'WELCOME20',
-      type: 'percentage',
-      discount: 20,
-      minPurchase: 50,
-      maxUses: 1000,
-      usedCount: 342,
-      expiryDate: '2025-03-31',
-      isActive: true
-    },
-    {
-      id: 'coup_2',
-      code: 'ANNUAL50',
-      type: 'fixed',
-      discount: 50,
-      minPurchase: 200,
-      maxUses: 500,
-      usedCount: 128,
-      expiryDate: '2025-02-28',
-      isActive: true
-    },
-    {
-      id: 'coup_3',
-      code: 'HOLIDAY30',
-      type: 'percentage',
-      discount: 30,
-      minPurchase: 100,
-      maxUses: 200,
-      usedCount: 200,
-      expiryDate: '2024-12-31',
-      isActive: false
-    },
-    {
-      id: 'coup_4',
-      code: 'VIP100',
-      type: 'fixed',
-      discount: 100,
-      minPurchase: 500,
-      maxUses: 50,
-      usedCount: 12,
-      expiryDate: '2025-12-31',
-      isActive: true
+  const fetchCoupons = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusFilter !== 'all') {
+        params.append('is_active', statusFilter === 'active');
+      }
+      
+      const response = await fetch(`${API_URL}/api/admin/coupons?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch coupons');
+      
+      const data = await response.json();
+      setCoupons(data.coupons || []);
+      setTotal(data.total || 0);
+    } catch (error) {
+      console.error('Error fetching coupons:', error);
+      toast({ title: "Error", description: "Failed to load coupons", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-  ]);
+  }, [statusFilter, toast]);
 
-  const handleToggleActive = (couponId) => {
-    setCoupons(prev => prev.map(c => 
-      c.id === couponId ? { ...c, isActive: !c.isActive } : c
-    ));
-    toast({ title: "Coupon status updated" });
+  useEffect(() => {
+    fetchCoupons();
+  }, [fetchCoupons]);
+
+  const resetForm = () => {
+    setFormData({
+      code: '',
+      discount_type: 'percentage',
+      discount_value: '',
+      description: '',
+      max_uses: '',
+      max_uses_per_user: '1',
+      min_order_amount: '',
+      valid_until: '',
+      applicable_plans: [],
+      is_active: true
+    });
   };
 
-  const handleCopyCode = (code) => {
-    navigator.clipboard.writeText(code);
-    toast({ title: "Code copied to clipboard" });
-  };
-
-  const handleDelete = (couponId) => {
-    if (confirm('Are you sure you want to delete this coupon?')) {
-      setCoupons(prev => prev.filter(c => c.id !== couponId));
-      toast({ title: "Coupon deleted" });
-    }
-  };
-
-  const handleCreateCoupon = () => {
-    if (!newCoupon.code || !newCoupon.discount) {
-      toast({ variant: "destructive", title: "Please fill in required fields" });
+  const handleCreate = async () => {
+    if (!formData.code || !formData.discount_value) {
+      toast({ title: "Error", description: "Please fill in required fields", variant: "destructive" });
       return;
     }
     
-    const coupon = {
-      id: `coup_${Date.now()}`,
-      ...newCoupon,
-      discount: parseFloat(newCoupon.discount),
-      minPurchase: parseFloat(newCoupon.minPurchase) || 0,
-      maxUses: parseInt(newCoupon.maxUses) || 9999,
-      usedCount: 0,
-      isActive: true
-    };
-    
-    setCoupons(prev => [coupon, ...prev]);
-    setCreateDialogOpen(false);
-    setNewCoupon({ code: '', type: 'percentage', discount: '', minPurchase: '', maxUses: '', expiryDate: '' });
-    toast({ title: "Coupon created successfully" });
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/coupons`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: formData.code,
+          discount_type: formData.discount_type,
+          discount_value: parseFloat(formData.discount_value),
+          description: formData.description || null,
+          max_uses: formData.max_uses ? parseInt(formData.max_uses) : null,
+          max_uses_per_user: parseInt(formData.max_uses_per_user) || 1,
+          min_order_amount: formData.min_order_amount ? parseFloat(formData.min_order_amount) : null,
+          valid_until: formData.valid_until || null,
+          applicable_plans: formData.applicable_plans,
+          is_active: formData.is_active
+        })
+      });
+      
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Failed to create coupon');
+      }
+      
+      toast({ title: "Success", description: "Coupon created successfully" });
+      setCreateDialogOpen(false);
+      resetForm();
+      fetchCoupons();
+    } catch (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const totalSavings = coupons.reduce((sum, c) => {
-    const avgDiscount = c.type === 'percentage' ? (c.minPurchase * c.discount / 100) : c.discount;
-    return sum + (avgDiscount * c.usedCount);
-  }, 0);
+  const handleUpdate = async () => {
+    if (!selectedCoupon) return;
+    
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/coupons/${selectedCoupon.code}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discount_type: formData.discount_type,
+          discount_value: parseFloat(formData.discount_value),
+          description: formData.description || null,
+          max_uses: formData.max_uses ? parseInt(formData.max_uses) : null,
+          max_uses_per_user: parseInt(formData.max_uses_per_user) || 1,
+          min_order_amount: formData.min_order_amount ? parseFloat(formData.min_order_amount) : null,
+          valid_until: formData.valid_until || null,
+          is_active: formData.is_active
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update coupon');
+      
+      toast({ title: "Success", description: "Coupon updated successfully" });
+      setEditDialogOpen(false);
+      setSelectedCoupon(null);
+      resetForm();
+      fetchCoupons();
+    } catch (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (code) => {
+    if (!confirm(`Delete coupon ${code}? This cannot be undone.`)) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/admin/coupons/${code}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete coupon');
+      
+      toast({ title: "Success", description: "Coupon deleted" });
+      fetchCoupons();
+    } catch (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleToggle = async (code, currentStatus) => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/coupons/${code}/toggle`, {
+        method: 'POST'
+      });
+      
+      if (!response.ok) throw new Error('Failed to toggle status');
+      
+      toast({ title: "Success", description: `Coupon ${currentStatus ? 'deactivated' : 'activated'}` });
+      fetchCoupons();
+    } catch (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleCopy = (code) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Copied", description: `Coupon code ${code} copied to clipboard` });
+  };
+
+  const openEditDialog = (coupon) => {
+    setSelectedCoupon(coupon);
+    setFormData({
+      code: coupon.code,
+      discount_type: coupon.discount_type,
+      discount_value: coupon.discount_value.toString(),
+      description: coupon.description || '',
+      max_uses: coupon.max_uses?.toString() || '',
+      max_uses_per_user: coupon.max_uses_per_user?.toString() || '1',
+      min_order_amount: coupon.min_order_amount?.toString() || '',
+      valid_until: coupon.valid_until?.split('T')[0] || '',
+      applicable_plans: coupon.applicable_plans || [],
+      is_active: coupon.is_active
+    });
+    setEditDialogOpen(true);
+  };
+
+  const filteredCoupons = coupons.filter(c => 
+    c.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const stats = {
+    total: coupons.length,
+    active: coupons.filter(c => c.is_active).length,
+    totalUsed: coupons.reduce((sum, c) => sum + (c.times_used || 0), 0)
+  };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8" data-testid="admin-coupons-page">
-      <Helmet><title>Coupon Management | Admin</title></Helmet>
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Coupon Management</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Create and manage discount coupons</p>
+    <>
+      <Helmet><title>Coupons - Admin</title></Helmet>
+      
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+              Coupons
+            </h1>
+            <p className="text-gray-400 text-sm mt-1">Manage discount codes and promotions</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchCoupons} className="border-gray-700">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={() => { resetForm(); setCreateDialogOpen(true); }} className="bg-gradient-to-r from-violet-600 to-indigo-600">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Coupon
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} className="gap-2" data-testid="create-coupon-btn">
-          <Plus className="w-4 h-4" /> Create Coupon
-        </Button>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'Total Coupons', value: stats.total, icon: Tag, color: 'from-blue-500 to-cyan-500' },
+            { label: 'Active', value: stats.active, icon: CheckCircle, color: 'from-emerald-500 to-green-500' },
+            { label: 'Total Uses', value: stats.totalUsed, icon: Users, color: 'from-violet-500 to-purple-500' }
+          ].map((stat, i) => (
+            <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+              <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className={cn("p-2 rounded-lg bg-gradient-to-br", stat.color)}>
+                      <stat.icon className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-2xl font-bold text-white">{stat.value}</span>
+                  </div>
+                  <p className="text-sm text-gray-400 mt-2">{stat.label}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="Search coupons..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-slate-800 border-gray-700"
+                  />
+                </div>
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px] bg-slate-800 border-gray-700">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Coupons Table */}
+        <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-white">All Coupons</CardTitle>
+            <CardDescription>{filteredCoupons.length} coupon(s)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
+                <span className="ml-3 text-gray-400">Loading coupons...</span>
+              </div>
+            ) : filteredCoupons.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Tag className="w-12 h-12 text-gray-600 mb-3" />
+                <p className="text-gray-400">No coupons found</p>
+                <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="mt-4 border-gray-700">
+                  Create your first coupon
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-800">
+                    <TableHead className="text-gray-400">Code</TableHead>
+                    <TableHead className="text-gray-400">Discount</TableHead>
+                    <TableHead className="text-gray-400">Uses</TableHead>
+                    <TableHead className="text-gray-400">Valid Until</TableHead>
+                    <TableHead className="text-gray-400">Status</TableHead>
+                    <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCoupons.map((coupon) => (
+                    <TableRow key={coupon.code} className="border-gray-800 hover:bg-slate-800/50">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <code className="font-mono font-bold text-violet-400 bg-violet-500/10 px-2 py-1 rounded">
+                            {coupon.code}
+                          </code>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(coupon.code)}>
+                            <Copy className="w-3 h-3" />
+                          </Button>
+                        </div>
+                        {coupon.description && (
+                          <p className="text-xs text-gray-500 mt-1">{coupon.description}</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={coupon.discount_type === 'percentage' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}>
+                          {coupon.discount_type === 'percentage' ? (
+                            <><Percent className="w-3 h-3 mr-1" />{coupon.discount_value}%</>
+                          ) : (
+                            <><DollarSign className="w-3 h-3 mr-1" />${coupon.discount_value}</>
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-gray-300">{coupon.times_used || 0}</span>
+                        {coupon.max_uses && <span className="text-gray-500">/{coupon.max_uses}</span>}
+                      </TableCell>
+                      <TableCell>
+                        {coupon.valid_until ? (
+                          <span className="text-gray-300">{new Date(coupon.valid_until).toLocaleDateString()}</span>
+                        ) : (
+                          <span className="text-gray-500">No expiry</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={coupon.is_active}
+                          onCheckedChange={() => handleToggle(coupon.code, coupon.is_active)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditDialog(coupon)}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCopy(coupon.code)}>
+                              <Copy className="w-4 h-4 mr-2" /> Copy Code
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(coupon.code)} className="text-red-400">
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Active Coupons</p>
-            <p className="text-2xl font-bold text-green-600">{coupons.filter(c => c.isActive).length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Redemptions</p>
-            <p className="text-2xl font-bold">{coupons.reduce((sum, c) => sum + c.usedCount, 0)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Savings Given</p>
-            <p className="text-2xl font-bold text-amber-600">${totalSavings.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Expired Coupons</p>
-            <p className="text-2xl font-bold text-gray-400">{coupons.filter(c => !c.isActive).length}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Coupons Table */}
-      <Card>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Discount</TableHead>
-                <TableHead>Min. Purchase</TableHead>
-                <TableHead>Usage</TableHead>
-                <TableHead>Expiry</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {coupons.map((coupon) => (
-                <TableRow key={coupon.id} data-testid={`coupon-row-${coupon.id}`}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded font-mono text-sm font-medium">
-                        {coupon.code}
-                      </code>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6"
-                        onClick={() => handleCopyCode(coupon.code)}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={coupon.type === 'percentage' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}>
-                      {coupon.type === 'percentage' ? <Percent className="w-3 h-3 mr-1" /> : <Tag className="w-3 h-3 mr-1" />}
-                      {coupon.type === 'percentage' ? `${coupon.discount}%` : `$${coupon.discount}`}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>${coupon.minPurchase}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span>{coupon.usedCount} / {coupon.maxUses}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      {new Date(coupon.expiryDate).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Switch 
-                      checked={coupon.isActive} 
-                      onCheckedChange={() => handleToggleActive(coupon.id)}
-                      data-testid={`toggle-coupon-${coupon.id}`}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Edit className="w-4 h-4 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(coupon.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
-
-      {/* Create Coupon Dialog */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
+      {/* Create/Edit Dialog */}
+      <Dialog open={createDialogOpen || editDialogOpen} onOpenChange={(open) => {
+        if (!open) { setCreateDialogOpen(false); setEditDialogOpen(false); setSelectedCoupon(null); resetForm(); }
+      }}>
+        <DialogContent className="bg-slate-900 border-gray-800 max-w-md">
           <DialogHeader>
-            <DialogTitle>Create Coupon</DialogTitle>
-            <DialogDescription>Create a new discount coupon for your users</DialogDescription>
+            <DialogTitle className="text-white">{editDialogOpen ? 'Edit Coupon' : 'Create Coupon'}</DialogTitle>
+            <DialogDescription>
+              {editDialogOpen ? 'Update coupon details' : 'Create a new discount coupon'}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Coupon Code *</Label>
-              <Input 
-                placeholder="e.g., SUMMER25"
-                value={newCoupon.code}
-                onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})}
-                className="font-mono"
+              <Label className="text-gray-300">Coupon Code *</Label>
+              <Input
+                placeholder="e.g., SAVE20"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                className="bg-slate-800 border-gray-700 font-mono"
+                disabled={editDialogOpen}
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Discount Type</Label>
-                <Select 
-                  value={newCoupon.type} 
-                  onValueChange={(val) => setNewCoupon({...newCoupon, type: val})}
-                >
-                  <SelectTrigger>
+                <Label className="text-gray-300">Discount Type</Label>
+                <Select value={formData.discount_type} onValueChange={(v) => setFormData({ ...formData, discount_type: v })}>
+                  <SelectTrigger className="bg-slate-800 border-gray-700">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                    <SelectItem value="percentage">Percentage</SelectItem>
+                    <SelectItem value="fixed">Fixed Amount</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Discount Value *</Label>
-                <Input 
+                <Label className="text-gray-300">Discount Value *</Label>
+                <Input
                   type="number"
-                  placeholder={newCoupon.type === 'percentage' ? '20' : '50'}
-                  value={newCoupon.discount}
-                  onChange={(e) => setNewCoupon({...newCoupon, discount: e.target.value})}
+                  placeholder={formData.discount_type === 'percentage' ? '20' : '10.00'}
+                  value={formData.discount_value}
+                  onChange={(e) => setFormData({ ...formData, discount_value: e.target.value })}
+                  className="bg-slate-800 border-gray-700"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-gray-300">Description</Label>
+              <Input
+                placeholder="e.g., Summer sale discount"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="bg-slate-800 border-gray-700"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-300">Max Total Uses</Label>
+                <Input
+                  type="number"
+                  placeholder="Unlimited"
+                  value={formData.max_uses}
+                  onChange={(e) => setFormData({ ...formData, max_uses: e.target.value })}
+                  className="bg-slate-800 border-gray-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-gray-300">Uses Per User</Label>
+                <Input
+                  type="number"
+                  placeholder="1"
+                  value={formData.max_uses_per_user}
+                  onChange={(e) => setFormData({ ...formData, max_uses_per_user: e.target.value })}
+                  className="bg-slate-800 border-gray-700"
                 />
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Min. Purchase ($)</Label>
-                <Input 
+                <Label className="text-gray-300">Min. Order Amount</Label>
+                <Input
                   type="number"
-                  placeholder="0"
-                  value={newCoupon.minPurchase}
-                  onChange={(e) => setNewCoupon({...newCoupon, minPurchase: e.target.value})}
+                  placeholder="0.00"
+                  value={formData.min_order_amount}
+                  onChange={(e) => setFormData({ ...formData, min_order_amount: e.target.value })}
+                  className="bg-slate-800 border-gray-700"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Max Uses</Label>
-                <Input 
-                  type="number"
-                  placeholder="Unlimited"
-                  value={newCoupon.maxUses}
-                  onChange={(e) => setNewCoupon({...newCoupon, maxUses: e.target.value})}
+                <Label className="text-gray-300">Valid Until</Label>
+                <Input
+                  type="date"
+                  value={formData.valid_until}
+                  onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
+                  className="bg-slate-800 border-gray-700"
                 />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label>Expiry Date</Label>
-              <Input 
-                type="date"
-                value={newCoupon.expiryDate}
-                onChange={(e) => setNewCoupon({...newCoupon, expiryDate: e.target.value})}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-gray-700">
+              <Label className="text-gray-300">Active</Label>
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateCoupon}>Create Coupon</Button>
+            <Button variant="outline" onClick={() => { setCreateDialogOpen(false); setEditDialogOpen(false); }} className="border-gray-700">
+              Cancel
+            </Button>
+            <Button onClick={editDialogOpen ? handleUpdate : handleCreate} disabled={saving} className="bg-violet-600 hover:bg-violet-700">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {editDialogOpen ? 'Update' : 'Create'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 
