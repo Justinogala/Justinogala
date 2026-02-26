@@ -194,9 +194,17 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Progress Component Fix** - Added `indicatorClassName` prop support to shadcn Progress component
 - [x] **File Manager Page** - Now loads correctly with file upload sections and file list
 
+### Recording Sharing Feature (Feb 26, 2026)
+- [x] **Enhanced Share Dialog** - Tabbed UI with "Public Link" and "Team Members" options
+- [x] **Team Member Selection** - Search and select team members to share recordings with
+- [x] **Shared With Me Section** - Toggle between "My Recordings" and "Shared" tabs in sidebar
+- [x] **teamService.getAllUsers()** - Get all registered users except current user
+- [x] **teamService.getUserById()** - Get user info by ID for display
+- [x] **SharedRecordingPage** - New page at `/shared/recording/:shareToken` for viewing shared recordings
+- [x] **Stream Shared Recording** - `GET /api/recordings/shared/{share_token}/stream` endpoint for video playback
+- [x] **Share Badges** - Shows "Public" or "X members" badge on shared recordings
+
 ## Next Tasks
-1. Implement GIPHY client-side integration for GIF button in chat
-2. Build recording sharing UI for sharing with team members
-3. Complete admin-side Coupons and Tax Rates management logic
-4. Cloud storage migration (GridFS → AWS S3 for production)
-5. Refactor server.py into modular route files
+1. Complete admin-side Coupons and Tax Rates management logic
+2. Cloud storage migration (GridFS → AWS S3 for production)
+3. Refactor server.py into modular route files
