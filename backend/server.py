@@ -728,6 +728,28 @@ async def upload_chat_file_json(request: ChatFileUploadJSON):
         logger.error(f"Error uploading chat file (JSON): {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/chat/files/user/{user_id}")
+async def list_user_files(user_id: str, category: str = None):
+    """List all files for a user"""
+    try:
+        query = {"user_id": user_id}
+        if category:
+            query["category"] = category
+        
+        files_cursor = db.chat_files.find(query, {"_id": 0, "gridfs_id": 0}).sort("created_at", -1)
+        files = await files_cursor.to_list(length=100)
+        
+        # Convert datetime to ISO string for JSON serialization
+        for f in files:
+            if f.get("created_at"):
+                f["created_at"] = f["created_at"].isoformat() if hasattr(f["created_at"], 'isoformat') else str(f["created_at"])
+        
+        return {"files": files}
+    except Exception as e:
+        logger.error(f"Error listing user files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/chat/files/{file_id}")
 async def get_chat_file(file_id: str):
     """Download/stream a chat file"""
