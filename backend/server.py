@@ -199,8 +199,8 @@ async def send_password_reset_email(email: str, temp_password: str, user_name: s
         
         <div style="background-color: #f9fafb; border-radius: 8px; padding: 30px; margin: 20px 0;">
             <h2 style="color: #1f2937; margin-top: 0;">Password Reset Request</h2>
-            <p style="color: #4b5563;">Hi {user_name},</p>
-            <p style="color: #4b5563;">We received a request to reset your password. Here is your temporary password:</p>
+                <p style="color: #4b5563;">Hi {user_name},</p>
+                <p style="color: #4b5563;">We received a request to reset your password. Here is your temporary password:</p>
             
             <div style="background-color: #fff; border: 2px dashed #7c3aed; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
                 <p style="font-size: 24px; font-weight: bold; color: #7c3aed; letter-spacing: 2px; margin: 0;">{temp_password}</p>
