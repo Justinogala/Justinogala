@@ -30,14 +30,14 @@ const UserTableRow = ({ user, onAction }) => {
       <TableCell className="font-medium">
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 border border-gray-200 dark:border-gray-700">
-            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            <AvatarImage src={userAvatar} alt={userName} />
             <AvatarFallback className="bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300 font-medium text-xs">
-              {getInitials(user.name)}
+              {getInitials(userName)}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {user.name}
+              {userName}
             </span>
           </div>
         </div>
@@ -46,16 +46,18 @@ const UserTableRow = ({ user, onAction }) => {
         {user.email}
       </TableCell>
       <TableCell>
-        <RoleBadge role={user.role} />
+        <RoleBadge role={userRole} />
       </TableCell>
       <TableCell>
-        <StatusBadge status={user.status} />
+        <StatusBadge status={userStatus} />
       </TableCell>
       <TableCell className="text-gray-600 dark:text-gray-300 font-medium text-sm">
-        {user.plan}
+        {userPlan}
       </TableCell>
       <TableCell className="text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">
-        {user.joinDate}
+        {typeof userJoinDate === 'string' && userJoinDate.includes('T') 
+          ? new Date(userJoinDate).toLocaleDateString() 
+          : userJoinDate}
       </TableCell>
       <TableCell className="text-right">
         <UserActionsMenu user={user} onAction={onAction} />
