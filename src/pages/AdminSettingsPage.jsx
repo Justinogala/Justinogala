@@ -221,7 +221,7 @@ const AdminSettingsPage = () => {
                   </div>
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <SaveButton section="general" />
+                  <SaveButton section="general" saving={saving} onSave={handleSave} />
                 </div>
               </CardContent>
             </Card>
@@ -293,7 +293,7 @@ const AdminSettingsPage = () => {
                   />
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <SaveButton section="security" />
+                  <SaveButton section="security" saving={saving} onSave={handleSave} />
                 </div>
               </CardContent>
             </Card>
@@ -401,7 +401,7 @@ const AdminSettingsPage = () => {
                   />
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <SaveButton section="email" />
+                  <SaveButton section="email" saving={saving} onSave={handleSave} />
                 </div>
               </CardContent>
             </Card>
@@ -461,7 +461,7 @@ const AdminSettingsPage = () => {
                   />
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <SaveButton section="notifications" />
+                  <SaveButton section="notifications" saving={saving} onSave={handleSave} />
                 </div>
               </CardContent>
             </Card>
@@ -532,7 +532,7 @@ const AdminSettingsPage = () => {
                   />
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <SaveButton section="system" />
+                  <SaveButton section="system" saving={saving} onSave={handleSave} />
                 </div>
               </CardContent>
             </Card>
