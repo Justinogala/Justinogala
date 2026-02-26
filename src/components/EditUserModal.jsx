@@ -12,7 +12,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, KeyRound } from 'lucide-react';
 
 const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
   const [formData, setFormData] = useState({
@@ -22,18 +22,24 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
     plan: 'Free',
     status: 'Active'
   });
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '',
+        name: user.name || user.full_name || '',
         email: user.email || '',
         role: user.role || 'User',
         plan: user.plan || 'Free',
         status: user.status || 'Active'
       });
+      // Reset password fields when user changes
+      setNewPassword('');
+      setShowPasswordSection(false);
     }
   }, [user]);
 
@@ -48,12 +54,37 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate password if provided
+    if (showPasswordSection && newPassword && newPassword.length < 6) {
+      toast({
+        title: "Invalid Password",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setLoading(true);
     try {
-      await onUpdate(user.id, formData);
+      const updateData = { ...formData };
+      
+      // Only include password if user wants to reset it
+      if (showPasswordSection && newPassword) {
+        updateData.password = newPassword;
+      }
+      
+      await onUpdate(user.id, updateData);
+      
+      if (showPasswordSection && newPassword) {
+        toast({
+          title: "Password Updated",
+          description: "User's password has been reset successfully.",
+        });
+      }
+      
       onClose();
     } catch (error) {
-      // Error handling is mostly done in useUserManagement but extra safety here
       console.error(error);
     } finally {
       setLoading(false);
@@ -63,7 +94,7 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Edit User">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Email - Read Only */}
+        {/* Email */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-200">Email Address</Label>
           <Input 
@@ -83,6 +114,46 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
             onChange={handleChange}
             className="bg-white/5 border-white/10 text-white"
           />
+        </div>
+
+        {/* Password Reset Section */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-gray-200">Password</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPasswordSection(!showPasswordSection)}
+              className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 h-auto py-1 px-2"
+            >
+              <KeyRound className="w-3 h-3 mr-1" />
+              {showPasswordSection ? 'Cancel Reset' : 'Reset Password'}
+            </Button>
+          </div>
+          
+          {showPasswordSection && (
+            <div className="relative animate-in slide-in-from-top-2">
+              <Input 
+                name="newPassword"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter new password (min. 6 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-white/5 border-white/10 text-white pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+              <p className="text-xs text-gray-400 mt-1">
+                Leave empty to keep current password
+              </p>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-2 gap-4">
