@@ -800,7 +800,21 @@ async def login_user(credentials: UserLogin):
         if not user:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
-        if user.get("password") != credentials.password:
+        # Check password - first try regular password, then temp password
+        password_valid = False
+        using_temp_password = False
+        
+        if user.get("password") == credentials.password:
+            password_valid = True
+        elif user.get("temp_password") and user.get("temp_password") == credentials.password:
+            # Check if temp password is not expired
+            if user.get("temp_password_expires") and user["temp_password_expires"] >= datetime.now(timezone.utc):
+                password_valid = True
+                using_temp_password = True
+            else:
+                raise HTTPException(status_code=401, detail="Temporary password has expired. Please request a new one.")
+        
+        if not password_valid:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
         if user.get("status") == "Suspended":
