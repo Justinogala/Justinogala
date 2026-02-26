@@ -117,14 +117,18 @@ const AdminSettings = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (window.confirm("Reset ALL settings to system defaults? This cannot be undone.")) {
-      const defaults = adminSettingsPersistenceService.resetSettings();
-      setSettings(defaults);
-      setOriginalSettings(defaults);
-      setIsDirty(false);
-      setLastSaved(null);
-      toast({ title: "Factory Reset", description: "All settings restored to defaults." });
+      try {
+        const defaults = await adminSettingsPersistenceService.resetSettings();
+        setSettings(defaults);
+        setOriginalSettings(defaults);
+        setIsDirty(false);
+        setLastSaved(null);
+        toast({ title: "Factory Reset", description: "All settings restored to defaults and cleared from database." });
+      } catch (error) {
+        toast({ title: "Reset Failed", description: error.message, variant: "destructive" });
+      }
     }
   };
 
