@@ -810,13 +810,15 @@ async def delete_admin_settings(category: str, request: Request):
     
     result = await db.admin_settings.delete_one({"category": category})
     
-    # Log audit event
+    # Log audit event with IP and user agent
     if result.deleted_count > 0:
         await log_audit_event(
             action="settings_delete",
             category=category,
             admin_email="admin",
-            details={"deleted_settings": prev_settings.get("settings") if prev_settings else None}
+            details={"deleted_settings": prev_settings.get("settings") if prev_settings else None},
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
         )
     
     return {
@@ -826,14 +828,14 @@ async def delete_admin_settings(category: str, request: Request):
     }
 
 @api_router.post("/admin/settings/reset-defaults")
-async def reset_admin_settings_to_defaults():
+async def reset_admin_settings_to_defaults(request: Request):
     """Reset all admin settings to defaults (clears database settings) with audit logging"""
     # Get all settings before reset for audit
     all_settings = await db.admin_settings.find({}, {"_id": 0}).to_list(length=100)
     
     result = await db.admin_settings.delete_many({})
     
-    # Log audit event
+    # Log audit event with IP and user agent
     await log_audit_event(
         action="settings_reset",
         category="all",
@@ -841,7 +843,9 @@ async def reset_admin_settings_to_defaults():
         details={
             "deleted_count": result.deleted_count,
             "previous_settings": {s["category"]: s.get("settings") for s in all_settings}
-        }
+        },
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
     
     return {
