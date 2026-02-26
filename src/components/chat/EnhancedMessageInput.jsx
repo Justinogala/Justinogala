@@ -85,15 +85,6 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
     onTyping?.(true);
   };
 
-  const handleGifSelect = (gif) => {
-    setAttachments(prev => [...prev, { 
-      type: 'gif', 
-      url: gif.url, 
-      title: gif.title,
-      name: `GIF: ${gif.title}`
-    }]);
-  };
-
   const handleAttachment = (attachment) => {
     if (attachment.url || attachment.type) {
       setAttachments(prev => [...prev, attachment]);
