@@ -1086,6 +1086,459 @@ async def get_audit_logs_summary():
         "summary": [{"action": r["_id"], "count": r["count"], "last_occurrence": r["last_occurrence"]} for r in results]
     }
 
+@api_router.get("/admin/audit-logs/export")
+async def export_audit_logs(
+    format: str = Query("json", regex="^(json|csv)$"),
+    action: Optional[str] = None,
+    category: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 1000
+):
+    """Export audit logs to JSON or CSV format"""
+    import csv
+    import io
+    
+    query = {}
+    if action:
+        query["action"] = action
+    if category:
+        query["category"] = category
+    if start_date or end_date:
+        query["timestamp"] = {}
+        if start_date:
+            query["timestamp"]["$gte"] = start_date
+        if end_date:
+            query["timestamp"]["$lte"] = end_date
+    
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).limit(limit).to_list(length=limit)
+    
+    if format == "csv":
+        # Generate CSV
+        output = io.StringIO()
+        if logs:
+            # Flatten the details dict for CSV
+            fieldnames = ["timestamp", "action", "category", "admin_email", "admin_id", "ip_address", "user_agent", "details"]
+            writer = csv.DictWriter(output, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            for log in logs:
+                row = {
+                    "timestamp": log.get("timestamp", ""),
+                    "action": log.get("action", ""),
+                    "category": log.get("category", ""),
+                    "admin_email": log.get("admin_email", ""),
+                    "admin_id": log.get("admin_id", ""),
+                    "ip_address": log.get("ip_address", ""),
+                    "user_agent": log.get("user_agent", ""),
+                    "details": json.dumps(log.get("details", {}))
+                }
+                writer.writerow(row)
+        
+        csv_content = output.getvalue()
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=audit_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"}
+        )
+    else:
+        # JSON format
+        return Response(
+            content=json.dumps({"logs": logs, "exported_at": datetime.now(timezone.utc).isoformat(), "count": len(logs)}, indent=2),
+            media_type="application/json",
+            headers={"Content-Disposition": f"attachment; filename=audit_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"}
+        )
+
+# ==================== COUPONS API ====================
+
+class CouponCreate(BaseModel):
+    code: str
+    discount_type: str = "percentage"  # "percentage" or "fixed"
+    discount_value: float
+    description: Optional[str] = None
+    max_uses: Optional[int] = None
+    max_uses_per_user: int = 1
+    min_order_amount: Optional[float] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    applicable_plans: Optional[List[str]] = None
+    is_active: bool = True
+
+class CouponUpdate(BaseModel):
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
+    description: Optional[str] = None
+    max_uses: Optional[int] = None
+    max_uses_per_user: Optional[int] = None
+    min_order_amount: Optional[float] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    applicable_plans: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+@api_router.get("/admin/coupons")
+async def get_all_coupons(
+    is_active: Optional[bool] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Get all coupons with optional filtering"""
+    query = {}
+    if is_active is not None:
+        query["is_active"] = is_active
+    
+    coupons = await db.coupons.find(query, {"_id": 0}).sort("created_at", -1).skip(offset).limit(limit).to_list(length=limit)
+    total = await db.coupons.count_documents(query)
+    
+    return {"coupons": coupons, "total": total, "limit": limit, "offset": offset}
+
+@api_router.get("/admin/coupons/{code}")
+async def get_coupon(code: str):
+    """Get a specific coupon by code"""
+    coupon = await db.coupons.find_one({"code": code.upper()}, {"_id": 0})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return coupon
+
+@api_router.post("/admin/coupons")
+async def create_coupon(coupon: CouponCreate, request: Request):
+    """Create a new coupon"""
+    # Check if coupon code already exists
+    existing = await db.coupons.find_one({"code": coupon.code.upper()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    coupon_doc = {
+        "id": str(uuid.uuid4()),
+        "code": coupon.code.upper(),
+        "discount_type": coupon.discount_type,
+        "discount_value": coupon.discount_value,
+        "description": coupon.description,
+        "max_uses": coupon.max_uses,
+        "max_uses_per_user": coupon.max_uses_per_user,
+        "min_order_amount": coupon.min_order_amount,
+        "valid_from": coupon.valid_from,
+        "valid_until": coupon.valid_until,
+        "applicable_plans": coupon.applicable_plans or [],
+        "is_active": coupon.is_active,
+        "times_used": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.coupons.insert_one(coupon_doc)
+    
+    # Log audit event
+    await log_audit_event(
+        action="coupon_create",
+        category="billing",
+        admin_email="admin",
+        details={"coupon_code": coupon.code.upper(), "discount_type": coupon.discount_type, "discount_value": coupon.discount_value},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    # Remove MongoDB _id before returning
+    coupon_doc.pop("_id", None)
+    return {"success": True, "coupon": coupon_doc}
+
+@api_router.put("/admin/coupons/{code}")
+async def update_coupon(code: str, update: CouponUpdate, request: Request):
+    """Update an existing coupon"""
+    coupon = await db.coupons.find_one({"code": code.upper()})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.coupons.update_one({"code": code.upper()}, {"$set": update_data})
+    
+    # Log audit event
+    await log_audit_event(
+        action="coupon_update",
+        category="billing",
+        admin_email="admin",
+        details={"coupon_code": code.upper(), "updates": update_data},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    updated_coupon = await db.coupons.find_one({"code": code.upper()}, {"_id": 0})
+    return {"success": True, "coupon": updated_coupon}
+
+@api_router.delete("/admin/coupons/{code}")
+async def delete_coupon(code: str, request: Request):
+    """Delete a coupon"""
+    coupon = await db.coupons.find_one({"code": code.upper()})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    await db.coupons.delete_one({"code": code.upper()})
+    
+    # Log audit event
+    await log_audit_event(
+        action="coupon_delete",
+        category="billing",
+        admin_email="admin",
+        details={"coupon_code": code.upper()},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    return {"success": True, "message": f"Coupon {code.upper()} deleted"}
+
+@api_router.post("/admin/coupons/{code}/toggle")
+async def toggle_coupon_status(code: str, request: Request):
+    """Toggle coupon active status"""
+    coupon = await db.coupons.find_one({"code": code.upper()})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    
+    new_status = not coupon.get("is_active", True)
+    await db.coupons.update_one(
+        {"code": code.upper()},
+        {"$set": {"is_active": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Log audit event
+    await log_audit_event(
+        action="coupon_toggle",
+        category="billing",
+        admin_email="admin",
+        details={"coupon_code": code.upper(), "new_status": new_status},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    return {"success": True, "code": code.upper(), "is_active": new_status}
+
+# Validate coupon (for checkout)
+@api_router.post("/coupons/validate")
+async def validate_coupon(code: str = Query(...), plan: Optional[str] = None, amount: Optional[float] = None):
+    """Validate a coupon code for checkout"""
+    coupon = await db.coupons.find_one({"code": code.upper(), "is_active": True}, {"_id": 0})
+    
+    if not coupon:
+        return {"valid": False, "message": "Invalid or inactive coupon code"}
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Check validity period
+    if coupon.get("valid_from") and now < coupon["valid_from"]:
+        return {"valid": False, "message": "Coupon is not yet active"}
+    if coupon.get("valid_until") and now > coupon["valid_until"]:
+        return {"valid": False, "message": "Coupon has expired"}
+    
+    # Check max uses
+    if coupon.get("max_uses") and coupon.get("times_used", 0) >= coupon["max_uses"]:
+        return {"valid": False, "message": "Coupon usage limit reached"}
+    
+    # Check min order amount
+    if coupon.get("min_order_amount") and amount and amount < coupon["min_order_amount"]:
+        return {"valid": False, "message": f"Minimum order amount is ${coupon['min_order_amount']}"}
+    
+    # Check applicable plans
+    if coupon.get("applicable_plans") and plan and plan not in coupon["applicable_plans"]:
+        return {"valid": False, "message": "Coupon not valid for this plan"}
+    
+    # Calculate discount
+    discount = 0
+    if amount:
+        if coupon["discount_type"] == "percentage":
+            discount = amount * (coupon["discount_value"] / 100)
+        else:
+            discount = min(coupon["discount_value"], amount)
+    
+    return {
+        "valid": True,
+        "coupon": coupon,
+        "discount_amount": round(discount, 2),
+        "message": f"Coupon applied: {coupon['discount_value']}{'%' if coupon['discount_type'] == 'percentage' else ' off'}"
+    }
+
+# ==================== TAX RATES API ====================
+
+class TaxRateCreate(BaseModel):
+    name: str
+    rate: float  # Percentage (e.g., 20 for 20%)
+    country: str
+    state: Optional[str] = None
+    description: Optional[str] = None
+    is_inclusive: bool = False  # Whether tax is included in price
+    is_active: bool = True
+
+class TaxRateUpdate(BaseModel):
+    name: Optional[str] = None
+    rate: Optional[float] = None
+    country: Optional[str] = None
+    state: Optional[str] = None
+    description: Optional[str] = None
+    is_inclusive: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+@api_router.get("/admin/tax-rates")
+async def get_all_tax_rates(
+    country: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Get all tax rates with optional filtering"""
+    query = {}
+    if country:
+        query["country"] = country.upper()
+    if is_active is not None:
+        query["is_active"] = is_active
+    
+    tax_rates = await db.tax_rates.find(query, {"_id": 0}).sort("country", 1).skip(offset).limit(limit).to_list(length=limit)
+    total = await db.tax_rates.count_documents(query)
+    
+    return {"tax_rates": tax_rates, "total": total, "limit": limit, "offset": offset}
+
+@api_router.get("/admin/tax-rates/{tax_id}")
+async def get_tax_rate(tax_id: str):
+    """Get a specific tax rate"""
+    tax_rate = await db.tax_rates.find_one({"id": tax_id}, {"_id": 0})
+    if not tax_rate:
+        raise HTTPException(status_code=404, detail="Tax rate not found")
+    return tax_rate
+
+@api_router.post("/admin/tax-rates")
+async def create_tax_rate(tax_rate: TaxRateCreate, request: Request):
+    """Create a new tax rate"""
+    tax_doc = {
+        "id": str(uuid.uuid4()),
+        "name": tax_rate.name,
+        "rate": tax_rate.rate,
+        "country": tax_rate.country.upper(),
+        "state": tax_rate.state.upper() if tax_rate.state else None,
+        "description": tax_rate.description,
+        "is_inclusive": tax_rate.is_inclusive,
+        "is_active": tax_rate.is_active,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.tax_rates.insert_one(tax_doc)
+    
+    # Log audit event
+    await log_audit_event(
+        action="tax_rate_create",
+        category="billing",
+        admin_email="admin",
+        details={"tax_name": tax_rate.name, "rate": tax_rate.rate, "country": tax_rate.country},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    tax_doc.pop("_id", None)
+    return {"success": True, "tax_rate": tax_doc}
+
+@api_router.put("/admin/tax-rates/{tax_id}")
+async def update_tax_rate(tax_id: str, update: TaxRateUpdate, request: Request):
+    """Update an existing tax rate"""
+    tax_rate = await db.tax_rates.find_one({"id": tax_id})
+    if not tax_rate:
+        raise HTTPException(status_code=404, detail="Tax rate not found")
+    
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    if "country" in update_data:
+        update_data["country"] = update_data["country"].upper()
+    if "state" in update_data and update_data["state"]:
+        update_data["state"] = update_data["state"].upper()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.tax_rates.update_one({"id": tax_id}, {"$set": update_data})
+    
+    # Log audit event
+    await log_audit_event(
+        action="tax_rate_update",
+        category="billing",
+        admin_email="admin",
+        details={"tax_id": tax_id, "updates": update_data},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    updated_tax = await db.tax_rates.find_one({"id": tax_id}, {"_id": 0})
+    return {"success": True, "tax_rate": updated_tax}
+
+@api_router.delete("/admin/tax-rates/{tax_id}")
+async def delete_tax_rate(tax_id: str, request: Request):
+    """Delete a tax rate"""
+    tax_rate = await db.tax_rates.find_one({"id": tax_id})
+    if not tax_rate:
+        raise HTTPException(status_code=404, detail="Tax rate not found")
+    
+    await db.tax_rates.delete_one({"id": tax_id})
+    
+    # Log audit event
+    await log_audit_event(
+        action="tax_rate_delete",
+        category="billing",
+        admin_email="admin",
+        details={"tax_id": tax_id, "tax_name": tax_rate.get("name")},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    return {"success": True, "message": f"Tax rate deleted"}
+
+@api_router.post("/admin/tax-rates/{tax_id}/toggle")
+async def toggle_tax_rate_status(tax_id: str, request: Request):
+    """Toggle tax rate active status"""
+    tax_rate = await db.tax_rates.find_one({"id": tax_id})
+    if not tax_rate:
+        raise HTTPException(status_code=404, detail="Tax rate not found")
+    
+    new_status = not tax_rate.get("is_active", True)
+    await db.tax_rates.update_one(
+        {"id": tax_id},
+        {"$set": {"is_active": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Log audit event
+    await log_audit_event(
+        action="tax_rate_toggle",
+        category="billing",
+        admin_email="admin",
+        details={"tax_id": tax_id, "new_status": new_status},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    
+    return {"success": True, "id": tax_id, "is_active": new_status}
+
+# Calculate tax for an amount
+@api_router.get("/tax/calculate")
+async def calculate_tax(amount: float, country: str, state: Optional[str] = None):
+    """Calculate tax for a given amount and location"""
+    query = {"country": country.upper(), "is_active": True}
+    if state:
+        query["state"] = state.upper()
+    
+    tax_rate = await db.tax_rates.find_one(query, {"_id": 0})
+    
+    if not tax_rate:
+        # Try to find country-level rate without state
+        tax_rate = await db.tax_rates.find_one(
+            {"country": country.upper(), "state": None, "is_active": True},
+            {"_id": 0}
+        )
+    
+    if not tax_rate:
+        return {"tax_amount": 0, "rate": 0, "message": "No tax rate found for location"}
+    
+    tax_amount = amount * (tax_rate["rate"] / 100)
+    
+    return {
+        "tax_amount": round(tax_amount, 2),
+        "rate": tax_rate["rate"],
+        "tax_rate": tax_rate,
+        "total_with_tax": round(amount + tax_amount, 2)
+    }
+
 # Update the settings endpoints to include audit logging
 @api_router.put("/admin/settings/{category}/with-audit")
 async def update_admin_settings_with_audit(category: str, data: AdminSettingsUpdate, admin_email: str = "admin"):
