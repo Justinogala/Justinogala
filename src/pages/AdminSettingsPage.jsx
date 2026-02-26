@@ -33,11 +33,7 @@ const AdminSettingsPage = () => {
   const [testing, setTesting] = useState({});
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getSettings();
@@ -48,7 +44,11 @@ const AdminSettingsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleUpdate = (section, key, value) => {
     setSettings(prev => ({
