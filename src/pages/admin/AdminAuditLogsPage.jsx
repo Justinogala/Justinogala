@@ -47,9 +47,11 @@ const CATEGORY_COLORS = {
 };
 
 const AdminAuditLogsPage = () => {
+  const { toast } = useToast();
   const [logs, setLogs] = useState([]);
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [limit] = useState(20);
