@@ -26,7 +26,7 @@
   },
   
   "passed_tests": [
-    "Frontend application loads successfully at https://munal-messaging.preview.emergentagent.com",
+    "Frontend application loads successfully at https://coupon-tax-rates.preview.emergentagent.com",
     "Navigation and branding (Munal) working correctly",
     "Login and signup pages accessible and responsive",
     "Enhanced chat components exist in codebase with proper structure",
