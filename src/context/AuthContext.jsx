@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 
 const USERS_KEY = 'munal_users';
 const SESSIONS_KEY = 'munal_sessions';
+const AUTH_KEY = 'munal_auth';
 
 // Helper to simulate API delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
