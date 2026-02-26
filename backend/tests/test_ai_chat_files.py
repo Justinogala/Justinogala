@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://payment-hub-215.preview.emergentagent.com"
+    BASE_URL = "https://echonote-fix.preview.emergentagent.com"
 
 
 class TestHealthCheck:
