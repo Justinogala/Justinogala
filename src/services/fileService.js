@@ -142,6 +142,50 @@ export const fileService = {
         url: `${apiUrl}/api/chat/files/${fileId}` 
       } 
     };
+  },
+
+  /**
+   * List all files for the current user
+   * @param {Object} options - Filter options (category, etc.)
+   */
+  listFiles: async (options = {}) => {
+    const apiUrl = getApiUrl();
+    try {
+      // Get user ID from localStorage
+      const userData = localStorage.getItem('munal_auth');
+      const user = userData ? JSON.parse(userData) : null;
+      const userId = user?.id || 'anonymous';
+
+      let url = `${apiUrl}/api/chat/files/user/${userId}`;
+      if (options.category) {
+        url += `?category=${encodeURIComponent(options.category)}`;
+      }
+
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to list files');
+      }
+
+      const data = await response.json();
+      
+      // Transform files to match expected format
+      const files = (data.files || []).map(file => ({
+        id: file.id,
+        name: file.filename,
+        size: file.file_size,
+        type: file.content_type,
+        category: file.category,
+        uploadedAt: file.created_at,
+        url: `${apiUrl}/api/chat/files/${file.id}`
+      }));
+
+      return { success: true, data: files };
+    } catch (error) {
+      console.error('List files error:', error);
+      return { success: false, error: error.message, data: [] };
+    }
   }
 };
 
