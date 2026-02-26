@@ -676,6 +676,99 @@ async def get_user_all_messages(user_id: str, limit: int = 100, offset: int = 0)
     return {"messages": messages, "total": len(messages), "partners": partners}
 
 
+# ==================== ADMIN SETTINGS API ====================
+
+class AdminSettingsUpdate(BaseModel):
+    category: str  # e.g., 'general', 'email', 'api', 'security', 'notifications', 'system'
+    settings: Dict
+
+@api_router.get("/admin/settings")
+async def get_all_admin_settings():
+    """Get all admin settings from database"""
+    settings = await db.admin_settings.find({}, {"_id": 0}).to_list(length=100)
+    
+    # Convert to a dictionary keyed by category
+    result = {}
+    for setting in settings:
+        category = setting.get('category')
+        if category:
+            result[category] = setting.get('settings', {})
+            result[category]['_metadata'] = {
+                'updated_at': setting.get('updated_at'),
+                'updated_by': setting.get('updated_by')
+            }
+    
+    return {"settings": result, "success": True}
+
+@api_router.get("/admin/settings/{category}")
+async def get_admin_settings_by_category(category: str):
+    """Get admin settings for a specific category"""
+    setting = await db.admin_settings.find_one({"category": category}, {"_id": 0})
+    
+    if not setting:
+        # Return default empty settings
+        return {"category": category, "settings": {}, "exists": False}
+    
+    return {
+        "category": category,
+        "settings": setting.get('settings', {}),
+        "updated_at": setting.get('updated_at'),
+        "updated_by": setting.get('updated_by'),
+        "exists": True
+    }
+
+@api_router.put("/admin/settings/{category}")
+async def update_admin_settings(category: str, data: AdminSettingsUpdate):
+    """Update admin settings for a specific category - persists to MongoDB"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    update_doc = {
+        "category": category,
+        "settings": data.settings,
+        "updated_at": now,
+        "updated_by": "admin"  # Could be enhanced to track actual admin user
+    }
+    
+    # Upsert - create if doesn't exist, update if exists
+    result = await db.admin_settings.update_one(
+        {"category": category},
+        {"$set": update_doc},
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "category": category,
+        "updated_at": now,
+        "modified": result.modified_count > 0,
+        "created": result.upserted_id is not None
+    }
+
+@api_router.delete("/admin/settings/{category}")
+async def delete_admin_settings(category: str):
+    """Delete admin settings for a specific category"""
+    result = await db.admin_settings.delete_one({"category": category})
+    
+    return {
+        "success": result.deleted_count > 0,
+        "category": category,
+        "deleted": result.deleted_count > 0
+    }
+
+@api_router.post("/admin/settings/reset-defaults")
+async def reset_admin_settings_to_defaults():
+    """Reset all admin settings to defaults (clears database settings)"""
+    result = await db.admin_settings.delete_many({})
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": "All settings reset to defaults"
+    }
+
+
+
+
 @api_router.post("/chat/messages")
 async def create_message(message: ChatMessageCreate):
     """Create a new message (REST fallback for non-WebSocket clients)"""
