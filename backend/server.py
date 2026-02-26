@@ -719,14 +719,17 @@ async def get_admin_settings_by_category(category: str):
 
 @api_router.put("/admin/settings/{category}")
 async def update_admin_settings(category: str, data: AdminSettingsUpdate):
-    """Update admin settings for a specific category - persists to MongoDB"""
+    """Update admin settings for a specific category - persists to MongoDB with audit logging"""
     now = datetime.now(timezone.utc).isoformat()
+    
+    # Get previous settings for audit comparison
+    prev_settings = await db.admin_settings.find_one({"category": category}, {"_id": 0})
     
     update_doc = {
         "category": category,
         "settings": data.settings,
         "updated_at": now,
-        "updated_by": "admin"  # Could be enhanced to track actual admin user
+        "updated_by": "admin"
     }
     
     # Upsert - create if doesn't exist, update if exists
@@ -734,6 +737,19 @@ async def update_admin_settings(category: str, data: AdminSettingsUpdate):
         {"category": category},
         {"$set": update_doc},
         upsert=True
+    )
+    
+    # Log audit event
+    await log_audit_event(
+        action="settings_update",
+        category=category,
+        admin_email="admin",
+        details={
+            "previous": prev_settings.get("settings") if prev_settings else None,
+            "new": data.settings,
+            "modified": result.modified_count > 0,
+            "created": result.upserted_id is not None
+        }
     )
     
     return {
@@ -746,8 +762,20 @@ async def update_admin_settings(category: str, data: AdminSettingsUpdate):
 
 @api_router.delete("/admin/settings/{category}")
 async def delete_admin_settings(category: str):
-    """Delete admin settings for a specific category"""
+    """Delete admin settings for a specific category with audit logging"""
+    # Get settings before deletion for audit
+    prev_settings = await db.admin_settings.find_one({"category": category}, {"_id": 0})
+    
     result = await db.admin_settings.delete_one({"category": category})
+    
+    # Log audit event
+    if result.deleted_count > 0:
+        await log_audit_event(
+            action="settings_delete",
+            category=category,
+            admin_email="admin",
+            details={"deleted_settings": prev_settings.get("settings") if prev_settings else None}
+        )
     
     return {
         "success": result.deleted_count > 0,
@@ -757,7 +785,28 @@ async def delete_admin_settings(category: str):
 
 @api_router.post("/admin/settings/reset-defaults")
 async def reset_admin_settings_to_defaults():
-    """Reset all admin settings to defaults (clears database settings)"""
+    """Reset all admin settings to defaults (clears database settings) with audit logging"""
+    # Get all settings before reset for audit
+    all_settings = await db.admin_settings.find({}, {"_id": 0}).to_list(length=100)
+    
+    result = await db.admin_settings.delete_many({})
+    
+    # Log audit event
+    await log_audit_event(
+        action="settings_reset",
+        category="all",
+        admin_email="admin",
+        details={
+            "deleted_count": result.deleted_count,
+            "previous_settings": {s["category"]: s.get("settings") for s in all_settings}
+        }
+    )
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": "All settings reset to defaults"
+    }
     result = await db.admin_settings.delete_many({})
     
     return {
