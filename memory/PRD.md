@@ -215,6 +215,18 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Team Service** - `teamService.js` fetches and caches users from MongoDB
 - [x] **UserTableRow Fix** - Handles missing/null name fields gracefully with fallbacks
 
+### JWT Token & Password Reset (Feb 26, 2026)
+- [x] **JWT Token Generation** - Login/register returns JWT tokens with 24-hour expiration
+- [x] **JWT Token Verification** - `GET /api/auth/verify-token` validates tokens
+- [x] **JWT Helper Functions** - `create_jwt_token()`, `verify_jwt_token()`, `get_current_user()` dependency
+- [x] **Forgot Password API** - `POST /api/auth/forgot-password` generates temp password and sends email
+- [x] **Change Password API** - `POST /api/auth/change-password` for setting new password after reset
+- [x] **Resend Email Integration** - Professional HTML email template for password reset
+- [x] **ForgotPasswordPage** - User-friendly page at `/forgot-password` to request password reset
+- [x] **ChangePasswordModal** - Modal that appears when user logs in with `must_change_password: true`
+- [x] **Temp Password Login** - Backend accepts both regular and temporary passwords
+- [x] **24-hour Temp Password Expiry** - Temporary passwords expire after 24 hours
+
 ## Next Tasks
 1. Complete admin-side Coupons and Tax Rates management logic
 2. Cloud storage migration (GridFS → AWS S3 for production)
