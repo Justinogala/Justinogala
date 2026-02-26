@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   FileText, Search, Filter, RefreshCw, Clock, User, Settings, 
   Shield, Mail, Database, AlertCircle, CheckCircle, XCircle,
-  ChevronLeft, ChevronRight, Activity
+  ChevronLeft, ChevronRight, Activity, Download, Globe, Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAuditLogs, getAuditLogsSummary } from '@/services/adminSettingsService';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getAuditLogs, getAuditLogsSummary, exportAuditLogs } from '@/services/adminSettingsService';
+import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 const ACTION_CONFIG = {
