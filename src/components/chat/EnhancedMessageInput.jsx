@@ -191,7 +191,7 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
             </Tooltip>
 
             {/* More Options Dropdown */}
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
