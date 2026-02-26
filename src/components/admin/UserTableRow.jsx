@@ -8,6 +8,7 @@ import UserActionsMenu from './UserActionsMenu';
 
 const UserTableRow = ({ user, onAction }) => {
   const getInitials = (name) => {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n[0])
@@ -15,6 +16,14 @@ const UserTableRow = ({ user, onAction }) => {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Normalize user data to handle different field names
+  const userName = user.name || user.full_name || user.email?.split('@')[0] || 'Unknown';
+  const userAvatar = user.avatarUrl || user.avatar;
+  const userJoinDate = user.joinDate || user.joined_date || user.created_at || '-';
+  const userPlan = user.plan || 'Free';
+  const userRole = user.role || 'User';
+  const userStatus = user.status || 'Active';
 
   return (
     <TableRow className="group hover:bg-violet-50/50 dark:hover:bg-slate-800/50 transition-colors">
