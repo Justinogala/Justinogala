@@ -758,7 +758,7 @@ async def get_admin_settings_by_category(category: str):
     }
 
 @api_router.put("/admin/settings/{category}")
-async def update_admin_settings(category: str, data: AdminSettingsUpdate):
+async def update_admin_settings(category: str, data: AdminSettingsUpdate, request: Request):
     """Update admin settings for a specific category - persists to MongoDB with audit logging"""
     now = datetime.now(timezone.utc).isoformat()
     
@@ -779,7 +779,7 @@ async def update_admin_settings(category: str, data: AdminSettingsUpdate):
         upsert=True
     )
     
-    # Log audit event
+    # Log audit event with IP and user agent
     await log_audit_event(
         action="settings_update",
         category=category,
@@ -789,7 +789,9 @@ async def update_admin_settings(category: str, data: AdminSettingsUpdate):
             "new": data.settings,
             "modified": result.modified_count > 0,
             "created": result.upserted_id is not None
-        }
+        },
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
     )
     
     return {
@@ -801,7 +803,7 @@ async def update_admin_settings(category: str, data: AdminSettingsUpdate):
     }
 
 @api_router.delete("/admin/settings/{category}")
-async def delete_admin_settings(category: str):
+async def delete_admin_settings(category: str, request: Request):
     """Delete admin settings for a specific category with audit logging"""
     # Get settings before deletion for audit
     prev_settings = await db.admin_settings.find_one({"category": category}, {"_id": 0})
