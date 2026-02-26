@@ -200,6 +200,7 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
                       variant="ghost" 
                       size="icon" 
                       className="text-gray-500 hover:text-indigo-600 rounded-full h-9 w-9"
+                      data-testid="chat-more-options-btn"
                     >
                       <MoreHorizontal className="w-5 h-5" />
                     </Button>
