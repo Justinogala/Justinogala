@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { 
@@ -32,7 +32,6 @@ import { UserExportService } from '@/services/UserExportService';
 
 const AdminUserManagementPage = () => {
   const { users, loading, addUser, updateUser, deleteUser, fetchUsers } = useUserManagement();
-  const [filteredUsers, setFilteredUsers] = useState([]);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -43,9 +42,9 @@ const AdminUserManagementPage = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
-  // Apply filters
-  useEffect(() => {
-    if (!users) return;
+  // Apply filters using useMemo
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
     let result = [...users];
 
     if (searchTerm) {
@@ -69,7 +68,7 @@ const AdminUserManagementPage = () => {
       result = result.filter(user => (user.plan || 'Free') === planFilter);
     }
 
-    setFilteredUsers(result);
+    return result;
   }, [searchTerm, roleFilter, statusFilter, planFilter, users]);
 
   const handleRefresh = async () => {
