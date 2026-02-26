@@ -767,6 +767,300 @@ async def reset_admin_settings_to_defaults():
     }
 
 
+# ==================== SMTP TEST & AUDIT LOGGING ====================
+
+import aiosmtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+class SMTPTestRequest(BaseModel):
+    smtpHost: str
+    smtpPort: int = 587
+    username: str = ""
+    password: str = ""
+    senderName: str = "Test Sender"
+    senderEmail: str
+    recipientEmail: str
+    useTLS: bool = True
+
+class AuditLogEntry(BaseModel):
+    action: str  # e.g., 'settings_update', 'settings_reset', 'user_login'
+    category: Optional[str] = None
+    admin_id: Optional[str] = None
+    admin_email: Optional[str] = None
+    details: Optional[Dict] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+@api_router.post("/admin/smtp/test")
+async def test_smtp_connection(config: SMTPTestRequest):
+    """Test SMTP connection by sending a real test email"""
+    try:
+        # Create test email message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = '🧪 SMTP Test - Munal Admin'
+        msg['From'] = f"{config.senderName} <{config.senderEmail}>"
+        msg['To'] = config.recipientEmail
+        
+        # Plain text version
+        text_content = f"""
+SMTP Connection Test Successful!
+
+This email confirms that your SMTP settings are working correctly.
+
+Configuration tested:
+- SMTP Host: {config.smtpHost}
+- SMTP Port: {config.smtpPort}
+- TLS Enabled: {config.useTLS}
+- Sender: {config.senderName} <{config.senderEmail}>
+
+Time: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+-- 
+Munal Admin System
+        """
+        
+        # HTML version
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; padding: 40px; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+                .header {{ text-align: center; margin-bottom: 30px; }}
+                .icon {{ font-size: 48px; margin-bottom: 10px; }}
+                h1 {{ color: #1e293b; margin: 0; font-size: 24px; }}
+                .success {{ color: #10b981; font-weight: 600; }}
+                .details {{ background: #f1f5f9; border-radius: 8px; padding: 20px; margin: 20px 0; }}
+                .detail-row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }}
+                .detail-row:last-child {{ border-bottom: none; }}
+                .label {{ color: #64748b; }}
+                .value {{ color: #1e293b; font-weight: 500; }}
+                .footer {{ text-align: center; color: #94a3b8; font-size: 12px; margin-top: 30px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="icon">✅</div>
+                    <h1>SMTP Test <span class="success">Successful</span></h1>
+                </div>
+                <p>Your email configuration is working correctly. This test email was sent from the Munal Admin panel.</p>
+                <div class="details">
+                    <div class="detail-row">
+                        <span class="label">SMTP Host</span>
+                        <span class="value">{config.smtpHost}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">SMTP Port</span>
+                        <span class="value">{config.smtpPort}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">TLS/SSL</span>
+                        <span class="value">{'Enabled' if config.useTLS else 'Disabled'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Sender</span>
+                        <span class="value">{config.senderEmail}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Timestamp</span>
+                        <span class="value">{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</span>
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>Munal Admin System • Automated Test Email</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        msg.attach(MIMEText(text_content, 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        # Send email via SMTP
+        smtp_client = aiosmtplib.SMTP(
+            hostname=config.smtpHost,
+            port=config.smtpPort,
+            use_tls=config.useTLS,
+            start_tls=not config.useTLS  # Use STARTTLS if not using direct TLS
+        )
+        
+        await smtp_client.connect()
+        
+        # Login if credentials provided
+        if config.username and config.password:
+            await smtp_client.login(config.username, config.password)
+        
+        await smtp_client.send_message(msg)
+        await smtp_client.quit()
+        
+        # Log the successful test
+        await log_audit_event(
+            action="smtp_test",
+            category="email",
+            details={
+                "smtp_host": config.smtpHost,
+                "smtp_port": config.smtpPort,
+                "recipient": config.recipientEmail,
+                "success": True
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": f"Test email sent successfully to {config.recipientEmail}",
+            "details": {
+                "host": config.smtpHost,
+                "port": config.smtpPort,
+                "tls": config.useTLS
+            }
+        }
+        
+    except aiosmtplib.SMTPAuthenticationError as e:
+        await log_audit_event(
+            action="smtp_test",
+            category="email",
+            details={"error": "Authentication failed", "smtp_host": config.smtpHost, "success": False}
+        )
+        return {
+            "success": False,
+            "message": "SMTP Authentication failed. Please check your username and password.",
+            "error": str(e)
+        }
+    except aiosmtplib.SMTPConnectError as e:
+        await log_audit_event(
+            action="smtp_test",
+            category="email",
+            details={"error": "Connection failed", "smtp_host": config.smtpHost, "success": False}
+        )
+        return {
+            "success": False,
+            "message": f"Could not connect to SMTP server at {config.smtpHost}:{config.smtpPort}",
+            "error": str(e)
+        }
+    except Exception as e:
+        await log_audit_event(
+            action="smtp_test",
+            category="email",
+            details={"error": str(e), "smtp_host": config.smtpHost, "success": False}
+        )
+        return {
+            "success": False,
+            "message": f"Failed to send test email: {str(e)}",
+            "error": str(e)
+        }
+
+async def log_audit_event(
+    action: str,
+    category: Optional[str] = None,
+    admin_id: Optional[str] = None,
+    admin_email: Optional[str] = "admin",
+    details: Optional[Dict] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None
+):
+    """Helper function to log audit events to MongoDB"""
+    audit_doc = {
+        "action": action,
+        "category": category,
+        "admin_id": admin_id,
+        "admin_email": admin_email,
+        "details": details or {},
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.audit_logs.insert_one(audit_doc)
+    return audit_doc
+
+@api_router.get("/admin/audit-logs")
+async def get_audit_logs(
+    action: Optional[str] = None,
+    category: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Get audit logs with optional filtering"""
+    query = {}
+    if action:
+        query["action"] = action
+    if category:
+        query["category"] = category
+    
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).skip(offset).limit(limit).to_list(length=limit)
+    total = await db.audit_logs.count_documents(query)
+    
+    return {
+        "logs": logs,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
+
+@api_router.get("/admin/audit-logs/summary")
+async def get_audit_logs_summary():
+    """Get summary of audit logs by action type"""
+    pipeline = [
+        {"$group": {"_id": "$action", "count": {"$sum": 1}, "last_occurrence": {"$max": "$timestamp"}}},
+        {"$sort": {"count": -1}}
+    ]
+    results = await db.audit_logs.aggregate(pipeline).to_list(length=100)
+    
+    return {
+        "summary": [{"action": r["_id"], "count": r["count"], "last_occurrence": r["last_occurrence"]} for r in results]
+    }
+
+# Update the settings endpoints to include audit logging
+@api_router.put("/admin/settings/{category}/with-audit")
+async def update_admin_settings_with_audit(category: str, data: AdminSettingsUpdate, admin_email: str = "admin"):
+    """Update admin settings with audit logging"""
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Get previous settings for comparison
+    prev_settings = await db.admin_settings.find_one({"category": category}, {"_id": 0})
+    
+    update_doc = {
+        "category": category,
+        "settings": data.settings,
+        "updated_at": now,
+        "updated_by": admin_email
+    }
+    
+    # Upsert
+    result = await db.admin_settings.update_one(
+        {"category": category},
+        {"$set": update_doc},
+        upsert=True
+    )
+    
+    # Log the change
+    await log_audit_event(
+        action="settings_update",
+        category=category,
+        admin_email=admin_email,
+        details={
+            "previous": prev_settings.get("settings") if prev_settings else None,
+            "new": data.settings,
+            "modified": result.modified_count > 0,
+            "created": result.upserted_id is not None
+        }
+    )
+    
+    return {
+        "success": True,
+        "category": category,
+        "updated_at": now,
+        "modified": result.modified_count > 0,
+        "created": result.upserted_id is not None,
+        "audit_logged": True
+    }
+
+
+
 
 
 @api_router.post("/chat/messages")
