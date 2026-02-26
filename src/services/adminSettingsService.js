@@ -262,5 +262,41 @@ export const createBackup = async () => {
   return { success: true, backupId, message: "System backup created successfully." };
 };
 
+/**
+ * Get audit logs
+ */
+export const getAuditLogs = async (options = {}) => {
+  try {
+    const params = new URLSearchParams();
+    if (options.action) params.append('action', options.action);
+    if (options.category) params.append('category', options.category);
+    if (options.limit) params.append('limit', options.limit);
+    if (options.offset) params.append('offset', options.offset);
+    
+    const response = await fetch(`${API_URL}/api/admin/audit-logs?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch audit logs');
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
+    return { logs: [], total: 0, error: error.message };
+  }
+};
+
+/**
+ * Get audit logs summary
+ */
+export const getAuditLogsSummary = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/admin/audit-logs/summary`);
+    if (!response.ok) throw new Error('Failed to fetch audit summary');
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching audit summary:', error);
+    return { summary: [], error: error.message };
+  }
+};
+
 // Export defaults for reference
 export { DEFAULT_SETTINGS };
