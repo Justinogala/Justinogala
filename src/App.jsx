@@ -259,6 +259,7 @@ function App() {
                               <Route path="/login" element={<LoginPage />} />
                               <Route path="/login/otp" element={<OTPLoginPage />} />
                               <Route path="/signup" element={<SignupPage />} />
+                              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                               <Route path="/password-reset" element={<PasswordResetPage />} />
                               <Route path="/pricing" element={<PricingPage />} />
                               <Route path="/shared/:shareToken" element={<SharedMeetingPage />} />
