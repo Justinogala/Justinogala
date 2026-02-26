@@ -116,7 +116,6 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
       case 'file': return '📎';
       case 'location': return '📍';
       case 'voice': return '🎤';
-      case 'gif': return '✨';
       case 'poll': return '📊';
       case 'contact': return '👤';
       default: return '📄';
