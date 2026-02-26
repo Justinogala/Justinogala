@@ -49,14 +49,9 @@ const SharedRecordingPage = () => {
     
     setLoadingVideo(true);
     try {
-      const response = await fetch(`${API_BASE}/api/recordings/shared/${shareToken}/stream`);
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        setVideoUrl(URL.createObjectURL(blob));
-      } else {
-        setError('Failed to load video content.');
-      }
+      // Use streaming endpoint
+      const streamUrl = `${API_BASE}/api/recordings/shared/${shareToken}/stream`;
+      setVideoUrl(streamUrl);
     } catch (err) {
       console.error('Error loading video:', err);
       setError('Failed to load video.');
