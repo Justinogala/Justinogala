@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   UserPlus, Download, FileJson, FileSpreadsheet, Loader2, Search, 
   Filter, Users, Shield, Mail, MoreHorizontal, Edit2, Trash2, 
-  Eye, UserX, UserCheck, RefreshCw, Crown, Sparkles
+  Eye, UserX, UserCheck, RefreshCw, Crown, Sparkles, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import AddUserModal from '@/components/admin/modals/AddUserModal';
 import EditUserModal from '@/components/EditUserModal';
+import UserMessagesModal from '@/components/admin/modals/UserMessagesModal';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { UserExportService } from '@/services/UserExportService';
 
