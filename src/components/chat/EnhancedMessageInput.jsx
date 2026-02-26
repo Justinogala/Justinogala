@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Smile, MoreHorizontal, Sparkles, AtSign, Hash } from 'lucide-react';
+import { Send, Smile, MoreHorizontal, MapPin, Users, BarChart3, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -20,7 +20,6 @@ import {
 
 // Import all chat feature components
 import EmojiPicker from './EmojiPicker';
-import GifPicker from './GifPicker';
 import FileUploadHandler from './FileUploadHandler';
 import ImageUploadHandler from './ImageUploadHandler';
 import VoiceMessageRecorder from './VoiceMessageRecorder';
