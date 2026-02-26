@@ -84,5 +84,87 @@ export const teamService = {
     const memberships = memberService.getUserMemberships(userId);
     const teams = getTeams();
     return teams.filter(t => memberships.some(m => m.team_id === t.id));
+  },
+
+  /**
+   * Get all registered users (team members) except the current user
+   * @param {string} currentUserId - The current user's ID to exclude
+   * @returns {Array} List of users
+   */
+  getAllUsers: (currentUserId) => {
+    try {
+      const usersJson = localStorage.getItem('munal_users');
+      const users = usersJson ? JSON.parse(usersJson) : [];
+      
+      return users
+        .filter(user => user.id !== currentUserId && user.status !== 'Suspended')
+        .map(user => ({
+          id: user.id,
+          name: user.name || user.full_name || user.email?.split('@')[0] || 'Unknown',
+          email: user.email,
+          avatar: user.avatar
+        }));
+    } catch (error) {
+      console.error('Error getting users:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get user info by ID
+   * @param {string} userId - The user ID to look up
+   * @returns {Object|null} User info or null if not found
+   */
+  getUserById: (userId) => {
+    try {
+      const usersJson = localStorage.getItem('munal_users');
+      const users = usersJson ? JSON.parse(usersJson) : [];
+      const user = users.find(u => u.id === userId);
+      
+      if (user) {
+        return {
+          id: user.id,
+          name: user.name || user.full_name || user.email?.split('@')[0] || 'Unknown',
+          email: user.email,
+          avatar: user.avatar
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting user by ID:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get multiple users by their IDs
+   * @param {Array} userIds - Array of user IDs
+   * @returns {Array} Array of user info objects
+   */
+  getUsersByIds: (userIds) => {
+    if (!userIds || !Array.isArray(userIds)) return [];
+    
+    try {
+      const usersJson = localStorage.getItem('munal_users');
+      const users = usersJson ? JSON.parse(usersJson) : [];
+      
+      return userIds
+        .map(id => {
+          const user = users.find(u => u.id === id);
+          if (user) {
+            return {
+              id: user.id,
+              name: user.name || user.full_name || user.email?.split('@')[0] || 'Unknown',
+              email: user.email,
+              avatar: user.avatar
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    } catch (error) {
+      console.error('Error getting users by IDs:', error);
+      return [];
+    }
   }
 };
