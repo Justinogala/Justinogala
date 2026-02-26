@@ -447,15 +447,15 @@ const QuickRecordPage = () => {
   };
 
   // Share functions
-  const openShareDialog = (recording) => {
+  const openShareDialog = async (recording) => {
     setShareRecording(recording);
     setShareLink(recording.share_token ? `${window.location.origin}/shared/recording/${recording.share_token}` : '');
     setSelectedMembers(recording.shared_with || []);
     setShareTab('link');
     setMemberSearch('');
     
-    // Load team members
-    const members = teamService.getAllUsers(userId);
+    // Load team members from API
+    const members = await teamService.fetchAllUsers(userId);
     setTeamMembers(members);
     
     setShareDialogOpen(true);
