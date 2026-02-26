@@ -88,13 +88,15 @@ export const teamService = {
 
   /**
    * Get all registered users (team members) except the current user
+   * Uses a cached version that's fetched from API
    * @param {string} currentUserId - The current user's ID to exclude
    * @returns {Array} List of users
    */
   getAllUsers: (currentUserId) => {
+    // First try cached users (synchronous for immediate UI)
     try {
-      const usersJson = localStorage.getItem('munal_users');
-      const users = usersJson ? JSON.parse(usersJson) : [];
+      const cachedUsers = localStorage.getItem('munal_cached_users');
+      const users = cachedUsers ? JSON.parse(cachedUsers) : [];
       
       return users
         .filter(user => user.id !== currentUserId && user.status !== 'Suspended')
@@ -111,14 +113,47 @@ export const teamService = {
   },
 
   /**
+   * Fetch all users from API and cache them
+   * @param {string} currentUserId - The current user's ID to exclude
+   * @returns {Promise<Array>} List of users
+   */
+  fetchAllUsers: async (currentUserId) => {
+    try {
+      const apiUrl = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || window.location.origin;
+      const response = await fetch(`${apiUrl}/api/users`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const users = data.users || [];
+        
+        // Cache users
+        localStorage.setItem('munal_cached_users', JSON.stringify(users));
+        
+        return users
+          .filter(user => user.id !== currentUserId && user.status !== 'Suspended')
+          .map(user => ({
+            id: user.id,
+            name: user.name || user.full_name || user.email?.split('@')[0] || 'Unknown',
+            email: user.email,
+            avatar: user.avatar
+          }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching users from API:', error);
+      return teamService.getAllUsers(currentUserId);
+    }
+  },
+
+  /**
    * Get user info by ID
    * @param {string} userId - The user ID to look up
    * @returns {Object|null} User info or null if not found
    */
   getUserById: (userId) => {
     try {
-      const usersJson = localStorage.getItem('munal_users');
-      const users = usersJson ? JSON.parse(usersJson) : [];
+      const cachedUsers = localStorage.getItem('munal_cached_users');
+      const users = cachedUsers ? JSON.parse(cachedUsers) : [];
       const user = users.find(u => u.id === userId);
       
       if (user) {
@@ -145,8 +180,8 @@ export const teamService = {
     if (!userIds || !Array.isArray(userIds)) return [];
     
     try {
-      const usersJson = localStorage.getItem('munal_users');
-      const users = usersJson ? JSON.parse(usersJson) : [];
+      const cachedUsers = localStorage.getItem('munal_cached_users');
+      const users = cachedUsers ? JSON.parse(cachedUsers) : [];
       
       return userIds
         .map(id => {
