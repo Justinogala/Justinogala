@@ -258,7 +258,25 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - Glass-morphism styling throughout
 - [x] **Consistent Design Language** - Matches admin panel styling
 
+### Chat Dashboard Enhancements (Feb 26, 2026)
+- [x] **GIF Functionality Removed** - Removed Sparkles/GIF button from message input
+- [x] **3-Dot Menu Actions** - All dropdown items functional (Location, Contact, Poll, Schedule Message)
+- [x] **Location Sharing Dialog** - Uses OpenStreetMap embed for map preview
+- [x] **Poll Creator Dialog** - Full-featured with question, options, multiple answers, anonymous voting, expiry
+- [x] **Contact Share Dialog** - Share contact info with teammates
+- [x] **Schedule Message Dialog** - Schedule messages for later delivery
+- [x] **Attachment Display** - Messages show images, files, locations, polls, contacts properly
+- [x] **Downloadable Attachments** - Both sender and receiver can view/download images and files
+
+### Admin User Messages Feature (Feb 26, 2026)
+- [x] **View Messages API** - `GET /api/admin/chat/messages/{user_id}` returns all messages for a user
+- [x] **UserMessagesModal** - Beautiful modal showing user's chat conversations
+- [x] **Message History Display** - Shows sent/received messages with partner info
+- [x] **Admin Action Menu** - Added "View Messages" option to user actions dropdown
+- [x] **Always Visible Actions** - Made 3-dot menu always visible instead of hover-only
+
 ## Next Tasks
 1. Complete admin-side Coupons and Tax Rates management logic
 2. Cloud storage migration (GridFS → AWS S3 for production)
 3. Refactor server.py into modular route files
+4. GIPHY Integration (removed per user request, can be re-added later)
