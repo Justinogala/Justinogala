@@ -177,24 +177,24 @@ const AdminAuditLogsPage = () => {
                 />
               </div>
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter}>
+            <Select value={actionFilter} onValueChange={(v) => setActionFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[180px] bg-slate-800 border-gray-700">
                 <SelectValue placeholder="All Actions" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Actions</SelectItem>
+                <SelectItem value="all">All Actions</SelectItem>
                 <SelectItem value="settings_update">Settings Update</SelectItem>
                 <SelectItem value="settings_delete">Settings Delete</SelectItem>
                 <SelectItem value="settings_reset">Settings Reset</SelectItem>
                 <SelectItem value="smtp_test">SMTP Test</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[180px] bg-slate-800 border-gray-700">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="email">Email</SelectItem>
                 <SelectItem value="security">Security</SelectItem>
                 <SelectItem value="general">General</SelectItem>
