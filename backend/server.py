@@ -1027,29 +1027,6 @@ Munal Admin System
             "error": str(e)
         }
 
-async def log_audit_event(
-    action: str,
-    category: Optional[str] = None,
-    admin_id: Optional[str] = None,
-    admin_email: Optional[str] = "admin",
-    details: Optional[Dict] = None,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None
-):
-    """Helper function to log audit events to MongoDB"""
-    audit_doc = {
-        "action": action,
-        "category": category,
-        "admin_id": admin_id,
-        "admin_email": admin_email,
-        "details": details or {},
-        "ip_address": ip_address,
-        "user_agent": user_agent,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    await db.audit_logs.insert_one(audit_doc)
-    return audit_doc
-
 @api_router.get("/admin/audit-logs")
 async def get_audit_logs(
     action: Optional[str] = None,
