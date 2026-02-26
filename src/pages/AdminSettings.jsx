@@ -78,10 +78,15 @@ const AdminSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Simulate network delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Save all settings to MongoDB
+      const results = await adminSettingsPersistenceService.saveAllSettings(settings);
       
-      adminSettingsPersistenceService.saveAllSettings(settings);
+      // Check for errors
+      const hasErrors = Object.values(results).some(r => !r.success);
+      if (hasErrors) {
+        throw new Error('Some settings failed to save');
+      }
+      
       adminSettingsPersistenceService.applySettings(settings);
       
       setOriginalSettings(JSON.parse(JSON.stringify(settings)));
@@ -89,8 +94,8 @@ const AdminSettings = () => {
       setIsDirty(false);
       
       toast({
-        title: "Settings Saved Successfully",
-        description: "All configuration changes have been applied.",
+        title: "Settings Saved to Database",
+        description: "All configuration changes have been permanently saved.",
         className: "bg-green-500 text-white border-none"
       });
     } catch (error) {
