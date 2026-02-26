@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import AuthSidebar from '@/components/auth/AuthSidebar';
 import AuthFormContainer from '@/components/auth/AuthFormContainer';
+import ChangePasswordModal from '@/components/ChangePasswordModal';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -21,6 +22,10 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  
+  // Change password modal state
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [tempCredentials, setTempCredentials] = useState({ email: '', password: '' });
 
   const { register, handleSubmit, formState: { errors } } = useForm();
   
@@ -34,6 +39,14 @@ const LoginPage = () => {
       const result = await login(data.email, data.password);
       
       if (result.success) {
+        // Check if user must change password
+        if (result.user?.must_change_password) {
+          setTempCredentials({ email: data.email, password: data.password });
+          setShowChangePassword(true);
+          setIsLoading(false);
+          return;
+        }
+        
         toast({
           title: "Welcome back!",
           description: "You have successfully logged in to Munal AI.",
@@ -49,6 +62,25 @@ const LoginPage = () => {
     }
   };
 
+  const handlePasswordChanged = (data) => {
+    setShowChangePassword(false);
+    // Update auth context with new user data and token
+    localStorage.setItem('munal_auth', JSON.stringify(data.user));
+    localStorage.setItem('munal_sessions', JSON.stringify({ 
+      userId: data.user.id, 
+      token: data.token,
+      createdAt: new Date().toISOString()
+    }));
+    
+    toast({
+      title: "Password Updated",
+      description: "Your password has been changed. Welcome to Munal AI!",
+    });
+    
+    // Reload to update auth state
+    window.location.href = from;
+  };
+
   const handleGoogleLogin = () => {
     toast({
       title: "Coming Soon",
@@ -62,6 +94,15 @@ const LoginPage = () => {
         <title>Login - Munal AI</title>
         <meta name="description" content="Log in to your Munal AI account for meeting intelligence." />
       </Helmet>
+      
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        email={tempCredentials.email}
+        tempPassword={tempCredentials.password}
+        onPasswordChanged={handlePasswordChanged}
+      />
       
       {/* Left Sidebar - Purple Gradient */}
       <AuthSidebar 
@@ -148,7 +189,7 @@ const LoginPage = () => {
               </Label>
             </div>
             <Link 
-              to="/password-reset" 
+              to="/forgot-password" 
               className="text-sm font-semibold text-[#7C3AED] hover:text-[#6D28D9] hover:underline"
             >
               Forgot password?
