@@ -125,6 +125,114 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    temp_password: str
+    new_password: str
+
+
+# ============== JWT Helper Functions ==============
+
+def generate_temp_password(length=12):
+    """Generate a random temporary password"""
+    chars = string.ascii_letters + string.digits + "!@#$%"
+    return ''.join(secrets.choice(chars) for _ in range(length))
+
+def create_jwt_token(user_id: str, email: str, role: str = "User") -> str:
+    """Create a JWT token for a user"""
+    expiration = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "role": role,
+        "exp": expiration,
+        "iat": datetime.now(timezone.utc)
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def verify_jwt_token(token: str) -> dict:
+    """Verify and decode a JWT token"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Dependency to get the current authenticated user"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    payload = verify_jwt_token(credentials.credentials)
+    user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "password": 0})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return user
+
+async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Dependency to optionally get the current user (doesn't fail if not authenticated)"""
+    if not credentials:
+        return None
+    
+    try:
+        payload = verify_jwt_token(credentials.credentials)
+        user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "password": 0})
+        return user
+    except:
+        return None
+
+async def send_password_reset_email(email: str, temp_password: str, user_name: str):
+    """Send password reset email with temporary password"""
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0;">
+            <h1 style="color: #7c3aed; margin: 0;">Munal AI</h1>
+            <p style="color: #6b7280; font-size: 14px;">Your AI Meeting Companion</p>
+        </div>
+        
+        <div style="background-color: #f9fafb; border-radius: 8px; padding: 30px; margin: 20px 0;">
+            <h2 style="color: #1f2937; margin-top: 0;">Password Reset Request</h2>
+            <p style="color: #4b5563;">Hi {user_name},</p>
+            <p style="color: #4b5563;">We received a request to reset your password. Here is your temporary password:</p>
+            
+            <div style="background-color: #fff; border: 2px dashed #7c3aed; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+                <p style="font-size: 24px; font-weight: bold; color: #7c3aed; letter-spacing: 2px; margin: 0;">{temp_password}</p>
+            </div>
+            
+            <p style="color: #4b5563;">Please log in with this temporary password. You will be required to change it on your first login.</p>
+            
+            <p style="color: #ef4444; font-size: 14px;"><strong>Important:</strong> This temporary password will expire in 24 hours.</p>
+        </div>
+        
+        <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px;">If you didn't request this password reset, please ignore this email or contact support.</p>
+            <p style="color: #9ca3af; font-size: 12px;">&copy; 2026 Munal AI. All rights reserved.</p>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": "Password Reset - Munal AI",
+        "html": html_content
+    }
+    
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Password reset email sent to {email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send password reset email: {e}")
+        raise
+
 
 class Recording(BaseModel):
     model_config = ConfigDict(extra="ignore")
