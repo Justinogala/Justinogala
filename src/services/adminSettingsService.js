@@ -298,5 +298,42 @@ export const getAuditLogsSummary = async () => {
   }
 };
 
+/**
+ * Export audit logs to CSV or JSON
+ */
+export const exportAuditLogs = async (format = 'json', options = {}) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('format', format);
+    if (options.action) params.append('action', options.action);
+    if (options.category) params.append('category', options.category);
+    if (options.startDate) params.append('start_date', options.startDate);
+    if (options.endDate) params.append('end_date', options.endDate);
+    if (options.limit) params.append('limit', options.limit.toString());
+    
+    const response = await fetch(`${API_URL}/api/admin/audit-logs/export?${params}`);
+    if (!response.ok) throw new Error('Failed to export audit logs');
+    
+    const blob = await response.blob();
+    const filename = response.headers.get('Content-Disposition')?.match(/filename=(.+)/)?.[1] 
+      || `audit_logs.${format}`;
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error exporting audit logs:', error);
+    throw error;
+  }
+};
+
 // Export defaults for reference
 export { DEFAULT_SETTINGS };
