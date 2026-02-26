@@ -262,6 +262,7 @@ function App() {
                               <Route path="/password-reset" element={<PasswordResetPage />} />
                               <Route path="/pricing" element={<PricingPage />} />
                               <Route path="/shared/:shareToken" element={<SharedMeetingPage />} />
+                              <Route path="/shared/recording/:shareToken" element={<SharedRecordingPage />} />
                               <Route path="/checkout/:planId" element={<CheckoutPage />} />
 
                               <Route path="/update-password" element={
