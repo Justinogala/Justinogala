@@ -85,6 +85,30 @@ class TypingIndicator(BaseModel):
     is_typing: bool
 
 
+# ============== User Models ==============
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    name: str
+    role: str = "User"
+    status: str = "Active"
+    plan: str = "Free"
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+    status: Optional[str] = None
+    plan: Optional[str] = None
+    avatar: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
 class Recording(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
