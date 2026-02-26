@@ -301,6 +301,26 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Caching** - 30-60 second cache to reduce API calls while keeping data fresh
 - [x] **Toast Notifications** - Clear feedback when settings are saved to database
 
+### SMTP Test & Audit Logging (Feb 26, 2026)
+- [x] **Real SMTP Test Email** - Sends actual test email via configured SMTP settings
+  - Beautiful HTML + plain text email template
+  - Shows SMTP configuration details in email body
+  - Error handling for auth failures, connection issues
+- [x] **Audit Logging System** - Tracks all admin actions in MongoDB
+  - `audit_logs` collection stores all events
+  - Logs settings updates, deletes, resets
+  - Logs SMTP test attempts (success/failure)
+  - Captures previous vs new values for settings changes
+- [x] **Audit Logs API**:
+  - `GET /api/admin/audit-logs` - Fetch logs with filtering
+  - `GET /api/admin/audit-logs/summary` - Get action counts
+- [x] **Audit Logs Admin Page** (`/admin/audit-logs`)
+  - Summary cards showing action counts
+  - Searchable, filterable log list
+  - Expandable details for each entry
+  - Pagination support
+- [x] **Sidebar Link** - Added Audit Logs to admin sidebar under Configuration
+
 ## Next Tasks
 1. Complete admin-side Coupons and Tax Rates management logic
 2. Cloud storage migration (GridFS → AWS S3 for production)
