@@ -404,6 +404,7 @@ function App() {
                                 <Route path="transcription-settings" element={<AdminTranscriptionSettingsPage />} />
                                 <Route path="api-logs" element={<AdminAPILogs />} />
                                 <Route path="integration-logs" element={<AdminIntegrationLogs />} />
+                                <Route path="audit-logs" element={<AdminAuditLogsPage />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>
