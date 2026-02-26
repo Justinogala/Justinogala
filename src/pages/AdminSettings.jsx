@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Save, RefreshCw, Undo, Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,17 +23,15 @@ const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState("general");
 
   // Load settings on mount
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = () => {
+  const loadSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const data = adminSettingsPersistenceService.getAllSettings();
+      const data = await adminSettingsPersistenceService.getAllSettings();
       setSettings(data);
       setOriginalSettings(JSON.parse(JSON.stringify(data))); // Deep copy for comparison
-      setLastSaved(adminSettingsPersistenceService.getLastSaved());
+      
+      const lastSavedTs = await adminSettingsPersistenceService.getLastSaved();
+      setLastSaved(lastSavedTs);
       
       // Apply immediate effects
       adminSettingsPersistenceService.applySettings(data);
@@ -46,10 +44,18 @@ const AdminSettings = () => {
         description: "Could not retrieve saved configuration.",
         variant: "destructive"
       });
+      // Use defaults on error
+      const defaults = adminSettingsPersistenceService.getDefaults();
+      setSettings(defaults);
+      setOriginalSettings(JSON.parse(JSON.stringify(defaults)));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleFieldChange = (section, field, value) => {
     setSettings(prev => {
