@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
-  CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight
+  CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
