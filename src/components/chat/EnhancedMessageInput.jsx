@@ -207,16 +207,22 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
                 </TooltipTrigger>
                 <TooltipContent side="top"><p>More options</p></TooltipContent>
               </Tooltip>
-              <DropdownMenuContent side="top" align="start" className="w-56">
-                <DropdownMenuLabel className="text-xs text-gray-500">Share</DropdownMenuLabel>
-                <LocationPicker onSendLocation={(loc) => handleAttachment({ type: 'location', ...loc, name: 'Current Location' })} />
-                <ContactSharePicker onShareContact={handleContactShare} />
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-gray-500">Create</DropdownMenuLabel>
-                <PollCreator onCreatePoll={handlePollCreate} />
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-gray-500">Schedule</DropdownMenuLabel>
-                <ScheduleMessagePicker message={message} onSchedule={handleScheduleMessage} />
+              <DropdownMenuContent side="top" align="start" className="w-56 p-2">
+                <DropdownMenuLabel className="text-xs text-gray-500 px-2">Share</DropdownMenuLabel>
+                <div className="space-y-1">
+                  <LocationPicker onSendLocation={(loc) => handleAttachment({ type: 'location', ...loc, name: 'Current Location' })} />
+                  <ContactSharePicker onShareContact={handleContactShare} />
+                </div>
+                <DropdownMenuSeparator className="my-2" />
+                <DropdownMenuLabel className="text-xs text-gray-500 px-2">Create</DropdownMenuLabel>
+                <div className="space-y-1">
+                  <PollCreator onCreatePoll={handlePollCreate} />
+                </div>
+                <DropdownMenuSeparator className="my-2" />
+                <DropdownMenuLabel className="text-xs text-gray-500 px-2">Schedule</DropdownMenuLabel>
+                <div className="space-y-1">
+                  <ScheduleMessagePicker message={message} onSchedule={handleScheduleMessage} />
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
