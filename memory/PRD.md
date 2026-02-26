@@ -204,6 +204,17 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Stream Shared Recording** - `GET /api/recordings/shared/{share_token}/stream` endpoint for video playback
 - [x] **Share Badges** - Shows "Public" or "X members" badge on shared recordings
 
+### MongoDB User Authentication (Feb 26, 2026)
+- [x] **User Registration API** - `POST /api/auth/register` stores users in MongoDB
+- [x] **User Login API** - `POST /api/auth/login` authenticates against MongoDB
+- [x] **Get All Users API** - `GET /api/users` returns all users from MongoDB
+- [x] **Update User API** - `PUT /api/users/{user_id}` updates user in MongoDB
+- [x] **Delete User API** - `DELETE /api/users/{user_id}` removes user from MongoDB
+- [x] **AuthContext Integration** - Frontend signup/login calls backend API instead of localStorage
+- [x] **Admin User Service** - `adminUserDataService.js` fetches users from MongoDB API
+- [x] **Team Service** - `teamService.js` fetches and caches users from MongoDB
+- [x] **UserTableRow Fix** - Handles missing/null name fields gracefully with fallbacks
+
 ## Next Tasks
 1. Complete admin-side Coupons and Tax Rates management logic
 2. Cloud storage migration (GridFS → AWS S3 for production)
