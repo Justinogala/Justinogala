@@ -267,35 +267,6 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
         {/* Right Side Actions */}
         <TooltipProvider delayDuration={300}>
           <div className="flex items-center gap-0.5 pb-2">
-            {/* GIF Picker */}
-            <div className="relative hidden sm:block" ref={gifTriggerRef}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => {
-                      setShowGifPicker(!showGifPicker);
-                      setShowEmojiPicker(false);
-                    }}
-                    className={cn(
-                      "rounded-full h-9 w-9 transition-colors",
-                      showGifPicker ? "text-purple-500 bg-purple-50 dark:bg-purple-900/20" : "text-gray-500 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                    )}
-                  >
-                    <Sparkles className="w-5 h-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top"><p>GIFs</p></TooltipContent>
-              </Tooltip>
-              <GifPicker 
-                isOpen={showGifPicker} 
-                onClose={() => setShowGifPicker(false)}
-                onSelect={handleGifSelect}
-              />
-            </div>
-
             {/* Emoji Picker */}
             <div className="relative hidden sm:block" ref={emojiTriggerRef}>
               <Tooltip>
@@ -306,7 +277,6 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
                     size="icon"
                     onClick={() => {
                       setShowEmojiPicker(!showEmojiPicker);
-                      setShowGifPicker(false);
                     }}
                     className={cn(
                       "rounded-full h-9 w-9 transition-colors",
