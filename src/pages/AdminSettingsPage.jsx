@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getSettings, updateSettings, resetToDefaults, testEmailConnection, testAPIConnection, DEFAULT_SETTINGS } from '@/services/adminSettingsService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,22 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { Save, Lock, Mail, Globe, Shield, Bell, Settings, RefreshCw, Loader2, CheckCircle, TestTube } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+// SaveButton component moved outside to avoid nested component issue
+const SaveButton = ({ section, saving, onSave }) => (
+  <Button 
+    onClick={() => onSave(section)} 
+    disabled={saving[section]}
+    className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+  >
+    {saving[section] ? (
+      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+    ) : (
+      <Save className="w-4 h-4 mr-2" />
+    )}
+    {saving[section] ? 'Saving...' : 'Save Settings'}
+  </Button>
+);
 
 const AdminSettingsPage = () => {
   const [settings, setSettings] = useState(null);
