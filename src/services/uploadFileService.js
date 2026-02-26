@@ -82,8 +82,36 @@ export const uploadFileService = {
   /**
    * Get recent files for a user
    */
-  getRecentFiles: async (userId, limit = 10) => {
-    // Return empty array for now - can be implemented with backend later
-    return [];
+  getRecentFiles: async (limit = 5) => {
+    try {
+      const result = await fileService.listFiles({});
+      if (result.success) {
+        // Return only the most recent files up to the limit
+        return { success: true, data: result.data.slice(0, limit) };
+      }
+      return { success: true, data: [] };
+    } catch (error) {
+      console.error('Error getting recent files:', error);
+      return { success: true, data: [] };
+    }
+  },
+
+  /**
+   * Get storage statistics for the current user
+   */
+  getStorageStats: async () => {
+    try {
+      const result = await fileService.listFiles({});
+      if (result.success) {
+        const totalUsed = result.data.reduce((sum, file) => sum + (file.size || 0), 0);
+        // Default quota of 5GB
+        const totalQuota = 5 * 1024 * 1024 * 1024;
+        return { success: true, used: totalUsed, total: totalQuota };
+      }
+      return { success: true, used: 0, total: 5 * 1024 * 1024 * 1024 };
+    } catch (error) {
+      console.error('Error getting storage stats:', error);
+      return { success: true, used: 0, total: 5 * 1024 * 1024 * 1024 };
+    }
   }
 };
