@@ -209,34 +209,14 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
               </Tooltip>
               <DropdownMenuContent side="top" align="start" className="w-56">
                 <DropdownMenuLabel className="text-xs text-gray-500">Share</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <div className="flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                    <LocationPicker onSendLocation={(loc) => handleAttachment({ type: 'location', ...loc, name: 'Current Location' })} />
-                    <span className="ml-2">Location</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <div className="flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                    <ContactSharePicker onShareContact={handleContactShare} />
-                    <span className="ml-2">Contact</span>
-                  </div>
-                </DropdownMenuItem>
+                <LocationPicker onSendLocation={(loc) => handleAttachment({ type: 'location', ...loc, name: 'Current Location' })} />
+                <ContactSharePicker onShareContact={handleContactShare} />
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-gray-500">Create</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <div className="flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                    <PollCreator onCreatePoll={handlePollCreate} />
-                    <span className="ml-2">Poll</span>
-                  </div>
-                </DropdownMenuItem>
+                <PollCreator onCreatePoll={handlePollCreate} />
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-gray-500">Schedule</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <div className="flex items-center cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                    <ScheduleMessagePicker message={message} onSchedule={handleScheduleMessage} />
-                    <span className="ml-2">Schedule Message</span>
-                  </div>
-                </DropdownMenuItem>
+                <ScheduleMessagePicker message={message} onSchedule={handleScheduleMessage} />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
