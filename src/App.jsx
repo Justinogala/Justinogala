@@ -67,6 +67,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const PricingPage = lazy(() => import('@/pages/PricingPage'));
 const MeetingDetailPage = lazy(() => import('@/pages/MeetingDetailPage'));
 const SharedMeetingPage = lazy(() => import('@/pages/SharedMeetingPage'));
+const SharedRecordingPage = lazy(() => import('@/pages/SharedRecordingPage'));
 const WorkspaceDetailPage = lazy(() => import('@/pages/WorkspaceDetailPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
 
