@@ -212,7 +212,7 @@ async def send_password_reset_email(email: str, temp_password: str, user_name: s
         </div>
         
         <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e5e7eb;">
-            <p style="color: #9ca3af; font-size: 12px;">If you didn't request this password reset, please ignore this email or contact support.</p>
+              <p className="color: #9ca3af; font-size: 12px;">If you didn&apos;t request this password reset, please ignore this email or contact support.</p>
             <p style="color: #9ca3af; font-size: 12px;">&copy; 2026 Munal AI. All rights reserved.</p>
         </div>
     </div>
