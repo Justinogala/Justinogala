@@ -185,7 +185,7 @@ async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(
         payload = verify_jwt_token(credentials.credentials)
         user = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "password": 0})
         return user
-    except:
+    except Exception:
         return None
 
 async def send_password_reset_email(email: str, temp_password: str, user_name: str):
