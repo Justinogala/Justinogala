@@ -1,12 +1,13 @@
-from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect, HTTPException, UploadFile, File, Form, Query, Depends
 from fastapi.responses import StreamingResponse, Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Dict, Optional, Set
 import uuid
 import json
@@ -16,6 +17,10 @@ import base64
 from collections import defaultdict
 from bson import ObjectId
 import io
+import jwt
+import secrets
+import string
+import resend
 
 
 ROOT_DIR = Path(__file__).parent
@@ -29,6 +34,18 @@ db = client[os.environ['DB_NAME']]
 # GridFS buckets for file storage
 fs_recordings = AsyncIOMotorGridFSBucket(db, bucket_name="recordings")
 fs_chat_files = AsyncIOMotorGridFSBucket(db, bucket_name="chat_files")
+
+# JWT Configuration
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-secret-key-change-in-production')
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
+
+# Resend Configuration
+resend.api_key = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+
+# Security
+security = HTTPBearer(auto_error=False)
 
 # Create the main app without a prefix
 app = FastAPI()
