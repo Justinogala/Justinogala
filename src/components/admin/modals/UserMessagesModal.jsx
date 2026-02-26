@@ -154,7 +154,7 @@ const UserMessagesModal = ({ isOpen, onClose, user }) => {
                   Chat Messages
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {user?.name || user?.email}'s conversations
+                  {user?.name || user?.email}&apos;s conversations
                 </p>
               </div>
             </div>
