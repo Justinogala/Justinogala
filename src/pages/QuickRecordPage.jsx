@@ -67,6 +67,12 @@ const QuickRecordPage = () => {
   const [isSharing, setIsSharing] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
+  const [shareTab, setShareTab] = useState('link');
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [sharedWithMe, setSharedWithMe] = useState([]);
+  const [showSharedWithMe, setShowSharedWithMe] = useState(false);
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
