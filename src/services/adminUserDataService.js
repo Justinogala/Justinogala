@@ -1,103 +1,119 @@
 
 import { userDataSyncService } from './userDataSyncService';
-import { v4 as uuidv4 } from 'uuid';
 
-const USERS_KEY = 'munal_users';
-const ACTIVITY_KEY = 'munal_user_activity';
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
 
-// Helper to get users from storage
-const getLocalUsers = () => {
-  try {
-    const data = localStorage.getItem(USERS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    console.error("Error reading users", e);
-    return [];
-  }
-};
-
-// Helper to save users to storage
-const setLocalUsers = (users) => {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-};
+const getApiUrl = () => API_URL || window.location.origin;
 
 export const adminUserDataService = {
   getAllUsers: async () => {
-    // Simulate network delay slightly for realism
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return getLocalUsers();
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/users`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      const data = await response.json();
+      return data.users || [];
+    } catch (error) {
+      console.error('Error fetching users from API:', error);
+      // Fallback to localStorage for backward compatibility
+      try {
+        const localData = localStorage.getItem('munal_users');
+        return localData ? JSON.parse(localData) : [];
+      } catch {
+        return [];
+      }
+    }
   },
 
   getUserById: async (id) => {
-    const users = getLocalUsers();
-    return users.find(u => u.id === id);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/users/${id}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch user');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
   },
 
   createUser: async (userData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const users = getLocalUsers();
-    
-    // Validate email uniqueness
-    if (users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
-      throw new Error('Email already exists');
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to create user');
+      }
+      
+      const data = await response.json();
+      const newUser = data.user;
+      
+      userDataSyncService.notifyChange('create', newUser.id, newUser);
+      return newUser;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
     }
-
-    const newUser = {
-      id: uuidv4(),
-      joinedDate: new Date().toISOString(), // Standardize key as joinedDate
-      createdAt: new Date().toISOString(),  // Keep createdAt for compatibility
-      lastActive: new Date().toISOString(),
-      avatar: "", 
-      ...userData,
-      // Ensure essential fields exist
-      role: userData.role || 'User',
-      status: userData.status || 'Active',
-      plan: userData.plan || 'Free'
-    };
-
-    const updatedUsers = [newUser, ...users];
-    setLocalUsers(updatedUsers);
-    
-    userDataSyncService.notifyChange('create', newUser.id, newUser);
-    return newUser;
   },
 
   updateUser: async (id, updates) => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const users = getLocalUsers();
-    const index = users.findIndex(u => u.id === id);
-    
-    if (index === -1) {
-      throw new Error('User not found');
-    }
-
-    // Check email uniqueness if email is being updated
-    if (updates.email && updates.email !== users[index].email) {
-      if (users.some(u => u.id !== id && u.email.toLowerCase() === updates.email.toLowerCase())) {
-        throw new Error('Email is already in use by another user');
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update user');
       }
+      
+      const data = await response.json();
+      const updatedUser = data.user;
+      
+      userDataSyncService.notifyChange('update', id, updatedUser);
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
     }
-
-    const updatedUser = { ...users[index], ...updates };
-    users[index] = updatedUser;
-    setLocalUsers(users);
-
-    userDataSyncService.notifyChange('update', id, updatedUser);
-    return updatedUser;
   },
 
   deleteUser: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    const users = getLocalUsers();
-    const filteredUsers = users.filter(u => u.id !== id);
-    
-    if (users.length === filteredUsers.length) {
-      throw new Error('User not found');
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/users/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to delete user');
+      }
+      
+      userDataSyncService.notifyChange('delete', id, null);
+      return true;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
     }
-
-    setLocalUsers(filteredUsers);
-    userDataSyncService.notifyChange('delete', id, null);
-    return true;
   },
 
   suspendUser: async (id) => {
@@ -109,7 +125,7 @@ export const adminUserDataService = {
   },
 
   searchUsers: async (query) => {
-    const users = getLocalUsers();
+    const users = await adminUserDataService.getAllUsers();
     if (!query) return users;
     
     const lowerQuery = query.toLowerCase();
