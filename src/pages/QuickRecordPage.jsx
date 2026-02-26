@@ -778,82 +778,152 @@ const QuickRecordPage = () => {
         <div className="lg:col-span-1">
           <motion.div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 overflow-hidden" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
             <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <HardDrive className="w-4 h-4" /> Saved Recordings
-                </h3>
+              {/* Toggle between My Recordings and Shared With Me */}
+              <div className="flex items-center gap-2 mb-3">
+                <Button 
+                  variant={!showSharedWithMe ? "default" : "outline"} 
+                  size="sm" 
+                  className={cn("flex-1 text-xs", !showSharedWithMe && "bg-rose-500 hover:bg-rose-600")}
+                  onClick={() => setShowSharedWithMe(false)}
+                >
+                  <HardDrive className="w-3 h-3 mr-1.5" /> My Recordings
+                </Button>
+                <Button 
+                  variant={showSharedWithMe ? "default" : "outline"} 
+                  size="sm" 
+                  className={cn("flex-1 text-xs", showSharedWithMe && "bg-rose-500 hover:bg-rose-600")}
+                  onClick={() => setShowSharedWithMe(true)}
+                >
+                  <Users className="w-3 h-3 mr-1.5" /> Shared ({sharedWithMe.length})
+                </Button>
               </div>
               
-              {/* Category Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-between text-xs">
-                    <span className="flex items-center gap-1.5"><FolderOpen className="w-3 h-3" /> {filterCategory}</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-48">
-                  <DropdownMenuItem onClick={() => setFilterCategory('All')}>All Categories</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  {categories.map(cat => (
-                    <DropdownMenuItem key={cat.name} onClick={() => setFilterCategory(cat.name)}>
-                      {cat.name} ({cat.count})
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <p className="text-xs text-gray-500 mt-2">Auto-deleted after 7 days</p>
+              {!showSharedWithMe && (
+                <>
+                  {/* Category Filter */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full justify-between text-xs">
+                        <span className="flex items-center gap-1.5"><FolderOpen className="w-3 h-3" /> {filterCategory}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-48">
+                      <DropdownMenuItem onClick={() => setFilterCategory('All')}>All Categories</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {categories.map(cat => (
+                        <DropdownMenuItem key={cat.name} onClick={() => setFilterCategory(cat.name)}>
+                          {cat.name} ({cat.count})
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <p className="text-xs text-gray-500 mt-2">Auto-deleted after 7 days</p>
+                </>
+              )}
             </div>
 
             <div className="max-h-[450px] overflow-y-auto">
               {isLoadingRecordings ? (
                 <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 text-gray-400 animate-spin" /></div>
-              ) : filteredRecordings.length === 0 ? (
-                <div className="text-center py-12 px-4">
-                  <Video className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500">No recordings yet</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {filteredRecordings.map((recording) => (
-                    <div key={recording.id} className={cn("p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors", selectedRecording?.id === recording.id && "bg-rose-50 dark:bg-rose-950/20")}>
-                      <div className="flex items-start gap-3">
-                        <button onClick={() => playSavedRecording(recording)} className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", recording.recording_type === 'screen' ? "bg-blue-100 dark:bg-blue-900/30" : "bg-purple-100 dark:bg-purple-900/30")}>
-                          {recording.recording_type === 'screen' ? <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Camera className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
-                        </button>
-                        
-                        <div className="flex-1 min-w-0" onClick={() => playSavedRecording(recording)}>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate cursor-pointer">{recording.title}</p>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(recording.duration)}</span>
-                            <span>{formatFileSize(recording.file_size)}</span>
+              ) : showSharedWithMe ? (
+                /* Shared With Me Section */
+                sharedWithMe.length === 0 ? (
+                  <div className="text-center py-12 px-4">
+                    <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">No recordings shared with you</p>
+                    <p className="text-xs text-gray-400 mt-1">When someone shares a recording with you, it will appear here</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {sharedWithMe.map((recording) => (
+                      <div key={recording.id} className={cn("p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors", selectedRecording?.id === recording.id && "bg-rose-50 dark:bg-rose-950/20")}>
+                        <div className="flex items-start gap-3">
+                          <button onClick={() => playSavedRecording(recording)} className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", recording.recording_type === 'screen' ? "bg-blue-100 dark:bg-blue-900/30" : "bg-purple-100 dark:bg-purple-900/30")}>
+                            {recording.recording_type === 'screen' ? <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Camera className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+                          </button>
+                          
+                          <div className="flex-1 min-w-0" onClick={() => playSavedRecording(recording)}>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate cursor-pointer">{recording.title}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(recording.duration)}</span>
+                              <span>{formatFileSize(recording.file_size)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                                <Mail className="w-3 h-3" /> 
+                                {recording.ownerInfo?.name || 'Unknown'}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                            <span className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">{recording.category || 'Uncategorized'}</span>
-                            {recording.is_shared && <span className="text-xs bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-green-600 dark:text-green-400 flex items-center gap-1"><Globe className="w-3 h-3" />Shared</span>}
-                            <span className={cn("text-xs px-1.5 py-0.5 rounded", getDaysRemaining(recording.expires_at) <= 2 ? "bg-red-100 text-red-600 dark:bg-red-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800")}>{getDaysRemaining(recording.expires_at)}d left</span>
-                          </div>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><ChevronDown className="w-4 h-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><ChevronDown className="w-4 h-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openEditDialog(recording)}><Edit2 className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openShareDialog(recording)}><Share2 className="w-4 h-4 mr-2" />Share</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => deleteSavedRecording(recording)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                /* My Recordings Section */
+                filteredRecordings.length === 0 ? (
+                  <div className="text-center py-12 px-4">
+                    <Video className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">No recordings yet</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {filteredRecordings.map((recording) => (
+                      <div key={recording.id} className={cn("p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors", selectedRecording?.id === recording.id && "bg-rose-50 dark:bg-rose-950/20")}>
+                        <div className="flex items-start gap-3">
+                          <button onClick={() => playSavedRecording(recording)} className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", recording.recording_type === 'screen' ? "bg-blue-100 dark:bg-blue-900/30" : "bg-purple-100 dark:bg-purple-900/30")}>
+                            {recording.recording_type === 'screen' ? <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Camera className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
+                          </button>
+                          
+                          <div className="flex-1 min-w-0" onClick={() => playSavedRecording(recording)}>
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate cursor-pointer">{recording.title}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(recording.duration)}</span>
+                              <span>{formatFileSize(recording.file_size)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              <span className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">{recording.category || 'Uncategorized'}</span>
+                              {recording.is_shared && (
+                                <span className="text-xs bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-green-600 dark:text-green-400 flex items-center gap-1">
+                                  {recording.shared_with?.length > 0 ? <Users className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                                  {recording.shared_with?.length > 0 ? `${recording.shared_with.length} member${recording.shared_with.length > 1 ? 's' : ''}` : 'Public'}
+                                </span>
+                              )}
+                              <span className={cn("text-xs px-1.5 py-0.5 rounded", getDaysRemaining(recording.expires_at) <= 2 ? "bg-red-100 text-red-600 dark:bg-red-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800")}>{getDaysRemaining(recording.expires_at)}d left</span>
+                            </div>
+                          </div>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><ChevronDown className="w-4 h-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openEditDialog(recording)}><Edit2 className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openShareDialog(recording)}><Share2 className="w-4 h-4 mr-2" />Share</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => deleteSavedRecording(recording)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           </motion.div>
