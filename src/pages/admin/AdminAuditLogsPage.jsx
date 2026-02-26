@@ -319,7 +319,7 @@ const AdminAuditLogsPage = () => {
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
+                          <div className="flex items-center gap-3 mt-1 text-sm text-gray-400 flex-wrap">
                             <span className="flex items-center gap-1">
                               <User className="w-3 h-3" />
                               {log.admin_email || 'System'}
@@ -328,7 +328,23 @@ const AdminAuditLogsPage = () => {
                               <Clock className="w-3 h-3" />
                               {formatTimestamp(log.timestamp)}
                             </span>
+                            {log.ip_address && (
+                              <span className="flex items-center gap-1">
+                                <Globe className="w-3 h-3" />
+                                {log.ip_address}
+                              </span>
+                            )}
                           </div>
+                          
+                          {/* User Agent Row */}
+                          {log.user_agent && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                              <Monitor className="w-3 h-3 shrink-0" />
+                              <span className="truncate max-w-md" title={log.user_agent}>
+                                {log.user_agent.length > 80 ? log.user_agent.substring(0, 80) + '...' : log.user_agent}
+                              </span>
+                            </div>
+                          )}
                           
                           {log.details && Object.keys(log.details).length > 0 && (
                             <details className="mt-2">
