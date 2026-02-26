@@ -1193,6 +1193,48 @@ async def get_shared_recording(share_token: str):
         logger.error(f"Error fetching shared recording: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/recordings/shared/{share_token}/stream")
+async def stream_shared_recording(share_token: str):
+    """Stream a publicly shared recording"""
+    try:
+        recording = await db.recordings.find_one(
+            {"share_token": share_token, "is_shared": True}
+        )
+        
+        if not recording:
+            raise HTTPException(status_code=404, detail="Shared recording not found")
+        
+        # Check if expired
+        if recording.get("expires_at") and recording["expires_at"] < datetime.now(timezone.utc):
+            await db.recordings.delete_one({"share_token": share_token})
+            raise HTTPException(status_code=404, detail="Recording has expired")
+        
+        if not recording.get("gridfs_id"):
+            raise HTTPException(status_code=404, detail="Recording data not found")
+        
+        # Stream from GridFS
+        grid_out = await fs_recordings.open_download_stream(ObjectId(recording["gridfs_id"]))
+        
+        async def file_iterator():
+            while True:
+                chunk = await grid_out.read(1024 * 1024)  # 1MB chunks
+                if not chunk:
+                    break
+                yield chunk
+        
+        return StreamingResponse(
+            file_iterator(),
+            media_type=recording.get("mime_type", "video/webm"),
+            headers={
+                "Content-Disposition": f"inline; filename=\"{recording.get('title', 'recording')}.webm\""
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error streaming shared recording: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ============== Transcript Analysis Endpoint ==============
 
