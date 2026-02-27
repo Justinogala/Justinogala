@@ -219,7 +219,9 @@ class TestCalendarMeetingsIntegration:
         update_response = requests.put(f"{BASE_URL}/api/calendar/events/{event_id}", json=update_data)
         assert update_response.status_code == 200
         
-        updated_event = update_response.json()
+        update_data_response = update_response.json()
+        assert update_data_response.get("success") == True
+        updated_event = update_data_response["event"]
         assert updated_event["title"] == "TEST_Updated_Meeting"
         assert updated_event["description"] == "Updated description"
         assert updated_event["video_call"] == True
