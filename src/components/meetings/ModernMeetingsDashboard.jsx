@@ -29,7 +29,6 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
   const { user } = useAuth();
   
   const [meetings, setMeetings] = useState([]);
-  const [calendarMeetings, setCalendarMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSchedulerOpen, setIsSchedulerOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState(null);
@@ -37,60 +36,59 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
   const [meetingToDelete, setMeetingToDelete] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load meetings on mount
-  useEffect(() => {
-    loadMeetings();
-    loadCalendarMeetings();
-  }, [user?.id]);
-
-  const loadMeetings = () => {
+  // Load meetings from MongoDB calendar events
+  const loadMeetings = useCallback(async () => {
+    if (!user?.id) return;
+    
     setLoading(true);
     try {
-      // The service will automatically filter out the blacklisted meeting ID (3389bec5)
-      const data = localMeetingsStorageService.getAllMeetings();
-      setMeetings(data);
+      const response = await fetch(`${API_URL}/api/calendar/events?user_id=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Transform calendar events to meeting card format
+        const transformedMeetings = (data.events || []).map(event => {
+          const startDate = parseISO(event.start_time);
+          return {
+            id: event.id,
+            title: event.title,
+            description: event.description || '',
+            date: format(startDate, 'yyyy-MM-dd'),
+            time: format(startDate, 'HH:mm'),
+            status: new Date(event.start_time) > new Date() ? 'upcoming' : 'completed',
+            meetingUrl: event.video_call_link || '',
+            platform: event.video_call ? 'internal' : 'internal',
+            type: event.video_call ? 'video' : 'meeting',
+            hasRecording: false,
+            participants: event.invitees?.map(inv => ({
+              name: inv.name || inv.email,
+              email: inv.email
+            })) || [],
+            createdAt: event.created_at,
+            isCalendarEvent: true,
+            color: event.color,
+            category: event.category,
+            location: event.location,
+            hasVideo: event.video_call
+          };
+        });
+        setMeetings(transformedMeetings);
+      }
     } catch (error) {
       console.error("Failed to load meetings:", error);
       toast({
         title: "Error",
-        description: "Failed to load meetings list.",
+        description: "Failed to load meetings from calendar.",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, toast]);
 
-  // Load calendar meetings from MongoDB
-  const loadCalendarMeetings = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/api/calendar/events?user_id=${user.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        // Filter to only show meetings with video calls
-        const videoMeetings = (data.events || [])
-          .filter(e => e.video_call || e.category === 'meeting')
-          .map(e => ({
-            id: e.id,
-            title: e.title,
-            description: e.description,
-            scheduledTime: e.start_time,
-            endTime: e.end_time,
-            status: new Date(e.start_time) > new Date() ? 'upcoming' : 'completed',
-            meetingUrl: e.video_call_link,
-            hasVideo: e.video_call,
-            attendees: e.invitees?.map(inv => inv.name || inv.email) || [],
-            isCalendarEvent: true,
-            color: e.color
-          }));
-        setCalendarMeetings(videoMeetings);
-      }
-    } catch (error) {
-      console.error("Failed to load calendar meetings:", error);
-    }
-  };
+  // Load meetings on mount
+  useEffect(() => {
+    loadMeetings();
+  }, [loadMeetings]);
 
   const handleOpenScheduler = () => {
     setEditingMeeting(null);
