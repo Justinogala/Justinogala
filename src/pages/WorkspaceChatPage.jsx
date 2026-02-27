@@ -186,6 +186,58 @@ const WorkspaceChatPage = () => {
     }
   }, [selectedUserId, sendTypingIndicator]);
 
+  // Call handlers
+  const handleStartAudioCall = useCallback(async () => {
+    if (!selectedUserId || !selectedUser) return;
+    
+    try {
+      await initiateCall(selectedUserId, 'audio');
+      toast({ title: "Calling...", description: `Calling ${selectedUser.name}` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Call failed", description: error.message });
+    }
+  }, [selectedUserId, selectedUser, initiateCall, toast]);
+
+  const handleStartVideoCall = useCallback(async () => {
+    if (!selectedUserId || !selectedUser) return;
+    
+    try {
+      await initiateCall(selectedUserId, 'video');
+      toast({ title: "Video calling...", description: `Calling ${selectedUser.name}` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Call failed", description: error.message });
+    }
+  }, [selectedUserId, selectedUser, initiateCall, toast]);
+
+  const handleAcceptCall = useCallback(async () => {
+    if (!incomingCall) return;
+    
+    try {
+      await acceptCall(incomingCall.caller_id, incomingCall.call_id, incomingCall.call_type);
+      setIncomingCall(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Could not accept call", description: error.message });
+      setIncomingCall(null);
+    }
+  }, [incomingCall, acceptCall, toast]);
+
+  const handleRejectCall = useCallback(() => {
+    if (!incomingCall) return;
+    
+    rejectCall(incomingCall.caller_id, incomingCall.call_id);
+    setIncomingCall(null);
+  }, [incomingCall, rejectCall]);
+
+  const handleEndCall = useCallback(() => {
+    endCall();
+  }, [endCall]);
+
+  // Find caller info for incoming call
+  const incomingCallUser = incomingCall ? users.find(u => u.id === incomingCall.caller_id) : null;
+  
+  // Find call partner for active call
+  const callPartnerUser = currentCall ? users.find(u => u.id === currentCall.targetUserId) : null;
+
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
