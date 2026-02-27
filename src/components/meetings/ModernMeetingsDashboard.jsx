@@ -198,12 +198,15 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
 
   // Derived state for dashboard widgets
   const upcomingMeetings = meetings
-    .filter(m => new Date(`${m.date}T${m.time}`) > new Date())
+    .filter(m => {
+      const meetDate = new Date(`${m.date}T${m.time}`);
+      return meetDate > new Date();
+    })
     .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
     .slice(0, 2);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500" data-testid="meetings-dashboard">
       
       {/* Header & Quick Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -215,13 +218,23 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
             Manage your schedule and join active sessions.
           </p>
         </div>
-        <div>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => navigate('/calendar')}
+            variant="outline"
+            className="border-violet-200 text-violet-600 hover:bg-violet-50"
+            data-testid="open-calendar-btn"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Open Calendar
+          </Button>
           <Button 
             onClick={handleOpenScheduler}
             className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25"
+            data-testid="schedule-meeting-btn"
           >
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule Meeting
+            <Plus className="w-4 h-4 mr-2" />
+            Quick Schedule
           </Button>
         </div>
       </div>
@@ -235,14 +248,17 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
           <div className="bg-white dark:bg-slate-950/50 rounded-xl">
              <div className="flex justify-between items-center mb-4">
                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Your Meetings</h2>
+               <Badge variant="secondary" className="text-xs">
+                 {meetings.length} total
+               </Badge>
              </div>
              <MeetingsList 
                meetings={meetings}
                loading={loading}
-               onView={(id) => onJoinClick && onJoinClick(id)}
+               onView={handleJoinMeeting}
                onEdit={handleEditMeeting}
                onDelete={handleDeleteClick}
-               onCreateNew={handleOpenScheduler}
+               onCreateNew={() => navigate('/calendar')}
              />
           </div>
         </div>
