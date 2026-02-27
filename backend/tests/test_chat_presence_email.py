@@ -267,6 +267,7 @@ class TestAddMemberEmailNotification:
                 f"{BASE_URL}/api/workspaces/{workspace_id}/members",
                 headers={"Authorization": f"Bearer {token}"},
                 json={
+                    "workspace_id": workspace_id,  # Required by the model
                     "email": target_user["email"],
                     "role": "member",
                     "added_by": admin_user.get("id")
