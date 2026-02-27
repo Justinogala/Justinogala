@@ -287,7 +287,7 @@ function App() {
                                 <Route path="/text-to-audio" element={<TextToAudioPage />} />
                                 <Route path="/meetings" element={<MeetingsPage />} />
                                 <Route path="/meeting/:id" element={<MeetingDetailPage />} />
-                                <Route path="/calendar" element={<MeetingCalendarPage />} />
+                                <Route path="/meeting-calendar" element={<MeetingCalendarPage />} />
                                 <Route path="/my-meetings" element={<MeetingListPage />} />
                                 
                                 <Route path="/transcriptions" element={<TranscriptionHistoryPage />} />
