@@ -160,24 +160,15 @@ class TestAddMemberEmailNotification:
     """Test that adding a member sends email notification via Resend"""
     
     def get_auth_token(self):
-        """Get authentication token"""
+        """Get authentication token and user info"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={"email": TEST_ADMIN_EMAIL, "password": TEST_ADMIN_PASSWORD}
         )
         if response.status_code == 200:
-            return response.json().get("token")
-        return None
-    
-    def get_admin_user(self, token):
-        """Get admin user info"""
-        response = requests.get(
-            f"{BASE_URL}/api/auth/me",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        if response.status_code == 200:
-            return response.json()
-        return None
+            data = response.json()
+            return data.get("token"), data.get("user")
+        return None, None
     
     def test_add_member_api_exists(self):
         """Test that add member API endpoint exists and handles requests"""
