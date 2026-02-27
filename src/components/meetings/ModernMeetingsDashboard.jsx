@@ -164,20 +164,11 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
         <div className="flex gap-2">
           <Button 
             onClick={() => navigate('/calendar')}
-            variant="outline"
-            className="border-violet-200 text-violet-600 hover:bg-violet-50"
+            className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25"
             data-testid="open-calendar-btn"
           >
             <Calendar className="w-4 h-4 mr-2" />
             Open Calendar
-          </Button>
-          <Button 
-            onClick={handleOpenScheduler}
-            className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25"
-            data-testid="schedule-meeting-btn"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Quick Schedule
           </Button>
         </div>
       </div>
