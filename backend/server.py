@@ -2390,7 +2390,8 @@ async def add_workspace_member(workspace_id: str, member_data: WorkspaceMemberAd
         
         # Return member with user info
         member_doc["user"] = user
-        del member_doc["_id"] if "_id" in member_doc else None
+        if "_id" in member_doc:
+            del member_doc["_id"]
         
         logger.info(f"Added member {user['email']} to workspace {workspace_id}")
         
