@@ -868,16 +868,12 @@ async def reject_call(request: CallSignalRequest):
     if call_id in pending_calls:
         pending_calls[call_id]["status"] = "rejected"
         
-        # Notify caller that call was rejected
-        reject_msg = {
-            "type": "call_rejected",
-            "data": {
-                "call_id": call_id,
-                "rejected_by": request.target_user_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-        }
-        await manager.send_personal_message(reject_msg, request.caller_id)
+        # Notify caller via SSE that call was rejected
+        await sse_manager.send_to_user(request.caller_id, "call_rejected", {
+            "call_id": call_id,
+            "rejected_by": request.target_user_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
         
         # Cleanup
         del pending_calls[call_id]
