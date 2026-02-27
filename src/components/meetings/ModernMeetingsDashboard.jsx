@@ -127,54 +127,6 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
     setMeetingToDelete(null);
   };
 
-  const handleScheduleSubmit = async (formData) => {
-    setIsSubmitting(true);
-    try {
-      // Create event via calendar API
-      const eventData = {
-        title: formData.title,
-        description: formData.description || '',
-        start_time: `${formData.date}T${formData.time}:00`,
-        end_time: `${formData.date}T${formData.endTime || formData.time}:00`,
-        created_by: user.id,
-        category: 'meeting',
-        color: 'blue',
-        video_call: true,
-        location: formData.location || ''
-      };
-
-      const response = await fetch(`${API_URL}/api/calendar/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData)
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Meeting Scheduled Successfully!",
-          description: `Meeting '${formData.title}' has been scheduled for ${formData.date} at ${formData.time}.`,
-          className: "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-200"
-        });
-        
-        loadMeetings();
-        setTimeout(() => {
-          setIsSchedulerOpen(false);
-          setEditingMeeting(null);
-        }, 1000); 
-      } else {
-        throw new Error('Failed to create meeting');
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save meeting. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // Handle joining a meeting
   const handleJoinMeeting = (id) => {
     const meeting = meetings.find(m => m.id === id);
