@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 // Components
 import MeetingsList from './MeetingsList';
@@ -21,11 +22,15 @@ import {
   DialogTitle 
 } from '@/components/ui/dialog';
 
+const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+
 const ModernMeetingsDashboard = ({ onJoinClick }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [meetings, setMeetings] = useState([]);
+  const [calendarMeetings, setCalendarMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSchedulerOpen, setIsSchedulerOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState(null);
@@ -36,7 +41,8 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
   // Load meetings on mount
   useEffect(() => {
     loadMeetings();
-  }, []);
+    loadCalendarMeetings();
+  }, [user?.id]);
 
   const loadMeetings = () => {
     setLoading(true);
@@ -53,6 +59,37 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load calendar meetings from MongoDB
+  const loadCalendarMeetings = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/calendar/events?user_id=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter to only show meetings with video calls
+        const videoMeetings = (data.events || [])
+          .filter(e => e.video_call || e.category === 'meeting')
+          .map(e => ({
+            id: e.id,
+            title: e.title,
+            description: e.description,
+            scheduledTime: e.start_time,
+            endTime: e.end_time,
+            status: new Date(e.start_time) > new Date() ? 'upcoming' : 'completed',
+            meetingUrl: e.video_call_link,
+            hasVideo: e.video_call,
+            attendees: e.invitees?.map(inv => inv.name || inv.email) || [],
+            isCalendarEvent: true,
+            color: e.color
+          }));
+        setCalendarMeetings(videoMeetings);
+      }
+    } catch (error) {
+      console.error("Failed to load calendar meetings:", error);
     }
   };
 
