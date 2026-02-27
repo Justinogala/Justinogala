@@ -793,6 +793,185 @@ async def get_user_all_messages(user_id: str, limit: int = 100, offset: int = 0)
     return {"messages": messages, "total": len(messages), "partners": partners}
 
 
+# ==================== CALL SIGNALING API (REST) ====================
+
+class CallInitiateRequest(BaseModel):
+    target_user_id: str
+    call_type: str = "audio"  # audio or video
+    call_id: Optional[str] = None
+
+class CallSignalRequest(BaseModel):
+    caller_id: Optional[str] = None
+    target_user_id: Optional[str] = None
+    call_id: str
+    call_type: Optional[str] = None
+    signal_type: Optional[str] = None  # offer, answer, ice_candidate
+    signal_data: Optional[Dict] = None
+
+# Store pending calls in memory (for demo - use Redis in production)
+pending_calls: Dict[str, Dict] = {}
+call_signals: Dict[str, list] = {}
+
+@api_router.post("/call/initiate")
+async def initiate_call(request: CallInitiateRequest, caller_id: str = None):
+    """Initiate a call to another user"""
+    call_id = request.call_id or str(uuid.uuid4())
+    
+    call_data = {
+        "call_id": call_id,
+        "caller_id": caller_id,
+        "target_user_id": request.target_user_id,
+        "call_type": request.call_type,
+        "status": "ringing",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    pending_calls[call_id] = call_data
+    call_signals[call_id] = []
+    
+    # Send via SSE if target user is connected
+    call_msg = {
+        "type": "incoming_call",
+        "data": {
+            "call_id": call_id,
+            "caller_id": caller_id,
+            "call_type": request.call_type,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    }
+    await manager.send_personal_message(call_msg, request.target_user_id)
+    
+    logger.info(f"Call {call_id} initiated from {caller_id} to {request.target_user_id}")
+    return {"success": True, "call": call_data}
+
+@api_router.post("/call/accept")
+async def accept_call(request: CallSignalRequest):
+    """Accept an incoming call"""
+    call_id = request.call_id
+    
+    if call_id in pending_calls:
+        pending_calls[call_id]["status"] = "connecting"
+        
+        # Notify caller that call was accepted
+        accept_msg = {
+            "type": "call_accepted",
+            "data": {
+                "call_id": call_id,
+                "accepted_by": request.target_user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        await manager.send_personal_message(accept_msg, request.caller_id)
+        
+        logger.info(f"Call {call_id} accepted")
+        return {"success": True, "status": "connecting"}
+    
+    return {"success": False, "error": "Call not found"}
+
+@api_router.post("/call/reject")
+async def reject_call(request: CallSignalRequest):
+    """Reject an incoming call"""
+    call_id = request.call_id
+    
+    if call_id in pending_calls:
+        pending_calls[call_id]["status"] = "rejected"
+        
+        # Notify caller that call was rejected
+        reject_msg = {
+            "type": "call_rejected",
+            "data": {
+                "call_id": call_id,
+                "rejected_by": request.target_user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        await manager.send_personal_message(reject_msg, request.caller_id)
+        
+        # Cleanup
+        del pending_calls[call_id]
+        if call_id in call_signals:
+            del call_signals[call_id]
+        
+        logger.info(f"Call {call_id} rejected")
+        return {"success": True, "status": "rejected"}
+    
+    return {"success": False, "error": "Call not found"}
+
+@api_router.post("/call/end")
+async def end_call(request: CallSignalRequest):
+    """End an active call"""
+    call_id = request.call_id
+    target_user_id = request.target_user_id
+    
+    if call_id in pending_calls:
+        pending_calls[call_id]["status"] = "ended"
+        
+        # Notify other party
+        end_msg = {
+            "type": "call_ended",
+            "data": {
+                "call_id": call_id,
+                "ended_by": request.caller_id,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        }
+        await manager.send_personal_message(end_msg, target_user_id)
+        
+        # Cleanup
+        del pending_calls[call_id]
+        if call_id in call_signals:
+            del call_signals[call_id]
+        
+        logger.info(f"Call {call_id} ended")
+        return {"success": True, "status": "ended"}
+    
+    return {"success": False, "error": "Call not found"}
+
+@api_router.post("/call/signal")
+async def send_call_signal(request: CallSignalRequest):
+    """Send WebRTC signaling data (offer, answer, ice candidate)"""
+    call_id = request.call_id
+    
+    if call_id not in call_signals:
+        call_signals[call_id] = []
+    
+    signal = {
+        "from_user_id": request.caller_id,
+        "signal_type": request.signal_type,
+        "signal_data": request.signal_data,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    call_signals[call_id].append(signal)
+    
+    # Send signal via SSE to target user
+    signal_msg = {
+        "type": f"webrtc_{request.signal_type}",
+        "data": {
+            "call_id": call_id,
+            "from_user_id": request.caller_id,
+            request.signal_type: request.signal_data
+        }
+    }
+    await manager.send_personal_message(signal_msg, request.target_user_id)
+    
+    return {"success": True}
+
+@api_router.get("/call/signals/{call_id}")
+async def get_call_signals(call_id: str, after: int = 0):
+    """Poll for new signaling data (fallback if SSE not working)"""
+    if call_id in call_signals:
+        signals = call_signals[call_id][after:]
+        return {"signals": signals, "count": len(signals)}
+    return {"signals": [], "count": 0}
+
+@api_router.get("/call/status/{call_id}")
+async def get_call_status(call_id: str):
+    """Get the current status of a call"""
+    if call_id in pending_calls:
+        return {"call": pending_calls[call_id]}
+    return {"call": None, "error": "Call not found"}
+
+
 # ==================== ADMIN SETTINGS API ====================
 
 # Audit logging helper function (defined early so all endpoints can use it)
