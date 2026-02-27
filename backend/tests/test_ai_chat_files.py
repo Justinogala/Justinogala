@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://coupon-tax-rates.preview.emergentagent.com"
+    BASE_URL = "https://calendar-meetings-1.preview.emergentagent.com"
 
 
 class TestHealthCheck:
