@@ -2322,6 +2322,128 @@ async def create_user_admin(user_data: UserCreate):
     return await register_user(user_data)
 
 
+# ============== Workspace Member Management ==============
+
+class WorkspaceMemberAdd(BaseModel):
+    workspace_id: str
+    email: str
+    role: str = "member"
+    added_by: Optional[str] = None
+
+class WorkspaceMemberUpdate(BaseModel):
+    role: str
+
+@api_router.get("/workspaces/{workspace_id}/members")
+async def get_workspace_members(workspace_id: str):
+    """Get all members of a workspace"""
+    try:
+        members_cursor = db.workspace_members.find({"workspace_id": workspace_id}, {"_id": 0})
+        members = await members_cursor.to_list(length=100)
+        
+        # Enrich with user data
+        enriched_members = []
+        for member in members:
+            user = await db.users.find_one({"id": member.get("user_id")}, {"_id": 0, "password": 0, "password_hash": 0})
+            if user:
+                member["user"] = user
+            enriched_members.append(member)
+        
+        return {"members": enriched_members, "total": len(enriched_members)}
+    except Exception as e:
+        logger.error(f"Error fetching workspace members: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/workspaces/{workspace_id}/members")
+async def add_workspace_member(workspace_id: str, member_data: WorkspaceMemberAdd):
+    """Add a member to workspace directly (no invitation required)"""
+    try:
+        # Find user by email
+        user = await db.users.find_one({"email": member_data.email.lower()}, {"_id": 0, "password": 0, "password_hash": 0})
+        
+        if not user:
+            # User doesn't exist - create a placeholder or return error
+            raise HTTPException(status_code=404, detail=f"No user found with email {member_data.email}. Please ask them to register first.")
+        
+        # Check if already a member
+        existing = await db.workspace_members.find_one({
+            "workspace_id": workspace_id,
+            "user_id": user["id"]
+        })
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="User is already a member of this workspace")
+        
+        # Add member directly with active status
+        member_doc = {
+            "id": str(uuid.uuid4()),
+            "workspace_id": workspace_id,
+            "user_id": user["id"],
+            "email": user["email"],
+            "name": user.get("name", user["email"].split("@")[0]),
+            "role": member_data.role,
+            "status": "active",
+            "added_by": member_data.added_by,
+            "joined_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.workspace_members.insert_one(member_doc)
+        
+        # Return member with user info
+        member_doc["user"] = user
+        del member_doc["_id"] if "_id" in member_doc else None
+        
+        logger.info(f"Added member {user['email']} to workspace {workspace_id}")
+        
+        return {
+            "success": True,
+            "member": member_doc,
+            "message": f"{user.get('name', user['email'])} has been added to the workspace"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding workspace member: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/workspaces/{workspace_id}/members/{user_id}")
+async def update_workspace_member_role(workspace_id: str, user_id: str, updates: WorkspaceMemberUpdate):
+    """Update a member's role in the workspace"""
+    try:
+        result = await db.workspace_members.update_one(
+            {"workspace_id": workspace_id, "user_id": user_id},
+            {"$set": {"role": updates.role}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        return {"success": True, "message": "Role updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating member role: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/workspaces/{workspace_id}/members/{user_id}")
+async def remove_workspace_member(workspace_id: str, user_id: str):
+    """Remove a member from workspace"""
+    try:
+        result = await db.workspace_members.delete_one({
+            "workspace_id": workspace_id,
+            "user_id": user_id
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        return {"success": True, "message": "Member removed successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing member: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============== Chat File Upload Endpoints (GridFS Storage) ==============
 
 @api_router.post("/chat/upload")
