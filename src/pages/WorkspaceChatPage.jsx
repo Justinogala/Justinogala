@@ -407,20 +407,22 @@ const WorkspaceChatPage = () => {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-10 w-10 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:text-emerald-600 transition-colors"
+                    className="h-10 w-10 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:text-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleStartAudioCall}
                     disabled={!isUserOnline(selectedUserId)}
                     data-testid="audio-call-btn"
+                    title={!isUserOnline(selectedUserId) ? "User is offline" : "Start audio call"}
                   >
                     <Phone className="w-5 h-5" />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-10 w-10 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-colors"
+                    className="h-10 w-10 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleStartVideoCall}
                     disabled={!isUserOnline(selectedUserId)}
                     data-testid="video-call-btn"
+                    title={!isUserOnline(selectedUserId) ? "User is offline" : "Start video call"}
                   >
                     <Video className="w-5 h-5" />
                   </Button>
