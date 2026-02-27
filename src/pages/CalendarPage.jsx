@@ -24,9 +24,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import {
-  Popover, PopoverContent, PopoverTrigger
-} from '@/components/ui/popover';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import PageTransition from '@/components/PageTransition';
