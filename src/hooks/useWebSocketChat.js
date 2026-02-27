@@ -63,6 +63,63 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         onReadReceipt?.(data);
       });
 
+      // Call-related SSE events
+      eventSource.addEventListener('incoming_call', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE incoming call:', data);
+        if (window.__webrtcCallHandler) {
+          window.__webrtcCallHandler({ type: 'incoming_call', data });
+        }
+      });
+
+      eventSource.addEventListener('call_accepted', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE call accepted:', data);
+        if (window.__webrtcCallHandler) {
+          window.__webrtcCallHandler({ type: 'call_accepted', data });
+        }
+      });
+
+      eventSource.addEventListener('call_rejected', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE call rejected:', data);
+        if (window.__webrtcCallHandler) {
+          window.__webrtcCallHandler({ type: 'call_rejected', data });
+        }
+      });
+
+      eventSource.addEventListener('call_ended', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE call ended:', data);
+        if (window.__webrtcCallHandler) {
+          window.__webrtcCallHandler({ type: 'call_ended', data });
+        }
+      });
+
+      eventSource.addEventListener('webrtc_offer', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE WebRTC offer:', data);
+        if (window.__webrtcCallHandler) {
+          window.__webrtcCallHandler({ type: 'webrtc_offer', data });
+        }
+      });
+
+      eventSource.addEventListener('webrtc_answer', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE WebRTC answer:', data);
+        if (window.__webrtcCallHandler) {
+          window.__webrtcCallHandler({ type: 'webrtc_answer', data });
+        }
+      });
+
+      eventSource.addEventListener('webrtc_ice_candidate', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE ICE candidate:', data);
+        if (window.__webrtcCallHandler) {
+          window.__webrtcCallHandler({ type: 'webrtc_ice_candidate', data });
+        }
+      });
+
       eventSource.addEventListener('ping', () => {
         // Keep-alive ping received, connection is healthy
       });
