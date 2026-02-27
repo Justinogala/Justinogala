@@ -403,11 +403,25 @@ const WorkspaceChatPage = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
-                    <Phone className="w-5 h-5 text-gray-500" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-10 w-10 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:text-emerald-600 transition-colors"
+                    onClick={handleStartAudioCall}
+                    disabled={!isUserOnline(selectedUserId)}
+                    data-testid="audio-call-btn"
+                  >
+                    <Phone className="w-5 h-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
-                    <Video className="w-5 h-5 text-gray-500" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-10 w-10 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-colors"
+                    onClick={handleStartVideoCall}
+                    disabled={!isUserOnline(selectedUserId)}
+                    data-testid="video-call-btn"
+                  >
+                    <Video className="w-5 h-5" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
                     <Info className="w-5 h-5 text-gray-500" />
