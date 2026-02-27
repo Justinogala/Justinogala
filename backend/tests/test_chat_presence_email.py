@@ -159,8 +159,7 @@ class TestTypingIndicator:
 class TestAddMemberEmailNotification:
     """Test that adding a member sends email notification via Resend"""
     
-    @pytest.fixture
-    def auth_token(self):
+    def get_auth_token(self):
         """Get authentication token"""
         response = requests.post(
             f"{BASE_URL}/api/auth/login",
@@ -168,44 +167,17 @@ class TestAddMemberEmailNotification:
         )
         if response.status_code == 200:
             return response.json().get("token")
-        pytest.skip(f"Authentication failed: {response.text}")
+        return None
     
-    @pytest.fixture
-    def test_workspace(self, auth_token):
-        """Create a test workspace for email notification testing"""
-        # Get admin user ID
-        user_response = requests.get(
+    def get_admin_user(self, token):
+        """Get admin user info"""
+        response = requests.get(
             f"{BASE_URL}/api/auth/me",
-            headers={"Authorization": f"Bearer {auth_token}"}
+            headers={"Authorization": f"Bearer {token}"}
         )
-        if user_response.status_code != 200:
-            pytest.skip("Could not get current user")
-        
-        admin_user = user_response.json()
-        
-        # Create workspace
-        response = requests.post(
-            f"{BASE_URL}/api/workspaces",
-            headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "name": f"TEST_Email_Notification_WS_{int(time.time())}",
-                "description": "Test workspace for email notification",
-                "owner_id": admin_user.get("id")
-            }
-        )
-        
-        if response.status_code in [200, 201]:
-            data = response.json()
-            workspace_id = data.get("workspace", {}).get("id") or data.get("id")
-            yield {"workspace_id": workspace_id, "admin_id": admin_user.get("id")}
-            
-            # Cleanup
-            requests.delete(
-                f"{BASE_URL}/api/workspaces/{workspace_id}",
-                headers={"Authorization": f"Bearer {auth_token}"}
-            )
-        else:
-            pytest.skip(f"Could not create workspace: {response.text}")
+        if response.status_code == 200:
+            return response.json()
+        return None
     
     def test_add_member_api_exists(self, auth_token, test_workspace):
         """Test that add member API endpoint exists and handles requests"""
