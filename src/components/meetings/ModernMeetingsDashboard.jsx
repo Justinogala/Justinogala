@@ -276,7 +276,12 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
               {upcomingMeetings.length > 0 ? (
                 <div className="space-y-4">
                   {upcomingMeetings.map(meeting => (
-                    <div key={meeting.id} className="bg-white/10 rounded-lg p-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-colors cursor-pointer" onClick={() => onJoinClick(meeting.id)}>
+                    <div 
+                      key={meeting.id} 
+                      className="bg-white/10 rounded-lg p-3 backdrop-blur-sm border border-white/10 hover:bg-white/20 transition-colors cursor-pointer" 
+                      onClick={() => handleJoinMeeting(meeting.id)}
+                      data-testid={`upcoming-meeting-${meeting.id}`}
+                    >
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-semibold text-sm line-clamp-1">{meeting.title}</span>
                         <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 text-[10px] h-5">
@@ -284,8 +289,14 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
                         </Badge>
                       </div>
                       <p className="text-xs text-violet-100 opacity-80">
-                        {format(new Date(meeting.date), 'MMM d')} • {meeting.type || 'Video Call'}
+                        {format(new Date(meeting.date), 'MMM d')} • {meeting.hasVideo ? 'Video Call' : 'Meeting'}
                       </p>
+                      {meeting.hasVideo && (
+                        <div className="flex items-center gap-1 mt-2 text-xs text-violet-200">
+                          <Video className="w-3 h-3" />
+                          <span>Video enabled</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -296,9 +307,10 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
               )}
               
               <Button 
-                onClick={handleOpenScheduler}
+                onClick={() => navigate('/calendar')}
                 variant="secondary" 
                 className="w-full mt-4 bg-white text-violet-700 hover:bg-violet-50 border-0"
+                data-testid="schedule-new-btn"
               >
                 <Plus className="w-4 h-4 mr-2" /> Schedule New
               </Button>
@@ -316,9 +328,9 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg text-center">
                   <div className="text-2xl font-bold text-emerald-600">
-                    {meetings.filter(m => m.status === 'completed').length}
+                    {upcomingMeetings.length}
                   </div>
-                  <div className="text-xs text-slate-500 font-medium uppercase mt-1">Completed</div>
+                  <div className="text-xs text-slate-500 font-medium uppercase mt-1">Upcoming</div>
                 </div>
               </div>
             </CardContent>
