@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { webrtcService } from '@/services/webrtcService';
 
-const API_BASE = window.location.origin;
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
 
 export const useWebRTCCall = (userId, onIncomingCall) => {
   const [isCallConnected, setIsCallConnected] = useState(false);
@@ -9,18 +9,127 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   
-  const wsRef = useRef(null);
-  const reconnectTimeoutRef = useRef(null);
   const onIncomingCallRef = useRef(onIncomingCall);
+  const pollIntervalRef = useRef(null);
 
   // Keep the callback ref updated
   useEffect(() => {
     onIncomingCallRef.current = onIncomingCall;
   }, [onIncomingCall]);
 
-  // Handle incoming signaling messages
-  const handleSignalingMessage = useCallback(async (data) => {
-    console.log('[WebRTC] Received signal:', data.type);
+  // Set up signal handler for webrtcService to use REST API
+  useEffect(() => {
+    const sendSignalViaREST = async (message) => {
+      const type = message.type;
+      const data = message.data || {};
+      
+      try {
+        let endpoint = '';
+        let body = {};
+        
+        switch (type) {
+          case 'call_initiate':
+            endpoint = '/api/call/initiate';
+            body = {
+              target_user_id: data.target_user_id,
+              call_type: data.call_type,
+              call_id: data.call_id
+            };
+            break;
+            
+          case 'call_accept':
+            endpoint = '/api/call/accept';
+            body = {
+              caller_id: data.caller_id,
+              call_id: data.call_id,
+              target_user_id: userId
+            };
+            break;
+            
+          case 'call_reject':
+            endpoint = '/api/call/reject';
+            body = {
+              caller_id: data.caller_id,
+              call_id: data.call_id,
+              target_user_id: userId
+            };
+            break;
+            
+          case 'call_end':
+            endpoint = '/api/call/end';
+            body = {
+              target_user_id: data.target_user_id,
+              call_id: data.call_id,
+              caller_id: userId
+            };
+            break;
+            
+          case 'webrtc_offer':
+            endpoint = '/api/call/signal';
+            body = {
+              call_id: data.call_id,
+              caller_id: userId,
+              target_user_id: data.target_user_id,
+              signal_type: 'offer',
+              signal_data: data.offer
+            };
+            break;
+            
+          case 'webrtc_answer':
+            endpoint = '/api/call/signal';
+            body = {
+              call_id: data.call_id,
+              caller_id: userId,
+              target_user_id: data.target_user_id,
+              signal_type: 'answer',
+              signal_data: data.answer
+            };
+            break;
+            
+          case 'webrtc_ice_candidate':
+            endpoint = '/api/call/signal';
+            body = {
+              call_id: data.call_id,
+              caller_id: userId,
+              target_user_id: data.target_user_id,
+              signal_type: 'ice_candidate',
+              signal_data: data.candidate
+            };
+            break;
+            
+          default:
+            console.warn('[WebRTC] Unknown signal type:', type);
+            return;
+        }
+        
+        // Add caller_id to initiate call
+        if (type === 'call_initiate') {
+          endpoint += `?caller_id=${userId}`;
+        }
+        
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        
+        if (!response.ok) {
+          console.error('[WebRTC] Signal failed:', await response.text());
+        } else {
+          console.log('[WebRTC] Signal sent:', type);
+        }
+      } catch (error) {
+        console.error('[WebRTC] Error sending signal:', error);
+      }
+    };
+    
+    webrtcService.setSignalHandler(sendSignalViaREST);
+    setIsCallConnected(true);
+  }, [userId]);
+
+  // Handle incoming call signals from SSE (set up in WebSocketChatContext)
+  const handleCallSignal = useCallback(async (data) => {
+    console.log('[WebRTC] Received call signal:', data.type);
     
     switch (data.type) {
       case 'incoming_call':
@@ -57,7 +166,7 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
         break;
         
       case 'webrtc_ice_candidate':
-        await webrtcService.handleIceCandidate(data.data.candidate);
+        await webrtcService.handleIceCandidate(data.data.ice_candidate);
         break;
         
       default:
@@ -65,67 +174,13 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
     }
   }, []);
 
-  // Connect WebSocket for signaling
+  // Expose handleCallSignal for external use (from SSE events)
   useEffect(() => {
-    if (!userId) return;
-
-    const connect = () => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${userId}`;
-      
-      console.log('[WebRTC] Connecting WebSocket for signaling:', wsUrl);
-      
-      try {
-        const ws = new WebSocket(wsUrl);
-        
-        ws.onopen = () => {
-          console.log('[WebRTC] WebSocket connected');
-          setIsCallConnected(true);
-          
-          webrtcService.setSignalHandler((message) => {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify(message));
-            }
-          });
-        };
-
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          handleSignalingMessage(data);
-        };
-
-        ws.onerror = (error) => {
-          console.error('[WebRTC] WebSocket error:', error);
-        };
-
-        ws.onclose = () => {
-          console.log('[WebRTC] WebSocket closed');
-          setIsCallConnected(false);
-          wsRef.current = null;
-          
-          reconnectTimeoutRef.current = setTimeout(connect, 3000);
-        };
-
-        wsRef.current = ws;
-      } catch (err) {
-        console.error('[WebRTC] WebSocket connection failed:', err);
-      }
-    };
-
-    connect();
-
+    window.__webrtcCallHandler = handleCallSignal;
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      delete window.__webrtcCallHandler;
     };
-  }, [userId, handleSignalingMessage]);
+  }, [handleCallSignal]);
 
   // Set up webrtcService callbacks
   useEffect(() => {
@@ -200,7 +255,8 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
     rejectCall,
     endCall,
     toggleAudio,
-    toggleVideo
+    toggleVideo,
+    handleCallSignal
   };
 };
 
