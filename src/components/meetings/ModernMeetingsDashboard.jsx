@@ -11,7 +11,6 @@ import { useAuth } from '@/context/AuthContext';
 
 // Components
 import MeetingsList from './MeetingsList';
-import MeetingSchedulerModal from './MeetingSchedulerModal';
 import { 
   Dialog, 
   DialogContent, 
