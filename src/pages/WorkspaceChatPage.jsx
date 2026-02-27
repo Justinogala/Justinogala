@@ -50,6 +50,28 @@ const WorkspaceChatPage = () => {
   
   const activeUser = currentUser || messagingService.getAllUsers()[0];
 
+  // Call state
+  const [incomingCall, setIncomingCall] = useState(null);
+  
+  // Handle incoming call notification
+  const handleIncomingCall = useCallback((callData) => {
+    console.log('[Call] Incoming call:', callData);
+    setIncomingCall(callData);
+  }, []);
+
+  // WebRTC Call Hook
+  const {
+    currentCall,
+    localStream,
+    remoteStream,
+    initiateCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    toggleAudio,
+    toggleVideo
+  } = useWebRTCCall(activeUser?.id, handleIncomingCall);
+
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [localMessages, setLocalMessages] = useState([]);
