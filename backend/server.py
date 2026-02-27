@@ -894,16 +894,12 @@ async def end_call(request: CallSignalRequest):
     if call_id in pending_calls:
         pending_calls[call_id]["status"] = "ended"
         
-        # Notify other party
-        end_msg = {
-            "type": "call_ended",
-            "data": {
-                "call_id": call_id,
-                "ended_by": request.caller_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-        }
-        await manager.send_personal_message(end_msg, target_user_id)
+        # Notify other party via SSE
+        await sse_manager.send_to_user(target_user_id, "call_ended", {
+            "call_id": call_id,
+            "ended_by": request.caller_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
         
         # Cleanup
         del pending_calls[call_id]
