@@ -829,17 +829,13 @@ async def initiate_call(request: CallInitiateRequest, caller_id: str = None):
     pending_calls[call_id] = call_data
     call_signals[call_id] = []
     
-    # Send via SSE if target user is connected
-    call_msg = {
-        "type": "incoming_call",
-        "data": {
-            "call_id": call_id,
-            "caller_id": caller_id,
-            "call_type": request.call_type,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-    }
-    await manager.send_personal_message(call_msg, request.target_user_id)
+    # Send via SSE to target user
+    await sse_manager.send_to_user(request.target_user_id, "incoming_call", {
+        "call_id": call_id,
+        "caller_id": caller_id,
+        "call_type": request.call_type,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
     
     logger.info(f"Call {call_id} initiated from {caller_id} to {request.target_user_id}")
     return {"success": True, "call": call_data}
