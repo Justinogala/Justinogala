@@ -3842,22 +3842,6 @@ async def ai_chat_stream(request: AIChatRequest):
     return await ai_chat(request)
 
 
-# Include the router in the main app
-app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
-
-
 # ============== Calendar & Meetings API ==============
 
 class CalendarEventCreate(BaseModel):
@@ -4199,4 +4183,19 @@ async def get_upcoming_events(user_id: str, limit: int = 5):
         return {"events": events}
     except Exception as e:
         logger.error(f"Error fetching upcoming events: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))# Include the router in the main app
+app.include_router(api_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    client.close()
+
+
