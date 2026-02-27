@@ -848,16 +848,12 @@ async def accept_call(request: CallSignalRequest):
     if call_id in pending_calls:
         pending_calls[call_id]["status"] = "connecting"
         
-        # Notify caller that call was accepted
-        accept_msg = {
-            "type": "call_accepted",
-            "data": {
-                "call_id": call_id,
-                "accepted_by": request.target_user_id,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-        }
-        await manager.send_personal_message(accept_msg, request.caller_id)
+        # Notify caller via SSE that call was accepted
+        await sse_manager.send_to_user(request.caller_id, "call_accepted", {
+            "call_id": call_id,
+            "accepted_by": request.target_user_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
         
         logger.info(f"Call {call_id} accepted")
         return {"success": True, "status": "connecting"}
