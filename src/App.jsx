@@ -306,6 +306,7 @@ function App() {
                                 <Route path="/workspace/video-conferencing" element={<VideoConferencingPage />} /> 
                                 <Route path="/workspace/:workspaceId/manage" element={<WorkspaceDetailPage />} />
                                 <Route path="/workspace/:id" element={<WorkspaceDetailPage />} /> 
+                                <Route path="/calendar" element={<CalendarPage />} />
 
                                 <Route path="/workspace/:workspaceId/call/:callId" element={<AdvancedVideoCallInterface />} />
                                 
