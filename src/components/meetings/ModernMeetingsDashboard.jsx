@@ -29,11 +29,8 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
   
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isSchedulerOpen, setIsSchedulerOpen] = useState(false);
-  const [editingMeeting, setEditingMeeting] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load meetings from MongoDB calendar events
   const loadMeetings = useCallback(async () => {
