@@ -643,8 +643,11 @@ const CalendarPage = () => {
                 {selectedEvent.video_call && (
                   <div className="flex items-center gap-3">
                     <Video className="w-5 h-5 text-indigo-500" />
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={selectedEvent.video_call_link}>Join Video Call</a>
+                    <Button className="bg-indigo-600 hover:bg-indigo-700" asChild>
+                      <a href={selectedEvent.video_call_link}>
+                        <Video className="w-4 h-4 mr-2" />
+                        Join Online Meeting
+                      </a>
                     </Button>
                   </div>
                 )}
