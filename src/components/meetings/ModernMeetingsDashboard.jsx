@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { Calendar, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Calendar, Plus, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +12,6 @@ import { useAuth } from '@/context/AuthContext';
 // Components
 import MeetingsList from './MeetingsList';
 import MeetingSchedulerModal from './MeetingSchedulerModal';
-import { localMeetingsStorageService } from '@/services/localMeetingsStorageService';
 import { 
   Dialog, 
   DialogContent, 
