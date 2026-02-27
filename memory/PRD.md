@@ -352,7 +352,28 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - Location display with country name and state badge
 
 ## Next Tasks
-1. GIPHY Integration (removed per user request, can be re-added later)
-2. Cloud storage migration (GridFS → AWS S3 for production)
-3. Refactor server.py into modular route files
-4. Rename `useWebSocketChat.js` to `useSseChat.js`
+1. Cloud storage migration (GridFS → AWS S3 for production)
+2. Refactor server.py into modular route files
+3. Rename `useWebSocketChat.js` to `useSseChat.js`
+4. GIPHY Integration (removed per user request, can be re-added later)
+
+### WebRTC Audio/Video Calls (Feb 27, 2026)
+- [x] **WebRTC Signaling Server** - Backend WebSocket signaling for peer-to-peer calls
+  - Supports call_initiate, call_accept, call_reject, call_end
+  - Supports webrtc_offer, webrtc_answer, webrtc_ice_candidate exchange
+  - Added to server.py WebSocket handler
+- [x] **WebRTC Service** - Frontend WebRTC implementation
+  - `/app/src/services/webrtcService.js` - Peer connection management
+  - STUN servers configured (Google STUN servers)
+  - Audio/video stream management
+- [x] **Call Hook** - React hook for call management
+  - `/app/src/hooks/useWebRTCCall.js` - Call state, initiate, accept, reject, end
+  - WebSocket connection for signaling
+- [x] **Call UI Components**
+  - `/app/src/components/chat/CallInterface.jsx` - Active call interface with mute/video toggle
+  - `/app/src/components/chat/IncomingCallModal.jsx` - Incoming call modal with accept/reject
+- [x] **Chat Page Integration**
+  - Phone button (audio call) with data-testid='audio-call-btn'
+  - Video button (video call) with data-testid='video-call-btn'
+  - Buttons disabled when user is offline
+  - Call UI shows when call is active
