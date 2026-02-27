@@ -1,6 +1,7 @@
 ## Pages
 - [- EchoNote AI](/meetingdetail): No description available
 - [- Shared EchoNote AI](/sharedmeeting): No description available
+- [| Munal](/sharedrecording): No description available
 - [| Munal](/transcriptiondetail): No description available
 - [| Settings](/workspacedetail): No description available
 - [| Support - Munal](/usersupportticketdetail): No description available
@@ -12,12 +13,15 @@
 - [API Configuration | Munal](/apikeyconfiguration): No description available
 - [Billing & Subscription - Munal](/billingdashboard): No description available
 - [Calendar - Munal](/meetingcalendar): No description available
+- [Calendar | Munal AI](/calendar): No description available
+- [Chat | Munal AI](/workspacechat): No description available
 - [Checkout - Munal](/checkout): No description available
 - [Contact Us - Munal AI](/contactform): Get in touch with the Munal AI team for support, sales, or general inquiries.
 - [Create Account - EchoNote AI](/createaccount): No description available
 - [Edit:  | Munal](/transcriptions): No description available
 - [Features | Munal - Powerful Tools for Modern Teams](/features): No description available
 - [File Management - Munal](/filemanagement): Manage your audio, video, and documents.
+- [Forgot Password | Munal AI](/forgotpassword): No description available
 - [History | Munal](/transcriptionhistory): No description available
 - [Integrations - Munal](/integrationsettings): No description available
 - [Login - Munal AI](/login): Log in to your Munal AI account for meeting intelligence.
@@ -33,8 +37,9 @@
 - [New Transcription | Munal](/newtranscription): No description available
 - [OTP Login - Munal](/otplogin): No description available
 - [Plans & Pricing - Munal](/payment): Choose the perfect plan for your meeting transcription and AI summary needs.
-- [Pricing - Munal](/pricing): Choose the perfect Munal plan for your meeting transcription needs. Start free with 30 minutes/month or upgrade for advanced features.
+- [Pricing - Munal](/pricing): Choose the perfect Munal plan for your meeting transcription needs. Start free or upgrade for advanced features.
 - [Profile Settings - Munal](/profile): Manage your account settings, profile information, and subscription plan.
+- [Quick Record | Munal](/quickrecord): No description available
 - [Recent Chats | Munal](/recentchats): No description available
 - [Reports - Munal](/reportmanagement): No description available
 - [Reset Password - Munal](/passwordreset): No description available
@@ -47,5 +52,4 @@
 - [Video Conferencing | Munal](/videoconferencing): No description available
 - [Voice Chat - Munal](/voicechat): Real-time voice transcription and recording.
 - [Voice Chat History | Munal](/voicechathistory): No description available
-- [Workspace Chat | Munal](/workspacechat): No description available
 - [Workspaces | Munal](/workspaces): No description available
