@@ -693,6 +693,29 @@ const WorkspaceChatPage = () => {
           )}
         </div>
       </div>
+
+      {/* Incoming Call Modal */}
+      {incomingCall && incomingCallUser && (
+        <IncomingCallModal
+          caller={incomingCallUser}
+          callType={incomingCall.call_type}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
+        />
+      )}
+
+      {/* Active Call Interface */}
+      {currentCall && currentCall.status !== 'ended' && (
+        <CallInterface
+          call={currentCall}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          user={callPartnerUser}
+          onEndCall={handleEndCall}
+          onToggleAudio={toggleAudio}
+          onToggleVideo={toggleVideo}
+        />
+      )}
     </PageTransition>
   );
 };
