@@ -97,6 +97,7 @@ const MeetingCalendarPage = lazy(() => import('@/pages/MeetingCalendarPage'));
 const MeetingListPage = lazy(() => import('@/pages/MeetingListPage'));
 const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
+const MeetingRoomPage = lazy(() => import('@/pages/MeetingRoomPage'));
 
 // Payment Pages
 const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
