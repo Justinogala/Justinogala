@@ -186,6 +186,9 @@ const WorkspaceChatPage = () => {
     }
   }, [selectedUserId, sendTypingIndicator]);
 
+  // Derive selectedUser early before call handlers
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
   // Call handlers
   const handleStartAudioCall = useCallback(async () => {
     if (!selectedUserId || !selectedUser) return;
