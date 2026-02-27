@@ -249,8 +249,6 @@ const WorkspaceChatPage = () => {
     };
   }, []);
 
-  const selectedUser = users.find(u => u.id === selectedUserId);
-
   const usersWithStatus = users.map(u => ({
     ...u,
     isOnline: isUserOnline(u.id)
