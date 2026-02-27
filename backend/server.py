@@ -2324,6 +2324,142 @@ async def create_user_admin(user_data: UserCreate):
 
 # ============== Workspace Member Management ==============
 
+class WorkspaceCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    plan: str = "Free"
+    owner_id: str
+
+class WorkspaceUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    settings: Optional[Dict] = None
+
+@api_router.get("/workspaces")
+async def get_workspaces(user_id: str = None):
+    """Get all workspaces for a user (as owner or member)"""
+    try:
+        if user_id:
+            # Find workspaces where user is owner
+            owned = await db.workspaces.find({"owner_id": user_id}, {"_id": 0}).to_list(100)
+            
+            # Find workspaces where user is a member
+            memberships = await db.workspace_members.find({"user_id": user_id}, {"workspace_id": 1}).to_list(100)
+            member_workspace_ids = [m["workspace_id"] for m in memberships]
+            
+            member_workspaces = await db.workspaces.find(
+                {"id": {"$in": member_workspace_ids}, "owner_id": {"$ne": user_id}},
+                {"_id": 0}
+            ).to_list(100)
+            
+            all_workspaces = owned + member_workspaces
+        else:
+            all_workspaces = await db.workspaces.find({}, {"_id": 0}).to_list(100)
+        
+        return {"workspaces": all_workspaces}
+    except Exception as e:
+        logger.error(f"Error fetching workspaces: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/workspaces")
+async def create_workspace(workspace: WorkspaceCreate):
+    """Create a new workspace"""
+    try:
+        workspace_id = str(uuid.uuid4())
+        
+        workspace_doc = {
+            "id": workspace_id,
+            "name": workspace.name,
+            "description": workspace.description,
+            "plan": workspace.plan,
+            "owner_id": workspace.owner_id,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "icon_url": None,
+            "settings": {
+                "allow_member_invites": True,
+                "public": False
+            }
+        }
+        
+        await db.workspaces.insert_one(workspace_doc)
+        
+        # Add owner as a member automatically
+        owner_member = {
+            "id": str(uuid.uuid4()),
+            "workspace_id": workspace_id,
+            "user_id": workspace.owner_id,
+            "role": "owner",
+            "status": "active",
+            "joined_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.workspace_members.insert_one(owner_member)
+        
+        # Return without _id
+        del workspace_doc["_id"] if "_id" in workspace_doc else None
+        
+        logger.info(f"Workspace {workspace_id} created by {workspace.owner_id}")
+        return {"success": True, "workspace": workspace_doc}
+    except Exception as e:
+        logger.error(f"Error creating workspace: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/workspaces/{workspace_id}")
+async def get_workspace(workspace_id: str):
+    """Get a single workspace by ID"""
+    try:
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+        if not workspace:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        return workspace
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching workspace: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/workspaces/{workspace_id}")
+async def update_workspace(workspace_id: str, updates: WorkspaceUpdate):
+    """Update a workspace"""
+    try:
+        update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+        if updates.name is not None:
+            update_data["name"] = updates.name
+        if updates.description is not None:
+            update_data["description"] = updates.description
+        if updates.settings is not None:
+            update_data["settings"] = updates.settings
+        
+        result = await db.workspaces.update_one({"id": workspace_id}, {"$set": update_data})
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+        return {"success": True, "workspace": workspace}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating workspace: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/workspaces/{workspace_id}")
+async def delete_workspace(workspace_id: str):
+    """Delete a workspace and all its members"""
+    try:
+        result = await db.workspaces.delete_one({"id": workspace_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        
+        # Delete all members
+        await db.workspace_members.delete_many({"workspace_id": workspace_id})
+        
+        return {"success": True, "message": "Workspace deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting workspace: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 class WorkspaceMemberAdd(BaseModel):
     workspace_id: str
     email: str
