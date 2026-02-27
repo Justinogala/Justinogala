@@ -354,8 +354,39 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 ## Next Tasks
 1. Cloud storage migration (GridFS → AWS S3 for production)
 2. Refactor server.py into modular route files
-3. Rename `useWebSocketChat.js` to `useSseChat.js`
-4. GIPHY Integration (removed per user request, can be re-added later)
+
+### Calendar Feature (Feb 27, 2026)
+- [x] **Full Calendar UI** - Microsoft Calendar-like interface
+  - Month/Week/Day view switcher
+  - Today button and navigation arrows
+  - Click on any day to create event
+  - Color-coded events by category
+- [x] **Event Management**
+  - Create/Edit/Delete events
+  - Title, description, location fields
+  - Start/end time with datetime picker
+  - All-day event option
+- [x] **Meeting Features**
+  - Invite workspace members
+  - Email notifications via Resend (from notifications@munal.ai)
+  - Video call link auto-generation
+  - Attendee response tracking (pending/accepted/declined)
+- [x] **Categories & Colors**
+  - Meeting, Reminder, Task, Personal categories
+  - 6 color options: blue, green, red, purple, orange, pink
+- [x] **Recurring Meetings**
+  - Daily, Weekly, Monthly recurrence
+  - Recurrence end date
+- [x] **Backend APIs**:
+  - `GET /api/calendar/events` - List events for user
+  - `POST /api/calendar/events` - Create event with invitations
+  - `GET /api/calendar/events/{id}` - Get single event
+  - `PUT /api/calendar/events/{id}` - Update event
+  - `DELETE /api/calendar/events/{id}` - Delete event
+  - `POST /api/calendar/events/{id}/respond` - RSVP to invitation
+  - `GET /api/calendar/upcoming` - Dashboard widget
+- [x] **MongoDB Collection**: `calendar_events`
+- [x] **Sidebar Integration**: Calendar added to user sidebar menu
 
 ### WebRTC Audio/Video Calls (Feb 27, 2026)
 - [x] **WebRTC Signaling Server** - Backend REST API + SSE for peer-to-peer calls
