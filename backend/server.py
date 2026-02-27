@@ -3856,3 +3856,347 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+# ============== Calendar & Meetings API ==============
+
+class CalendarEventCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    start_time: str  # ISO format
+    end_time: str
+    all_day: bool = False
+    location: Optional[str] = ""
+    color: str = "blue"  # blue, green, red, purple, orange, pink
+    category: str = "meeting"  # meeting, reminder, task, personal
+    recurrence: Optional[str] = None  # none, daily, weekly, monthly
+    recurrence_end: Optional[str] = None
+    video_call: bool = False
+    invitees: List[str] = []  # List of user IDs
+    workspace_id: Optional[str] = None
+    created_by: str
+
+class CalendarEventUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    all_day: Optional[bool] = None
+    location: Optional[str] = None
+    color: Optional[str] = None
+    category: Optional[str] = None
+    recurrence: Optional[str] = None
+    recurrence_end: Optional[str] = None
+    video_call: Optional[bool] = None
+    invitees: Optional[List[str]] = None
+
+class MeetingInviteResponse(BaseModel):
+    response: str  # accepted, declined, tentative
+
+@api_router.get("/calendar/events")
+async def get_calendar_events(
+    user_id: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    workspace_id: Optional[str] = None
+):
+    """Get calendar events for a user (owned + invited)"""
+    try:
+        query = {
+            "$or": [
+                {"created_by": user_id},
+                {"invitees.user_id": user_id}
+            ]
+        }
+        
+        if workspace_id:
+            query["workspace_id"] = workspace_id
+        
+        if start_date and end_date:
+            query["start_time"] = {"$gte": start_date, "$lte": end_date}
+        
+        events_cursor = db.calendar_events.find(query, {"_id": 0}).sort("start_time", 1)
+        events = await events_cursor.to_list(length=500)
+        
+        # Enrich with creator info
+        for event in events:
+            creator = await db.users.find_one({"id": event["created_by"]}, {"_id": 0, "name": 1, "email": 1})
+            event["creator"] = creator
+        
+        return {"events": events, "total": len(events)}
+    except Exception as e:
+        logger.error(f"Error fetching calendar events: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/calendar/events")
+async def create_calendar_event(event: CalendarEventCreate):
+    """Create a new calendar event/meeting"""
+    try:
+        event_id = str(uuid.uuid4())
+        video_call_link = None
+        
+        # Generate video call link if requested
+        if event.video_call:
+            video_call_link = f"/workspace/meeting/{event_id}"
+        
+        # Process invitees
+        invitee_list = []
+        for user_id in event.invitees:
+            user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+            if user:
+                invitee_list.append({
+                    "user_id": user_id,
+                    "email": user.get("email"),
+                    "name": user.get("name"),
+                    "status": "pending",  # pending, accepted, declined, tentative
+                    "invited_at": datetime.now(timezone.utc).isoformat()
+                })
+        
+        event_doc = {
+            "id": event_id,
+            "title": event.title,
+            "description": event.description,
+            "start_time": event.start_time,
+            "end_time": event.end_time,
+            "all_day": event.all_day,
+            "location": event.location,
+            "color": event.color,
+            "category": event.category,
+            "recurrence": event.recurrence,
+            "recurrence_end": event.recurrence_end,
+            "video_call": event.video_call,
+            "video_call_link": video_call_link,
+            "invitees": invitee_list,
+            "workspace_id": event.workspace_id,
+            "created_by": event.created_by,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.calendar_events.insert_one(event_doc)
+        
+        # Get creator info for email
+        creator = await db.users.find_one({"id": event.created_by}, {"_id": 0, "name": 1, "email": 1})
+        creator_name = creator.get("name", "Someone") if creator else "Someone"
+        
+        # Send email invitations
+        for invitee in invitee_list:
+            try:
+                if resend.api_key and invitee.get("email"):
+                    start_dt = datetime.fromisoformat(event.start_time.replace('Z', '+00:00'))
+                    formatted_date = start_dt.strftime("%A, %B %d, %Y")
+                    formatted_time = start_dt.strftime("%I:%M %p")
+                    
+                    html_content = f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>
+                            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }}
+                            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                            .header {{ background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }}
+                            .content {{ background: #f8fafc; padding: 30px; border-radius: 0 0 12px 12px; }}
+                            .event-card {{ background: white; border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #6366f1; }}
+                            .button {{ display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin: 5px; }}
+                            .button-outline {{ background: transparent; border: 2px solid #6366f1; color: #6366f1; }}
+                            .footer {{ text-align: center; color: #64748b; font-size: 12px; margin-top: 20px; }}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <h1 style="margin: 0;">Meeting Invitation</h1>
+                            </div>
+                            <div class="content">
+                                <p>Hi {invitee.get('name', 'there')},</p>
+                                <p><strong>{creator_name}</strong> has invited you to a meeting:</p>
+                                
+                                <div class="event-card">
+                                    <h2 style="margin-top: 0; color: #1e293b;">{event.title}</h2>
+                                    <p><strong>📅 Date:</strong> {formatted_date}</p>
+                                    <p><strong>🕐 Time:</strong> {formatted_time} UTC</p>
+                                    {f'<p><strong>📍 Location:</strong> {event.location}</p>' if event.location else ''}
+                                    {f'<p><strong>🎥 Video Call:</strong> <a href="{video_call_link}">Join Meeting</a></p>' if video_call_link else ''}
+                                    {f'<p style="color: #64748b;">{event.description}</p>' if event.description else ''}
+                                </div>
+                                
+                                <center>
+                                    <a href="{os.environ.get('FRONTEND_URL', 'https://munal.ai')}/calendar?event={event_id}&action=accept" class="button">Accept</a>
+                                    <a href="{os.environ.get('FRONTEND_URL', 'https://munal.ai')}/calendar?event={event_id}&action=decline" class="button button-outline">Decline</a>
+                                </center>
+                            </div>
+                            <div class="footer">
+                                <p>Munal AI - Smart Meeting Assistant</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    
+                    params = {
+                        "from": SENDER_EMAIL,
+                        "to": [invitee["email"]],
+                        "subject": f"Meeting Invitation: {event.title} - {formatted_date}",
+                        "html": html_content
+                    }
+                    
+                    await asyncio.to_thread(resend.Emails.send, params)
+                    logger.info(f"Meeting invitation sent to {invitee['email']}")
+            except Exception as email_error:
+                logger.warning(f"Failed to send meeting invitation: {email_error}")
+        
+        # Remove _id before returning
+        if "_id" in event_doc:
+            del event_doc["_id"]
+        
+        event_doc["creator"] = creator
+        
+        logger.info(f"Calendar event {event_id} created by {event.created_by}")
+        return {"success": True, "event": event_doc}
+    except Exception as e:
+        logger.error(f"Error creating calendar event: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/calendar/events/{event_id}")
+async def get_calendar_event(event_id: str):
+    """Get a single calendar event"""
+    try:
+        event = await db.calendar_events.find_one({"id": event_id}, {"_id": 0})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        creator = await db.users.find_one({"id": event["created_by"]}, {"_id": 0, "name": 1, "email": 1})
+        event["creator"] = creator
+        
+        return event
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching event: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/calendar/events/{event_id}")
+async def update_calendar_event(event_id: str, updates: CalendarEventUpdate):
+    """Update a calendar event"""
+    try:
+        update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+        
+        for field, value in updates.dict(exclude_unset=True).items():
+            if value is not None:
+                update_data[field] = value
+        
+        # Handle video call link update
+        if updates.video_call is not None:
+            if updates.video_call:
+                update_data["video_call_link"] = f"/workspace/meeting/{event_id}"
+            else:
+                update_data["video_call_link"] = None
+        
+        result = await db.calendar_events.update_one({"id": event_id}, {"$set": update_data})
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        event = await db.calendar_events.find_one({"id": event_id}, {"_id": 0})
+        return {"success": True, "event": event}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating event: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/calendar/events/{event_id}")
+async def delete_calendar_event(event_id: str):
+    """Delete a calendar event"""
+    try:
+        result = await db.calendar_events.delete_one({"id": event_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        return {"success": True, "message": "Event deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting event: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/calendar/events/{event_id}/respond")
+async def respond_to_meeting_invite(event_id: str, user_id: str, response: MeetingInviteResponse):
+    """Respond to a meeting invitation"""
+    try:
+        event = await db.calendar_events.find_one({"id": event_id})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Update invitee status
+        result = await db.calendar_events.update_one(
+            {"id": event_id, "invitees.user_id": user_id},
+            {"$set": {
+                "invitees.$.status": response.response,
+                "invitees.$.responded_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Invitation not found")
+        
+        # Notify organizer
+        try:
+            user = await db.users.find_one({"id": user_id}, {"name": 1, "email": 1})
+            organizer = await db.users.find_one({"id": event["created_by"]}, {"email": 1})
+            
+            if resend.api_key and organizer and organizer.get("email"):
+                user_name = user.get("name", "A participant") if user else "A participant"
+                status_text = {
+                    "accepted": "accepted",
+                    "declined": "declined", 
+                    "tentative": "tentatively accepted"
+                }.get(response.response, response.response)
+                
+                html = f"""
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h2>Meeting Response: {event['title']}</h2>
+                    <p><strong>{user_name}</strong> has {status_text} your meeting invitation.</p>
+                </div>
+                """
+                
+                params = {
+                    "from": SENDER_EMAIL,
+                    "to": [organizer["email"]],
+                    "subject": f"Meeting Response: {user_name} {status_text} - {event['title']}",
+                    "html": html
+                }
+                await asyncio.to_thread(resend.Emails.send, params)
+        except Exception as email_error:
+            logger.warning(f"Failed to send response notification: {email_error}")
+        
+        return {"success": True, "message": f"Response recorded: {response.response}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error responding to invite: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/calendar/upcoming")
+async def get_upcoming_events(user_id: str, limit: int = 5):
+    """Get upcoming events for dashboard widget"""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        
+        events_cursor = db.calendar_events.find(
+            {
+                "$or": [
+                    {"created_by": user_id},
+                    {"invitees.user_id": user_id}
+                ],
+                "start_time": {"$gte": now}
+            },
+            {"_id": 0}
+        ).sort("start_time", 1).limit(limit)
+        
+        events = await events_cursor.to_list(length=limit)
+        return {"events": events}
+    except Exception as e:
+        logger.error(f"Error fetching upcoming events: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
