@@ -219,13 +219,12 @@ class TestAddMemberEmailNotification:
     
     def test_add_existing_user_triggers_email_attempt(self):
         """Test that adding an existing user triggers email notification attempt"""
-        token = self.get_auth_token()
+        token, admin_user = self.get_auth_token()
         if not token:
             pytest.skip("Authentication failed")
         
-        admin_user = self.get_admin_user(token)
         if not admin_user:
-            pytest.skip("Could not get admin user")
+            pytest.skip("Could not get admin user from login response")
         
         # Create a test workspace
         ws_response = requests.post(
