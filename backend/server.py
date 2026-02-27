@@ -597,6 +597,123 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             elif message_type == "ping":
                 # Keep-alive ping
                 await websocket.send_json({"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()})
+            
+            # ============== WebRTC Signaling ==============
+            elif message_type == "call_initiate":
+                # User initiating a call
+                call_data = data.get("data", {})
+                target_user_id = call_data.get("target_user_id")
+                call_type = call_data.get("call_type", "audio")  # audio or video
+                call_id = call_data.get("call_id", str(uuid.uuid4()))
+                
+                # Send call request to target user
+                call_msg = {
+                    "type": "incoming_call",
+                    "data": {
+                        "call_id": call_id,
+                        "caller_id": user_id,
+                        "call_type": call_type,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                }
+                await manager.send_personal_message(call_msg, target_user_id)
+                logger.info(f"Call initiated from {user_id} to {target_user_id} ({call_type})")
+            
+            elif message_type == "call_accept":
+                # User accepting a call
+                call_data = data.get("data", {})
+                caller_id = call_data.get("caller_id")
+                call_id = call_data.get("call_id")
+                
+                accept_msg = {
+                    "type": "call_accepted",
+                    "data": {
+                        "call_id": call_id,
+                        "accepted_by": user_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                }
+                await manager.send_personal_message(accept_msg, caller_id)
+                logger.info(f"Call {call_id} accepted by {user_id}")
+            
+            elif message_type == "call_reject":
+                # User rejecting a call
+                call_data = data.get("data", {})
+                caller_id = call_data.get("caller_id")
+                call_id = call_data.get("call_id")
+                
+                reject_msg = {
+                    "type": "call_rejected",
+                    "data": {
+                        "call_id": call_id,
+                        "rejected_by": user_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                }
+                await manager.send_personal_message(reject_msg, caller_id)
+                logger.info(f"Call {call_id} rejected by {user_id}")
+            
+            elif message_type == "call_end":
+                # User ending a call
+                call_data = data.get("data", {})
+                target_user_id = call_data.get("target_user_id")
+                call_id = call_data.get("call_id")
+                
+                end_msg = {
+                    "type": "call_ended",
+                    "data": {
+                        "call_id": call_id,
+                        "ended_by": user_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                }
+                await manager.send_personal_message(end_msg, target_user_id)
+                logger.info(f"Call {call_id} ended by {user_id}")
+            
+            elif message_type == "webrtc_offer":
+                # WebRTC SDP offer
+                signal_data = data.get("data", {})
+                target_user_id = signal_data.get("target_user_id")
+                
+                offer_msg = {
+                    "type": "webrtc_offer",
+                    "data": {
+                        "call_id": signal_data.get("call_id"),
+                        "from_user_id": user_id,
+                        "offer": signal_data.get("offer")
+                    }
+                }
+                await manager.send_personal_message(offer_msg, target_user_id)
+            
+            elif message_type == "webrtc_answer":
+                # WebRTC SDP answer
+                signal_data = data.get("data", {})
+                target_user_id = signal_data.get("target_user_id")
+                
+                answer_msg = {
+                    "type": "webrtc_answer",
+                    "data": {
+                        "call_id": signal_data.get("call_id"),
+                        "from_user_id": user_id,
+                        "answer": signal_data.get("answer")
+                    }
+                }
+                await manager.send_personal_message(answer_msg, target_user_id)
+            
+            elif message_type == "webrtc_ice_candidate":
+                # WebRTC ICE candidate
+                signal_data = data.get("data", {})
+                target_user_id = signal_data.get("target_user_id")
+                
+                ice_msg = {
+                    "type": "webrtc_ice_candidate",
+                    "data": {
+                        "call_id": signal_data.get("call_id"),
+                        "from_user_id": user_id,
+                        "candidate": signal_data.get("candidate")
+                    }
+                }
+                await manager.send_personal_message(ice_msg, target_user_id)
     
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
