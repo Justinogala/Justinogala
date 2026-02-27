@@ -272,15 +272,6 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
         </div>
       </div>
 
-      {/* Scheduler Modal */}
-      <MeetingSchedulerModal 
-        isOpen={isSchedulerOpen}
-        onClose={() => setIsSchedulerOpen(false)}
-        onSubmit={handleScheduleSubmit}
-        initialData={editingMeeting}
-        isSubmitting={isSubmitting}
-      />
-
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent>
