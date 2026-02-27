@@ -358,22 +358,37 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 4. GIPHY Integration (removed per user request, can be re-added later)
 
 ### WebRTC Audio/Video Calls (Feb 27, 2026)
-- [x] **WebRTC Signaling Server** - Backend WebSocket signaling for peer-to-peer calls
+- [x] **WebRTC Signaling Server** - Backend REST API + SSE for peer-to-peer calls
   - Supports call_initiate, call_accept, call_reject, call_end
   - Supports webrtc_offer, webrtc_answer, webrtc_ice_candidate exchange
-  - Added to server.py WebSocket handler
+  - Call events sent via SSE to recipients
 - [x] **WebRTC Service** - Frontend WebRTC implementation
   - `/app/src/services/webrtcService.js` - Peer connection management
   - STUN servers configured (Google STUN servers)
   - Audio/video stream management
 - [x] **Call Hook** - React hook for call management
   - `/app/src/hooks/useWebRTCCall.js` - Call state, initiate, accept, reject, end
-  - WebSocket connection for signaling
+  - Uses REST API for signaling instead of WebSocket
 - [x] **Call UI Components**
   - `/app/src/components/chat/CallInterface.jsx` - Active call interface with mute/video toggle
   - `/app/src/components/chat/IncomingCallModal.jsx` - Incoming call modal with accept/reject
 - [x] **Chat Page Integration**
   - Phone button (audio call) with data-testid='audio-call-btn'
   - Video button (video call) with data-testid='video-call-btn'
-  - Buttons disabled when user is offline
-  - Call UI shows when call is active
+  - Buttons disabled when user is offline with tooltip
+
+### Workspace Member Management (Feb 27, 2026)
+- [x] **Add Member Feature** - Direct member addition without approval workflow
+  - Changed "Send Invite" to "Add Member"
+  - Members are added instantly with status='active'
+  - Search users by email or name as you type
+  - Click search result to add immediately
+- [x] **Backend APIs**:
+  - `GET /api/users/search?q={query}` - Search users by email or name
+  - `GET /api/users/by-email/{email}` - Get user by exact email
+  - `GET /api/workspaces/{id}/members` - List workspace members
+  - `POST /api/workspaces/{id}/members` - Add member directly
+  - `PUT /api/workspaces/{id}/members/{user_id}` - Update member role
+  - `DELETE /api/workspaces/{id}/members/{user_id}` - Remove member
+- [x] **MongoDB Collection**: `workspace_members` stores member relationships
+- [x] **Frontend Component**: `/app/src/components/WorkspaceMemberManagement.jsx`
