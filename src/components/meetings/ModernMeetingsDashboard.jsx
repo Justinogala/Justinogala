@@ -86,11 +86,6 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
     loadMeetings();
   }, [loadMeetings]);
 
-  const handleOpenScheduler = () => {
-    setEditingMeeting(null);
-    setIsSchedulerOpen(true);
-  };
-
   const handleEditMeeting = (id) => {
     const meeting = meetings.find(m => m.id === id);
     if (meeting) {
