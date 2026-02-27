@@ -179,70 +179,124 @@ class TestAddMemberEmailNotification:
             return response.json()
         return None
     
-    def test_add_member_api_exists(self, auth_token, test_workspace):
+    def test_add_member_api_exists(self):
         """Test that add member API endpoint exists and handles requests"""
-        workspace_id = test_workspace["workspace_id"]
+        token = self.get_auth_token()
+        if not token:
+            pytest.skip("Authentication failed")
         
-        # Try to add a non-existent user - should return 404 with clear message
-        response = requests.post(
-            f"{BASE_URL}/api/workspaces/{workspace_id}/members",
-            headers={"Authorization": f"Bearer {auth_token}"},
+        admin_user = self.get_admin_user(token)
+        if not admin_user:
+            pytest.skip("Could not get admin user")
+        
+        # Create a test workspace
+        ws_response = requests.post(
+            f"{BASE_URL}/api/workspaces",
+            headers={"Authorization": f"Bearer {token}"},
             json={
-                "email": "nonexistent_test_user@example.com",
-                "role": "member",
-                "added_by": test_workspace["admin_id"]
+                "name": f"TEST_EmailNotif_WS_{int(time.time())}",
+                "description": "Test workspace",
+                "owner_id": admin_user.get("id")
             }
         )
         
-        # Should return 404 because user doesn't exist
-        assert response.status_code == 404, f"Expected 404 for non-existent user, got {response.status_code}: {response.text}"
-        data = response.json()
-        assert "detail" in data, "Should return error detail"
-        print(f"Add member response for non-existent user: {data['detail']}")
+        if ws_response.status_code not in [200, 201]:
+            pytest.skip(f"Could not create workspace: {ws_response.text}")
+        
+        ws_data = ws_response.json()
+        workspace_id = ws_data.get("workspace", {}).get("id") or ws_data.get("id")
+        
+        try:
+            # Try to add a non-existent user - should return 404 with clear message
+            response = requests.post(
+                f"{BASE_URL}/api/workspaces/{workspace_id}/members",
+                headers={"Authorization": f"Bearer {token}"},
+                json={
+                    "email": "nonexistent_test_user@example.com",
+                    "role": "member",
+                    "added_by": admin_user.get("id")
+                }
+            )
+            
+            # Should return 404 because user doesn't exist
+            assert response.status_code == 404, f"Expected 404 for non-existent user, got {response.status_code}: {response.text}"
+            data = response.json()
+            assert "detail" in data, "Should return error detail"
+            print(f"Add member response for non-existent user: {data['detail']}")
+        finally:
+            # Cleanup workspace
+            requests.delete(f"{BASE_URL}/api/workspaces/{workspace_id}", headers={"Authorization": f"Bearer {token}"})
     
-    def test_add_existing_user_triggers_email_attempt(self, auth_token, test_workspace):
+    def test_add_existing_user_triggers_email_attempt(self):
         """Test that adding an existing user triggers email notification attempt"""
-        workspace_id = test_workspace["workspace_id"]
+        token = self.get_auth_token()
+        if not token:
+            pytest.skip("Authentication failed")
         
-        # First, let's get a list of existing users
-        users_response = requests.get(f"{BASE_URL}/api/users")
-        if users_response.status_code != 200:
-            pytest.skip("Could not get users list")
+        admin_user = self.get_admin_user(token)
+        if not admin_user:
+            pytest.skip("Could not get admin user")
         
-        users = users_response.json().get("users", [])
-        
-        # Find a user that's not the admin and not already in workspace
-        target_user = None
-        for user in users:
-            if user.get("email") != TEST_ADMIN_EMAIL:
-                target_user = user
-                break
-        
-        if not target_user:
-            pytest.skip("No other user available for testing")
-        
-        # Add the user to workspace - this should trigger email
-        response = requests.post(
-            f"{BASE_URL}/api/workspaces/{workspace_id}/members",
-            headers={"Authorization": f"Bearer {auth_token}"},
+        # Create a test workspace
+        ws_response = requests.post(
+            f"{BASE_URL}/api/workspaces",
+            headers={"Authorization": f"Bearer {token}"},
             json={
-                "email": target_user["email"],
-                "role": "member",
-                "added_by": test_workspace["admin_id"]
+                "name": f"TEST_EmailNotif_WS2_{int(time.time())}",
+                "description": "Test workspace for email",
+                "owner_id": admin_user.get("id")
             }
         )
         
-        print(f"Add member response status: {response.status_code}")
-        print(f"Add member response: {response.text}")
+        if ws_response.status_code not in [200, 201]:
+            pytest.skip(f"Could not create workspace: {ws_response.text}")
         
-        # Should succeed (email may fail silently with placeholder API key)
-        assert response.status_code in [200, 201], f"Expected success, got {response.status_code}: {response.text}"
+        ws_data = ws_response.json()
+        workspace_id = ws_data.get("workspace", {}).get("id") or ws_data.get("id")
         
-        data = response.json()
-        assert data.get("success") == True, "Should return success=true"
-        assert "member" in data, "Should return member data"
-        print(f"Member added: {data['member'].get('email')}")
-        print("Note: Email notification attempted (check backend logs for result)")
+        try:
+            # Get a list of existing users
+            users_response = requests.get(f"{BASE_URL}/api/users")
+            if users_response.status_code != 200:
+                pytest.skip("Could not get users list")
+            
+            users = users_response.json().get("users", [])
+            
+            # Find a user that's not the admin
+            target_user = None
+            for user in users:
+                if user.get("email") != TEST_ADMIN_EMAIL and user.get("id") != admin_user.get("id"):
+                    target_user = user
+                    break
+            
+            if not target_user:
+                pytest.skip("No other user available for testing")
+            
+            # Add the user to workspace - this should trigger email
+            response = requests.post(
+                f"{BASE_URL}/api/workspaces/{workspace_id}/members",
+                headers={"Authorization": f"Bearer {token}"},
+                json={
+                    "email": target_user["email"],
+                    "role": "member",
+                    "added_by": admin_user.get("id")
+                }
+            )
+            
+            print(f"Add member response status: {response.status_code}")
+            print(f"Add member response: {response.text}")
+            
+            # Should succeed (email may fail silently with placeholder API key)
+            assert response.status_code in [200, 201], f"Expected success, got {response.status_code}: {response.text}"
+            
+            data = response.json()
+            assert data.get("success") == True, "Should return success=true"
+            assert "member" in data, "Should return member data"
+            print(f"Member added: {data['member'].get('email')}")
+            print("Note: Email notification attempted (check backend logs for Resend API result)")
+        finally:
+            # Cleanup workspace
+            requests.delete(f"{BASE_URL}/api/workspaces/{workspace_id}", headers={"Authorization": f"Bearer {token}"})
 
 
 class TestChatMessagesAPI:
