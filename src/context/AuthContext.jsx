@@ -40,37 +40,38 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // 1. Check User Session
+      // Check for existing session
       try {
         const sessionJson = localStorage.getItem(SESSIONS_KEY);
-        if (sessionJson) {
+        const authUserJson = localStorage.getItem(AUTH_KEY);
+        
+        if (sessionJson && authUserJson) {
           const session = JSON.parse(sessionJson);
           const sessionAge = new Date() - new Date(session.createdAt);
+          
+          // Session expires after 24 hours
           if (sessionAge > 24 * 60 * 60 * 1000) {
             localStorage.removeItem(SESSIONS_KEY);
+            localStorage.removeItem(AUTH_KEY);
           } else {
-            const usersJson = localStorage.getItem(USERS_KEY);
-            const users = usersJson ? JSON.parse(usersJson) : [];
-            const foundUser = users.find(u => u.id === session.userId);
+            const foundUser = JSON.parse(authUserJson);
             
-            if (foundUser) {
-              // Check if user is suspended
-              if (foundUser.status === 'Suspended' || foundUser.status === 'suspended') {
-                 localStorage.removeItem(SESSIONS_KEY);
-                 setUser(null);
-                 setIsAuthenticated(false);
-              } else {
-                setUser(foundUser);
-                setIsAuthenticated(true);
-              }
-            } else {
+            // Check if user is suspended
+            if (foundUser.status === 'Suspended' || foundUser.status === 'suspended') {
               localStorage.removeItem(SESSIONS_KEY);
+              localStorage.removeItem(AUTH_KEY);
+              setUser(null);
+              setIsAuthenticated(false);
+            } else {
+              setUser(foundUser);
+              setIsAuthenticated(true);
             }
           }
         }
       } catch (err) {
         console.error("Failed to load user session", err);
         localStorage.removeItem(SESSIONS_KEY);
+        localStorage.removeItem(AUTH_KEY);
       }
 
       setLoading(false);
