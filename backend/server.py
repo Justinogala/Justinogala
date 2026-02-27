@@ -2184,6 +2184,52 @@ async def get_all_users():
         logger.error(f"Error fetching users: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/users/search")
+async def search_users(email: str = None, q: str = None):
+    """Search users by email or name"""
+    try:
+        query = {}
+        if email:
+            query["email"] = {"$regex": email, "$options": "i"}
+        elif q:
+            query["$or"] = [
+                {"email": {"$regex": q, "$options": "i"}},
+                {"name": {"$regex": q, "$options": "i"}}
+            ]
+        
+        users_cursor = db.users.find(query, {"_id": 0, "password": 0, "password_hash": 0}).limit(20)
+        users = await users_cursor.to_list(length=20)
+        
+        for user in users:
+            for key in ["created_at", "joined_date", "last_active"]:
+                if key in user and hasattr(user[key], 'isoformat'):
+                    user[key] = user[key].isoformat()
+        
+        return {"users": users}
+    except Exception as e:
+        logger.error(f"Error searching users: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/users/by-email/{email}")
+async def get_user_by_email(email: str):
+    """Get a user by exact email"""
+    try:
+        user = await db.users.find_one({"email": email.lower()}, {"_id": 0, "password": 0, "password_hash": 0})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        for key in ["created_at", "joined_date", "last_active"]:
+            if key in user and hasattr(user[key], 'isoformat'):
+                user[key] = user[key].isoformat()
+        
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user by email: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/users/{user_id}")
 async def get_user(user_id: str):
     """Get a single user by ID"""
