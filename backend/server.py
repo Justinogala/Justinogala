@@ -2510,6 +2510,17 @@ async def add_workspace_member(workspace_id: str, member_data: WorkspaceMemberAd
         if existing:
             raise HTTPException(status_code=400, detail="User is already a member of this workspace")
         
+        # Get workspace info for email
+        workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
+        workspace_name = workspace.get("name", "a workspace") if workspace else "a workspace"
+        
+        # Get inviter info
+        inviter_name = "A team member"
+        if member_data.added_by:
+            inviter = await db.users.find_one({"id": member_data.added_by}, {"_id": 0, "name": 1, "email": 1})
+            if inviter:
+                inviter_name = inviter.get("name", inviter.get("email", "A team member"))
+        
         # Add member directly with active status
         member_doc = {
             "id": str(uuid.uuid4()),
@@ -2524,6 +2535,66 @@ async def add_workspace_member(workspace_id: str, member_data: WorkspaceMemberAd
         }
         
         await db.workspace_members.insert_one(member_doc)
+        
+        # Send email notification
+        try:
+            if resend.api_key:
+                html_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; }}
+                        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                        .header {{ background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }}
+                        .content {{ background: #f8fafc; padding: 30px; border-radius: 0 0 12px 12px; }}
+                        .button {{ display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; }}
+                        .footer {{ text-align: center; color: #64748b; font-size: 12px; margin-top: 20px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1 style="margin: 0;">Welcome to {workspace_name}!</h1>
+                        </div>
+                        <div class="content">
+                            <p>Hi {user.get('name', 'there')},</p>
+                            <p><strong>{inviter_name}</strong> has added you to <strong>{workspace_name}</strong> on Munal AI.</p>
+                            <p>You now have access to:</p>
+                            <ul>
+                                <li>Real-time team chat</li>
+                                <li>Audio & video calls</li>
+                                <li>Screen recording & sharing</li>
+                                <li>AI-powered meeting notes</li>
+                            </ul>
+                            <p>Your role: <strong>{member_data.role.capitalize()}</strong></p>
+                            <center>
+                                <a href="{os.environ.get('FRONTEND_URL', 'https://munal.ai')}/workspace/chat" class="button">
+                                    Open Workspace
+                                </a>
+                            </center>
+                            <p style="color: #64748b; font-size: 14px;">If you didn't expect this invitation, you can ignore this email.</p>
+                        </div>
+                        <div class="footer">
+                            <p>Munal AI - Smart Meeting Assistant</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                params = {
+                    "from": SENDER_EMAIL,
+                    "to": [user["email"]],
+                    "subject": f"You've been added to {workspace_name} - Munal AI",
+                    "html": html_content
+                }
+                
+                await asyncio.to_thread(resend.Emails.send, params)
+                logger.info(f"Workspace invitation email sent to {user['email']}")
+        except Exception as email_error:
+            logger.warning(f"Failed to send workspace invitation email: {email_error}")
+            # Don't fail the request if email fails
         
         # Return member with user info
         member_doc["user"] = user
