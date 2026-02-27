@@ -928,15 +928,11 @@ async def send_call_signal(request: CallSignalRequest):
     call_signals[call_id].append(signal)
     
     # Send signal via SSE to target user
-    signal_msg = {
-        "type": f"webrtc_{request.signal_type}",
-        "data": {
-            "call_id": call_id,
-            "from_user_id": request.caller_id,
-            request.signal_type: request.signal_data
-        }
-    }
-    await manager.send_personal_message(signal_msg, request.target_user_id)
+    await sse_manager.send_to_user(request.target_user_id, f"webrtc_{request.signal_type}", {
+        "call_id": call_id,
+        "from_user_id": request.caller_id,
+        request.signal_type: request.signal_data
+    })
     
     return {"success": True}
 
