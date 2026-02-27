@@ -15,7 +15,7 @@ const MeetingsList = ({
   onCreateNew,
   loading = false
 }) => {
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [filterType, setFilterType] = useState('all'); 
