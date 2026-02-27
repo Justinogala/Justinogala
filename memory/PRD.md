@@ -321,8 +321,38 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - Pagination support
 - [x] **Sidebar Link** - Added Audit Logs to admin sidebar under Configuration
 
+### Admin Panel Enhancements (Feb 26, 2026)
+- [x] **IP Address & User Agent Tracking** - All audit log entries capture client IP and browser info
+  - `get_client_ip()` extracts IP from X-Forwarded-For or request.client
+  - `get_user_agent()` extracts browser user agent from headers
+  - Displayed in audit logs with Globe and Monitor icons
+- [x] **Audit Log Export** - Export audit logs to CSV or JSON formats
+  - Export dropdown button in Audit Logs page header
+  - `GET /api/admin/audit-logs/export?format=csv|json` endpoint
+  - CSV includes all fields: timestamp, action, category, admin, IP, user agent, details
+  - JSON export with exported_at timestamp and count
+- [x] **Admin Coupons Management** (`/admin/coupons`)
+  - Full CRUD: Create, Read, Update, Delete coupons
+  - Stats cards: Total Coupons, Active, Total Uses
+  - Search and status filtering
+  - Coupon code auto-uppercase
+  - Support for percentage and fixed discount types
+  - Max uses, uses per user, min order amount settings
+  - Valid until date with calendar picker
+  - Copy coupon code to clipboard
+  - Toggle active/inactive status
+- [x] **Admin Tax Rates Management** (`/admin/tax-rates`)
+  - Full CRUD: Create, Read, Update, Delete tax rates
+  - Stats cards: Total Rates, Active, Countries
+  - Country dropdown with 10 major countries
+  - State/province optional field
+  - Tax inclusive/exclusive toggle
+  - Rate percentage input with precision
+  - Country filter dropdown
+  - Location display with country name and state badge
+
 ## Next Tasks
-1. Complete admin-side Coupons and Tax Rates management logic
+1. GIPHY Integration (removed per user request, can be re-added later)
 2. Cloud storage migration (GridFS → AWS S3 for production)
 3. Refactor server.py into modular route files
-4. GIPHY Integration (removed per user request, can be re-added later)
+4. Rename `useWebSocketChat.js` to `useSseChat.js`
