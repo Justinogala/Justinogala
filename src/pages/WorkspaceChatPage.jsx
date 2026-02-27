@@ -336,15 +336,15 @@ const WorkspaceChatPage = () => {
           <ScrollArea className="flex-1">
             <div className="p-2">
               {/* Online Now Section */}
-              {filteredUsers.filter(u => u.isOnline).length > 0 && (
+              {filteredUsers.filter(u => isUserOnline(u.id)).length > 0 && (
                 <div className="mb-4">
                   <p className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    Online Now — {filteredUsers.filter(u => u.isOnline).length}
+                    Online Now — {filteredUsers.filter(u => isUserOnline(u.id)).length}
                   </p>
                   <div className="space-y-1">
-                    {filteredUsers.filter(u => u.isOnline).map((user, index) => (
+                    {filteredUsers.filter(u => isUserOnline(u.id)).map((user, index) => (
                       <UserItem 
-                        key={user.id} 
+                        key={user.id || `online-${index}`} 
                         user={user} 
                         index={index}
                         isSelected={selectedUserId === user.id}
