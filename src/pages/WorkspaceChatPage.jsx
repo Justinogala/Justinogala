@@ -91,9 +91,29 @@ const WorkspaceChatPage = () => {
 
   const isTyping = selectedUserId ? isUserTyping(selectedUserId) : false;
 
+  // Load real users from database
   useEffect(() => {
-    setUsers(messagingService.getAllUsers());
-  }, []);
+    const loadUsers = async () => {
+      try {
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/users`);
+        if (response.ok) {
+          const data = await response.json();
+          // Filter out current user and add status
+          const otherUsers = (data.users || []).filter(u => u.id !== activeUser?.id);
+          setUsers(otherUsers);
+        }
+      } catch (err) {
+        console.error('Error loading users:', err);
+        // Fallback to mock data
+        setUsers(messagingService.getAllUsers());
+      }
+    };
+    
+    if (activeUser) {
+      loadUsers();
+    }
+  }, [activeUser?.id]);
 
   useEffect(() => {
     if (selectedUserId && activeUser) {
