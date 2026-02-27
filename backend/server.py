@@ -2396,7 +2396,8 @@ async def create_workspace(workspace: WorkspaceCreate):
         await db.workspace_members.insert_one(owner_member)
         
         # Return without _id
-        del workspace_doc["_id"] if "_id" in workspace_doc else None
+        if "_id" in workspace_doc:
+            del workspace_doc["_id"]
         
         logger.info(f"Workspace {workspace_id} created by {workspace.owner_id}")
         return {"success": True, "workspace": workspace_doc}
