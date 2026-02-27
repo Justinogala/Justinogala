@@ -361,14 +361,14 @@ const WorkspaceChatPage = () => {
                 All Messages
               </p>
               <div className="space-y-1">
-                {filteredUsers.filter(u => !u.isOnline).map((user, index) => (
+                {filteredUsers.filter(u => !isUserOnline(u.id)).map((user, index) => (
                   <UserItem 
-                    key={user.id} 
+                    key={user.id || `offline-${index}`} 
                     user={user} 
-                    index={index + filteredUsers.filter(u => u.isOnline).length}
+                    index={index + filteredUsers.filter(u => isUserOnline(u.id)).length}
                     isSelected={selectedUserId === user.id}
                     onClick={() => setSelectedUserId(user.id)}
-                    gradient={getAvatarGradient(index + filteredUsers.filter(u => u.isOnline).length)}
+                    gradient={getAvatarGradient(index + filteredUsers.filter(u => isUserOnline(u.id)).length)}
                   />
                 ))}
               </div>
