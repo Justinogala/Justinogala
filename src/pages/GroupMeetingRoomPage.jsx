@@ -1000,18 +1000,18 @@ const GroupMeetingRoomPage = () => {
         </AnimatePresence>
       </div>
       
-      {/* Controls */}
+      {/* Controls - Mobile optimized */}
       <TooltipProvider>
-        <div className="flex items-center justify-center gap-3 py-5 px-6 bg-slate-900 border-t border-white/10">
-          {/* Left Controls */}
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-3 py-3 sm:py-5 px-2 sm:px-6 bg-slate-900 border-t border-white/10 pb-safe">
+          {/* Primary Controls - Always visible */}
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
                     size="lg"
                     className={cn(
-                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      "rounded-xl h-11 w-11 sm:h-14 sm:w-14 shadow-lg transition-all",
                       isAudioEnabled 
                         ? "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600" 
                         : "bg-red-500 hover:bg-red-400 text-white"
@@ -1019,9 +1019,9 @@ const GroupMeetingRoomPage = () => {
                     onClick={toggleAudio}
                     data-testid="toggle-mic-btn"
                   >
-                    {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+                    {isAudioEnabled ? <Mic className="w-5 h-5 sm:w-6 sm:h-6" /> : <MicOff className="w-5 h-5 sm:w-6 sm:h-6" />}
                   </Button>
-                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
+                  <span className="text-[10px] sm:text-xs text-gray-300 mt-1 sm:mt-1.5 font-medium">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent><p>{isAudioEnabled ? 'Turn off microphone' : 'Turn on microphone'}</p></TooltipContent>
@@ -1033,7 +1033,7 @@ const GroupMeetingRoomPage = () => {
                   <Button
                     size="lg"
                     className={cn(
-                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      "rounded-xl h-11 w-11 sm:h-14 sm:w-14 shadow-lg transition-all",
                       isVideoEnabled 
                         ? "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600" 
                         : "bg-red-500 hover:bg-red-400 text-white"
@@ -1041,17 +1041,18 @@ const GroupMeetingRoomPage = () => {
                     onClick={toggleVideo}
                     data-testid="toggle-video-btn"
                   >
-                    {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                    {isVideoEnabled ? <Video className="w-5 h-5 sm:w-6 sm:h-6" /> : <VideoOff className="w-5 h-5 sm:w-6 sm:h-6" />}
                   </Button>
-                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
+                  <span className="text-[10px] sm:text-xs text-gray-300 mt-1 sm:mt-1.5 font-medium">{isVideoEnabled ? 'Video' : 'Video'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent><p>{isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}</p></TooltipContent>
             </Tooltip>
             
+            {/* Screen share - Hidden on mobile */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex flex-col items-center">
+                <div className="hidden sm:flex flex-col items-center">
                   <Button
                     size="lg"
                     className={cn(
@@ -1065,7 +1066,7 @@ const GroupMeetingRoomPage = () => {
                   >
                     {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
                   </Button>
-                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isScreenSharing ? 'Stop Share' : 'Share'}</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isScreenSharing ? 'Stop' : 'Share'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent><p>{isScreenSharing ? 'Stop screen sharing' : 'Share your screen'}</p></TooltipContent>
@@ -1077,7 +1078,7 @@ const GroupMeetingRoomPage = () => {
                   <Button
                     size="lg"
                     className={cn(
-                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      "rounded-xl h-11 w-11 sm:h-14 sm:w-14 shadow-lg transition-all",
                       handRaised 
                         ? "bg-yellow-500 hover:bg-yellow-400 text-white" 
                         : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
@@ -1085,9 +1086,9 @@ const GroupMeetingRoomPage = () => {
                     onClick={toggleHandRaise}
                     data-testid="raise-hand-btn"
                   >
-                    <Hand className="w-6 h-6" />
+                    <Hand className="w-5 h-5 sm:w-6 sm:h-6" />
                   </Button>
-                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{handRaised ? 'Lower' : 'Raise'}</span>
+                  <span className="text-[10px] sm:text-xs text-gray-300 mt-1 sm:mt-1.5 font-medium">{handRaised ? 'Lower' : 'Raise'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent><p>{handRaised ? 'Lower your hand' : 'Raise your hand'}</p></TooltipContent>
@@ -1095,19 +1096,20 @@ const GroupMeetingRoomPage = () => {
           </div>
           
           {/* Center - End Call */}
-          <div className="mx-6">
+          <div className="mx-2 sm:mx-6">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
                     size="lg"
-                    className="rounded-xl h-14 px-8 bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/30 font-semibold"
+                    className="rounded-xl h-11 sm:h-14 px-4 sm:px-8 bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/30 font-semibold"
                     onClick={leaveMeeting}
                     data-testid="leave-meeting-btn"
                   >
-                    <PhoneOff className="w-5 h-5 mr-2" />
-                    Leave
+                    <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                    <span className="hidden sm:inline">Leave</span>
                   </Button>
+                  <span className="text-[10px] sm:hidden text-gray-300 mt-1 font-medium">Leave</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent><p>Leave meeting</p></TooltipContent>
@@ -1115,14 +1117,14 @@ const GroupMeetingRoomPage = () => {
           </div>
           
           {/* Right Controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
                     size="lg"
                     className={cn(
-                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      "rounded-xl h-11 w-11 sm:h-14 sm:w-14 shadow-lg transition-all",
                       showParticipants 
                         ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
                         : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
@@ -1130,9 +1132,9 @@ const GroupMeetingRoomPage = () => {
                     onClick={() => { setShowParticipants(!showParticipants); setShowChat(false); }}
                     data-testid="participants-btn"
                   >
-                    <Users className="w-6 h-6" />
+                    <Users className="w-5 h-5 sm:w-6 sm:h-6" />
                   </Button>
-                  <span className="text-xs text-gray-300 mt-1.5 font-medium">People</span>
+                  <span className="text-[10px] sm:text-xs text-gray-300 mt-1 sm:mt-1.5 font-medium">People</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent><p>View participants</p></TooltipContent>
@@ -1144,7 +1146,7 @@ const GroupMeetingRoomPage = () => {
                   <Button
                     size="lg"
                     className={cn(
-                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      "rounded-xl h-11 w-11 sm:h-14 sm:w-14 shadow-lg transition-all",
                       showChat 
                         ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
                         : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
@@ -1152,17 +1154,18 @@ const GroupMeetingRoomPage = () => {
                     onClick={() => { setShowChat(!showChat); setShowParticipants(false); }}
                     data-testid="chat-btn"
                   >
-                    <MessageSquare className="w-6 h-6" />
+                    <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
                   </Button>
-                  <span className="text-xs text-gray-300 mt-1.5 font-medium">Chat</span>
+                  <span className="text-[10px] sm:text-xs text-gray-300 mt-1 sm:mt-1.5 font-medium">Chat</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent><p>Open meeting chat</p></TooltipContent>
             </Tooltip>
             
+            {/* Grid button - Hidden on mobile */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex flex-col items-center">
+                <div className="hidden sm:flex flex-col items-center">
                   <Button
                     size="lg"
                     className={cn(
