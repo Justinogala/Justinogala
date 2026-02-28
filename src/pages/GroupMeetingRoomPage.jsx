@@ -66,23 +66,26 @@ const ParticipantTile = ({
 }) => {
   const videoRef = useRef(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const streamIdRef = useRef(null);
   
-  // Attach stream to video element and handle playback
+  // Handle video playback when stream or video_enabled changes
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     
+    const currentStreamId = stream?.id || null;
+    const streamChanged = streamIdRef.current !== currentStreamId;
+    streamIdRef.current = currentStreamId;
+    
     console.log(`[ParticipantTile] ${participant.user_name}: Setting up video`, {
-      streamId: stream?.id || 'null',
+      streamId: currentStreamId,
       streamActive: stream?.active,
       videoTracks: stream?.getVideoTracks()?.length || 0,
       videoTracksEnabled: stream?.getVideoTracks()?.map(t => ({ id: t.id, enabled: t.enabled, readyState: t.readyState })),
       videoEnabled: participant.video_enabled,
-      isLocal
+      isLocal,
+      streamChanged
     });
-    
-    // Reset video state
-    setIsVideoPlaying(false);
     
     // Always set srcObject
     video.srcObject = stream || null;
@@ -98,66 +101,50 @@ const ParticipantTile = ({
     console.log(`[ParticipantTile] ${participant.user_name}: Has enabled video track:`, hasEnabledVideoTrack);
     
     if (hasEnabledVideoTrack && participant.video_enabled) {
-      // Try to play the video
-      const playVideo = async () => {
-        try {
-          await video.play();
-          setIsVideoPlaying(true);
-          console.log(`[ParticipantTile] ${participant.user_name}: Video is now playing!`);
-        } catch (err) {
-          console.log(`[ParticipantTile] ${participant.user_name}: Play failed:`, err.name, err.message);
-          // For autoplay errors, the video element will still show the stream once user interacts
-          // Check if video has frames by checking videoWidth/videoHeight
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-            setIsVideoPlaying(true);
-          }
-        }
+      // Set up event listeners for video playback
+      const handlePlaying = () => {
+        console.log(`[ParticipantTile] ${participant.user_name}: Video playing event fired`);
+        setIsVideoPlaying(true);
       };
       
-      // Wait for video to be ready, then play
+      const handleLoadedData = () => {
+        console.log(`[ParticipantTile] ${participant.user_name}: Video loadeddata event fired`);
+        video.play().catch(err => {
+          console.log(`[ParticipantTile] ${participant.user_name}: Play after loadeddata failed:`, err.name);
+        });
+      };
+      
+      video.addEventListener('playing', handlePlaying);
+      video.addEventListener('loadeddata', handleLoadedData);
+      
+      // Try to play immediately if already ready
       if (video.readyState >= 2) {
-        playVideo();
-      } else {
-        video.onloadeddata = () => {
-          console.log(`[ParticipantTile] ${participant.user_name}: Video data loaded`);
-          playVideo();
-        };
+        video.play().catch(err => {
+          console.log(`[ParticipantTile] ${participant.user_name}: Initial play failed:`, err.name);
+        });
       }
-    }
-    
-    // Cleanup
-    return () => {
-      video.onloadeddata = null;
-    };
-  }, [stream, participant.user_name, participant.video_enabled, isLocal]);
-  
-  // Additional effect to handle video_enabled toggle
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !stream) return;
-    
-    const videoTracks = stream.getVideoTracks();
-    if (videoTracks.length === 0) return;
-    
-    // When video_enabled changes, update playing state
-    if (participant.video_enabled && videoTracks.some(t => t.enabled)) {
-      video.play().then(() => {
-        setIsVideoPlaying(true);
-        console.log(`[ParticipantTile] ${participant.user_name}: Video resumed playing`);
-      }).catch(() => {
-        // Check if already has frames
-        if (video.videoWidth > 0) setIsVideoPlaying(true);
-      });
+      
+      return () => {
+        video.removeEventListener('playing', handlePlaying);
+        video.removeEventListener('loadeddata', handleLoadedData);
+      };
     } else {
-      setIsVideoPlaying(false);
+      // Video should not be playing - use callback to avoid lint warning
+      setIsVideoPlaying(prev => {
+        if (prev) {
+          console.log(`[ParticipantTile] ${participant.user_name}: Stopping video display`);
+          return false;
+        }
+        return prev;
+      });
     }
-  }, [participant.video_enabled, stream, participant.user_name]);
+  }, [stream, participant.user_name, participant.video_enabled, isLocal]);
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
   
-  // Show video if: participant wants video enabled AND (video is playing OR we have an active stream with video tracks)
+  // Show video if: participant wants video enabled AND we have an active stream
   const hasVideoTrack = stream?.getVideoTracks()?.some(t => t.enabled);
-  const showVideo = participant.video_enabled && stream && stream.active && (isVideoPlaying || hasVideoTrack);
+  const showVideo = participant.video_enabled && stream && stream.active && hasVideoTrack;
   
   return (
     <motion.div 
