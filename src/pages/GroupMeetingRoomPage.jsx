@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Video, VideoOff, Mic, MicOff, PhoneOff, Users, 
   MessageSquare, Monitor, MonitorOff, Copy, Check, Clock, Calendar,
-  Hand, MoreHorizontal, Grid, Maximize2, Volume2, Menu, X
+  Hand, MoreHorizontal, Grid, Maximize2, Volume2, Menu, X, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/tooltip';
 import useGroupWebRTC from '@/hooks/useGroupWebRTC';
 import useAudioLevelDetection from '@/hooks/useAudioLevelDetection';
+import useVirtualBackground, { BACKGROUND_EFFECTS } from '@/hooks/useVirtualBackground';
+import VirtualBackgroundSelector from '@/components/meetings/VirtualBackgroundSelector';
 
 const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
