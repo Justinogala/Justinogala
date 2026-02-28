@@ -126,7 +126,14 @@ const MeetingRoomPage = () => {
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
           localVideoRef.current.onloadedmetadata = () => {
-            localVideoRef.current?.play().catch(e => console.log('Video play error:', e));
+            if (isMounted) {
+              localVideoRef.current?.play()
+                .then(() => {
+                  setVideoPlaying(true);
+                  console.log('Video playing successfully');
+                })
+                .catch(e => console.log('Video play error:', e));
+            }
           };
         }
         
