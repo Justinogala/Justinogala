@@ -684,22 +684,31 @@ const GroupMeetingRoomPage = () => {
                     autoPlay
                     playsInline
                     muted
+                    onCanPlay={(e) => {
+                      // Ensure video plays when it can
+                      e.target.play().catch(err => console.log('Auto-play prevented:', err));
+                    }}
                     className={cn(
-                      "w-full h-full object-cover",
-                      (!isVideoEnabled || !previewStream) && "hidden"
+                      "w-full h-full object-cover transition-opacity",
+                      (!isVideoEnabled || !previewStream) ? "opacity-0 absolute" : "opacity-100"
                     )}
                   />
                   
                   {/* Avatar when no video */}
                   {(!isVideoEnabled || !previewStream) && !cameraError && (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-                      <Avatar className="h-24 w-24">
-                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-3xl">
-                          {user?.name?.[0] || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="text-center">
+                        <Avatar className="h-24 w-24 mx-auto mb-3">
+                          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-3xl">
+                            {user?.name?.[0] || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        {!previewStream && !cameraError && (
+                          <p className="text-gray-400 text-sm">Starting camera...</p>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  )}}
                   
                   {/* Camera error */}
                   {cameraError && (
