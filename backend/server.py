@@ -4840,7 +4840,7 @@ async def get_monitoring_dashboard():
     """Get real-time monitoring dashboard data"""
     try:
         # Online users count
-        online_users = len(user_presence)
+        online_users = len(manager.user_presence)
         
         # Active meetings
         active_meetings = await db.meeting_sessions.count_documents({"status": "active"})
