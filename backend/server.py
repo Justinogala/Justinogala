@@ -2036,7 +2036,7 @@ async def login_user(credentials: UserLogin, request: Request):
             if locked_until > datetime.now(timezone.utc):
                 raise HTTPException(
                     status_code=403, 
-                    detail=f"Account is locked. Please try again later or contact admin."
+                    detail="Account is locked. Please try again later or contact admin."
                 )
             else:
                 # Lock has expired, clear it
