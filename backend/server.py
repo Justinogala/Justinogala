@@ -4541,7 +4541,7 @@ async def perform_user_action(user_id: str, action_data: UserAccountAction, requ
         await db.users.update_one({"id": user_id}, {"$set": update_data})
         
         # Log the action
-        await create_audit_log(
+        await log_audit_event(
             action=f"user_{action}",
             category="user_management",
             details={
@@ -4580,7 +4580,7 @@ async def perform_bulk_user_action(action_data: BulkUserAction, request: Request
         )
         
         # Log the action
-        await create_audit_log(
+        await log_audit_event(
             action=f"bulk_user_{action_data.action}",
             category="user_management",
             details={
@@ -4629,7 +4629,7 @@ async def force_logout_user(user_id: str, request: Request):
         )
         
         # Log the action
-        await create_audit_log(
+        await log_audit_event(
             action="force_logout",
             category="security",
             details={"user_id": user_id, "sessions_ended": result.modified_count},
@@ -4686,7 +4686,7 @@ async def update_security_policies(policies: SecurityPolicyUpdate, request: Requ
         )
         
         # Log the action
-        await create_audit_log(
+        await log_audit_event(
             action="update_security_policies",
             category="security",
             details=update_data,
