@@ -281,10 +281,14 @@ const MeetingRoomPage = () => {
 
   // Pre-join screen
   if (!joined) {
+    const meetingTitle = meeting?.title || 'Instant Meeting';
+    const meetingDescription = meeting?.description || 'Start your video call';
+    const isInstantMeeting = meeting?.isInstant || !meeting;
+    
     return (
       <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4">
-        <Helmet><title>Join Meeting | Munal AI</title></Helmet>
+        <Helmet><title>{meetingTitle} | Munal AI</title></Helmet>
         
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -294,19 +298,42 @@ const MeetingRoomPage = () => {
           <div className="bg-slate-900/80 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden">
             {/* Meeting Info */}
             <div className="p-6 border-b border-white/10">
-              <h1 className="text-2xl font-bold text-white mb-2">{meeting.title}</h1>
-              <div className="flex items-center gap-4 text-gray-400">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{format(parseISO(meeting.start_time), 'EEEE, MMMM d')}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span>{format(parseISO(meeting.start_time), 'h:mm a')}</span>
-                </div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl font-bold text-white">{meetingTitle}</h1>
+                {isInstantMeeting && (
+                  <Badge className="bg-violet-500/20 text-violet-300 border-violet-500/30">
+                    Instant
+                  </Badge>
+                )}
               </div>
-              {meeting.description && (
-                <p className="text-gray-500 mt-2">{meeting.description}</p>
+              <div className="flex items-center gap-4 text-gray-400">
+                {meeting?.start_time && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>{format(parseISO(meeting.start_time), 'EEEE, MMMM d')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{format(parseISO(meeting.start_time), 'h:mm a')}</span>
+                    </div>
+                  </>
+                )}
+                {isInstantMeeting && (
+                  <div className="flex items-center gap-2 text-violet-400">
+                    <Video className="w-4 h-4" />
+                    <span>Ready to start</span>
+                  </div>
+                )}
+              </div>
+              {meetingDescription && (
+                <p className="text-gray-500 mt-2">{meetingDescription}</p>
+              )}
+              {isInstantMeeting && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
+                  <span className="px-2 py-1 bg-slate-800 rounded text-xs font-mono">{meetingId}</span>
+                  <span className="text-gray-500">Meeting ID</span>
+                </div>
               )}
             </div>
 
