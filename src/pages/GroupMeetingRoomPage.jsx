@@ -147,7 +147,7 @@ const ParticipantTile = ({
   );
 };
 
-// Grid Layout Component - adapts based on participant count
+// Grid Layout Component - Mobile responsive with adaptive layout
 const VideoGrid = ({ 
   participants, 
   localStream, 
@@ -155,19 +155,21 @@ const VideoGrid = ({
   localUserId, 
   activeSpeaker,
   focusedParticipant,
+  audioLevels,
   onFocusParticipant
 }) => {
   const count = participants.length;
   
-  // Determine grid layout based on participant count
+  // Determine grid layout based on participant count - mobile first
   const getGridClass = () => {
+    // Mobile (default)
     if (count === 1) return 'grid-cols-1';
-    if (count === 2) return 'grid-cols-2';
+    if (count === 2) return 'grid-cols-1 sm:grid-cols-2';
     if (count <= 4) return 'grid-cols-2';
-    if (count <= 6) return 'grid-cols-3';
-    if (count <= 9) return 'grid-cols-3';
-    if (count <= 12) return 'grid-cols-4';
-    return 'grid-cols-4'; // Max 16 participants = 4x4 grid
+    if (count <= 6) return 'grid-cols-2 sm:grid-cols-3';
+    if (count <= 9) return 'grid-cols-2 sm:grid-cols-3';
+    if (count <= 12) return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4';
+    return 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'; // Max 16 participants
   };
   
   // Sort participants: local user last, active speaker first
@@ -181,13 +183,14 @@ const VideoGrid = ({
   
   return (
     <div className={cn(
-      "h-full grid gap-3 p-4 auto-rows-fr",
+      "h-full grid gap-2 sm:gap-3 p-2 sm:p-4 auto-rows-fr",
       getGridClass()
     )}>
       <AnimatePresence mode="popLayout">
         {sortedParticipants.map(participant => {
           const isLocal = participant.user_id === localUserId;
           const stream = isLocal ? localStream : remoteStreams.get(participant.user_id);
+          const audioLevel = audioLevels?.get(participant.user_id) || 0;
           
           return (
             <ParticipantTile
@@ -197,6 +200,7 @@ const VideoGrid = ({
               isLocal={isLocal}
               isActiveSpeaker={participant.user_id === activeSpeaker}
               isFocused={participant.user_id === focusedParticipant}
+              audioLevel={audioLevel}
               onFocus={onFocusParticipant}
             />
           );
