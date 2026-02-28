@@ -51,6 +51,7 @@ const MeetingRoomPage = () => {
   const [cameraError, setCameraError] = useState(null);
   
   const localVideoRef = useRef(null);
+  const inMeetingVideoRef = useRef(null);
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
 
