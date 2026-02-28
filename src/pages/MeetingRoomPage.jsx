@@ -169,6 +169,15 @@ const MeetingRoomPage = () => {
     return () => clearInterval(interval);
   }, [joined, callStartTime]);
 
+  // Re-attach video stream when joined state changes
+  useEffect(() => {
+    if (joined && localStreamRef.current && localVideoRef.current) {
+      // Re-connect stream to video element after joining
+      localVideoRef.current.srcObject = localStreamRef.current;
+      localVideoRef.current.play().catch(e => console.log('Video play error:', e));
+    }
+  }, [joined]);
+
   const formatDuration = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
