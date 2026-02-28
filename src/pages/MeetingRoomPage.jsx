@@ -99,7 +99,7 @@ const MeetingRoomPage = () => {
   // Auto-start camera preview
   useEffect(() => {
     const startPreview = async () => {
-      if (!previewStarted && !joined) {
+      if (!previewStarted && !joined && !loading) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
@@ -116,7 +116,7 @@ const MeetingRoomPage = () => {
       }
     };
     
-    if (meeting && !loading) {
+    if (!loading) {
       startPreview();
     }
     
