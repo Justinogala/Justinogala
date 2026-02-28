@@ -114,7 +114,6 @@ const ParticipantTile = ({
         autoPlay
         playsInline
         muted={isLocal}
-        onPlaying={() => setIsVideoPlaying(true)}
         onCanPlay={(e) => {
           e.target.play().catch(err => console.log('CanPlay error:', err));
         }}
