@@ -958,7 +958,7 @@ async def get_call_status(call_id: str):
 
 # In-memory storage for meeting rooms (use Redis in production)
 meeting_rooms: Dict[str, Dict] = {}  # room_id -> {participants: [], created_at, ...}
-room_signals: Dict[str, list] = []  # room_id -> list of signals
+room_signals: Dict[str, list] = {}  # room_id -> list of signals
 
 class GroupCallJoinRequest(BaseModel):
     room_id: str
