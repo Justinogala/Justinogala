@@ -233,8 +233,15 @@ const VideoGrid = ({
           const audioLevel = audioLevels?.get(participant.user_id) || 0;
           
           // Debug logging
-          if (isLocal && !stream) {
-            console.warn('Local stream is null for local participant!', { localUserId, localStream });
+          if (isLocal) {
+            console.log('[VideoGrid] Local participant:', {
+              localUserId,
+              streamExists: !!localStream,
+              streamId: localStream?.id,
+              streamActive: localStream?.active,
+              videoTracks: localStream?.getVideoTracks()?.length,
+              participantVideoEnabled: participant.video_enabled
+            });
           }
           
           return (
