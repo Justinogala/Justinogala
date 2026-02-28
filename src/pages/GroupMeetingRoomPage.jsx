@@ -54,7 +54,7 @@ const AudioLevelIndicator = ({ level, isActive }) => {
   );
 };
 
-// Participant Video Tile Component - Mobile optimized
+// Participant Video Tile Component - Radically Simplified
 const ParticipantTile = ({ 
   participant, 
   stream, 
@@ -65,58 +65,37 @@ const ParticipantTile = ({
   onFocus 
 }) => {
   const videoRef = useRef(null);
-  const [videoVisible, setVideoVisible] = useState(false);
   
-  // Attach stream to video element - simplified and reliable
+  // SIMPLE: Directly attach stream to video element whenever stream or video_enabled changes
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     
-    // Always set srcObject, even if null
+    console.log(`[ParticipantTile] ${participant.user_name}: Attaching stream`, {
+      streamId: stream?.id || 'null',
+      streamActive: stream?.active,
+      videoTracks: stream?.getVideoTracks()?.length || 0,
+      videoEnabled: participant.video_enabled
+    });
+    
+    // Always set srcObject - this is the key!
     video.srcObject = stream || null;
     
-    if (stream) {
-      const videoTracks = stream.getVideoTracks();
-      const hasVideo = videoTracks.length > 0 && videoTracks[0].enabled;
-      
-      console.log(`[ParticipantTile] ${participant.user_name}:`, {
-        streamId: stream.id,
-        hasVideo,
-        trackEnabled: videoTracks[0]?.enabled,
-        participantVideoEnabled: participant.video_enabled
+    // Try to play if we have a stream
+    if (stream && stream.active) {
+      video.play().catch(err => {
+        // Ignore autoplay errors - video will play on user interaction
+        console.log(`[ParticipantTile] ${participant.user_name}: Autoplay blocked:`, err.name);
       });
-      
-      if (hasVideo) {
-        video.play()
-          .then(() => {
-            setVideoVisible(true);
-            console.log(`[ParticipantTile] Video playing: ${participant.user_name}`);
-          })
-          .catch(err => {
-            console.log(`[ParticipantTile] Play failed: ${err.message}`);
-            setVideoVisible(false);
-          });
-      } else {
-        setVideoVisible(false);
-      }
-    } else {
-      setVideoVisible(false);
     }
   }, [stream, participant.user_name, participant.video_enabled]);
   
-  // Also re-check when video_enabled changes
-  useEffect(() => {
-    if (stream && participant.video_enabled) {
-      const videoTracks = stream.getVideoTracks();
-      if (videoTracks.length > 0) {
-        videoTracks[0].enabled = true;
-        setVideoVisible(true);
-      }
-    }
-  }, [stream, participant.video_enabled]);
-  
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
-  const showVideo = videoVisible && participant.video_enabled;
+  
+  // Determine if we should show video based on participant state
+  // Note: We always render the video element, we just control visibility with opacity
+  const hasVideoTrack = stream?.getVideoTracks()?.some(t => t.enabled && t.readyState === 'live');
+  const showVideo = participant.video_enabled && stream && hasVideoTrack;
   
   return (
     <motion.div 
@@ -129,32 +108,32 @@ const ParticipantTile = ({
       onClick={() => onFocus && onFocus(participant.user_id)}
       data-testid={`participant-tile-${participant.user_id}`}
     >
-      {/* Video element - ALWAYS visible, let CSS handle display */}
+      {/* Video element - ALWAYS rendered, visibility controlled by CSS */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={isLocal}
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ 
-          opacity: showVideo ? 1 : 0,
-          zIndex: showVideo ? 10 : 1 
-        }}
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-opacity duration-200",
+          showVideo ? "opacity-100 z-10" : "opacity-0 z-0"
+        )}
       />
       
       {/* Avatar fallback when video is off */}
-      {!showVideo && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 z-5">
-          <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
-            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      )}
+      <div className={cn(
+        "absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 transition-opacity duration-200",
+        showVideo ? "opacity-0 z-0" : "opacity-100 z-5"
+      )}>
+        <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
+          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+      </div>
       
       {/* Participant info overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/70 to-transparent">
+      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/70 to-transparent z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="text-white text-xs sm:text-sm font-medium truncate max-w-[80px] sm:max-w-[120px]">
@@ -181,7 +160,7 @@ const ParticipantTile = ({
       
       {/* Speaker indicator */}
       {isActiveSpeaker && (
-        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20">
           <Badge className="bg-green-500/90 text-white text-[10px] sm:text-xs px-1.5 py-0.5">
             Speaking
           </Badge>
