@@ -98,81 +98,65 @@ const MeetingRoomPage = () => {
     if (meetingId) loadMeeting();
   }, [meetingId]);
 
-  // Auto-start camera preview
-  useEffect(() => {
-    let isMounted = true;
+  // Start camera function - can be called manually or automatically
+  const startCamera = async () => {
+    if (localStreamRef.current) {
+      // Already have a stream
+      setVideoPlaying(true);
+      return;
+    }
     
-    const startPreview = async () => {
-      if (previewStarted || joined || loading) return;
+    setCameraError(null);
+    
+    try {
+      console.log('Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
       
-      try {
-        console.log('Requesting camera access...');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'user'
-          },
-          audio: true
+      localStreamRef.current = stream;
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+          localVideoRef.current.onloadedmetadata = resolve;
         });
-        
-        if (!isMounted) {
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
-        
-        localStreamRef.current = stream;
-        
-        // Ensure video element is ready
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.onloadedmetadata = () => {
-            if (isMounted) {
-              localVideoRef.current?.play()
-                .then(() => {
-                  setVideoPlaying(true);
-                  console.log('Video playing successfully');
-                })
-                .catch(e => console.log('Video play error:', e));
-            }
-          };
-        }
-        
+        await localVideoRef.current.play();
+        setVideoPlaying(true);
         setPreviewStarted(true);
-        console.log('Camera preview started successfully');
-      } catch (err) {
-        console.error('Error starting preview:', err);
-        // Set error message based on error type
-        if (isMounted) {
-          if (err.name === 'NotAllowedError') {
-            setCameraError('Camera access denied. Please allow camera access in your browser settings.');
-          } else if (err.name === 'NotFoundError') {
-            setCameraError('No camera found. Please connect a camera and try again.');
-          } else if (err.name === 'NotReadableError') {
-            setCameraError('Camera is in use by another application.');
-          } else {
-            setCameraError('Could not access camera. Please check your settings.');
-          }
-          setPreviewStarted(true);
-        }
+        console.log('Camera started successfully');
       }
-    };
-    
-    // Small delay to ensure component is fully mounted
-    const timer = setTimeout(() => {
-      if (!loading) {
-        startPreview();
+    } catch (err) {
+      console.error('Camera error:', err);
+      let errorMsg = 'Could not access camera.';
+      if (err.name === 'NotAllowedError') {
+        errorMsg = 'Camera access denied. Click "Enable Camera" and allow access.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg = 'No camera found. Please connect a camera.';
+      } else if (err.name === 'NotReadableError') {
+        errorMsg = 'Camera is in use by another app.';
       }
-    }, 500);
+      setCameraError(errorMsg);
+      setPreviewStarted(true);
+    }
+  };
+
+  // Auto-start camera on mount (with user gesture fallback)
+  useEffect(() => {
+    if (!loading && !previewStarted && !joined) {
+      // Try to start camera automatically
+      startCamera();
+    }
     
     return () => {
-      isMounted = false;
-      clearTimeout(timer);
       if (!joined && localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
       }
     };
-  }, [loading, previewStarted, joined]);
+  }, [loading]);
 
   // Call duration timer
   useEffect(() => {
