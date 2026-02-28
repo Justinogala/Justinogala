@@ -222,7 +222,7 @@ const GroupMeetingRoomPage = () => {
     participants,
     isConnected,
     activeSpeaker,
-    remoteStreams,
+    getRemoteStreams,
     joinRoom,
     leaveRoom,
     updateParticipantStatus
