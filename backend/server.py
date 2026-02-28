@@ -4901,7 +4901,7 @@ async def get_system_health():
         db_healthy = True
         try:
             await db.command("ping")
-        except:
+        except Exception:
             db_healthy = False
         
         # Get collection stats
