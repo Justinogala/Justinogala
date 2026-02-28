@@ -201,15 +201,16 @@ const MeetingRoomPage = () => {
         localStreamRef.current = stream;
       }
       
-      // Ensure video element is connected to stream
-      if (localVideoRef.current && localStreamRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
-        await localVideoRef.current.play();
-        setVideoPlaying(true);
-      }
-      
       setJoined(true);
       setCallStartTime(Date.now());
+      
+      // Attach stream to in-meeting video element after a short delay
+      setTimeout(() => {
+        if (inMeetingVideoRef.current && localStreamRef.current) {
+          inMeetingVideoRef.current.srcObject = localStreamRef.current;
+          inMeetingVideoRef.current.play().catch(e => console.log('Play error:', e));
+        }
+      }, 100);
       
       setParticipants([{
         id: user?.id,
