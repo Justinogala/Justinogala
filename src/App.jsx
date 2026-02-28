@@ -194,6 +194,9 @@ const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage'));
 const AdminTaxRatesPage = lazy(() => import('@/pages/admin/AdminTaxRatesPage'));
 const AdminTransactionsPage = lazy(() => import('@/pages/admin/AdminTransactionsPage'));
 const AdminAuditLogsPage = lazy(() => import('@/pages/admin/AdminAuditLogsPage'));
+const AdminMonitoringDashboard = lazy(() => import('@/pages/admin/AdminMonitoringDashboard'));
+const AdminSecurityPolicies = lazy(() => import('@/pages/admin/AdminSecurityPolicies'));
+const AdminMeetingAnalytics = lazy(() => import('@/pages/admin/AdminMeetingAnalytics'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 
