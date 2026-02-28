@@ -145,17 +145,16 @@ const ParticipantTile = ({
       onClick={() => onFocus && onFocus(participant.user_id)}
       data-testid={`participant-tile-${participant.user_id}`}
     >
-      {/* Video element - ALWAYS rendered and visible for debugging */}
+      {/* Video element - ALWAYS rendered, visibility controlled by CSS */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={isLocal}
         className={cn(
-          "absolute inset-0 w-full h-full object-cover z-10",
-          !showVideo && "border-4 border-red-500"
+          "absolute inset-0 w-full h-full object-cover transition-opacity duration-200",
+          showVideo ? "opacity-100 z-10" : "opacity-0 z-0"
         )}
-        style={{ opacity: 1 }}
       />
       
       {/* Avatar fallback - only show when no video */}
