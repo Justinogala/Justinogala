@@ -4183,7 +4183,664 @@ async def get_upcoming_events(user_id: str, limit: int = 5):
         return {"events": events}
     except Exception as e:
         logger.error(f"Error fetching upcoming events: {e}")
-        raise HTTPException(status_code=500, detail=str(e))# Include the router in the main app
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== ADMIN MONITORING & SECURITY FEATURES ==============
+
+# --- Models for Admin Features ---
+
+class SecurityPolicyUpdate(BaseModel):
+    password_min_length: Optional[int] = None
+    password_require_uppercase: Optional[bool] = None
+    password_require_numbers: Optional[bool] = None
+    password_require_special: Optional[bool] = None
+    session_timeout_minutes: Optional[int] = None
+    max_failed_login_attempts: Optional[int] = None
+    lockout_duration_minutes: Optional[int] = None
+    instant_meetings_enabled: Optional[bool] = None
+    max_meeting_duration_minutes: Optional[int] = None
+
+class UserAccountAction(BaseModel):
+    action: str  # enable, disable, force_password_reset, unlock
+    reason: Optional[str] = None
+
+class BulkUserAction(BaseModel):
+    user_ids: List[str]
+    action: str  # enable, disable
+    reason: Optional[str] = None
+
+
+# --- 1. User Activity Monitoring ---
+
+@api_router.get("/admin/users/activity")
+async def get_user_activity(
+    user_id: Optional[str] = None,
+    days: int = 7,
+    limit: int = 100
+):
+    """Get user activity data including logins, sessions, and failed attempts"""
+    try:
+        query = {}
+        if user_id:
+            query["user_id"] = user_id
+        
+        # Get activity from last N days
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        query["timestamp"] = {"$gte": since}
+        
+        activities = await db.user_activity.find(
+            query, {"_id": 0}
+        ).sort("timestamp", -1).limit(limit).to_list(length=limit)
+        
+        # Get aggregated stats
+        pipeline = [
+            {"$match": {"timestamp": {"$gte": since}}},
+            {"$group": {
+                "_id": "$user_id",
+                "total_logins": {"$sum": {"$cond": [{"$eq": ["$action", "login"]}, 1, 0]}},
+                "total_logouts": {"$sum": {"$cond": [{"$eq": ["$action", "logout"]}, 1, 0]}},
+                "failed_logins": {"$sum": {"$cond": [{"$eq": ["$action", "failed_login"]}, 1, 0]}},
+                "last_activity": {"$max": "$timestamp"}
+            }}
+        ]
+        
+        stats = await db.user_activity.aggregate(pipeline).to_list(length=1000)
+        
+        return {
+            "activities": activities,
+            "stats": stats,
+            "period_days": days
+        }
+    except Exception as e:
+        logger.error(f"Error fetching user activity: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/admin/users/activity/log")
+async def log_user_activity(
+    user_id: str,
+    action: str,
+    details: Optional[dict] = None,
+    request: Request = None
+):
+    """Log a user activity event"""
+    try:
+        activity = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "action": action,
+            "details": details or {},
+            "ip_address": request.client.host if request else None,
+            "user_agent": request.headers.get("user-agent") if request else None,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.user_activity.insert_one(activity)
+        
+        # Update user's last_active timestamp
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"last_active": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        return {"success": True, "activity_id": activity["id"]}
+    except Exception as e:
+        logger.error(f"Error logging user activity: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 2. Meeting Analytics Dashboard ---
+
+@api_router.get("/admin/analytics/meetings")
+async def get_meeting_analytics(days: int = 30):
+    """Get meeting analytics and statistics"""
+    try:
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        
+        # Get all meetings in the period
+        meetings = await db.calendar_events.find({
+            "video_call": True,
+            "created_at": {"$gte": since.isoformat()}
+        }, {"_id": 0}).to_list(length=10000)
+        
+        # Meetings per user
+        pipeline_per_user = [
+            {"$match": {"video_call": True}},
+            {"$group": {
+                "_id": "$created_by",
+                "meeting_count": {"$sum": 1}
+            }},
+            {"$sort": {"meeting_count": -1}},
+            {"$limit": 20}
+        ]
+        meetings_per_user = await db.calendar_events.aggregate(pipeline_per_user).to_list(length=20)
+        
+        # Get user names for the top users
+        for item in meetings_per_user:
+            if item["_id"]:
+                user = await db.users.find_one({"id": item["_id"]}, {"name": 1, "email": 1})
+                if user:
+                    item["user_name"] = user.get("name", "Unknown")
+                    item["user_email"] = user.get("email", "Unknown")
+        
+        # Peak hours analysis
+        hour_counts = defaultdict(int)
+        for meeting in meetings:
+            try:
+                start_time = datetime.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
+                hour_counts[start_time.hour] += 1
+            except:
+                pass
+        
+        peak_hours = [{"hour": h, "count": c} for h, c in sorted(hour_counts.items())]
+        
+        # Daily meeting counts
+        day_counts = defaultdict(int)
+        for meeting in meetings:
+            try:
+                start_time = datetime.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
+                day_key = start_time.strftime("%Y-%m-%d")
+                day_counts[day_key] += 1
+            except:
+                pass
+        
+        daily_meetings = [{"date": d, "count": c} for d, c in sorted(day_counts.items())]
+        
+        return {
+            "total_meetings": len(meetings),
+            "meetings_per_user": meetings_per_user,
+            "peak_hours": peak_hours,
+            "daily_meetings": daily_meetings,
+            "period_days": days
+        }
+    except Exception as e:
+        logger.error(f"Error fetching meeting analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/admin/analytics/meetings/active")
+async def get_active_meetings():
+    """Get currently active meetings (real-time)"""
+    try:
+        # Get meetings happening now
+        now = datetime.now(timezone.utc).isoformat()
+        
+        active_meetings = await db.meeting_sessions.find({
+            "status": "active"
+        }, {"_id": 0}).to_list(length=100)
+        
+        return {
+            "active_count": len(active_meetings),
+            "meetings": active_meetings
+        }
+    except Exception as e:
+        logger.error(f"Error fetching active meetings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 3. User Account Controls ---
+
+@api_router.get("/admin/users")
+async def get_all_users(
+    status: Optional[str] = None,
+    role: Optional[str] = None,
+    search: Optional[str] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    skip: int = 0,
+    limit: int = 50
+):
+    """Get all users with filtering and pagination"""
+    try:
+        query = {}
+        
+        if status:
+            query["status"] = status
+        if role:
+            query["role"] = role
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"email": {"$regex": search, "$options": "i"}}
+            ]
+        
+        sort_direction = -1 if sort_order == "desc" else 1
+        
+        total = await db.users.count_documents(query)
+        
+        users = await db.users.find(
+            query, {"_id": 0, "password": 0}
+        ).sort(sort_by, sort_direction).skip(skip).limit(limit).to_list(length=limit)
+        
+        return {
+            "users": users,
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/admin/users/{user_id}/action")
+async def perform_user_action(user_id: str, action_data: UserAccountAction, request: Request):
+    """Perform an action on a user account (enable, disable, force password reset, unlock)"""
+    try:
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        update_data = {}
+        action = action_data.action
+        
+        if action == "enable":
+            update_data["status"] = "Active"
+            update_data["locked_until"] = None
+            update_data["failed_login_attempts"] = 0
+        elif action == "disable":
+            update_data["status"] = "Disabled"
+        elif action == "force_password_reset":
+            update_data["force_password_reset"] = True
+        elif action == "unlock":
+            update_data["locked_until"] = None
+            update_data["failed_login_attempts"] = 0
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+        
+        await db.users.update_one({"id": user_id}, {"$set": update_data})
+        
+        # Log the action
+        await create_audit_log(
+            action=f"user_{action}",
+            category="user_management",
+            details={
+                "user_id": user_id,
+                "user_email": user.get("email"),
+                "reason": action_data.reason
+            },
+            admin_email="admin",
+            request=request
+        )
+        
+        return {"success": True, "action": action, "user_id": user_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error performing user action: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/admin/users/bulk-action")
+async def perform_bulk_user_action(action_data: BulkUserAction, request: Request):
+    """Perform bulk action on multiple users"""
+    try:
+        update_data = {}
+        
+        if action_data.action == "enable":
+            update_data["status"] = "Active"
+        elif action_data.action == "disable":
+            update_data["status"] = "Disabled"
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+        
+        result = await db.users.update_many(
+            {"id": {"$in": action_data.user_ids}},
+            {"$set": update_data}
+        )
+        
+        # Log the action
+        await create_audit_log(
+            action=f"bulk_user_{action_data.action}",
+            category="user_management",
+            details={
+                "user_ids": action_data.user_ids,
+                "count": len(action_data.user_ids),
+                "reason": action_data.reason
+            },
+            admin_email="admin",
+            request=request
+        )
+        
+        return {
+            "success": True,
+            "action": action_data.action,
+            "affected_count": result.modified_count
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error performing bulk action: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/admin/users/{user_id}/sessions")
+async def get_user_sessions(user_id: str):
+    """Get active sessions for a user"""
+    try:
+        sessions = await db.user_sessions.find(
+            {"user_id": user_id, "active": True},
+            {"_id": 0}
+        ).to_list(length=50)
+        
+        return {"sessions": sessions, "count": len(sessions)}
+    except Exception as e:
+        logger.error(f"Error fetching user sessions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.delete("/admin/users/{user_id}/sessions")
+async def force_logout_user(user_id: str, request: Request):
+    """Force logout all sessions for a user"""
+    try:
+        result = await db.user_sessions.update_many(
+            {"user_id": user_id},
+            {"$set": {"active": False, "ended_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Log the action
+        await create_audit_log(
+            action="force_logout",
+            category="security",
+            details={"user_id": user_id, "sessions_ended": result.modified_count},
+            admin_email="admin",
+            request=request
+        )
+        
+        return {"success": True, "sessions_ended": result.modified_count}
+    except Exception as e:
+        logger.error(f"Error forcing logout: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 4. Security Policies ---
+
+@api_router.get("/admin/security/policies")
+async def get_security_policies():
+    """Get current security policies"""
+    try:
+        policies = await db.security_policies.find_one({"id": "default"}, {"_id": 0})
+        
+        if not policies:
+            # Return default policies
+            policies = {
+                "id": "default",
+                "password_min_length": 8,
+                "password_require_uppercase": True,
+                "password_require_numbers": True,
+                "password_require_special": False,
+                "session_timeout_minutes": 1440,  # 24 hours
+                "max_failed_login_attempts": 5,
+                "lockout_duration_minutes": 30,
+                "instant_meetings_enabled": True,
+                "max_meeting_duration_minutes": 480  # 8 hours
+            }
+        
+        return policies
+    except Exception as e:
+        logger.error(f"Error fetching security policies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.put("/admin/security/policies")
+async def update_security_policies(policies: SecurityPolicyUpdate, request: Request):
+    """Update security policies"""
+    try:
+        update_data = {k: v for k, v in policies.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        await db.security_policies.update_one(
+            {"id": "default"},
+            {"$set": update_data},
+            upsert=True
+        )
+        
+        # Log the action
+        await create_audit_log(
+            action="update_security_policies",
+            category="security",
+            details=update_data,
+            admin_email="admin",
+            request=request
+        )
+        
+        return {"success": True, "updated": update_data}
+    except Exception as e:
+        logger.error(f"Error updating security policies: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 5. Audit Logs Enhancement ---
+
+@api_router.post("/admin/audit/meeting-event")
+async def log_meeting_event(
+    meeting_id: str,
+    user_id: str,
+    event_type: str,  # join, leave, start, end
+    request: Request
+):
+    """Log a meeting event for audit"""
+    try:
+        event = {
+            "id": str(uuid.uuid4()),
+            "meeting_id": meeting_id,
+            "user_id": user_id,
+            "event_type": event_type,
+            "ip_address": request.client.host if request else None,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.meeting_audit_logs.insert_one(event)
+        
+        return {"success": True, "event_id": event["id"]}
+    except Exception as e:
+        logger.error(f"Error logging meeting event: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/admin/audit/meeting-events")
+async def get_meeting_audit_events(
+    meeting_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    event_type: Optional[str] = None,
+    days: int = 7,
+    limit: int = 100
+):
+    """Get meeting audit events"""
+    try:
+        query = {}
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        query["timestamp"] = {"$gte": since.isoformat()}
+        
+        if meeting_id:
+            query["meeting_id"] = meeting_id
+        if user_id:
+            query["user_id"] = user_id
+        if event_type:
+            query["event_type"] = event_type
+        
+        events = await db.meeting_audit_logs.find(
+            query, {"_id": 0}
+        ).sort("timestamp", -1).limit(limit).to_list(length=limit)
+        
+        return {"events": events, "total": len(events)}
+    except Exception as e:
+        logger.error(f"Error fetching meeting audit events: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 6. User Management Dashboard ---
+
+@api_router.get("/admin/users/export")
+async def export_users(format: str = "json"):
+    """Export all users data"""
+    try:
+        users = await db.users.find({}, {"_id": 0, "password": 0}).to_list(length=10000)
+        
+        if format == "csv":
+            import csv
+            import io
+            
+            output = io.StringIO()
+            if users:
+                fieldnames = ["id", "name", "email", "role", "status", "plan", "created_at", "last_active"]
+                writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction='ignore')
+                writer.writeheader()
+                for user in users:
+                    writer.writerow(user)
+            
+            return Response(
+                content=output.getvalue(),
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=users_export.csv"}
+            )
+        
+        return {"users": users, "total": len(users)}
+    except Exception as e:
+        logger.error(f"Error exporting users: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/admin/users/{user_id}/details")
+async def get_user_details(user_id: str):
+    """Get detailed information about a user including activity stats"""
+    try:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get activity stats
+        activity_count = await db.user_activity.count_documents({"user_id": user_id})
+        
+        # Get meeting count
+        meeting_count = await db.calendar_events.count_documents({"created_by": user_id})
+        
+        # Get recent activity
+        recent_activity = await db.user_activity.find(
+            {"user_id": user_id}, {"_id": 0}
+        ).sort("timestamp", -1).limit(10).to_list(length=10)
+        
+        # Get active sessions
+        sessions = await db.user_sessions.find(
+            {"user_id": user_id, "active": True}, {"_id": 0}
+        ).to_list(length=10)
+        
+        return {
+            "user": user,
+            "stats": {
+                "total_activities": activity_count,
+                "total_meetings": meeting_count,
+                "active_sessions": len(sessions)
+            },
+            "recent_activity": recent_activity,
+            "active_sessions": sessions
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching user details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 7. Real-time Monitoring ---
+
+@api_router.get("/admin/monitoring/dashboard")
+async def get_monitoring_dashboard():
+    """Get real-time monitoring dashboard data"""
+    try:
+        # Online users count
+        online_users = len(user_presence)
+        
+        # Active meetings
+        active_meetings = await db.meeting_sessions.count_documents({"status": "active"})
+        
+        # Total users
+        total_users = await db.users.count_documents({})
+        active_users = await db.users.count_documents({"status": "Active"})
+        disabled_users = await db.users.count_documents({"status": "Disabled"})
+        
+        # Today's stats
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        logins_today = await db.user_activity.count_documents({
+            "action": "login",
+            "timestamp": {"$gte": today_start.isoformat()}
+        })
+        
+        meetings_today = await db.calendar_events.count_documents({
+            "video_call": True,
+            "created_at": {"$gte": today_start.isoformat()}
+        })
+        
+        failed_logins_today = await db.user_activity.count_documents({
+            "action": "failed_login",
+            "timestamp": {"$gte": today_start.isoformat()}
+        })
+        
+        # Recent audit logs
+        recent_logs = await db.audit_logs.find(
+            {}, {"_id": 0}
+        ).sort("timestamp", -1).limit(10).to_list(length=10)
+        
+        return {
+            "real_time": {
+                "online_users": online_users,
+                "active_meetings": active_meetings
+            },
+            "users": {
+                "total": total_users,
+                "active": active_users,
+                "disabled": disabled_users
+            },
+            "today": {
+                "logins": logins_today,
+                "meetings": meetings_today,
+                "failed_logins": failed_logins_today
+            },
+            "recent_audit_logs": recent_logs,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error fetching monitoring dashboard: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/admin/monitoring/system-health")
+async def get_system_health():
+    """Get system health indicators"""
+    try:
+        # Check database connection
+        db_healthy = True
+        try:
+            await db.command("ping")
+        except:
+            db_healthy = False
+        
+        # Get collection stats
+        collections = await db.list_collection_names()
+        
+        collection_stats = {}
+        for coll in collections[:10]:  # Limit to first 10 collections
+            count = await db[coll].count_documents({})
+            collection_stats[coll] = count
+        
+        return {
+            "status": "healthy" if db_healthy else "unhealthy",
+            "database": {
+                "connected": db_healthy,
+                "collections": len(collections)
+            },
+            "collection_stats": collection_stats,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error fetching system health: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Include the router in the main app
 app.include_router(api_router)
 
 app.add_middleware(
