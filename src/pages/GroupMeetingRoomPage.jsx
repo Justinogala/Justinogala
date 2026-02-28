@@ -822,7 +822,7 @@ const GroupMeetingRoomPage = () => {
         <div className={cn("flex-1 transition-all", (showChat || showParticipants) && "sm:pr-0")}>
           <VideoGrid
             participants={allParticipants}
-            localStream={localStream}
+            localStream={displayStream}
             remoteStreams={remoteStreamMap}
             localUserId={user?.id}
             activeSpeaker={currentActiveSpeaker}
