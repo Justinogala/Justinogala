@@ -240,6 +240,8 @@ const GroupMeetingRoomPage = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [focusedParticipant, setFocusedParticipant] = useState(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [detectedActiveSpeaker, setDetectedActiveSpeaker] = useState(null);
   
   // Refs
   const previewVideoRef = useRef(null);
@@ -282,6 +284,28 @@ const GroupMeetingRoomPage = () => {
       toast({ title: 'A participant left the meeting' });
     }
   });
+  
+  // Audio level detection for automatic speaker spotlight
+  const {
+    audioLevels,
+    isUserSpeaking
+  } = useAudioLevelDetection({
+    localStream: joined ? localStream : null,
+    remoteStreams: joined ? remoteStreamMap : new Map(),
+    localUserId: user?.id,
+    onActiveSpeakerChange: (speakerId) => {
+      setDetectedActiveSpeaker(speakerId);
+      // Notify server about active speaker
+      if (speakerId === user?.id) {
+        updateParticipantStatus({ is_speaking: true });
+      }
+    },
+    threshold: 0.02,
+    speakingDebounce: 300
+  });
+  
+  // Use detected speaker or manual speaker
+  const currentActiveSpeaker = detectedActiveSpeaker || activeSpeaker;
   
   // Load meeting details
   useEffect(() => {
