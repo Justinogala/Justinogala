@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Video, VideoOff, Mic, MicOff, PhoneOff, Users, 
   MessageSquare, Monitor, MonitorOff, Copy, Check, Clock, Calendar,
-  Hand, MoreHorizontal, Grid, Maximize2, Volume2
+  Hand, MoreHorizontal, Grid, Maximize2, Volume2, Menu, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,10 +23,36 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import useGroupWebRTC from '@/hooks/useGroupWebRTC';
+import useAudioLevelDetection from '@/hooks/useAudioLevelDetection';
 
 const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
-// Participant Video Tile Component
+// Audio level indicator component
+const AudioLevelIndicator = ({ level, isActive }) => {
+  const bars = 5;
+  const activeColor = isActive ? 'bg-green-500' : 'bg-slate-500';
+  
+  return (
+    <div className="flex items-end gap-0.5 h-4">
+      {[...Array(bars)].map((_, i) => {
+        const barHeight = ((i + 1) / bars) * 100;
+        const isBarActive = level * 100 > (i / bars) * 100;
+        return (
+          <div
+            key={i}
+            className={cn(
+              "w-1 rounded-full transition-all duration-75",
+              isBarActive ? activeColor : 'bg-slate-700'
+            )}
+            style={{ height: `${barHeight}%` }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+// Participant Video Tile Component - Mobile optimized
 const ParticipantTile = ({ 
   participant, 
   stream, 
