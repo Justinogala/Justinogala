@@ -1,0 +1,1019 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Video, VideoOff, Mic, MicOff, PhoneOff, Users, 
+  MessageSquare, Monitor, MonitorOff, Copy, Check, Clock, Calendar,
+  Hand, MoreHorizontal, Grid, Maximize2, Volume2
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import useGroupWebRTC from '@/hooks/useGroupWebRTC';
+
+const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+
+// Participant Video Tile Component
+const ParticipantTile = ({ 
+  participant, 
+  stream, 
+  isLocal, 
+  isActiveSpeaker,
+  isFocused,
+  onFocus 
+}) => {
+  const videoRef = useRef(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(err => console.log('Video play error:', err));
+    }
+  }, [stream]);
+  
+  const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
+  
+  return (
+    <motion.div 
+      layout
+      className={cn(
+        "relative bg-slate-800 rounded-xl overflow-hidden transition-all duration-300",
+        isActiveSpeaker && "ring-2 ring-green-500 ring-offset-2 ring-offset-slate-950",
+        isFocused && "col-span-2 row-span-2"
+      )}
+      onClick={() => onFocus && onFocus(participant.user_id)}
+      data-testid={`participant-tile-${participant.user_id}`}
+    >
+      {/* Video element */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        onPlaying={() => setIsVideoPlaying(true)}
+        className={cn(
+          "w-full h-full object-cover",
+          (!participant.video_enabled || !stream) && "hidden"
+        )}
+      />
+      
+      {/* Avatar fallback when video is off */}
+      {(!participant.video_enabled || !stream) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+          <Avatar className={cn("transition-all", isFocused ? "h-32 w-32" : "h-20 w-20")}>
+            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-2xl">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      )}
+      
+      {/* Participant info overlay */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-white text-sm font-medium truncate max-w-[120px]">
+              {participant.user_name}{isLocal && ' (You)'}
+            </span>
+            {isActiveSpeaker && (
+              <Volume2 className="w-4 h-4 text-green-400 animate-pulse" />
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            {!participant.audio_enabled && (
+              <span className="bg-red-500/80 text-white p-1 rounded-full">
+                <MicOff className="w-3 h-3" />
+              </span>
+            )}
+            {participant.hand_raised && (
+              <span className="bg-yellow-500/80 text-white p-1 rounded-full">
+                <Hand className="w-3 h-3" />
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Speaker indicator */}
+      {isActiveSpeaker && (
+        <div className="absolute top-2 right-2">
+          <Badge className="bg-green-500/90 text-white text-xs">
+            Speaking
+          </Badge>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// Grid Layout Component - adapts based on participant count
+const VideoGrid = ({ 
+  participants, 
+  localStream, 
+  remoteStreams, 
+  localUserId, 
+  activeSpeaker,
+  focusedParticipant,
+  onFocusParticipant
+}) => {
+  const count = participants.length;
+  
+  // Determine grid layout based on participant count
+  const getGridClass = () => {
+    if (count === 1) return 'grid-cols-1';
+    if (count === 2) return 'grid-cols-2';
+    if (count <= 4) return 'grid-cols-2';
+    if (count <= 6) return 'grid-cols-3';
+    if (count <= 9) return 'grid-cols-3';
+    if (count <= 12) return 'grid-cols-4';
+    return 'grid-cols-4'; // Max 16 participants = 4x4 grid
+  };
+  
+  // Sort participants: local user last, active speaker first
+  const sortedParticipants = [...participants].sort((a, b) => {
+    if (a.user_id === localUserId) return 1;
+    if (b.user_id === localUserId) return -1;
+    if (a.user_id === activeSpeaker) return -1;
+    if (b.user_id === activeSpeaker) return 1;
+    return 0;
+  });
+  
+  return (
+    <div className={cn(
+      "h-full grid gap-3 p-4 auto-rows-fr",
+      getGridClass()
+    )}>
+      <AnimatePresence mode="popLayout">
+        {sortedParticipants.map(participant => {
+          const isLocal = participant.user_id === localUserId;
+          const stream = isLocal ? localStream : remoteStreams.get(participant.user_id);
+          
+          return (
+            <ParticipantTile
+              key={participant.user_id}
+              participant={participant}
+              stream={stream}
+              isLocal={isLocal}
+              isActiveSpeaker={participant.user_id === activeSpeaker}
+              isFocused={participant.user_id === focusedParticipant}
+              onFocus={onFocusParticipant}
+            />
+          );
+        })}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// Main Group Meeting Room Component
+const GroupMeetingRoomPage = () => {
+  const { meetingId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  // Meeting state
+  const [meeting, setMeeting] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [joined, setJoined] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  
+  // Media state
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [previewStream, setPreviewStream] = useState(null);
+  
+  // UI state
+  const [showChat, setShowChat] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [callStartTime, setCallStartTime] = useState(null);
+  const [handRaised, setHandRaised] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [focusedParticipant, setFocusedParticipant] = useState(null);
+  
+  // Refs
+  const previewVideoRef = useRef(null);
+  const screenStreamRef = useRef(null);
+  
+  // Remote streams storage
+  const [remoteStreamMap, setRemoteStreamMap] = useState(new Map());
+  
+  // Group WebRTC hook
+  const {
+    participants,
+    isConnected,
+    activeSpeaker,
+    remoteStreams,
+    joinRoom,
+    leaveRoom,
+    updateParticipantStatus
+  } = useGroupWebRTC({
+    roomId: meetingId,
+    userId: user?.id,
+    userName: user?.name || 'Anonymous',
+    localStream,
+    onRemoteStream: (participantId, participantName, stream) => {
+      console.log(`Remote stream received from ${participantName}`);
+      setRemoteStreamMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(participantId, stream);
+        return newMap;
+      });
+    },
+    onParticipantJoined: (participant) => {
+      toast({ title: `${participant.user_name} joined the meeting` });
+    },
+    onParticipantLeft: (userId) => {
+      setRemoteStreamMap(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(userId);
+        return newMap;
+      });
+      toast({ title: 'A participant left the meeting' });
+    }
+  });
+  
+  // Load meeting details
+  useEffect(() => {
+    const loadMeeting = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/calendar/events/${meetingId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setMeeting(data);
+        } else {
+          // Create instant meeting
+          setMeeting({
+            id: meetingId,
+            title: 'Instant Meeting',
+            description: 'Quick meeting started from dashboard',
+            start_time: new Date().toISOString(),
+            end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            video_call: true,
+            isInstant: true,
+            invitees: []
+          });
+        }
+      } catch (err) {
+        console.error('Error loading meeting:', err);
+        setMeeting({
+          id: meetingId,
+          title: 'Instant Meeting',
+          description: 'Quick meeting started from dashboard',
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          video_call: true,
+          isInstant: true,
+          invitees: []
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (meetingId) loadMeeting();
+  }, [meetingId]);
+  
+  // Start camera preview
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      setPreviewStream(stream);
+      if (previewVideoRef.current) {
+        previewVideoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error('Camera error:', err);
+      let errorMsg = 'Could not access camera.';
+      if (err.name === 'NotAllowedError') {
+        errorMsg = 'Camera access denied. Click "Enable Camera" and allow access.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg = 'No camera found. Please connect a camera.';
+      } else if (err.name === 'NotReadableError') {
+        errorMsg = 'Camera is in use by another app.';
+      }
+      setCameraError(errorMsg);
+    }
+  }, []);
+  
+  // Auto-start camera on mount
+  useEffect(() => {
+    if (!loading && !joined) {
+      startCamera();
+    }
+    return () => {
+      if (previewStream && !joined) {
+        previewStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [loading, joined]);
+  
+  // Call duration timer
+  useEffect(() => {
+    let interval;
+    if (joined && callStartTime) {
+      interval = setInterval(() => {
+        setCallDuration(Math.floor((Date.now() - callStartTime) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [joined, callStartTime]);
+  
+  const formatDuration = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Join meeting
+  const joinMeeting = async () => {
+    try {
+      let stream = previewStream;
+      if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+      }
+      
+      setLocalStream(stream);
+      setJoined(true);
+      setCallStartTime(Date.now());
+      
+      // Join the room after a small delay to ensure state is updated
+      setTimeout(async () => {
+        const result = await joinRoom(isVideoEnabled, isAudioEnabled);
+        if (result.success) {
+          toast({ title: 'Joined meeting', description: meeting?.title || 'Group Meeting' });
+        } else {
+          toast({ variant: 'destructive', title: 'Failed to join', description: result.error });
+        }
+      }, 100);
+      
+    } catch (err) {
+      console.error('Error joining meeting:', err);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Camera/Mic access denied',
+        description: 'Please allow camera and microphone access to join the meeting'
+      });
+    }
+  };
+  
+  // Leave meeting
+  const leaveMeeting = async () => {
+    await leaveRoom();
+    
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    
+    setJoined(false);
+    navigate('/meetings');
+  };
+  
+  // Toggle audio
+  const toggleAudio = () => {
+    if (localStream) {
+      const newState = !isAudioEnabled;
+      localStream.getAudioTracks().forEach(track => {
+        track.enabled = newState;
+      });
+      setIsAudioEnabled(newState);
+      updateParticipantStatus({ audio_enabled: newState });
+    }
+  };
+  
+  // Toggle video
+  const toggleVideo = () => {
+    if (localStream) {
+      const newState = !isVideoEnabled;
+      localStream.getVideoTracks().forEach(track => {
+        track.enabled = newState;
+      });
+      setIsVideoEnabled(newState);
+      updateParticipantStatus({ video_enabled: newState });
+    }
+  };
+  
+  // Toggle hand raise
+  const toggleHandRaise = () => {
+    const newState = !handRaised;
+    setHandRaised(newState);
+    updateParticipantStatus({ hand_raised: newState });
+  };
+  
+  // Toggle screen share
+  const toggleScreenShare = async () => {
+    if (isScreenSharing) {
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      setIsScreenSharing(false);
+    } else {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: false
+        });
+        screenStreamRef.current = screenStream;
+        screenStream.getVideoTracks()[0].onended = () => {
+          setIsScreenSharing(false);
+        };
+        setIsScreenSharing(true);
+        toast({ title: 'Screen sharing started' });
+      } catch (err) {
+        console.error('Error sharing screen:', err);
+      }
+    }
+  };
+  
+  // Copy meeting link
+  const copyMeetingLink = () => {
+    const link = `${window.location.origin}/workspace/meeting/${meetingId}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: 'Link copied!' });
+  };
+  
+  // Send chat message
+  const sendChatMessage = () => {
+    if (!chatInput.trim()) return;
+    setChatMessages(prev => [...prev, {
+      id: Date.now(),
+      sender: user?.name || 'You',
+      message: chatInput,
+      time: new Date().toLocaleTimeString()
+    }]);
+    setChatInput('');
+  };
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  
+  // Pre-join screen
+  if (!joined) {
+    const meetingTitle = meeting?.title || 'Group Meeting';
+    const isInstantMeeting = meeting?.isInstant || !meeting;
+    
+    return (
+      <TooltipProvider>
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4">
+          <Helmet><title>{meetingTitle} | Munal AI</title></Helmet>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl w-full"
+          >
+            <div className="bg-slate-900/80 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden">
+              {/* Meeting Info */}
+              <div className="p-6 border-b border-white/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-2xl font-bold text-white">{meetingTitle}</h1>
+                  <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30">
+                    <Users className="w-3 h-3 mr-1" />
+                    Group Call
+                  </Badge>
+                  {isInstantMeeting && (
+                    <Badge className="bg-violet-500/20 text-violet-300 border-violet-500/30">
+                      Instant
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 text-gray-400">
+                  {meeting?.start_time && !isInstantMeeting && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>{format(parseISO(meeting.start_time), 'EEEE, MMMM d')}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>{format(parseISO(meeting.start_time), 'h:mm a')}</span>
+                      </div>
+                    </>
+                  )}
+                  {isInstantMeeting && (
+                    <div className="flex items-center gap-2 text-violet-400">
+                      <Video className="w-4 h-4" />
+                      <span>Ready to start (up to 16 participants)</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Video Preview */}
+              <div className="p-6">
+                <div className="relative aspect-video bg-slate-800 rounded-2xl overflow-hidden mb-6">
+                  <video
+                    ref={previewVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={cn(
+                      "w-full h-full object-cover",
+                      (!isVideoEnabled || !previewStream) && "hidden"
+                    )}
+                  />
+                  
+                  {/* Avatar when no video */}
+                  {(!isVideoEnabled || !previewStream) && !cameraError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                      <Avatar className="h-24 w-24">
+                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-3xl">
+                          {user?.name?.[0] || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  )}
+                  
+                  {/* Camera error */}
+                  {cameraError && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                      <div className="text-center px-8">
+                        <Avatar className="h-20 w-20 mx-auto mb-4">
+                          <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-600 text-white text-3xl">
+                            <VideoOff className="w-8 h-8" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="text-gray-300 text-sm mb-4">{cameraError}</p>
+                        <Button 
+                          onClick={startCamera}
+                          className="bg-violet-600 hover:bg-violet-700 text-white"
+                          data-testid="enable-camera-btn"
+                        >
+                          <Video className="w-4 h-4 mr-2" />
+                          Enable Camera
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Controls Preview */}
+                <div className="flex items-center justify-center gap-4 mb-6">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center gap-2">
+                        <Button
+                          size="lg"
+                          className={cn(
+                            "rounded-full h-16 w-16 shadow-lg transition-all",
+                            isAudioEnabled 
+                              ? "bg-slate-600 hover:bg-slate-500 text-white border-2 border-slate-500" 
+                              : "bg-red-500 hover:bg-red-400 text-white border-2 border-red-400"
+                          )}
+                          onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                          data-testid="preview-mic-btn"
+                        >
+                          {isAudioEnabled ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
+                        </Button>
+                        <span className="text-sm font-medium text-white">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isAudioEnabled ? 'Turn off microphone' : 'Turn on microphone'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center gap-2">
+                        <Button
+                          size="lg"
+                          className={cn(
+                            "rounded-full h-16 w-16 shadow-lg transition-all",
+                            isVideoEnabled 
+                              ? "bg-slate-600 hover:bg-slate-500 text-white border-2 border-slate-500" 
+                              : "bg-red-500 hover:bg-red-400 text-white border-2 border-red-400"
+                          )}
+                          onClick={() => setIsVideoEnabled(!isVideoEnabled)}
+                          data-testid="preview-video-btn"
+                        >
+                          {isVideoEnabled ? <Video className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
+                        </Button>
+                        <span className="text-sm font-medium text-white">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                
+                {/* Join Button */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={joinMeeting}
+                    className="flex-1 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-lg font-semibold"
+                    data-testid="join-group-meeting-btn"
+                  >
+                    <Users className="w-5 h-5 mr-2" />
+                    Join Group Meeting
+                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-12 border-slate-600"
+                        onClick={copyMeetingLink}
+                        data-testid="copy-link-btn"
+                      >
+                        {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Copy meeting link</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </TooltipProvider>
+    );
+  }
+  
+  // In-meeting view with grid
+  const allParticipants = participants.length > 0 ? participants : [{
+    user_id: user?.id,
+    user_name: user?.name || 'You',
+    video_enabled: isVideoEnabled,
+    audio_enabled: isAudioEnabled,
+    hand_raised: handRaised
+  }];
+  
+  return (
+    <div className="h-screen bg-slate-950 flex flex-col" data-testid="group-meeting-room">
+      <Helmet><title>{meeting?.title || 'Group Meeting'} | Meeting</title></Helmet>
+      
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-3 bg-slate-900/80 border-b border-white/10">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold text-white">{meeting?.title || 'Group Meeting'}</h1>
+          <Badge variant="secondary" className="bg-red-500/20 text-red-400">
+            <div className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" />
+            {formatDuration(callDuration)}
+          </Badge>
+          <Badge variant="secondary" className="bg-indigo-500/20 text-indigo-300">
+            <Users className="w-3 h-3 mr-1" />
+            {allParticipants.length} participant{allParticipants.length !== 1 ? 's' : ''}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={copyMeetingLink} className="text-gray-400 hover:text-white">
+            {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+            Invite
+          </Button>
+          <Button 
+            variant={showParticipants ? "default" : "ghost"} 
+            size="sm" 
+            className="text-gray-400 hover:text-white"
+            onClick={() => setShowParticipants(!showParticipants)}
+            data-testid="toggle-participants-btn"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            {allParticipants.length}
+          </Button>
+        </div>
+      </div>
+      
+      {/* Main Content - Video Grid */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className={cn("flex-1 transition-all", (showChat || showParticipants) && "pr-0")}>
+          <VideoGrid
+            participants={allParticipants}
+            localStream={localStream}
+            remoteStreams={remoteStreamMap}
+            localUserId={user?.id}
+            activeSpeaker={activeSpeaker}
+            focusedParticipant={focusedParticipant}
+            onFocusParticipant={setFocusedParticipant}
+          />
+        </div>
+        
+        {/* Sidebar */}
+        {(showChat || showParticipants) && (
+          <div className="w-80 bg-slate-900 border-l border-white/10 flex flex-col">
+            <div className="flex border-b border-white/10">
+              <button
+                onClick={() => { setShowChat(true); setShowParticipants(false); }}
+                className={cn(
+                  "flex-1 py-3 text-sm font-medium transition-colors",
+                  showChat ? "text-white border-b-2 border-indigo-500" : "text-gray-400 hover:text-white"
+                )}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => { setShowParticipants(true); setShowChat(false); }}
+                className={cn(
+                  "flex-1 py-3 text-sm font-medium transition-colors",
+                  showParticipants ? "text-white border-b-2 border-indigo-500" : "text-gray-400 hover:text-white"
+                )}
+              >
+                Participants ({allParticipants.length})
+              </button>
+            </div>
+            
+            {/* Chat Content */}
+            {showChat && (
+              <>
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-4">
+                    {chatMessages.length === 0 && (
+                      <p className="text-gray-500 text-center text-sm">No messages yet</p>
+                    )}
+                    {chatMessages.map(msg => (
+                      <div key={msg.id} className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-white">{msg.sender}</span>
+                          <span className="text-gray-500 text-xs">{msg.time}</span>
+                        </div>
+                        <p className="text-gray-300 text-sm">{msg.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <div className="p-4 border-t border-white/10">
+                  <div className="flex gap-2">
+                    <Input
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      placeholder="Type a message..."
+                      className="bg-slate-800 border-slate-700"
+                      onKeyPress={e => e.key === 'Enter' && sendChatMessage()}
+                    />
+                    <Button onClick={sendChatMessage} size="sm">Send</Button>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            {/* Participants Content */}
+            {showParticipants && (
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-2">
+                  {allParticipants.map(p => (
+                    <div 
+                      key={p.user_id} 
+                      className={cn(
+                        "flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors",
+                        p.user_id === activeSpeaker && "bg-green-500/10 border border-green-500/30"
+                      )}
+                      onClick={() => setFocusedParticipant(p.user_id === focusedParticipant ? null : p.user_id)}
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-indigo-600">
+                          {p.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="text-white text-sm font-medium">
+                          {p.user_name} {p.user_id === user?.id && '(You)'}
+                        </p>
+                        {p.user_id === activeSpeaker && (
+                          <p className="text-green-400 text-xs">Speaking</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        {!p.audio_enabled && <MicOff className="w-4 h-4 text-red-400" />}
+                        {!p.video_enabled && <VideoOff className="w-4 h-4 text-red-400" />}
+                        {p.hand_raised && <Hand className="w-4 h-4 text-yellow-400" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+        )}
+      </div>
+      
+      {/* Controls */}
+      <TooltipProvider>
+        <div className="flex items-center justify-center gap-3 py-5 px-6 bg-slate-900 border-t border-white/10">
+          {/* Left Controls */}
+          <div className="flex items-center gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      isAudioEnabled 
+                        ? "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600" 
+                        : "bg-red-500 hover:bg-red-400 text-white"
+                    )}
+                    onClick={toggleAudio}
+                    data-testid="toggle-mic-btn"
+                  >
+                    {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+                  </Button>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>{isAudioEnabled ? 'Turn off microphone' : 'Turn on microphone'}</p></TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      isVideoEnabled 
+                        ? "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600" 
+                        : "bg-red-500 hover:bg-red-400 text-white"
+                    )}
+                    onClick={toggleVideo}
+                    data-testid="toggle-video-btn"
+                  >
+                    {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                  </Button>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>{isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}</p></TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      isScreenSharing 
+                        ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
+                    )}
+                    onClick={toggleScreenShare}
+                    data-testid="share-screen-btn"
+                  >
+                    {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
+                  </Button>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isScreenSharing ? 'Stop Share' : 'Share'}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>{isScreenSharing ? 'Stop screen sharing' : 'Share your screen'}</p></TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      handRaised 
+                        ? "bg-yellow-500 hover:bg-yellow-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
+                    )}
+                    onClick={toggleHandRaise}
+                    data-testid="raise-hand-btn"
+                  >
+                    <Hand className="w-6 h-6" />
+                  </Button>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{handRaised ? 'Lower' : 'Raise'}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>{handRaised ? 'Lower your hand' : 'Raise your hand'}</p></TooltipContent>
+            </Tooltip>
+          </div>
+          
+          {/* Center - End Call */}
+          <div className="mx-6">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className="rounded-xl h-14 px-8 bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/30 font-semibold"
+                    onClick={leaveMeeting}
+                    data-testid="leave-meeting-btn"
+                  >
+                    <PhoneOff className="w-5 h-5 mr-2" />
+                    Leave
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>Leave meeting</p></TooltipContent>
+            </Tooltip>
+          </div>
+          
+          {/* Right Controls */}
+          <div className="flex items-center gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      showParticipants 
+                        ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
+                    )}
+                    onClick={() => { setShowParticipants(!showParticipants); setShowChat(false); }}
+                    data-testid="participants-btn"
+                  >
+                    <Users className="w-6 h-6" />
+                  </Button>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">People</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>View participants</p></TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      showChat 
+                        ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
+                    )}
+                    onClick={() => { setShowChat(!showChat); setShowParticipants(false); }}
+                    data-testid="chat-btn"
+                  >
+                    <MessageSquare className="w-6 h-6" />
+                  </Button>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">Chat</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>Open meeting chat</p></TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      focusedParticipant 
+                        ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
+                    )}
+                    onClick={() => setFocusedParticipant(null)}
+                    data-testid="grid-view-btn"
+                  >
+                    <Grid className="w-6 h-6" />
+                  </Button>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">Grid</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>Reset to grid view</p></TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </TooltipProvider>
+    </div>
+  );
+};
+
+export default GroupMeetingRoomPage;
