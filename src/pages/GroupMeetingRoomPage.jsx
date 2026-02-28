@@ -80,11 +80,9 @@ const ParticipantTile = ({
       const playVideo = async () => {
         try {
           await video.play();
-          setIsVideoPlaying(true);
           console.log(`Video playing for ${participant.user_name}`);
         } catch (err) {
           console.log('Video play error:', err);
-          // Retry on user interaction
         }
       };
       
@@ -93,7 +91,6 @@ const ParticipantTile = ({
       }
     } else {
       video.srcObject = null;
-      setIsVideoPlaying(false);
     }
   }, [stream, participant.user_name]);
   
