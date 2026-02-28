@@ -843,6 +843,217 @@ const GroupMeetingRoomPage = () => {
     setChatInput('');
   };
   
+  // Recording duration timer
+  useEffect(() => {
+    let interval;
+    if (isRecording && recordingStartTime) {
+      interval = setInterval(() => {
+        setRecordingDuration(Math.floor((Date.now() - recordingStartTime) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, recordingStartTime]);
+  
+  // Format recording duration
+  const formatRecordingDuration = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Start recording
+  const startRecording = async () => {
+    try {
+      // Combine all streams for recording
+      const audioTracks = [];
+      const videoTracks = [];
+      
+      // Get local stream tracks
+      if (localStream) {
+        localStream.getAudioTracks().forEach(t => audioTracks.push(t));
+        localStream.getVideoTracks().forEach(t => videoTracks.push(t));
+      }
+      
+      // Get remote streams audio (for full meeting recording)
+      remoteStreamMap.forEach((stream) => {
+        stream.getAudioTracks().forEach(t => audioTracks.push(t));
+      });
+      
+      if (audioTracks.length === 0 && videoTracks.length === 0) {
+        toast({ variant: 'destructive', title: 'No media to record', description: 'Please enable camera or microphone first.' });
+        return;
+      }
+      
+      // Create a combined stream for recording
+      const recordingStream = new MediaStream([...audioTracks, ...videoTracks]);
+      
+      // Check for supported MIME types
+      const mimeTypes = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'audio/webm;codecs=opus',
+        'audio/webm'
+      ];
+      
+      let selectedMimeType = '';
+      for (const mimeType of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+          selectedMimeType = mimeType;
+          break;
+        }
+      }
+      
+      if (!selectedMimeType) {
+        toast({ variant: 'destructive', title: 'Recording not supported', description: 'Your browser does not support recording.' });
+        return;
+      }
+      
+      recordedChunksRef.current = [];
+      
+      const mediaRecorder = new MediaRecorder(recordingStream, {
+        mimeType: selectedMimeType,
+        videoBitsPerSecond: 2500000, // 2.5 Mbps
+        audioBitsPerSecond: 128000   // 128 kbps
+      });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        await saveRecording();
+      };
+      
+      mediaRecorder.start(1000); // Collect data every second
+      mediaRecorderRef.current = mediaRecorder;
+      
+      setIsRecording(true);
+      setRecordingStartTime(Date.now());
+      setRecordingDuration(0);
+      
+      toast({ title: 'Recording started', description: 'Recording will be saved when you stop.' });
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      toast({ variant: 'destructive', title: 'Recording failed', description: err.message });
+    }
+  };
+  
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+  
+  // Save recording to backend and trigger download
+  const saveRecording = async () => {
+    if (recordedChunksRef.current.length === 0) {
+      toast({ variant: 'destructive', title: 'No recording data' });
+      return;
+    }
+    
+    setIsSavingRecording(true);
+    
+    try {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      const duration = recordingDuration || Math.floor((Date.now() - recordingStartTime) / 1000);
+      
+      // Generate filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `meeting-recording-${timestamp}.webm`;
+      
+      // 1. Trigger browser download first
+      const downloadUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.download = filename;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(downloadUrl);
+      
+      toast({ title: 'Download started', description: filename });
+      
+      // 2. Save to backend (File Manager) - will auto-delete after 7 days
+      const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+      
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      
+      reader.onloadend = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1];
+          
+          const response = await fetch(`${API_URL}/api/recordings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: user?.id,
+              title: meeting?.title || `Meeting Recording ${new Date().toLocaleDateString()}`,
+              file_data: base64Data,
+              mime_type: 'video/webm',
+              recording_type: 'meeting',
+              duration: duration,
+              category: 'Meetings'
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            toast({ 
+              title: 'Recording saved', 
+              description: 'Saved to File Manager. Auto-deletes in 7 days.' 
+            });
+          } else {
+            console.error('Failed to save recording to server');
+            toast({ 
+              variant: 'destructive', 
+              title: 'Cloud save failed', 
+              description: 'Recording was downloaded but could not be saved to cloud.' 
+            });
+          }
+        } catch (err) {
+          console.error('Error saving to cloud:', err);
+        }
+        
+        setIsSavingRecording(false);
+      };
+      
+      reader.onerror = () => {
+        console.error('Error reading recording blob');
+        setIsSavingRecording(false);
+      };
+      
+    } catch (err) {
+      console.error('Error saving recording:', err);
+      toast({ variant: 'destructive', title: 'Save failed', description: err.message });
+      setIsSavingRecording(false);
+    }
+    
+    // Reset recording state
+    recordedChunksRef.current = [];
+    setRecordingStartTime(null);
+    setRecordingDuration(0);
+  };
+  
+  // Toggle recording
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+  
   // Merge local user's current state with participants list
   // This must be before any early returns as it's a hook
   const allParticipants = React.useMemo(() => {
