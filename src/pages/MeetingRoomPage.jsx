@@ -61,17 +61,40 @@ const MeetingRoomPage = () => {
           const data = await response.json();
           setMeeting(data);
         } else {
-          toast({ variant: 'destructive', title: 'Meeting not found' });
+          // Meeting not found in database - create instant meeting
+          const instantMeeting = {
+            id: meetingId,
+            title: 'Instant Meeting',
+            description: 'Quick meeting started from dashboard',
+            start_time: new Date().toISOString(),
+            end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            video_call: true,
+            isInstant: true,
+            invitees: []
+          };
+          setMeeting(instantMeeting);
         }
       } catch (err) {
         console.error('Error loading meeting:', err);
+        // On error, still allow instant meeting
+        const instantMeeting = {
+          id: meetingId,
+          title: 'Instant Meeting',
+          description: 'Quick meeting started from dashboard',
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          video_call: true,
+          isInstant: true,
+          invitees: []
+        };
+        setMeeting(instantMeeting);
       } finally {
         setLoading(false);
       }
     };
     
     if (meetingId) loadMeeting();
-  }, [meetingId, toast]);
+  }, [meetingId]);
 
   // Auto-start camera preview
   useEffect(() => {
