@@ -708,6 +708,14 @@ const GroupMeetingRoomPage = () => {
   // Merge local user's current state with participants list
   // This must be before any early returns as it's a hook
   const allParticipants = React.useMemo(() => {
+    console.log('[allParticipants] Computing:', {
+      participantsLength: participants.length,
+      userId: user?.id,
+      userName: user?.name,
+      isVideoEnabled,
+      participants: participants.map(p => ({ id: p.user_id, name: p.user_name }))
+    });
+    
     if (participants.length === 0) {
       // Fallback when not connected to room yet
       return [{
@@ -718,6 +726,10 @@ const GroupMeetingRoomPage = () => {
         hand_raised: handRaised
       }];
     }
+    
+    // Check if current user is in the participants list
+    const currentUserInList = participants.find(p => p.user_id === user?.id);
+    console.log('[allParticipants] Current user in list:', currentUserInList);
     
     // Update local user's state in the participants list
     return participants.map(p => {
