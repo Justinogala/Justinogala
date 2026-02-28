@@ -727,23 +727,24 @@ const MeetingRoomPage = () => {
           </div>
 
           {/* Right Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
-                    variant="ghost"
                     size="lg"
                     className={cn(
-                      "rounded-xl h-12 w-12",
-                      showParticipants && "bg-indigo-500/20 text-indigo-400"
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      showParticipants 
+                        ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
                     )}
                     onClick={() => { setShowParticipants(!showParticipants); setShowChat(false); }}
                     data-testid="participants-btn"
                   >
-                    <Users className="w-5 h-5" />
+                    <Users className="w-6 h-6" />
                   </Button>
-                  <span className="text-[10px] text-gray-400 mt-1">Participants</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">People</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -755,18 +756,19 @@ const MeetingRoomPage = () => {
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
-                    variant="ghost"
                     size="lg"
                     className={cn(
-                      "rounded-xl h-12 w-12",
-                      showChat && "bg-indigo-500/20 text-indigo-400"
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      showChat 
+                        ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
                     )}
                     onClick={() => { setShowChat(!showChat); setShowParticipants(false); }}
                     data-testid="chat-btn"
                   >
-                    <MessageSquare className="w-5 h-5" />
+                    <MessageSquare className="w-6 h-6" />
                   </Button>
-                  <span className="text-[10px] text-gray-400 mt-1">Chat</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">Chat</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -778,14 +780,13 @@ const MeetingRoomPage = () => {
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
-                    variant="ghost"
                     size="lg"
-                    className="rounded-xl h-12 w-12"
+                    className="rounded-xl h-14 w-14 shadow-lg bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 transition-all"
                     data-testid="more-options-btn"
                   >
-                    <MoreHorizontal className="w-5 h-5" />
+                    <MoreHorizontal className="w-6 h-6" />
                   </Button>
-                  <span className="text-[10px] text-gray-400 mt-1">More</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">More</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
