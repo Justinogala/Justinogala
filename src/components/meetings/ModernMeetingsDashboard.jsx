@@ -255,6 +255,76 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
         </div>
       </div>
 
+      {/* Instant Meeting Section */}
+      <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
+            {/* Left: Instant Meeting */}
+            <div className="flex items-center gap-4 flex-1">
+              <div className="flex items-center gap-2 min-w-fit">
+                <Video className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                <span className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">Instant Meeting</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleStartInstantMeeting}
+                  className="bg-violet-600 hover:bg-violet-700 text-white shadow-md"
+                  data-testid="start-instant-meeting-btn"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Start
+                </Button>
+                <Button
+                  onClick={handleCopyInstantLink}
+                  variant="outline"
+                  className="border-violet-300 text-violet-600 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-900/30"
+                  data-testid="copy-instant-link-btn"
+                >
+                  {linkCopied ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy link
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="hidden lg:block w-px h-10 bg-slate-200 dark:bg-slate-700" />
+
+            {/* Right: Join by Meeting ID */}
+            <div className="flex items-center gap-3 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Enter Meeting ID"
+                  value={meetingIdInput}
+                  onChange={(e) => setMeetingIdInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleJoinByMeetingId()}
+                  className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-violet-500"
+                  data-testid="meeting-id-input"
+                />
+              </div>
+              <Button
+                onClick={handleJoinByMeetingId}
+                variant="outline"
+                className="border-violet-300 text-violet-600 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-900/30 font-semibold"
+                data-testid="join-by-id-btn"
+              >
+                JOIN
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Main Content Area (2/3 width) */}
