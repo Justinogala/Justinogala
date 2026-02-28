@@ -65,50 +65,58 @@ const ParticipantTile = ({
   onFocus 
 }) => {
   const videoRef = useRef(null);
+  const [videoVisible, setVideoVisible] = useState(false);
   
-  // Attach stream to video element
+  // Attach stream to video element - simplified and reliable
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) {
-      console.log(`No video ref for ${participant.user_name}`);
-      return;
-    }
+    if (!video) return;
+    
+    // Always set srcObject, even if null
+    video.srcObject = stream || null;
     
     if (stream) {
-      console.log(`[ParticipantTile] Setting stream for ${participant.user_name}:`, {
+      const videoTracks = stream.getVideoTracks();
+      const hasVideo = videoTracks.length > 0 && videoTracks[0].enabled;
+      
+      console.log(`[ParticipantTile] ${participant.user_name}:`, {
         streamId: stream.id,
-        active: stream.active,
-        videoTracks: stream.getVideoTracks().length,
-        videoEnabled: stream.getVideoTracks()[0]?.enabled,
+        hasVideo,
+        trackEnabled: videoTracks[0]?.enabled,
         participantVideoEnabled: participant.video_enabled
       });
       
-      video.srcObject = stream;
-      
-      // Ensure video plays
-      const playVideo = async () => {
-        try {
-          await video.play();
-          console.log(`[ParticipantTile] Video playing for ${participant.user_name}`);
-        } catch (err) {
-          console.log('[ParticipantTile] Video play error:', err.message);
-        }
-      };
-      
-      // Play immediately
-      playVideo();
+      if (hasVideo) {
+        video.play()
+          .then(() => {
+            setVideoVisible(true);
+            console.log(`[ParticipantTile] Video playing: ${participant.user_name}`);
+          })
+          .catch(err => {
+            console.log(`[ParticipantTile] Play failed: ${err.message}`);
+            setVideoVisible(false);
+          });
+      } else {
+        setVideoVisible(false);
+      }
     } else {
-      console.log(`[ParticipantTile] No stream for ${participant.user_name}, isLocal:`, isLocal);
-      video.srcObject = null;
+      setVideoVisible(false);
     }
-  }, [stream, participant.user_name, isLocal, participant.video_enabled]);
+  }, [stream, participant.user_name, participant.video_enabled]);
+  
+  // Also re-check when video_enabled changes
+  useEffect(() => {
+    if (stream && participant.video_enabled) {
+      const videoTracks = stream.getVideoTracks();
+      if (videoTracks.length > 0) {
+        videoTracks[0].enabled = true;
+        setVideoVisible(true);
+      }
+    }
+  }, [stream, participant.video_enabled]);
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
-  
-  // Simplified condition - show video if stream exists and has video tracks
-  const hasVideoTrack = stream && stream.getVideoTracks().length > 0;
-  const videoTrackEnabled = hasVideoTrack && stream.getVideoTracks()[0]?.enabled !== false;
-  const showVideo = participant.video_enabled && hasVideoTrack && videoTrackEnabled;
+  const showVideo = videoVisible && participant.video_enabled;
   
   return (
     <motion.div 
@@ -121,19 +129,17 @@ const ParticipantTile = ({
       onClick={() => onFocus && onFocus(participant.user_id)}
       data-testid={`participant-tile-${participant.user_id}`}
     >
-      {/* Video element - always present but visibility controlled */}
+      {/* Video element - ALWAYS visible, let CSS handle display */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={isLocal}
-        onCanPlay={(e) => {
-          e.target.play().catch(err => console.log('CanPlay error:', err));
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ 
+          opacity: showVideo ? 1 : 0,
+          zIndex: showVideo ? 10 : 1 
         }}
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-opacity",
-          showVideo ? "opacity-100 z-10" : "opacity-0 z-0"
-        )}
       />
       
       {/* Avatar fallback when video is off */}
