@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   Video, VideoOff, Mic, MicOff, PhoneOff, Users, 
   MessageSquare, Monitor, MonitorOff, Copy, Check, Clock, Calendar,
-  Hand, MoreHorizontal, Settings, Maximize2, Grid, Record
+  Hand, MoreHorizontal, Settings, Maximize2, Grid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
