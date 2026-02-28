@@ -98,29 +98,63 @@ const MeetingRoomPage = () => {
 
   // Auto-start camera preview
   useEffect(() => {
+    let isMounted = true;
+    
     const startPreview = async () => {
-      if (!previewStarted && !joined && !loading) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-          });
-          localStreamRef.current = stream;
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-          }
+      if (previewStarted || joined || loading) return;
+      
+      try {
+        console.log('Requesting camera access...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
+          audio: true
+        });
+        
+        if (!isMounted) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        
+        localStreamRef.current = stream;
+        
+        // Ensure video element is ready
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.onloadedmetadata = () => {
+            localVideoRef.current?.play().catch(e => console.log('Video play error:', e));
+          };
+        }
+        
+        setPreviewStarted(true);
+        console.log('Camera preview started successfully');
+      } catch (err) {
+        console.error('Error starting preview:', err);
+        // Still mark as started to show avatar
+        if (isMounted) {
           setPreviewStarted(true);
-        } catch (err) {
-          console.error('Error starting preview:', err);
         }
       }
     };
     
-    if (!loading) {
-      startPreview();
-    }
+    // Small delay to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      if (!loading) {
+        startPreview();
+      }
+    }, 500);
     
     return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      if (!joined && localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [loading, previewStarted, joined]);
       if (!joined && localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
       }
