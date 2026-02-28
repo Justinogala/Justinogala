@@ -401,24 +401,31 @@ export const useGroupWebRTC = ({
   
   // Cleanup on unmount
   useEffect(() => {
+    const currentPeerConnections = peerConnections.current;
+    const currentEventSource = eventSourceRef.current;
+    
     return () => {
-      peerConnections.current.forEach(pc => pc.close());
-      peerConnections.current.clear();
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+      currentPeerConnections.forEach(pc => pc.close());
+      currentPeerConnections.clear();
+      if (currentEventSource) {
+        currentEventSource.close();
       }
     };
   }, []);
+  
+  // Get remote streams as a function to avoid ref access during render
+  const getRemoteStreams = useCallback(() => remoteStreams.current, []);
+  const getPeerConnections = useCallback(() => peerConnections.current, []);
   
   return {
     participants,
     isConnected,
     activeSpeaker,
-    remoteStreams: remoteStreams.current,
+    getRemoteStreams,
+    getPeerConnections,
     joinRoom,
     leaveRoom,
-    updateParticipantStatus,
-    peerConnections: peerConnections.current
+    updateParticipantStatus
   };
 };
 
