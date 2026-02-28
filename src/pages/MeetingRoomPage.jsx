@@ -430,6 +430,7 @@ const MeetingRoomPage = () => {
           </div>
         </motion.div>
       </div>
+      </TooltipProvider>
     );
   }
 
