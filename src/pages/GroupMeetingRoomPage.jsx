@@ -75,7 +75,7 @@ const ParticipantTile = ({
       streamId: stream?.id || 'null',
       streamActive: stream?.active,
       videoTracks: stream?.getVideoTracks()?.length || 0,
-      videoTracksEnabled: stream?.getVideoTracks()?.map(t => ({ id: t.id, enabled: t.enabled, readyState: t.readyState })),
+      videoTracksDetails: stream?.getVideoTracks()?.map(t => ({ id: t.id, enabled: t.enabled, readyState: t.readyState })),
       videoEnabled: participant.video_enabled,
       isLocal
     });
@@ -89,32 +89,28 @@ const ParticipantTile = ({
     }
     
     const videoTracks = stream.getVideoTracks();
-    const hasEnabledVideoTrack = videoTracks.length > 0 && videoTracks.some(t => t.enabled);
     
-    console.log(`[ParticipantTile] ${participant.user_name}: Has enabled video track:`, hasEnabledVideoTrack);
-    
-    if (hasEnabledVideoTrack && participant.video_enabled) {
-      // Set up event listeners for video playback
-      const handleCanPlay = () => {
-        console.log(`[ParticipantTile] ${participant.user_name}: Video canplay - attempting to play`);
-        video.play().catch(err => {
-          console.log(`[ParticipantTile] ${participant.user_name}: Play failed:`, err.name);
-        });
-      };
+    // CRITICAL: Ensure video track is enabled based on participant.video_enabled
+    if (videoTracks.length > 0 && participant.video_enabled) {
+      videoTracks.forEach(t => {
+        if (!t.enabled) {
+          console.log(`[ParticipantTile] ${participant.user_name}: Enabling video track`, t.id);
+          t.enabled = true;
+        }
+      });
       
-      video.addEventListener('canplay', handleCanPlay);
-      
-      // Try to play immediately if already ready
-      if (video.readyState >= 3) {
-        console.log(`[ParticipantTile] ${participant.user_name}: Video already ready, playing immediately`);
-        video.play().catch(err => {
-          console.log(`[ParticipantTile] ${participant.user_name}: Initial play failed:`, err.name);
-        });
-      }
-      
-      return () => {
-        video.removeEventListener('canplay', handleCanPlay);
-      };
+      // Try to play
+      video.play().catch(err => {
+        console.log(`[ParticipantTile] ${participant.user_name}: Play failed:`, err.name);
+      });
+    } else if (videoTracks.length > 0 && !participant.video_enabled) {
+      // Disable video tracks when video is turned off
+      videoTracks.forEach(t => {
+        if (t.enabled) {
+          console.log(`[ParticipantTile] ${participant.user_name}: Disabling video track`, t.id);
+          t.enabled = false;
+        }
+      });
     }
   }, [stream, participant.user_name, participant.video_enabled, isLocal]);
   
