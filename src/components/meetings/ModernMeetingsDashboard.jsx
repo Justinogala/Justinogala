@@ -131,11 +131,14 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
   const handleJoinMeeting = (id) => {
     const meeting = meetings.find(m => m.id === id);
     if (meeting?.meetingUrl) {
-      window.open(meeting.meetingUrl, '_blank');
+      // If there's a direct meeting URL, use it
+      window.location.href = meeting.meetingUrl;
     } else if (meeting?.hasVideo) {
-      navigate(`/meeting/${id}`);
-    } else if (onJoinClick) {
-      onJoinClick(id);
+      // Navigate to workspace meeting room
+      navigate(`/workspace/meeting/${id}`);
+    } else {
+      // Default: navigate to workspace meeting room
+      navigate(`/workspace/meeting/${id}`);
     }
   };
 
