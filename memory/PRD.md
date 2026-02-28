@@ -587,11 +587,50 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ## Prioritized Backlog
 
+### Camera Bug Fix (Feb 28, 2026)
+- [x] **Root Cause Analysis**: Video element was hidden using CSS `hidden` class which removed it from layout, preventing stream attachment
+- [x] **Fix Applied**:
+  - Video element now always in DOM with visibility controlled via opacity/z-index
+  - Added proper `onloadedmetadata` wait before playing
+  - Added timeout fallback (2s) for metadata loading
+  - Added `onCanPlay` handler to ensure video plays when ready
+  - Stream status now derived from `stream.active` property
+  - Local user's video_enabled state properly merged with participants list
+- [x] **Error Handling**:
+  - Better error messages: NotAllowedError, NotFoundError, NotReadableError, OverconstrainedError
+  - "Enable Camera" button allows user to retry
+  - "Starting camera..." loading indicator
+- [x] **Debug Logging**: Added console logs for stream status to help diagnose issues
+- [x] **Files Modified**:
+  - `/app/src/pages/GroupMeetingRoomPage.jsx` - ParticipantTile component and startCamera function
+  - `/app/src/pages/MeetingRoomPage.jsx` - startCamera function
+
+### Admin Panel UI Verification (Feb 28, 2026)
+- [x] **AdminMonitoringDashboard** - Already fully implemented with:
+  - Real-time stats: Online Users, Active Meetings, Logins Today, Failed Logins
+  - System Health: Database status, Collections count
+  - User Statistics: Total, Active, Disabled users
+  - Today's Activity: Meetings Created, User Logins, Failed Attempts
+- [x] **AdminSecurityPolicies** - Already fully implemented with:
+  - Password Requirements: Min length, uppercase, numbers, special chars toggles
+  - Session Settings: Session timeout
+  - Account Lockout: Max failed attempts
+  - Meeting Settings: Enable Instant Meetings
+  - Save Changes functionality via PUT API
+- [x] **AdminMeetingAnalytics** - Already fully implemented with:
+  - Total Meetings, Active Users, Avg per Day
+  - Top Meeting Creators list
+  - Peak Meeting Hours chart
+  - Daily Meeting Trend
+  - Date range selector (7, 14, 30, 90 days)
+
+## Prioritized Backlog
+
 ### P0 (Critical)
-- [ ] Fix recurring camera bug (camera fails to start in meeting rooms)
+- [x] ~~Fix recurring camera bug (camera fails to start in meeting rooms)~~ - **FIXED**
 
 ### P1 (High Priority)
-- [ ] Admin Panel UI - Build frontend for AdminMonitoringDashboard, AdminSecurityPolicies, AdminMeetingAnalytics
+- [x] ~~Admin Panel UI~~ - **ALREADY COMPLETE** (was marked as placeholder but fully functional)
 
 ### P2 (Medium Priority)
 - [ ] PWA chunk loading fix for deployments
