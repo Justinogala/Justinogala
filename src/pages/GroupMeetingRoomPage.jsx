@@ -669,8 +669,11 @@ const GroupMeetingRoomPage = () => {
       console.log('[toggleVideo] Enabling/disabling existing video tracks');
       localStream.getVideoTracks().forEach(track => {
         track.enabled = newState;
+        console.log('[toggleVideo] Track', track.id, 'enabled:', track.enabled);
       });
       setIsVideoEnabled(newState);
+      // CRITICAL: Force re-render by updating streamKey
+      setStreamKey(prev => prev + 1);
       updateParticipantStatus({ video_enabled: newState });
     } else if (newState) {
       // Need to get video permission - no stream or no video tracks
@@ -721,6 +724,8 @@ const GroupMeetingRoomPage = () => {
     } else {
       // Turning off video - just update state
       setIsVideoEnabled(false);
+      // CRITICAL: Force re-render by updating streamKey
+      setStreamKey(prev => prev + 1);
       updateParticipantStatus({ video_enabled: false });
     }
   };
