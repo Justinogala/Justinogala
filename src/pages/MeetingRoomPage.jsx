@@ -387,8 +387,13 @@ const MeetingRoomPage = () => {
                   autoPlay
                   playsInline
                   muted
-                  className={cn("w-full h-full object-cover", !isVideoEnabled && "hidden")}
+                  className={cn(
+                    "w-full h-full object-cover transition-opacity duration-300",
+                    (!isVideoEnabled || !videoPlaying) ? "opacity-0" : "opacity-100"
+                  )}
+                  onPlaying={() => setVideoPlaying(true)}
                 />
+                {/* Show avatar when video is off */}
                 {!isVideoEnabled && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                     <Avatar className="h-24 w-24">
@@ -398,15 +403,19 @@ const MeetingRoomPage = () => {
                     </Avatar>
                   </div>
                 )}
-                {isVideoEnabled && !previewStarted && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                {/* Show loading state when video is enabled but not yet playing */}
+                {isVideoEnabled && !videoPlaying && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                     <div className="text-center">
                       <Avatar className="h-24 w-24 mx-auto mb-4">
                         <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-3xl">
                           {user?.name?.[0] || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <p className="text-gray-400">Starting camera...</p>
+                      <p className="text-gray-400 flex items-center gap-2 justify-center">
+                        <span className="w-2 h-2 bg-violet-500 rounded-full animate-pulse"></span>
+                        Starting camera...
+                      </p>
                     </div>
                   </div>
                 )}
