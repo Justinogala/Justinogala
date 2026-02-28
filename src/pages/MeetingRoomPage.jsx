@@ -484,7 +484,7 @@ const MeetingRoomPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 bg-slate-900/80 border-b border-white/10">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">{meeting.title}</h1>
+          <h1 className="text-lg font-semibold text-white">{inMeetingTitle}</h1>
           <Badge variant="secondary" className="bg-red-500/20 text-red-400">
             <div className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" />
             {formatDuration(callDuration)}
