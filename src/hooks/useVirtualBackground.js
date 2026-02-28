@@ -11,12 +11,12 @@ export const BACKGROUND_EFFECTS = {
   VIRTUAL: 'virtual'
 };
 
-// Preset virtual backgrounds
+// Preset virtual backgrounds - using Unsplash images
 export const VIRTUAL_BACKGROUNDS = [
-  { id: 'office', name: 'Modern Office', url: '/backgrounds/office.jpg' },
-  { id: 'nature', name: 'Nature', url: '/backgrounds/nature.jpg' },
-  { id: 'beach', name: 'Beach', url: '/backgrounds/beach.jpg' },
-  { id: 'space', name: 'Space', url: '/backgrounds/space.jpg' },
+  { id: 'office', name: 'Modern Office', url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1280&q=80' },
+  { id: 'nature', name: 'Nature', url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1280&q=80' },
+  { id: 'beach', name: 'Beach', url: 'https://images.unsplash.com/photo-1631535152690-ba1a85229136?w=1280&q=80' },
+  { id: 'space', name: 'Space', url: 'https://images.unsplash.com/photo-1504812333783-63b845853c20?w=1280&q=80' },
   { id: 'gradient1', name: 'Purple Gradient', color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
   { id: 'gradient2', name: 'Blue Gradient', color: 'linear-gradient(135deg, #0093E9 0%, #80D0C7 100%)' },
   { id: 'solid1', name: 'Dark Gray', color: '#1f2937' },
