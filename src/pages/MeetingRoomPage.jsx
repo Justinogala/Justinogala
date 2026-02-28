@@ -609,7 +609,7 @@ const MeetingRoomPage = () => {
             {/* Local Video */}
             <div className="relative bg-slate-800 rounded-2xl overflow-hidden">
               <video
-                ref={localVideoRef}
+                ref={inMeetingVideoRef}
                 autoPlay
                 playsInline
                 muted
