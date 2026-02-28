@@ -378,12 +378,15 @@ const GroupMeetingRoomPage = () => {
   
   // Use processed stream if virtual background is enabled AND processing, otherwise use raw local stream
   // This ensures we always have a valid stream when localStream is available
+  // Note: streamKey is included to force re-evaluation when tracks are toggled
   const displayStream = React.useMemo(() => {
+    // streamKey forces re-evaluation when needed
+    console.log('[displayStream] Computing, streamKey:', streamKey, 'localStream:', localStream?.id);
     if (virtualBgEnabled && bgProcessing && processedStream) {
       return processedStream;
     }
     return localStream;
-  }, [virtualBgEnabled, bgProcessing, processedStream, localStream]);
+  }, [virtualBgEnabled, bgProcessing, processedStream, localStream, streamKey]);
   
   // Debug: Log stream status
   React.useEffect(() => {
