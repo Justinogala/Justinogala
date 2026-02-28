@@ -551,6 +551,40 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - pb-safe class for bottom controls
   - Works with iPhone notch and home indicator
 
+### Virtual Backgrounds & Background Blur (Feb 28, 2026)
+- [x] **TensorFlow.js BodyPix Integration**:
+  - MobileNetV1 architecture for real-time performance
+  - WebGL backend with CPU fallback
+  - On-demand model loading (lazy load)
+- [x] **Background Blur Effects**:
+  - Light blur (5px)
+  - Medium blur (10px)
+  - Heavy blur (20px)
+  - Pixel-level person/background compositing
+- [x] **Virtual Backgrounds**:
+  - 8 preset backgrounds: Office, Nature, Beach, Space, Purple Gradient, Blue Gradient, Dark Gray, Navy
+  - Custom image upload support (FileReader API)
+  - Background thumbnails with selection indicator
+- [x] **VirtualBackgroundSelector Modal**:
+  - Two tabs: Blur and Backgrounds
+  - "No Effect" option to disable
+  - AI model loading status indicator
+  - FPS counter during processing
+  - Performance warning note
+  - Disabled when video is off
+- [x] **Processing Pipeline**:
+  - Canvas-based frame processing
+  - Output stream via captureStream(30) at 30fps
+  - Audio tracks preserved from original stream
+- [x] **Frontend Components**:
+  - `/app/src/hooks/useVirtualBackground.js` - TensorFlow.js BodyPix hook
+  - `/app/src/components/meetings/VirtualBackgroundSelector.jsx` - UI modal
+- [x] **Meeting Integration**:
+  - Effects button (Sparkles icon) in meeting controls
+  - Purple highlight when effect is active
+  - Green pulse indicator when processing
+  - displayStream switches between raw and processed video
+
 ## Prioritized Backlog
 
 ### P0 (Critical)
