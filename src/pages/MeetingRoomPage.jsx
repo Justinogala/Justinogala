@@ -404,7 +404,7 @@ const MeetingRoomPage = () => {
                   onPlaying={() => setVideoPlaying(true)}
                 />
                 {/* Show avatar when video is off */}
-                {!isVideoEnabled && (
+                {!isVideoEnabled && !cameraError && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                     <Avatar className="h-24 w-24">
                       <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-3xl">
@@ -413,8 +413,32 @@ const MeetingRoomPage = () => {
                     </Avatar>
                   </div>
                 )}
+                {/* Show camera error */}
+                {cameraError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                    <div className="text-center px-8">
+                      <Avatar className="h-20 w-20 mx-auto mb-4">
+                        <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-600 text-white text-3xl">
+                          <VideoOff className="w-8 h-8" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <p className="text-gray-300 text-sm mb-3">{cameraError}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-slate-600"
+                        onClick={() => {
+                          setCameraError(null);
+                          setPreviewStarted(false);
+                        }}
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 {/* Show loading state when video is enabled but not yet playing */}
-                {isVideoEnabled && !videoPlaying && (
+                {isVideoEnabled && !videoPlaying && !cameraError && (
                   <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                     <div className="text-center">
                       <Avatar className="h-24 w-24 mx-auto mb-4">
