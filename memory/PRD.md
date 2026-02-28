@@ -587,6 +587,24 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ## Prioritized Backlog
 
+### Backend Refactoring (Feb 28, 2026) - Phase 1
+- [x] Created modular structure: `/app/backend/routes/`, `/app/backend/config.py`, `/app/backend/models.py`
+- [x] Created `config.py` with database connections, JWT config, email settings
+- [x] Created `models.py` with all Pydantic models (ready for use)
+- [x] Created `routes/__init__.py` for router aggregation
+- [x] Created `routes/auth.py` with authentication routes (template)
+- [x] Created `routes/users.py` with user management routes (template)
+- [x] Created `REFACTORING.md` with migration roadmap
+- [x] Server.py organized with better comments and structure
+- **Status**: Phase 1 complete - infrastructure ready for incremental migration
+- **Files Created**:
+  - `/app/backend/config.py`
+  - `/app/backend/models.py`
+  - `/app/backend/routes/__init__.py`
+  - `/app/backend/routes/auth.py`
+  - `/app/backend/routes/users.py`
+  - `/app/backend/REFACTORING.md`
+
 ### Recording Feature (Feb 28, 2026)
 - [x] **Record Meeting Button**: Added to meeting controls
   - Red circle icon to start recording
