@@ -1656,6 +1656,43 @@ const GroupMeetingRoomPage = () => {
               <TooltipContent><p>Virtual backgrounds & blur</p></TooltipContent>
             </Tooltip>
             
+            {/* Recording Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-11 w-11 sm:h-14 sm:w-14 shadow-lg transition-all relative",
+                      isRecording 
+                        ? "bg-red-500 hover:bg-red-400 text-white animate-pulse" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
+                    )}
+                    onClick={toggleRecording}
+                    disabled={isSavingRecording}
+                    data-testid="record-meeting-btn"
+                  >
+                    {isRecording ? (
+                      <Square className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
+                    ) : isSavingRecording ? (
+                      <Download className="w-5 h-5 sm:w-6 sm:h-6 animate-bounce" />
+                    ) : (
+                      <Circle className="w-5 h-5 sm:w-6 sm:h-6 fill-red-500 text-red-500" />
+                    )}
+                    {isRecording && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-400 rounded-full animate-ping" />
+                    )}
+                  </Button>
+                  <span className="text-[10px] sm:text-xs text-gray-300 mt-1 sm:mt-1.5 font-medium">
+                    {isRecording ? formatRecordingDuration(recordingDuration) : isSavingRecording ? 'Saving...' : 'Record'}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isRecording ? 'Stop recording (downloads & saves)' : 'Record meeting'}</p>
+              </TooltipContent>
+            </Tooltip>
+            
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
