@@ -351,7 +351,7 @@ export const useVirtualBackground = ({
     return () => {
       stopProcessing();
     };
-  }, [enabled, inputStream, effect]);
+  }, [enabled, inputStream, effect, startProcessing, stopProcessing]);
   
   // Handle background image changes
   useEffect(() => {
