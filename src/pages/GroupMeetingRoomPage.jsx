@@ -65,37 +65,53 @@ const ParticipantTile = ({
   onFocus 
 }) => {
   const videoRef = useRef(null);
+  const [videoReady, setVideoReady] = useState(false);
   
   // Attach stream to video element
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) {
+      console.log(`No video ref for ${participant.user_name}`);
+      return;
+    }
     
     if (stream) {
-      console.log(`Setting stream for ${participant.user_name}:`, stream.id, 'active:', stream.active);
+      console.log(`[ParticipantTile] Setting stream for ${participant.user_name}:`, {
+        streamId: stream.id,
+        active: stream.active,
+        videoTracks: stream.getVideoTracks().length,
+        videoEnabled: stream.getVideoTracks()[0]?.enabled,
+        participantVideoEnabled: participant.video_enabled
+      });
+      
       video.srcObject = stream;
       
       // Ensure video plays
       const playVideo = async () => {
         try {
           await video.play();
-          console.log(`Video playing for ${participant.user_name}`);
+          setVideoReady(true);
+          console.log(`[ParticipantTile] Video playing for ${participant.user_name}`);
         } catch (err) {
-          console.log('Video play error:', err);
+          console.log('[ParticipantTile] Video play error:', err.message);
         }
       };
       
-      if (video.paused) {
-        playVideo();
-      }
+      // Play immediately
+      playVideo();
     } else {
+      console.log(`[ParticipantTile] No stream for ${participant.user_name}, isLocal:`, isLocal);
       video.srcObject = null;
+      setVideoReady(false);
     }
-  }, [stream, participant.user_name]);
+  }, [stream, participant.user_name, isLocal, participant.video_enabled]);
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
-  const hasStream = stream && stream.active;
-  const showVideo = participant.video_enabled && hasStream;
+  
+  // Simplified condition - show video if stream exists and has video tracks
+  const hasVideoTrack = stream && stream.getVideoTracks().length > 0;
+  const videoTrackEnabled = hasVideoTrack && stream.getVideoTracks()[0]?.enabled !== false;
+  const showVideo = participant.video_enabled && hasVideoTrack && videoTrackEnabled;
   
   return (
     <motion.div 
