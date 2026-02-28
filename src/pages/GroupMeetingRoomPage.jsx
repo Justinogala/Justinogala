@@ -386,13 +386,55 @@ const GroupMeetingRoomPage = () => {
   const startCamera = useCallback(async () => {
     setCameraError(null);
     try {
+      console.log('Requesting camera access...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
         audio: true
       });
+      
+      console.log('Camera stream obtained:', stream.id);
       setPreviewStream(stream);
+      
+      // Attach stream to video element with proper handling
       if (previewVideoRef.current) {
         previewVideoRef.current.srcObject = stream;
+        
+        // Wait for video metadata to load before playing
+        await new Promise((resolve, reject) => {
+          const video = previewVideoRef.current;
+          if (!video) {
+            reject(new Error('Video element not found'));
+            return;
+          }
+          
+          const handleLoadedMetadata = () => {
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            resolve();
+          };
+          
+          // If metadata is already loaded
+          if (video.readyState >= 1) {
+            resolve();
+          } else {
+            video.addEventListener('loadedmetadata', handleLoadedMetadata);
+          }
+          
+          // Timeout fallback
+          setTimeout(resolve, 2000);
+        });
+        
+        // Now play the video
+        try {
+          await previewVideoRef.current.play();
+          console.log('Camera preview playing successfully');
+        } catch (playError) {
+          console.warn('Video autoplay prevented:', playError);
+          // Video will need user interaction to play
+        }
       }
     } catch (err) {
       console.error('Camera error:', err);
@@ -403,6 +445,8 @@ const GroupMeetingRoomPage = () => {
         errorMsg = 'No camera found. Please connect a camera.';
       } else if (err.name === 'NotReadableError') {
         errorMsg = 'Camera is in use by another app.';
+      } else if (err.name === 'OverconstrainedError') {
+        errorMsg = 'Camera does not support the requested settings.';
       }
       setCameraError(errorMsg);
     }
