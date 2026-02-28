@@ -8,7 +8,7 @@ import os
 import json
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://echonote-meetings.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://meeting-stream-test.preview.emergentagent.com')
 
 class TestCouponsAPI:
     """Test Admin Coupons CRUD operations"""

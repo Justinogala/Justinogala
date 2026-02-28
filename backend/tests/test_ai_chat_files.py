@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://echonote-meetings.preview.emergentagent.com"
+    BASE_URL = "https://meeting-stream-test.preview.emergentagent.com"
 
 
 class TestHealthCheck:
