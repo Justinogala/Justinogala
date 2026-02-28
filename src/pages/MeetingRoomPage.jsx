@@ -182,7 +182,8 @@ const MeetingRoomPage = () => {
         localStreamRef.current = null;
       }
     };
-  }, [loading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, previewStarted, joined]);
 
   // Call duration timer
   useEffect(() => {
