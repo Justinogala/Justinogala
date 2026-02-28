@@ -874,19 +874,34 @@ const GroupMeetingRoomPage = () => {
   // Start recording
   const startRecording = async () => {
     try {
+      // Use displayStream (which accounts for virtual backgrounds) or localStream
+      const streamToRecord = displayStream || localStream;
+      
       // Combine all streams for recording
       const audioTracks = [];
       const videoTracks = [];
       
       // Get local stream tracks
-      if (localStream) {
-        localStream.getAudioTracks().forEach(t => audioTracks.push(t));
-        localStream.getVideoTracks().forEach(t => videoTracks.push(t));
+      if (streamToRecord) {
+        streamToRecord.getAudioTracks().forEach(t => {
+          if (t.enabled) audioTracks.push(t);
+        });
+        streamToRecord.getVideoTracks().forEach(t => {
+          if (t.enabled) videoTracks.push(t);
+        });
       }
       
       // Get remote streams audio (for full meeting recording)
       remoteStreamMap.forEach((stream) => {
-        stream.getAudioTracks().forEach(t => audioTracks.push(t));
+        stream.getAudioTracks().forEach(t => {
+          if (t.enabled) audioTracks.push(t);
+        });
+      });
+      
+      console.log('[startRecording] Tracks:', {
+        audioTracks: audioTracks.length,
+        videoTracks: videoTracks.length,
+        streamToRecord: streamToRecord?.id
       });
       
       if (audioTracks.length === 0 && videoTracks.length === 0) {
@@ -897,13 +912,17 @@ const GroupMeetingRoomPage = () => {
       // Create a combined stream for recording
       const recordingStream = new MediaStream([...audioTracks, ...videoTracks]);
       
-      // Check for supported MIME types
-      const mimeTypes = [
+      // Check for supported MIME types - prefer audio-only if no video
+      const mimeTypes = videoTracks.length > 0 ? [
         'video/webm;codecs=vp9,opus',
         'video/webm;codecs=vp8,opus',
         'video/webm',
         'audio/webm;codecs=opus',
         'audio/webm'
+      ] : [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus'
       ];
       
       let selectedMimeType = '';
