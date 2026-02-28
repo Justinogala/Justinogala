@@ -226,6 +226,11 @@ const VideoGrid = ({
           const stream = isLocal ? localStream : remoteStreams.get(participant.user_id);
           const audioLevel = audioLevels?.get(participant.user_id) || 0;
           
+          // Debug logging
+          if (isLocal && !stream) {
+            console.warn('Local stream is null for local participant!', { localUserId, localStream });
+          }
+          
           return (
             <ParticipantTile
               key={participant.user_id}
