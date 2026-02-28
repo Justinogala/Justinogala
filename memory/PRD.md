@@ -633,8 +633,26 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] ~~Admin Panel UI~~ - **ALREADY COMPLETE** (was marked as placeholder but fully functional)
 
 ### P2 (Medium Priority)
-- [ ] PWA chunk loading fix for deployments
+- [x] ~~PWA chunk loading fix for deployments~~ - **FIXED**
 - [ ] GIPHY integration (client-side)
 - [ ] Refactor server.py into modular routes
 - [ ] Cloud storage migration for recordings
+
+### PWA Chunk Loading Fix (Feb 28, 2026)
+- [x] **Problem**: When new code is deployed, browser cache has old `index.html` referencing old JavaScript chunk filenames that no longer exist
+- [x] **ErrorBoundary Enhancement**:
+  - Added `isChunkLoadError()` helper to detect chunk loading failures
+  - Auto-reload on chunk errors with 30-second cooldown to prevent infinite loops
+  - Clear caches before reload using Cache API
+  - Special "Update Available" UI for chunk errors vs generic error UI
+- [x] **Global Unhandled Rejection Handler**:
+  - Added to App.jsx to catch lazy import promise rejections
+  - Auto-reload with cache clear on chunk failures
+- [x] **lazyWithRetry Utility**:
+  - Created `/app/src/utils/lazyWithRetry.js`
+  - Automatic retry (3 attempts) for chunk loading
+  - Cache clear on final retry failure
+- [x] **Legacy Route Support**:
+  - Added `/transcription/history` as alias for `/transcriptions`
+  - Ensures backward compatibility for bookmarked URLs
 
