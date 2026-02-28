@@ -254,12 +254,13 @@ const VideoGrid = ({
           
           // Debug logging
           if (isLocal) {
-            console.log('[VideoGrid] Local participant:', {
+            console.log('[VideoGrid] Local participant stream check:', {
               localUserId,
               streamExists: !!localStream,
               streamId: localStream?.id,
               streamActive: localStream?.active,
               videoTracks: localStream?.getVideoTracks()?.length,
+              videoTracksEnabled: localStream?.getVideoTracks()?.map(t => ({ id: t.id, enabled: t.enabled })),
               participantVideoEnabled: participant.video_enabled
             });
           }
