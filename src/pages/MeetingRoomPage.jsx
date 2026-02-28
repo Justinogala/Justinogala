@@ -406,17 +406,13 @@ const MeetingRoomPage = () => {
                           <VideoOff className="w-8 h-8" />
                         </AvatarFallback>
                       </Avatar>
-                      <p className="text-gray-300 text-sm mb-3">{cameraError}</p>
+                      <p className="text-gray-300 text-sm mb-4">{cameraError}</p>
                       <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="border-slate-600"
-                        onClick={() => {
-                          setCameraError(null);
-                          setPreviewStarted(false);
-                        }}
+                        onClick={startCamera}
+                        className="bg-violet-600 hover:bg-violet-700 text-white"
                       >
-                        Try Again
+                        <Video className="w-4 h-4 mr-2" />
+                        Enable Camera
                       </Button>
                     </div>
                   </div>
