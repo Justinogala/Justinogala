@@ -157,16 +157,17 @@ const ParticipantTile = ({
         )}
       />
       
-      {/* Avatar fallback - only show when no video */}
-      {!showVideo && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 z-5">
-          <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
-            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-      )}
+      {/* Avatar fallback when video is off */}
+      <div className={cn(
+        "absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 transition-opacity duration-200",
+        showVideo ? "opacity-0 z-0" : "opacity-100 z-5"
+      )}>
+        <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
+          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+      </div>
       
       {/* Participant info overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/70 to-transparent z-20">
