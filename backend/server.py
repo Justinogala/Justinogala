@@ -5113,24 +5113,27 @@ async def force_logout_user(user_id: str, request: Request):
 async def get_security_policies():
     """Get current security policies"""
     try:
+        # Default policies - ensure all fields have values
+        default_policies = {
+            "id": "default",
+            "password_min_length": 8,
+            "password_require_uppercase": True,
+            "password_require_numbers": True,
+            "password_require_special": False,
+            "session_timeout_minutes": 1440,  # 24 hours
+            "max_failed_login_attempts": 5,
+            "lockout_duration_minutes": 30,
+            "instant_meetings_enabled": True,
+            "max_meeting_duration_minutes": 480  # 8 hours
+        }
+        
         policies = await db.security_policies.find_one({"id": "default"}, {"_id": 0})
         
-        if not policies:
-            # Return default policies
-            policies = {
-                "id": "default",
-                "password_min_length": 8,
-                "password_require_uppercase": True,
-                "password_require_numbers": True,
-                "password_require_special": False,
-                "session_timeout_minutes": 1440,  # 24 hours
-                "max_failed_login_attempts": 5,
-                "lockout_duration_minutes": 30,
-                "instant_meetings_enabled": True,
-                "max_meeting_duration_minutes": 480  # 8 hours
-            }
+        if policies:
+            # Merge stored policies with defaults (stored values override defaults)
+            default_policies.update(policies)
         
-        return policies
+        return default_policies
     except Exception as e:
         logger.error(f"Error fetching security policies: {e}")
         raise HTTPException(status_code=500, detail=str(e))
