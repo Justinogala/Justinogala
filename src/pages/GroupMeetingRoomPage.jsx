@@ -857,7 +857,7 @@ const GroupMeetingRoomPage = () => {
                       key={p.user_id} 
                       className={cn(
                         "flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors",
-                        p.user_id === activeSpeaker && "bg-green-500/10 border border-green-500/30"
+                        p.user_id === currentActiveSpeaker && "bg-green-500/10 border border-green-500/30"
                       )}
                       onClick={() => setFocusedParticipant(p.user_id === focusedParticipant ? null : p.user_id)}
                     >
@@ -867,10 +867,15 @@ const GroupMeetingRoomPage = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="text-white text-sm font-medium">
-                          {p.user_name} {p.user_id === user?.id && '(You)'}
-                        </p>
-                        {p.user_id === activeSpeaker && (
+                        <div className="flex items-center gap-2">
+                          <p className="text-white text-sm font-medium">
+                            {p.user_name} {p.user_id === user?.id && '(You)'}
+                          </p>
+                          {isUserSpeaking(p.user_id) && (
+                            <AudioLevelIndicator level={audioLevels.get(p.user_id) || 0} isActive={true} />
+                          )}
+                        </div>
+                        {p.user_id === currentActiveSpeaker && (
                           <p className="text-green-400 text-xs">Speaking</p>
                         )}
                       </div>
@@ -886,6 +891,105 @@ const GroupMeetingRoomPage = () => {
             )}
           </div>
         )}
+        
+        {/* Mobile Sidebar Overlay */}
+        <AnimatePresence>
+          {(showChat || showParticipants) && (
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              className="fixed inset-0 z-50 sm:hidden"
+            >
+              <div className="absolute inset-0 bg-black/50" onClick={() => { setShowChat(false); setShowParticipants(false); }} />
+              <motion.div className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-slate-900 flex flex-col">
+                <div className="flex items-center justify-between p-4 border-b border-white/10">
+                  <h3 className="text-white font-medium">{showChat ? 'Chat' : 'Participants'}</h3>
+                  <Button variant="ghost" size="icon" onClick={() => { setShowChat(false); setShowParticipants(false); }}>
+                    <X className="w-5 h-5 text-gray-400" />
+                  </Button>
+                </div>
+                
+                {showChat && (
+                  <>
+                    <ScrollArea className="flex-1 p-4">
+                      <div className="space-y-4">
+                        {chatMessages.length === 0 && (
+                          <p className="text-gray-500 text-center text-sm">No messages yet</p>
+                        )}
+                        {chatMessages.map(msg => (
+                          <div key={msg.id} className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium text-white">{msg.sender}</span>
+                              <span className="text-gray-500 text-xs">{msg.time}</span>
+                            </div>
+                            <p className="text-gray-300 text-sm">{msg.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    <div className="p-4 border-t border-white/10 pb-safe">
+                      <div className="flex gap-2">
+                        <Input
+                          value={chatInput}
+                          onChange={e => setChatInput(e.target.value)}
+                          placeholder="Type a message..."
+                          className="bg-slate-800 border-slate-700"
+                          onKeyPress={e => e.key === 'Enter' && sendChatMessage()}
+                        />
+                        <Button onClick={sendChatMessage} size="sm">Send</Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {showParticipants && (
+                  <ScrollArea className="flex-1 p-4">
+                    <div className="space-y-2">
+                      {allParticipants.map(p => (
+                        <div 
+                          key={p.user_id} 
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800 active:bg-slate-700 cursor-pointer transition-colors",
+                            p.user_id === currentActiveSpeaker && "bg-green-500/10 border border-green-500/30"
+                          )}
+                          onClick={() => {
+                            setFocusedParticipant(p.user_id === focusedParticipant ? null : p.user_id);
+                            setShowParticipants(false);
+                          }}
+                        >
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback className="bg-indigo-600 text-lg">
+                              {p.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-white font-medium">
+                                {p.user_name} {p.user_id === user?.id && '(You)'}
+                              </p>
+                              {isUserSpeaking(p.user_id) && (
+                                <AudioLevelIndicator level={audioLevels.get(p.user_id) || 0} isActive={true} />
+                              )}
+                            </div>
+                            {p.user_id === currentActiveSpeaker && (
+                              <p className="text-green-400 text-sm">Speaking</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            {!p.audio_enabled && <MicOff className="w-5 h-5 text-red-400" />}
+                            {!p.video_enabled && <VideoOff className="w-5 h-5 text-red-400" />}
+                            {p.hand_raised && <Hand className="w-5 h-5 text-yellow-400" />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       
       {/* Controls */}
