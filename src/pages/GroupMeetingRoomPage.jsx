@@ -708,7 +708,7 @@ const GroupMeetingRoomPage = () => {
                         )}
                       </div>
                     </div>
-                  )}}
+                  )}
                   
                   {/* Camera error */}
                   {cameraError && (
