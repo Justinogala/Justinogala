@@ -33,6 +33,83 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
   const [loading, setLoading] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState(null);
+  const [meetingIdInput, setMeetingIdInput] = useState('');
+  const [instantMeetingId, setInstantMeetingId] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // Generate instant meeting ID on mount
+  useEffect(() => {
+    setInstantMeetingId(uuidv4());
+  }, []);
+
+  // Start instant meeting
+  const handleStartInstantMeeting = async () => {
+    const meetingId = instantMeetingId || uuidv4();
+    
+    try {
+      // Create a quick calendar event for the instant meeting
+      const now = new Date();
+      const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour duration
+      
+      const eventData = {
+        title: `Instant Meeting - ${user?.name || 'Host'}`,
+        description: 'Instant meeting started from dashboard',
+        start_time: now.toISOString(),
+        end_time: endTime.toISOString(),
+        created_by: user?.id,
+        category: 'meeting',
+        color: 'violet',
+        video_call: true,
+        id: meetingId
+      };
+
+      await fetch(`${API_URL}/api/calendar/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData)
+      });
+
+      // Navigate to meeting room
+      navigate(`/workspace/meeting/${meetingId}`);
+    } catch (error) {
+      console.error('Error starting instant meeting:', error);
+      // Still navigate even if event creation fails
+      navigate(`/workspace/meeting/${meetingId}`);
+    }
+  };
+
+  // Copy instant meeting link
+  const handleCopyInstantLink = () => {
+    const meetingId = instantMeetingId || uuidv4();
+    const link = `${window.location.origin}/workspace/meeting/${meetingId}`;
+    navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+    toast({
+      title: 'Link copied!',
+      description: 'Share this link with others to join your meeting.',
+    });
+  };
+
+  // Join meeting by ID
+  const handleJoinByMeetingId = () => {
+    if (!meetingIdInput.trim()) {
+      toast({
+        title: 'Enter Meeting ID',
+        description: 'Please enter a valid meeting ID to join.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    // Extract ID if user pasted full URL
+    let meetingId = meetingIdInput.trim();
+    if (meetingId.includes('/meeting/')) {
+      meetingId = meetingId.split('/meeting/').pop().split('/')[0];
+    }
+    
+    navigate(`/workspace/meeting/${meetingId}`);
+  };
 
   // Load meetings from MongoDB calendar events
   const loadMeetings = useCallback(async () => {
