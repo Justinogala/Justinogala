@@ -513,6 +513,44 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - `ParticipantTile` - Individual video tile with participant info
   - `VideoGrid` - Adaptive grid layout component
 
+### Audio Level Detection & Speaker Spotlight (Feb 28, 2026)
+- [x] **useAudioLevelDetection Hook** - Web Audio API-based audio level detection
+  - Uses AnalyserNode for frequency data analysis
+  - RMS (Root Mean Square) calculation for accurate volume levels
+  - Configurable threshold for speaking detection
+  - Debounced speaker detection to prevent rapid switching
+- [x] **AudioLevelIndicator Component** - Visual audio level bars
+  - 5-bar visualization with dynamic heights
+  - Green color when user is actively speaking
+  - Smooth transition animations
+- [x] **Automatic Speaker Spotlight**:
+  - Automatically detects who is speaking based on audio levels
+  - Highlights active speaker with green ring and badge
+  - Shows audio level indicator on participant tile
+- [x] **Frontend Component**: `/app/src/hooks/useAudioLevelDetection.js`
+
+### Mobile App Optimization (Feb 28, 2026)
+- [x] **Responsive Video Grid**:
+  - Mobile: 2 columns (grid-cols-2)
+  - Tablet: 3 columns (sm:grid-cols-3)
+  - Desktop: 4 columns (lg:grid-cols-4)
+  - Smaller participant tiles on mobile (min-h-[120px])
+- [x] **Touch-Friendly Controls**:
+  - 44x44px minimum tap targets on mobile
+  - Control buttons: h-11 w-11 on mobile, h-14 w-14 on desktop
+  - Screen share and Grid buttons hidden on mobile
+- [x] **Mobile Sidebar Overlay**:
+  - Slide-in panel from right (85% width, max-w-sm)
+  - Framer Motion animation
+  - Backdrop overlay with tap-to-dismiss
+- [x] **Responsive Header**:
+  - Truncated title on mobile (max-w-[120px])
+  - Smaller badges and icons
+  - Compact participant count display
+- [x] **Safe Area Support**:
+  - pb-safe class for bottom controls
+  - Works with iPhone notch and home indicator
+
 ## Prioritized Backlog
 
 ### P0 (Critical)
@@ -520,7 +558,6 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ### P1 (High Priority)
 - [ ] Admin Panel UI - Build frontend for AdminMonitoringDashboard, AdminSecurityPolicies, AdminMeetingAnalytics
-- [ ] Mobile app optimization
 
 ### P2 (Medium Priority)
 - [ ] PWA chunk loading fix for deployments
