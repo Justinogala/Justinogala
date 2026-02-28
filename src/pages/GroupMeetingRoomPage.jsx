@@ -66,7 +66,7 @@ const ParticipantTile = ({
   onFocus 
 }) => {
   const videoRef = useRef(null);
-  const [videoReady, setVideoReady] = useState(false);
+  const prevStreamIdRef = useRef(null);
   
   // Attach stream to video element
   useEffect(() => {
@@ -75,7 +75,11 @@ const ParticipantTile = ({
     
     // Always set srcObject
     video.srcObject = stream || null;
-    setVideoReady(false);
+    
+    // Track stream changes
+    const currentStreamId = stream?.id || null;
+    const streamChanged = prevStreamIdRef.current !== currentStreamId;
+    prevStreamIdRef.current = currentStreamId;
     
     if (!stream) {
       console.log(`[ParticipantTile] ${participant.user_name}: No stream provided`);
@@ -85,6 +89,7 @@ const ParticipantTile = ({
     console.log(`[ParticipantTile] ${participant.user_name}: Stream attached`, {
       streamId: stream.id,
       active: stream.active,
+      streamChanged,
       videoTracks: stream.getVideoTracks().map(t => ({
         id: t.id,
         enabled: t.enabled,
@@ -96,15 +101,11 @@ const ParticipantTile = ({
     // Handle video element events
     const handleCanPlay = () => {
       console.log(`[ParticipantTile] ${participant.user_name}: canplay event`);
-      setVideoReady(true);
       video.play().catch(e => console.log('Play error:', e.name));
     };
     
     const handleLoadedMetadata = () => {
       console.log(`[ParticipantTile] ${participant.user_name}: loadedmetadata - dimensions: ${video.videoWidth}x${video.videoHeight}`);
-      if (video.videoWidth > 0) {
-        setVideoReady(true);
-      }
     };
     
     video.addEventListener('canplay', handleCanPlay);
