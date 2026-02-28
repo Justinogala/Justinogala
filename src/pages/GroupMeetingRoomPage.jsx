@@ -55,7 +55,7 @@ const AudioLevelIndicator = ({ level, isActive }) => {
   );
 };
 
-// Participant Video Tile Component - Simplified for reliable camera display
+// Participant Video Tile Component - ALWAYS SHOW VIDEO
 const ParticipantTile = ({ 
   participant, 
   stream, 
@@ -66,79 +66,17 @@ const ParticipantTile = ({
   onFocus 
 }) => {
   const videoRef = useRef(null);
-  const prevStreamIdRef = useRef(null);
   
-  // Attach stream to video element
+  // Attach stream to video element - simple and direct
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !stream) return;
     
-    // Always set srcObject
-    video.srcObject = stream || null;
-    
-    // Track stream changes
-    const currentStreamId = stream?.id || null;
-    const streamChanged = prevStreamIdRef.current !== currentStreamId;
-    prevStreamIdRef.current = currentStreamId;
-    
-    if (!stream) {
-      console.log(`[ParticipantTile] ${participant.user_name}: No stream provided`);
-      return;
-    }
-    
-    console.log(`[ParticipantTile] ${participant.user_name}: Stream attached`, {
-      streamId: stream.id,
-      active: stream.active,
-      streamChanged,
-      videoTracks: stream.getVideoTracks().map(t => ({
-        id: t.id,
-        enabled: t.enabled,
-        readyState: t.readyState,
-        muted: t.muted
-      }))
-    });
-    
-    // Handle video element events
-    const handleCanPlay = () => {
-      console.log(`[ParticipantTile] ${participant.user_name}: canplay event`);
-      video.play().catch(e => console.log('Play error:', e.name));
-    };
-    
-    const handleLoadedMetadata = () => {
-      console.log(`[ParticipantTile] ${participant.user_name}: loadedmetadata - dimensions: ${video.videoWidth}x${video.videoHeight}`);
-    };
-    
-    video.addEventListener('canplay', handleCanPlay);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    
-    // Try playing immediately
-    video.play().catch(e => {
-      console.log(`[ParticipantTile] ${participant.user_name}: Initial play blocked:`, e.name);
-    });
-    
-    return () => {
-      video.removeEventListener('canplay', handleCanPlay);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-    };
-  }, [stream, participant.user_name]);
-  
-  // Sync track enabled state with participant.video_enabled
-  useEffect(() => {
-    if (!stream) return;
-    
-    const videoTracks = stream.getVideoTracks();
-    videoTracks.forEach(track => {
-      if (track.enabled !== participant.video_enabled) {
-        console.log(`[ParticipantTile] ${participant.user_name}: Syncing track enabled: ${track.enabled} -> ${participant.video_enabled}`);
-        track.enabled = participant.video_enabled;
-      }
-    });
-  }, [stream, participant.video_enabled, participant.user_name]);
+    video.srcObject = stream;
+    video.play().catch(() => {});
+  }, [stream]);
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
-  
-  // Simple logic: show video if participant wants it and we have a stream
-  const showVideo = participant.video_enabled && stream && stream.active;
   
   return (
     <motion.div 
@@ -151,29 +89,26 @@ const ParticipantTile = ({
       onClick={() => onFocus && onFocus(participant.user_id)}
       data-testid={`participant-tile-${participant.user_id}`}
     >
-      {/* Video element - ALWAYS rendered, visibility controlled by CSS */}
+      {/* Video - ALWAYS visible */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={isLocal}
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover transition-opacity duration-200",
-          showVideo ? "opacity-100 z-10" : "opacity-0 z-0"
-        )}
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ display: 'block', opacity: 1 }}
       />
       
-      {/* Avatar fallback when video is off */}
-      <div className={cn(
-        "absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 transition-opacity duration-200",
-        showVideo ? "opacity-0 z-0" : "opacity-100 z-5"
-      )}>
-        <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
-          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-      </div>
+      {/* Avatar - show behind video when no stream */}
+      {!stream && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+          <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
+            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      )}
       
       {/* Participant info overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/70 to-transparent z-20">
