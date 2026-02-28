@@ -4419,7 +4419,7 @@ async def get_meeting_analytics(days: int = 30):
             try:
                 start_time = datetime.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
                 hour_counts[start_time.hour] += 1
-            except:
+            except (ValueError, AttributeError):
                 pass
         
         peak_hours = [{"hour": h, "count": c} for h, c in sorted(hour_counts.items())]
@@ -4431,7 +4431,7 @@ async def get_meeting_analytics(days: int = 30):
                 start_time = datetime.fromisoformat(meeting.get("start_time", "").replace("Z", "+00:00"))
                 day_key = start_time.strftime("%Y-%m-%d")
                 day_counts[day_key] += 1
-            except:
+            except (ValueError, AttributeError):
                 pass
         
         daily_meetings = [{"date": d, "count": c} for d, c in sorted(day_counts.items())]
