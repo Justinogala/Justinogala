@@ -155,8 +155,8 @@ export const useAudioLevelDetection = ({
   
   // Start/stop analysis loop
   useEffect(() => {
-    if (analyzersRef.current.size > 0) {
-      analyzeAudio();
+    if (analyzersRef.current.size > 0 && analyzeAudioRef.current) {
+      analyzeAudioRef.current();
     }
     
     return () => {
@@ -167,12 +167,13 @@ export const useAudioLevelDetection = ({
         clearTimeout(speakerTimeoutRef.current);
       }
     };
-  }, [analyzeAudio]);
+  }, []);
   
   // Cleanup on unmount
   useEffect(() => {
+    const currentAnalyzers = analyzersRef.current;
     return () => {
-      analyzersRef.current.forEach((_, odId) => {
+      currentAnalyzers.forEach((_, odId) => {
         removeAnalyser(odId);
       });
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
