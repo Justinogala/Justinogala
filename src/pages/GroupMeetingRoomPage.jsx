@@ -372,8 +372,26 @@ const GroupMeetingRoomPage = () => {
     }
   });
   
-  // Use processed stream if virtual background is enabled, otherwise use raw local stream
-  const displayStream = virtualBgEnabled && processedStream ? processedStream : localStream;
+  // Use processed stream if virtual background is enabled AND processing, otherwise use raw local stream
+  // This ensures we always have a valid stream when localStream is available
+  const displayStream = React.useMemo(() => {
+    if (virtualBgEnabled && bgProcessing && processedStream) {
+      return processedStream;
+    }
+    return localStream;
+  }, [virtualBgEnabled, bgProcessing, processedStream, localStream]);
+  
+  // Debug: Log stream status
+  React.useEffect(() => {
+    console.log('Stream status:', {
+      localStream: localStream?.id,
+      localStreamActive: localStream?.active,
+      displayStream: displayStream?.id,
+      displayStreamActive: displayStream?.active,
+      virtualBgEnabled,
+      bgProcessing
+    });
+  }, [localStream, displayStream, virtualBgEnabled, bgProcessing]);
   
   // Use detected speaker or manual speaker
   const currentActiveSpeaker = detectedActiveSpeaker || activeSpeaker;
