@@ -652,7 +652,7 @@ const GroupMeetingRoomPage = () => {
         if (localStream) {
           localStream.addTrack(audioTrack);
         } else {
-          setLocalStream(stream);
+          updateLocalStream(stream);
         }
         console.log('[toggleAudio] Audio track added');
       } catch (err) {
