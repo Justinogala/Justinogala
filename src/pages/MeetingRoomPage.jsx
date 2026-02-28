@@ -279,18 +279,6 @@ const MeetingRoomPage = () => {
     );
   }
 
-  if (!meeting) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Meeting Not Found</h1>
-          <p className="text-gray-400 mb-4">This meeting may have been cancelled or the link is invalid.</p>
-          <Button onClick={() => navigate('/calendar')}>Back to Calendar</Button>
-        </div>
-      </div>
-    );
-  }
-
   // Pre-join screen
   if (!joined) {
     return (
