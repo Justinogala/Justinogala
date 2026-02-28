@@ -1759,7 +1759,7 @@ async def delete_tax_rate(tax_id: str, request: Request):
         user_agent=get_user_agent(request)
     )
     
-    return {"success": True, "message": f"Tax rate deleted"}
+    return {"success": True, "message": "Tax rate deleted"}
 
 @api_router.post("/admin/tax-rates/{tax_id}/toggle")
 async def toggle_tax_rate_status(tax_id: str, request: Request):
