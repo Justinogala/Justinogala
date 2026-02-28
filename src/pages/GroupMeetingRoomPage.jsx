@@ -1075,6 +1075,7 @@ const GroupMeetingRoomPage = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className={cn("flex-1 transition-all", (showChat || showParticipants) && "sm:pr-0")}>
           <VideoGrid
+            key={`video-grid-${streamKey}`}
             participants={allParticipants}
             localStream={displayStream}
             remoteStreams={remoteStreamMap}
