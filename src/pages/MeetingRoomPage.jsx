@@ -112,22 +112,45 @@ const MeetingRoomPage = () => {
     try {
       console.log('Requesting camera access...');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        },
         audio: true
       });
       
+      console.log('Camera stream obtained:', stream.id);
       localStreamRef.current = stream;
       
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
-        // Wait for video to be ready
+        
+        // Wait for video metadata to load
         await new Promise((resolve) => {
-          localVideoRef.current.onloadedmetadata = resolve;
+          const video = localVideoRef.current;
+          if (!video) {
+            resolve();
+            return;
+          }
+          
+          if (video.readyState >= 1) {
+            resolve();
+          } else {
+            video.onloadedmetadata = resolve;
+            setTimeout(resolve, 2000); // Timeout fallback
+          }
         });
-        await localVideoRef.current.play();
-        setVideoPlaying(true);
-        setPreviewStarted(true);
-        console.log('Camera started successfully');
+        
+        try {
+          await localVideoRef.current.play();
+          setVideoPlaying(true);
+          setPreviewStarted(true);
+          console.log('Camera started successfully');
+        } catch (playErr) {
+          console.warn('Video autoplay prevented:', playErr);
+          setPreviewStarted(true);
+        }
       }
     } catch (err) {
       console.error('Camera error:', err);
@@ -138,6 +161,8 @@ const MeetingRoomPage = () => {
         errorMsg = 'No camera found. Please connect a camera.';
       } else if (err.name === 'NotReadableError') {
         errorMsg = 'Camera is in use by another app.';
+      } else if (err.name === 'OverconstrainedError') {
+        errorMsg = 'Camera does not support the requested settings.';
       }
       setCameraError(errorMsg);
       setPreviewStarted(true);
