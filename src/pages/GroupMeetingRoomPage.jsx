@@ -55,7 +55,7 @@ const AudioLevelIndicator = ({ level, isActive }) => {
   );
 };
 
-// Participant Video Tile Component - Fixed for camera display
+// Participant Video Tile Component - Simplified for reliable camera display
 const ParticipantTile = ({ 
   participant, 
   stream, 
@@ -66,72 +66,78 @@ const ParticipantTile = ({
   onFocus 
 }) => {
   const videoRef = useRef(null);
+  const [videoReady, setVideoReady] = useState(false);
   
-  // Handle video playback when stream changes
+  // Attach stream to video element
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     
-    console.log(`[ParticipantTile] ${participant.user_name}: Setting up video`, {
-      streamId: stream?.id || 'null',
-      streamActive: stream?.active,
-      videoTracks: stream?.getVideoTracks()?.length || 0,
-      videoTracksDetails: stream?.getVideoTracks()?.map(t => ({ id: t.id, enabled: t.enabled, readyState: t.readyState })),
-      videoEnabled: participant.video_enabled,
-      isLocal
-    });
-    
-    // Always set srcObject - this is critical!
+    // Always set srcObject
     video.srcObject = stream || null;
+    setVideoReady(false);
     
-    if (!stream || !stream.active) {
-      console.log(`[ParticipantTile] ${participant.user_name}: No active stream`);
+    if (!stream) {
+      console.log(`[ParticipantTile] ${participant.user_name}: No stream provided`);
       return;
     }
     
-    const videoTracks = stream.getVideoTracks();
+    console.log(`[ParticipantTile] ${participant.user_name}: Stream attached`, {
+      streamId: stream.id,
+      active: stream.active,
+      videoTracks: stream.getVideoTracks().map(t => ({
+        id: t.id,
+        enabled: t.enabled,
+        readyState: t.readyState,
+        muted: t.muted
+      }))
+    });
     
-    // CRITICAL: Ensure video track is enabled based on participant.video_enabled
-    if (videoTracks.length > 0 && participant.video_enabled) {
-      videoTracks.forEach(t => {
-        if (!t.enabled) {
-          console.log(`[ParticipantTile] ${participant.user_name}: Enabling video track`, t.id);
-          t.enabled = true;
-        }
-      });
-      
-      // Try to play
-      video.play().catch(err => {
-        console.log(`[ParticipantTile] ${participant.user_name}: Play failed:`, err.name);
-      });
-    } else if (videoTracks.length > 0 && !participant.video_enabled) {
-      // Disable video tracks when video is turned off
-      videoTracks.forEach(t => {
-        if (t.enabled) {
-          console.log(`[ParticipantTile] ${participant.user_name}: Disabling video track`, t.id);
-          t.enabled = false;
-        }
-      });
-    }
-  }, [stream, participant.user_name, participant.video_enabled, isLocal]);
+    // Handle video element events
+    const handleCanPlay = () => {
+      console.log(`[ParticipantTile] ${participant.user_name}: canplay event`);
+      setVideoReady(true);
+      video.play().catch(e => console.log('Play error:', e.name));
+    };
+    
+    const handleLoadedMetadata = () => {
+      console.log(`[ParticipantTile] ${participant.user_name}: loadedmetadata - dimensions: ${video.videoWidth}x${video.videoHeight}`);
+      if (video.videoWidth > 0) {
+        setVideoReady(true);
+      }
+    };
+    
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    
+    // Try playing immediately
+    video.play().catch(e => {
+      console.log(`[ParticipantTile] ${participant.user_name}: Initial play blocked:`, e.name);
+    });
+    
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [stream, participant.user_name]);
+  
+  // Sync track enabled state with participant.video_enabled
+  useEffect(() => {
+    if (!stream) return;
+    
+    const videoTracks = stream.getVideoTracks();
+    videoTracks.forEach(track => {
+      if (track.enabled !== participant.video_enabled) {
+        console.log(`[ParticipantTile] ${participant.user_name}: Syncing track enabled: ${track.enabled} -> ${participant.video_enabled}`);
+        track.enabled = participant.video_enabled;
+      }
+    });
+  }, [stream, participant.video_enabled, participant.user_name]);
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
   
-  // Show video based on participant's video_enabled state and stream existence
-  // We trust participant.video_enabled as the source of truth, not track.enabled
-  const hasStream = stream && stream.active;
-  const hasVideoTrack = stream?.getVideoTracks()?.length > 0;
-  const showVideo = participant.video_enabled && hasStream && hasVideoTrack;
-  
-  // Debug logging for showVideo calculation
-  console.log(`[ParticipantTile] ${participant.user_name}: showVideo calculation`, {
-    'participant.video_enabled': participant.video_enabled,
-    'hasStream': hasStream,
-    'hasVideoTrack': hasVideoTrack,
-    'stream.active': stream?.active,
-    'videoTracksCount': stream?.getVideoTracks()?.length,
-    'RESULT showVideo': showVideo
-  });
+  // Simple logic: show video if participant wants it and we have a stream
+  const showVideo = participant.video_enabled && stream && stream.active;
   
   return (
     <motion.div 
