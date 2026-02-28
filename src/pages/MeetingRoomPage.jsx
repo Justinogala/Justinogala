@@ -172,10 +172,10 @@ const MeetingRoomPage = () => {
 
   // Re-attach video stream when joined state changes
   useEffect(() => {
-    if (joined && localStreamRef.current && localVideoRef.current) {
+    if (joined && localStreamRef.current && inMeetingVideoRef.current) {
       // Re-connect stream to video element after joining
-      localVideoRef.current.srcObject = localStreamRef.current;
-      localVideoRef.current.play().catch(e => console.log('Video play error:', e));
+      inMeetingVideoRef.current.srcObject = localStreamRef.current;
+      inMeetingVideoRef.current.play().catch(e => console.log('In-meeting video play error:', e));
     }
   }, [joined]);
 
