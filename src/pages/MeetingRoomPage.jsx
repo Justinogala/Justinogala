@@ -334,22 +334,23 @@ const MeetingRoomPage = () => {
 
               {/* Controls Preview with Labels */}
               <TooltipProvider>
-                <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="flex items-center justify-center gap-4 mb-6">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center gap-1">
+                      <div className="flex flex-col items-center gap-2">
                         <Button
-                          variant={isAudioEnabled ? "secondary" : "destructive"}
                           size="lg"
                           className={cn(
-                            "rounded-full h-14 w-14",
-                            isAudioEnabled ? "bg-slate-700 hover:bg-slate-600" : "bg-red-500 hover:bg-red-600"
+                            "rounded-full h-16 w-16 shadow-lg transition-all",
+                            isAudioEnabled 
+                              ? "bg-slate-600 hover:bg-slate-500 text-white border-2 border-slate-500" 
+                              : "bg-red-500 hover:bg-red-400 text-white border-2 border-red-400"
                           )}
                           onClick={toggleAudio}
                         >
-                          {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+                          {isAudioEnabled ? <Mic className="w-7 h-7" /> : <MicOff className="w-7 h-7" />}
                         </Button>
-                        <span className="text-xs text-gray-400">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
+                        <span className="text-sm font-medium text-white">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -359,19 +360,20 @@ const MeetingRoomPage = () => {
 
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="flex flex-col items-center gap-1">
+                      <div className="flex flex-col items-center gap-2">
                         <Button
-                          variant={isVideoEnabled ? "secondary" : "destructive"}
                           size="lg"
                           className={cn(
-                            "rounded-full h-14 w-14",
-                            isVideoEnabled ? "bg-slate-700 hover:bg-slate-600" : "bg-red-500 hover:bg-red-600"
+                            "rounded-full h-16 w-16 shadow-lg transition-all",
+                            isVideoEnabled 
+                              ? "bg-slate-600 hover:bg-slate-500 text-white border-2 border-slate-500" 
+                              : "bg-red-500 hover:bg-red-400 text-white border-2 border-red-400"
                           )}
                           onClick={toggleVideo}
                         >
-                          {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                          {isVideoEnabled ? <Video className="w-7 h-7" /> : <VideoOff className="w-7 h-7" />}
                         </Button>
-                        <span className="text-xs text-gray-400">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
+                        <span className="text-sm font-medium text-white">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
