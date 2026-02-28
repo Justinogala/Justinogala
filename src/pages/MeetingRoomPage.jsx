@@ -182,15 +182,20 @@ const MeetingRoomPage = () => {
   // Join meeting
   const joinMeeting = async () => {
     try {
+      // Get camera/mic access if we don't have it already
       if (!localStreamRef.current) {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true
         });
         localStreamRef.current = stream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
+      }
+      
+      // Ensure video element is connected to stream
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+        await localVideoRef.current.play();
+        setVideoPlaying(true);
       }
       
       setJoined(true);
@@ -204,7 +209,7 @@ const MeetingRoomPage = () => {
         audioEnabled: isAudioEnabled
       }]);
       
-      toast({ title: 'Joined meeting', description: meeting?.title });
+      toast({ title: 'Joined meeting', description: meeting?.title || 'Instant Meeting' });
     } catch (err) {
       console.error('Error joining meeting:', err);
       toast({ 
