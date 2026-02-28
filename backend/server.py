@@ -4275,6 +4275,240 @@ async def get_upcoming_events(user_id: str, limit: int = 5):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== GROUP VIDEO CALL FEATURES ==============
+
+class JoinMeetingRoomRequest(BaseModel):
+    meeting_id: str
+    user_id: str
+    user_name: str
+    audio_enabled: bool = True
+    video_enabled: bool = True
+
+class LeaveMeetingRoomRequest(BaseModel):
+    meeting_id: str
+    user_id: str
+
+class MeetingSignalRequest(BaseModel):
+    meeting_id: str
+    from_user_id: str
+    to_user_id: str
+    signal_type: str  # offer, answer, ice_candidate
+    signal_data: dict
+
+# In-memory meeting room state (for real-time participant tracking)
+meeting_rooms: Dict[str, dict] = {}
+
+@api_router.post("/meeting-room/join")
+async def join_meeting_room(request: JoinMeetingRoomRequest):
+    """Join a meeting room - registers participant and returns current participants"""
+    try:
+        meeting_id = request.meeting_id
+        
+        # Initialize room if not exists
+        if meeting_id not in meeting_rooms:
+            meeting_rooms[meeting_id] = {
+                "id": meeting_id,
+                "participants": {},
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "max_participants": 16
+            }
+        
+        room = meeting_rooms[meeting_id]
+        
+        # Check participant limit
+        if len(room["participants"]) >= room["max_participants"]:
+            raise HTTPException(status_code=400, detail="Meeting room is full (max 16 participants)")
+        
+        # Add participant
+        participant = {
+            "user_id": request.user_id,
+            "user_name": request.user_name,
+            "audio_enabled": request.audio_enabled,
+            "video_enabled": request.video_enabled,
+            "joined_at": datetime.now(timezone.utc).isoformat(),
+            "is_speaking": False
+        }
+        room["participants"][request.user_id] = participant
+        
+        # Get list of other participants (for WebRTC connections)
+        other_participants = [
+            p for p in room["participants"].values() 
+            if p["user_id"] != request.user_id
+        ]
+        
+        # Notify existing participants about new joiner via SSE
+        for p in other_participants:
+            try:
+                await sse_manager.send_to_user(p["user_id"], "participant_joined", {
+                    "meeting_id": meeting_id,
+                    "participant": participant
+                })
+            except Exception as e:
+                logger.warning(f"Failed to notify participant {p['user_id']}: {e}")
+        
+        # Update meeting session in DB
+        await db.meeting_sessions.update_one(
+            {"meeting_id": meeting_id},
+            {"$set": {
+                "status": "active",
+                "participant_count": len(room["participants"]),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "meeting_id": meeting_id,
+            "participant": participant,
+            "other_participants": other_participants,
+            "total_participants": len(room["participants"])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error joining meeting room: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/meeting-room/leave")
+async def leave_meeting_room(request: LeaveMeetingRoomRequest):
+    """Leave a meeting room"""
+    try:
+        meeting_id = request.meeting_id
+        user_id = request.user_id
+        
+        if meeting_id not in meeting_rooms:
+            return {"success": True, "message": "Room not found"}
+        
+        room = meeting_rooms[meeting_id]
+        
+        # Remove participant
+        if user_id in room["participants"]:
+            del room["participants"][user_id]
+        
+        # Notify remaining participants
+        for p in room["participants"].values():
+            try:
+                await sse_manager.send_to_user(p["user_id"], "participant_left", {
+                    "meeting_id": meeting_id,
+                    "user_id": user_id
+                })
+            except Exception as e:
+                logger.warning(f"Failed to notify participant {p['user_id']}: {e}")
+        
+        # Clean up empty rooms
+        if len(room["participants"]) == 0:
+            del meeting_rooms[meeting_id]
+            await db.meeting_sessions.update_one(
+                {"meeting_id": meeting_id},
+                {"$set": {"status": "ended", "ended_at": datetime.now(timezone.utc).isoformat()}}
+            )
+        
+        return {"success": True, "remaining_participants": len(room.get("participants", {}))}
+    except Exception as e:
+        logger.error(f"Error leaving meeting room: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/meeting-room/{meeting_id}/participants")
+async def get_meeting_participants(meeting_id: str):
+    """Get current participants in a meeting room"""
+    try:
+        if meeting_id not in meeting_rooms:
+            return {"participants": [], "total": 0}
+        
+        room = meeting_rooms[meeting_id]
+        participants = list(room["participants"].values())
+        
+        return {
+            "meeting_id": meeting_id,
+            "participants": participants,
+            "total": len(participants)
+        }
+    except Exception as e:
+        logger.error(f"Error getting participants: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/meeting-room/signal")
+async def send_meeting_signal(request: MeetingSignalRequest):
+    """Send WebRTC signal to a specific participant in the meeting"""
+    try:
+        signal_type = request.signal_type
+        
+        # Map signal types to SSE event types
+        event_type_map = {
+            "offer": "webrtc_offer",
+            "answer": "webrtc_answer",
+            "ice_candidate": "webrtc_ice_candidate"
+        }
+        
+        event_type = event_type_map.get(signal_type, f"webrtc_{signal_type}")
+        
+        # Send signal to target user
+        await sse_manager.send_to_user(request.to_user_id, event_type, {
+            "meeting_id": request.meeting_id,
+            "from_user_id": request.from_user_id,
+            "signal_type": request.signal_type,
+            **request.signal_data
+        })
+        
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error sending meeting signal: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/meeting-room/{meeting_id}/update-status")
+async def update_participant_status(
+    meeting_id: str,
+    user_id: str,
+    audio_enabled: Optional[bool] = None,
+    video_enabled: Optional[bool] = None,
+    is_speaking: Optional[bool] = None
+):
+    """Update participant's audio/video/speaking status"""
+    try:
+        if meeting_id not in meeting_rooms:
+            raise HTTPException(status_code=404, detail="Meeting room not found")
+        
+        room = meeting_rooms[meeting_id]
+        
+        if user_id not in room["participants"]:
+            raise HTTPException(status_code=404, detail="Participant not found")
+        
+        participant = room["participants"][user_id]
+        
+        if audio_enabled is not None:
+            participant["audio_enabled"] = audio_enabled
+        if video_enabled is not None:
+            participant["video_enabled"] = video_enabled
+        if is_speaking is not None:
+            participant["is_speaking"] = is_speaking
+        
+        # Notify other participants about status change
+        for p in room["participants"].values():
+            if p["user_id"] != user_id:
+                try:
+                    await sse_manager.send_to_user(p["user_id"], "participant_status_changed", {
+                        "meeting_id": meeting_id,
+                        "user_id": user_id,
+                        "audio_enabled": participant["audio_enabled"],
+                        "video_enabled": participant["video_enabled"],
+                        "is_speaking": participant["is_speaking"]
+                    })
+                except Exception as e:
+                    logger.warning(f"Failed to notify participant: {e}")
+        
+        return {"success": True, "participant": participant}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating participant status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============== ADMIN MONITORING & SECURITY FEATURES ==============
 
 # --- Models for Admin Features ---
