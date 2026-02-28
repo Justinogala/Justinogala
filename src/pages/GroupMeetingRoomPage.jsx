@@ -76,7 +76,6 @@ const ParticipantTile = ({
     if (stream) {
       console.log(`Setting stream for ${participant.user_name}:`, stream.id, 'active:', stream.active);
       video.srcObject = stream;
-      setHasStream(true);
       
       // Ensure video plays
       const playVideo = async () => {
@@ -95,12 +94,12 @@ const ParticipantTile = ({
       }
     } else {
       video.srcObject = null;
-      setHasStream(false);
       setIsVideoPlaying(false);
     }
   }, [stream, participant.user_name]);
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
+  const hasStream = stream && stream.active;
   const showVideo = participant.video_enabled && hasStream;
   
   return (
