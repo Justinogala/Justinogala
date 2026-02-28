@@ -163,11 +163,6 @@ const MeetingRoomPage = () => {
       }
     };
   }, [loading, previewStarted, joined]);
-      if (!joined && localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [meeting, loading, previewStarted, joined]);
 
   // Call duration timer
   useEffect(() => {
