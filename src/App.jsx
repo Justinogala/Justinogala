@@ -221,6 +221,50 @@ function App() {
       window.removeEventListener('touchstart', handleInteraction);
     };
   }, []);
+  
+  // Global handler for chunk loading errors in lazy imports
+  useEffect(() => {
+    const handleUnhandledRejection = (event) => {
+      const error = event.reason;
+      const errorMessage = error?.message || error?.toString() || '';
+      
+      // Check if it's a chunk loading error
+      if (
+        errorMessage.includes('Loading chunk') ||
+        errorMessage.includes('Failed to fetch dynamically imported module') ||
+        errorMessage.includes('Loading CSS chunk') ||
+        errorMessage.includes('ChunkLoadError')
+      ) {
+        console.warn('[App] Chunk load error detected in promise rejection');
+        event.preventDefault();
+        
+        // Check if we've already tried reloading recently
+        const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+        const now = Date.now();
+        
+        if (!lastReload || (now - parseInt(lastReload, 10)) > 30000) {
+          sessionStorage.setItem('chunk_reload_timestamp', now.toString());
+          
+          // Clear caches and reload
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              Promise.all(names.map(name => caches.delete(name))).then(() => {
+                window.location.reload(true);
+              });
+            });
+          } else {
+            window.location.reload(true);
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   return (
     <ErrorBoundary>
