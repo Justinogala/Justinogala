@@ -744,33 +744,41 @@ const GroupMeetingRoomPage = () => {
     <div className="h-screen bg-slate-950 flex flex-col" data-testid="group-meeting-room">
       <Helmet><title>{meeting?.title || 'Group Meeting'} | Meeting</title></Helmet>
       
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-slate-900/80 border-b border-white/10">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">{meeting?.title || 'Group Meeting'}</h1>
-          <Badge variant="secondary" className="bg-red-500/20 text-red-400">
-            <div className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" />
+      {/* Header - Mobile optimized */}
+      <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 bg-slate-900/80 border-b border-white/10">
+        <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+          <h1 className="text-sm sm:text-lg font-semibold text-white truncate max-w-[120px] sm:max-w-none">{meeting?.title || 'Meeting'}</h1>
+          <Badge variant="secondary" className="bg-red-500/20 text-red-400 text-xs sm:text-sm shrink-0">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 mr-1 sm:mr-2 animate-pulse" />
             {formatDuration(callDuration)}
           </Badge>
-          <Badge variant="secondary" className="bg-indigo-500/20 text-indigo-300">
+          <Badge variant="secondary" className="bg-indigo-500/20 text-indigo-300 text-xs sm:text-sm hidden sm:flex">
             <Users className="w-3 h-3 mr-1" />
-            {allParticipants.length} participant{allParticipants.length !== 1 ? 's' : ''}
+            {allParticipants.length}
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={copyMeetingLink} className="text-gray-400 hover:text-white">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button variant="ghost" size="sm" onClick={copyMeetingLink} className="text-gray-400 hover:text-white hidden sm:flex">
             {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
             Invite
           </Button>
           <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={copyMeetingLink} 
+            className="text-gray-400 hover:text-white sm:hidden h-8 w-8"
+          >
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          </Button>
+          <Button 
             variant={showParticipants ? "default" : "ghost"} 
             size="sm" 
-            className="text-gray-400 hover:text-white"
+            className="text-gray-400 hover:text-white h-8 px-2 sm:px-3"
             onClick={() => setShowParticipants(!showParticipants)}
             data-testid="toggle-participants-btn"
           >
-            <Users className="w-4 h-4 mr-2" />
-            {allParticipants.length}
+            <Users className="w-4 h-4 sm:mr-2" />
+            <span className="sm:inline">{allParticipants.length}</span>
           </Button>
         </div>
       </div>
