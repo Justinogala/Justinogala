@@ -1247,6 +1247,24 @@ const GroupMeetingRoomPage = () => {
           </div>
         </div>
       </TooltipProvider>
+      
+      {/* Virtual Background Selector Modal */}
+      <VirtualBackgroundSelector
+        isOpen={showBackgroundSelector}
+        onClose={() => setShowBackgroundSelector(false)}
+        currentEffect={backgroundEffect}
+        currentBackground={selectedBackground}
+        onEffectChange={(effect) => {
+          setBackgroundEffect(effect);
+          setVirtualBgEnabled(effect !== BACKGROUND_EFFECTS.NONE);
+        }}
+        onBackgroundChange={setSelectedBackground}
+        isLoading={bgLoading}
+        isProcessing={bgProcessing}
+        fps={bgFps}
+        modelReady={bgModelReady}
+        disabled={!isVideoEnabled}
+      />
     </div>
   );
 };
