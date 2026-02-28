@@ -251,10 +251,15 @@ const MeetingRoomPage = () => {
   // Toggle video
   const toggleVideo = () => {
     if (localStreamRef.current) {
+      const newState = !isVideoEnabled;
       localStreamRef.current.getVideoTracks().forEach(track => {
-        track.enabled = !isVideoEnabled;
+        track.enabled = newState;
       });
-      setIsVideoEnabled(!isVideoEnabled);
+      setIsVideoEnabled(newState);
+      // Update videoPlaying state based on new video state
+      if (!newState) {
+        setVideoPlaying(false);
+      }
     }
   };
 
