@@ -627,27 +627,91 @@ const GroupMeetingRoomPage = () => {
   };
   
   // Toggle audio
-  const toggleAudio = () => {
-    if (localStream) {
-      const newState = !isAudioEnabled;
+  const toggleAudio = async () => {
+    const newState = !isAudioEnabled;
+    
+    if (localStream && localStream.getAudioTracks().length > 0) {
+      // We have audio tracks, just toggle them
       localStream.getAudioTracks().forEach(track => {
         track.enabled = newState;
       });
-      setIsAudioEnabled(newState);
-      updateParticipantStatus({ audio_enabled: newState });
+    } else if (newState) {
+      // Need to get audio permission
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioTrack = stream.getAudioTracks()[0];
+        
+        if (localStream) {
+          localStream.addTrack(audioTrack);
+        } else {
+          setLocalStream(stream);
+        }
+        console.log('[toggleAudio] Audio track added');
+      } catch (err) {
+        console.error('[toggleAudio] Failed to get audio:', err);
+        toast({ variant: 'destructive', title: 'Could not access microphone' });
+        return;
+      }
     }
+    
+    setIsAudioEnabled(newState);
+    updateParticipantStatus({ audio_enabled: newState });
   };
   
   // Toggle video
-  const toggleVideo = () => {
-    if (localStream) {
-      const newState = !isVideoEnabled;
+  const toggleVideo = async () => {
+    const newState = !isVideoEnabled;
+    console.log('[toggleVideo] Toggling video to:', newState, 'localStream:', !!localStream);
+    
+    if (localStream && localStream.getVideoTracks().length > 0) {
+      // We have video tracks, just toggle them
+      console.log('[toggleVideo] Enabling/disabling existing video tracks');
       localStream.getVideoTracks().forEach(track => {
         track.enabled = newState;
       });
-      setIsVideoEnabled(newState);
-      updateParticipantStatus({ video_enabled: newState });
+    } else if (newState) {
+      // Need to get video permission - no stream or no video tracks
+      console.log('[toggleVideo] Requesting camera access...');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          }
+        });
+        
+        const videoTrack = stream.getVideoTracks()[0];
+        console.log('[toggleVideo] Got video track:', videoTrack.id, 'enabled:', videoTrack.enabled);
+        
+        if (localStream) {
+          // Add video track to existing stream
+          localStream.addTrack(videoTrack);
+          console.log('[toggleVideo] Added video track to existing stream');
+        } else {
+          // Create new stream with video
+          setLocalStream(stream);
+          console.log('[toggleVideo] Set new stream with video');
+        }
+        
+        toast({ title: 'Camera started' });
+      } catch (err) {
+        console.error('[toggleVideo] Failed to get camera:', err);
+        let errorMsg = 'Could not access camera';
+        if (err.name === 'NotAllowedError') {
+          errorMsg = 'Camera access denied. Please allow camera access.';
+        } else if (err.name === 'NotFoundError') {
+          errorMsg = 'No camera found. Please connect a camera.';
+        } else if (err.name === 'NotReadableError') {
+          errorMsg = 'Camera is in use by another app.';
+        }
+        toast({ variant: 'destructive', title: errorMsg });
+        return;
+      }
     }
+    
+    setIsVideoEnabled(newState);
+    updateParticipantStatus({ video_enabled: newState });
   };
   
   // Toggle hand raise
