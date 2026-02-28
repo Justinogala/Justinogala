@@ -107,6 +107,9 @@ const AdminSidebar = ({ onClose, isMobile }) => {
   ];
 
   const configLinks = [
+    { icon: Activity, label: 'Monitoring', path: '/admin/monitoring', gradient: 'from-green-500 to-emerald-500' },
+    { icon: Lock, label: 'Security Policies', path: '/admin/security-policies', gradient: 'from-red-500 to-rose-500' },
+    { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500' },
     { icon: Key, label: 'API Settings', path: '/admin/api-settings', gradient: 'from-amber-500 to-orange-500' },
     { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500' },
     { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500' },
