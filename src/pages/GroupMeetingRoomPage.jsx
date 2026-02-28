@@ -1309,6 +1309,13 @@ const GroupMeetingRoomPage = () => {
             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 mr-1 sm:mr-2 animate-pulse" />
             {formatDuration(callDuration)}
           </Badge>
+          {/* Recording indicator */}
+          {isRecording && (
+            <Badge variant="secondary" className="bg-red-600/30 text-red-300 text-xs sm:text-sm shrink-0 animate-pulse">
+              <Circle className="w-2 h-2 sm:w-3 sm:h-3 mr-1 fill-red-500 text-red-500" />
+              REC {formatRecordingDuration(recordingDuration)}
+            </Badge>
+          )}
           <Badge variant="secondary" className="bg-indigo-500/20 text-indigo-300 text-xs sm:text-sm hidden sm:flex">
             <Users className="w-3 h-3 mr-1" />
             {allParticipants.length}
