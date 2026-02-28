@@ -900,33 +900,6 @@ const GroupMeetingRoomPage = () => {
   }
   
   // In-meeting view with grid
-  // Merge local user's current state with participants list
-  const allParticipants = React.useMemo(() => {
-    if (participants.length === 0) {
-      // Fallback when not connected to room yet
-      return [{
-        user_id: user?.id,
-        user_name: user?.name || 'You',
-        video_enabled: isVideoEnabled,
-        audio_enabled: isAudioEnabled,
-        hand_raised: handRaised
-      }];
-    }
-    
-    // Update local user's state in the participants list
-    return participants.map(p => {
-      if (p.user_id === user?.id) {
-        return {
-          ...p,
-          video_enabled: isVideoEnabled,
-          audio_enabled: isAudioEnabled,
-          hand_raised: handRaised
-        };
-      }
-      return p;
-    });
-  }, [participants, user?.id, user?.name, isVideoEnabled, isAudioEnabled, handRaised]);
-  
   return (
     <div className="h-screen bg-slate-950 flex flex-col" data-testid="group-meeting-room">
       <Helmet><title>{meeting?.title || 'Group Meeting'} | Meeting</title></Helmet>
