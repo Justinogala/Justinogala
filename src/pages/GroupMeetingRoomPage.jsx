@@ -193,19 +193,6 @@ const VideoGrid = ({
           const stream = isLocal ? localStream : remoteStreams.get(participant.user_id);
           const audioLevel = audioLevels?.get(participant.user_id) || 0;
           
-          // Debug logging for all participants
-          console.log(`[VideoGrid] Participant ${participant.user_name}:`, {
-            participantUserId: participant.user_id,
-            localUserId,
-            isLocal,
-            streamExists: !!stream,
-            streamId: stream?.id,
-            streamActive: stream?.active,
-            videoTracks: stream?.getVideoTracks()?.length || 0,
-            videoTracksEnabled: stream?.getVideoTracks()?.map(t => ({ id: t.id, enabled: t.enabled })),
-            participantVideoEnabled: participant.video_enabled
-          });
-          
           return (
             <ParticipantTile
               key={participant.user_id}
