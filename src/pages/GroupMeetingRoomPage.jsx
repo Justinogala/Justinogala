@@ -777,21 +777,22 @@ const GroupMeetingRoomPage = () => {
       
       {/* Main Content - Video Grid */}
       <div className="flex-1 flex overflow-hidden">
-        <div className={cn("flex-1 transition-all", (showChat || showParticipants) && "pr-0")}>
+        <div className={cn("flex-1 transition-all", (showChat || showParticipants) && "sm:pr-0")}>
           <VideoGrid
             participants={allParticipants}
             localStream={localStream}
             remoteStreams={remoteStreamMap}
             localUserId={user?.id}
-            activeSpeaker={activeSpeaker}
+            activeSpeaker={currentActiveSpeaker}
             focusedParticipant={focusedParticipant}
+            audioLevels={audioLevels}
             onFocusParticipant={setFocusedParticipant}
           />
         </div>
         
-        {/* Sidebar */}
+        {/* Sidebar - Hidden on mobile, shown on larger screens */}
         {(showChat || showParticipants) && (
-          <div className="w-80 bg-slate-900 border-l border-white/10 flex flex-col">
+          <div className="hidden sm:flex w-80 bg-slate-900 border-l border-white/10 flex-col">
             <div className="flex border-b border-white/10">
               <button
                 onClick={() => { setShowChat(true); setShowParticipants(false); }}
