@@ -130,12 +130,10 @@ const ParticipantTile = ({
         onCanPlay={(e) => {
           e.target.play().catch(err => console.log('CanPlay error:', err));
         }}
-        style={{ 
-          opacity: showVideo ? 1 : 0,
-          position: showVideo ? 'relative' : 'absolute',
-          zIndex: showVideo ? 1 : -1
-        }}
-        className="w-full h-full object-cover"
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-opacity",
+          showVideo ? "opacity-100 z-10" : "opacity-0 z-0"
+        )}
       />
       
       {/* Avatar fallback when video is off */}
