@@ -565,7 +565,9 @@ const GroupMeetingRoomPage = () => {
         exists: !!previewStream,
         id: previewStream?.id,
         active: previewStream?.active,
-        videoTracks: previewStream?.getVideoTracks().length
+        videoTracks: previewStream?.getVideoTracks().length,
+        isVideoEnabled,
+        isAudioEnabled
       });
       
       if (!stream || !stream.active) {
@@ -581,11 +583,24 @@ const GroupMeetingRoomPage = () => {
         console.log('[joinMeeting] New stream created:', stream.id);
       }
       
+      // CRITICAL: Sync track enabled state with UI state
+      // This handles the case where user toggled video/audio OFF in the preview
+      stream.getVideoTracks().forEach(track => {
+        track.enabled = isVideoEnabled;
+        console.log('[joinMeeting] Video track', track.id, 'enabled:', track.enabled);
+      });
+      stream.getAudioTracks().forEach(track => {
+        track.enabled = isAudioEnabled;
+        console.log('[joinMeeting] Audio track', track.id, 'enabled:', track.enabled);
+      });
+      
       console.log('[joinMeeting] Setting localStream:', {
         streamId: stream.id,
         active: stream.active,
         videoTracks: stream.getVideoTracks().length,
-        audioTracks: stream.getAudioTracks().length
+        audioTracks: stream.getAudioTracks().length,
+        videoEnabled: stream.getVideoTracks()[0]?.enabled,
+        audioEnabled: stream.getAudioTracks()[0]?.enabled
       });
       
       updateLocalStream(stream);
