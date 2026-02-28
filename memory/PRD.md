@@ -463,3 +463,68 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - `DELETE /api/workspaces/{id}/members/{user_id}` - Remove member
 - [x] **MongoDB Collection**: `workspace_members` stores member relationships
 - [x] **Frontend Component**: `/app/src/components/WorkspaceMemberManagement.jsx`
+
+### Group Video Calls (Feb 28, 2026)
+- [x] **Multi-Participant WebRTC** - Support for up to 16 participants in a meeting
+  - Each participant creates peer connections to all other participants
+  - ICE candidate buffering for stable connection establishment
+  - Automatic offer/answer negotiation when new participant joins
+- [x] **Backend APIs**:
+  - `POST /api/group-call/join` - Join a group call room
+  - `POST /api/group-call/leave` - Leave a group call room
+  - `POST /api/group-call/signal` - Send WebRTC signaling (offer/answer/ice)
+  - `GET /api/group-call/room/{room_id}` - Get room state and participants
+  - `POST /api/group-call/update-participant` - Update video/audio/hand status
+  - `GET /api/group-call/participants/{room_id}` - Get participants list
+- [x] **Grid View Layout** - Dynamic grid adapts to participant count
+  - 1 participant: 1x1 grid
+  - 2 participants: 1x2 grid
+  - 3-4 participants: 2x2 grid
+  - 5-6 participants: 2x3 grid
+  - 7-9 participants: 3x3 grid
+  - 10-12 participants: 3x4 grid
+  - 13-16 participants: 4x4 grid
+- [x] **Participant Tiles**:
+  - Display participant names
+  - Muted microphone indicator
+  - Video off indicator
+  - Hand raised indicator
+- [x] **Speaker Spotlight**:
+  - Active speaker highlighted with green ring
+  - "Speaking" badge on active speaker tile
+  - Active speaker shown in participants list
+- [x] **Meeting Controls**:
+  - Mute/Unmute microphone
+  - Enable/Disable video
+  - Share screen
+  - Raise/Lower hand
+  - View participants list
+  - In-meeting chat
+  - Grid view reset button
+  - Leave meeting
+- [x] **Pre-Join Screen**:
+  - Camera/mic preview
+  - Toggle controls before joining
+  - Meeting info display (title, time, participants)
+  - Copy meeting link button
+- [x] **Frontend Components**:
+  - `/app/src/hooks/useGroupWebRTC.js` - Custom hook for multi-peer WebRTC management
+  - `/app/src/pages/GroupMeetingRoomPage.jsx` - Main group meeting room component
+  - `ParticipantTile` - Individual video tile with participant info
+  - `VideoGrid` - Adaptive grid layout component
+
+## Prioritized Backlog
+
+### P0 (Critical)
+- [ ] Fix recurring camera bug (camera fails to start in meeting rooms)
+
+### P1 (High Priority)
+- [ ] Admin Panel UI - Build frontend for AdminMonitoringDashboard, AdminSecurityPolicies, AdminMeetingAnalytics
+- [ ] Mobile app optimization
+
+### P2 (Medium Priority)
+- [ ] PWA chunk loading fix for deployments
+- [ ] GIPHY integration (client-side)
+- [ ] Refactor server.py into modular routes
+- [ ] Cloud storage migration for recordings
+
