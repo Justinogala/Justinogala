@@ -634,7 +634,9 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 ## Prioritized Backlog
 
 ### P0 (Critical)
-- [x] ~~Fix recurring camera bug (camera fails to start in meeting rooms)~~ - **FIXED**
+- [x] ~~Fix recurring camera bug (camera fails to start in meeting rooms)~~ - **FIXED (Iteration 2 - Feb 28)**
+  - Root cause: MediaStream reference doesn't change when track.enabled changes
+  - Solution: streamKey counter forces React re-evaluation
 
 ### P1 (High Priority)
 - [x] ~~Admin Panel UI~~ - **ALREADY COMPLETE** (was marked as placeholder but fully functional)
