@@ -66,7 +66,6 @@ const ParticipantTile = ({
 }) => {
   const videoRef = useRef(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [hasStream, setHasStream] = useState(false);
   
   // Attach stream to video element
   useEffect(() => {
