@@ -312,6 +312,32 @@ const GroupMeetingRoomPage = () => {
     speakingDebounce: 300
   });
   
+  // Virtual background processing
+  const {
+    outputStream: processedStream,
+    isLoading: bgLoading,
+    isProcessing: bgProcessing,
+    modelReady: bgModelReady,
+    fps: bgFps
+  } = useVirtualBackground({
+    inputStream: localStream,
+    enabled: virtualBgEnabled && backgroundEffect !== BACKGROUND_EFFECTS.NONE,
+    effect: backgroundEffect,
+    backgroundImage: selectedBackground?.url || null,
+    backgroundColor: selectedBackground?.color || null,
+    onError: (err) => {
+      console.error('Virtual background error:', err);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Background effect error',
+        description: 'Could not apply background effect. Try a simpler effect.'
+      });
+    }
+  });
+  
+  // Use processed stream if virtual background is enabled, otherwise use raw local stream
+  const displayStream = virtualBgEnabled && processedStream ? processedStream : localStream;
+  
   // Use detected speaker or manual speaker
   const currentActiveSpeaker = detectedActiveSpeaker || activeSpeaker;
   
