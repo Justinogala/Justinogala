@@ -66,15 +66,42 @@ const ParticipantTile = ({
 }) => {
   const videoRef = useRef(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [hasStream, setHasStream] = useState(false);
   
+  // Attach stream to video element
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(err => console.log('Video play error:', err));
+    const video = videoRef.current;
+    if (!video) return;
+    
+    if (stream) {
+      console.log(`Setting stream for ${participant.user_name}:`, stream.id, 'active:', stream.active);
+      video.srcObject = stream;
+      setHasStream(true);
+      
+      // Ensure video plays
+      const playVideo = async () => {
+        try {
+          await video.play();
+          setIsVideoPlaying(true);
+          console.log(`Video playing for ${participant.user_name}`);
+        } catch (err) {
+          console.log('Video play error:', err);
+          // Retry on user interaction
+        }
+      };
+      
+      if (video.paused) {
+        playVideo();
+      }
+    } else {
+      video.srcObject = null;
+      setHasStream(false);
+      setIsVideoPlaying(false);
     }
-  }, [stream]);
+  }, [stream, participant.user_name]);
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
+  const showVideo = participant.video_enabled && hasStream;
   
   return (
     <motion.div 
@@ -87,21 +114,26 @@ const ParticipantTile = ({
       onClick={() => onFocus && onFocus(participant.user_id)}
       data-testid={`participant-tile-${participant.user_id}`}
     >
-      {/* Video element */}
+      {/* Video element - always present but visibility controlled */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted={isLocal}
         onPlaying={() => setIsVideoPlaying(true)}
-        className={cn(
-          "w-full h-full object-cover",
-          (!participant.video_enabled || !stream) && "hidden"
-        )}
+        onCanPlay={(e) => {
+          e.target.play().catch(err => console.log('CanPlay error:', err));
+        }}
+        style={{ 
+          opacity: showVideo ? 1 : 0,
+          position: showVideo ? 'relative' : 'absolute',
+          zIndex: showVideo ? 1 : -1
+        }}
+        className="w-full h-full object-cover"
       />
       
       {/* Avatar fallback when video is off */}
-      {(!participant.video_enabled || !stream) && (
+      {!showVideo && (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
           <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
             <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
