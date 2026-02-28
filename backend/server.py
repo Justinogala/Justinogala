@@ -22,6 +22,7 @@ import secrets
 import string
 import resend
 
+# ============== Configuration ==============
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -47,10 +48,14 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 # Security
 security = HTTPBearer(auto_error=False)
 
-# Create the main app without a prefix
-app = FastAPI()
+# Create the main app
+app = FastAPI(
+    title="Munal AI API",
+    description="AI-powered meeting and collaboration platform",
+    version="1.0.0"
+)
 
-# Create a router with the /api prefix
+# Create API router with /api prefix
 api_router = APIRouter(prefix="/api")
 
 # Configure logging
