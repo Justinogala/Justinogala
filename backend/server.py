@@ -4471,7 +4471,7 @@ async def get_active_meetings():
 # --- 3. User Account Controls ---
 
 @api_router.get("/admin/users")
-async def get_all_users(
+async def get_admin_users_list(
     status: Optional[str] = None,
     role: Optional[str] = None,
     search: Optional[str] = None,
