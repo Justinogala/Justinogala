@@ -5155,7 +5155,8 @@ async def update_security_policies(policies: SecurityPolicyUpdate, request: Requ
             category="security",
             details=update_data,
             admin_email="admin",
-            request=request
+            ip_address=get_client_ip(request),
+            user_agent=request.headers.get("user-agent", "")
         )
         
         return {"success": True, "updated": update_data}
