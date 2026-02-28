@@ -9,9 +9,9 @@ export const launchMeeting = (meeting, navigate, toast) => {
     switch (platform) {
       case 'internal': // Legacy support
       case 'webrtc':
-        // WebRTC uses the internal meeting route
+        // WebRTC uses the workspace meeting route
         if (navigate) {
-          navigate(`/meeting/${id}/live`);
+          navigate(`/workspace/meeting/${id}`);
         }
         return true;
 
@@ -25,20 +25,17 @@ export const launchMeeting = (meeting, navigate, toast) => {
           window.open(meetingUrl, '_blank', 'noopener,noreferrer');
           return true;
         } else {
-          if (toast) {
-            toast({
-              title: "Invalid Link",
-              description: "The meeting link for this platform is missing or invalid.",
-              variant: "destructive"
-            });
+          // If no external URL, use workspace meeting route
+          if (navigate) {
+            navigate(`/workspace/meeting/${id}`);
           }
-          return false;
+          return true;
         }
 
       default:
-        // Default to internal route if unknown
+        // Default to workspace meeting route
         if (navigate) {
-          navigate(`/meeting/${id}/live`);
+          navigate(`/workspace/meeting/${id}`);
         }
         return true;
     }
