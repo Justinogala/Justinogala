@@ -323,6 +323,14 @@ const GroupMeetingRoomPage = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [detectedActiveSpeaker, setDetectedActiveSpeaker] = useState(null);
   
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordingStartTime, setRecordingStartTime] = useState(null);
+  const [isSavingRecording, setIsSavingRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  
   // Virtual background state
   const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
   const [backgroundEffect, setBackgroundEffect] = useState(BACKGROUND_EFFECTS.NONE);
