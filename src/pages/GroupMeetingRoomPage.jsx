@@ -402,15 +402,20 @@ const GroupMeetingRoomPage = () => {
   
   // Debug: Log stream status
   React.useEffect(() => {
-    console.log('Stream status:', {
+    console.log('[Stream Status]:', {
+      streamKey,
       localStream: localStream?.id,
       localStreamActive: localStream?.active,
+      localStreamVideoTracks: localStream?.getVideoTracks()?.length,
       displayStream: displayStream?.id,
       displayStreamActive: displayStream?.active,
+      displayStreamVideoTracks: displayStream?.getVideoTracks()?.length,
       virtualBgEnabled,
-      bgProcessing
+      bgProcessing,
+      isVideoEnabled,
+      joined
     });
-  }, [localStream, displayStream, virtualBgEnabled, bgProcessing]);
+  }, [localStream, displayStream, virtualBgEnabled, bgProcessing, streamKey, isVideoEnabled, joined]);
   
   // Use detected speaker or manual speaker
   const currentActiveSpeaker = detectedActiveSpeaker || activeSpeaker;
