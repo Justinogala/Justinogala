@@ -3,6 +3,8 @@
 - [- Shared EchoNote AI](/sharedmeeting): No description available
 - [| Munal](/sharedrecording): No description available
 - [| Munal](/transcriptiondetail): No description available
+- [| Munal AI](/groupmeetingroom): No description available
+- [| Munal AI](/meetingroom): No description available
 - [| Settings](/workspacedetail): No description available
 - [| Support - Munal](/usersupportticketdetail): No description available
 - [404: Page Not Found - Munal](/notfound): No description available
@@ -24,7 +26,7 @@
 - [Forgot Password | Munal AI](/forgotpassword): No description available
 - [History | Munal](/transcriptionhistory): No description available
 - [Integrations - Munal](/integrationsettings): No description available
-- [Join Meeting | Munal AI](/meetingroom): No description available
+- [Join Meeting | Munal AI](/groupmeetingroom): No description available
 - [Login - Munal AI](/login): Log in to your Munal AI account for meeting intelligence.
 - [Manage Transcriptions | Munal](/transcriptionmanagement): No description available
 - [Meetings | Munal AI](/meetings): Manage your video conferences, schedule meetings, and view history.
