@@ -587,6 +587,20 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ## Prioritized Backlog
 
+### Recording Feature (Feb 28, 2026)
+- [x] **Record Meeting Button**: Added to meeting controls
+  - Red circle icon to start recording
+  - Square icon to stop recording (while recording)
+  - Download icon while saving
+  - Pulsing animation during active recording
+- [x] **Recording Indicator**: Shows "REC" badge in header with duration when recording is active
+- [x] **Auto-download**: When recording stops, file automatically downloads to user's device
+- [x] **Cloud Save**: Recording is also saved to File Manager (backend GridFS)
+- [x] **7-day Auto-delete**: Backend automatically deletes recordings after 7 days
+- [x] **Multi-stream Recording**: Captures both local audio/video and remote participant audio
+- [x] **Files Modified**:
+  - `/app/src/pages/GroupMeetingRoomPage.jsx` - Added recording state, functions, and UI
+
 ### Camera Bug Fix - Multiple Iterations (Feb 28, 2026)
 - [x] **Root Cause Analysis (Final)**: When track.enabled changes on a MediaStream, the stream reference doesn't change, so React's shallow comparison doesn't detect the update
 - [x] **Fix Applied (Iteration 2 - Radical Simplification)**:
