@@ -142,8 +142,17 @@ const MeetingRoomPage = () => {
         console.log('Camera preview started successfully');
       } catch (err) {
         console.error('Error starting preview:', err);
-        // Still mark as started to show avatar
+        // Set error message based on error type
         if (isMounted) {
+          if (err.name === 'NotAllowedError') {
+            setCameraError('Camera access denied. Please allow camera access in your browser settings.');
+          } else if (err.name === 'NotFoundError') {
+            setCameraError('No camera found. Please connect a camera and try again.');
+          } else if (err.name === 'NotReadableError') {
+            setCameraError('Camera is in use by another application.');
+          } else {
+            setCameraError('Could not access camera. Please check your settings.');
+          }
           setPreviewStarted(true);
         }
       }
