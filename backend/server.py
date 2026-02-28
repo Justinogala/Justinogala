@@ -2006,13 +2006,51 @@ async def register_user(user_data: UserCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/auth/login")
-async def login_user(credentials: UserLogin):
-    """Login a user"""
+async def login_user(credentials: UserLogin, request: Request):
+    """Login a user with security checks and activity tracking"""
     try:
         user = await db.users.find_one({"email": credentials.email.lower()})
         
+        # Get security policies
+        policies = await db.security_policies.find_one({"id": "default"})
+        max_attempts = policies.get("max_failed_login_attempts", 5) if policies else 5
+        lockout_minutes = policies.get("lockout_duration_minutes", 30) if policies else 30
+        
         if not user:
+            # Log failed login attempt
+            await db.user_activity.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": "unknown",
+                "action": "failed_login",
+                "details": {"email": credentials.email.lower(), "reason": "user_not_found"},
+                "ip_address": request.client.host if request else None,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
             raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Check if account is locked
+        if user.get("locked_until"):
+            locked_until = user.get("locked_until")
+            if isinstance(locked_until, str):
+                locked_until = datetime.fromisoformat(locked_until.replace("Z", "+00:00"))
+            if locked_until > datetime.now(timezone.utc):
+                raise HTTPException(
+                    status_code=403, 
+                    detail=f"Account is locked. Please try again later or contact admin."
+                )
+            else:
+                # Lock has expired, clear it
+                await db.users.update_one(
+                    {"id": user["id"]},
+                    {"$set": {"locked_until": None, "failed_login_attempts": 0}}
+                )
+        
+        # Check if account is disabled
+        if user.get("status") == "Disabled":
+            raise HTTPException(status_code=403, detail="Your account has been disabled. Please contact admin.")
+        
+        if user.get("status") == "Suspended":
+            raise HTTPException(status_code=403, detail="Your account has been suspended")
         
         # Check password - first try regular password, then temp password
         password_valid = False
@@ -2037,27 +2075,78 @@ async def login_user(credentials: UserLogin):
                 using_temp_password = True
         
         if not password_valid:
+            # Increment failed login attempts
+            failed_attempts = user.get("failed_login_attempts", 0) + 1
+            update_data = {"failed_login_attempts": failed_attempts}
+            
+            # Lock account if too many failed attempts
+            if failed_attempts >= max_attempts:
+                update_data["locked_until"] = (datetime.now(timezone.utc) + timedelta(minutes=lockout_minutes)).isoformat()
+                update_data["status"] = "Locked"
+            
+            await db.users.update_one({"id": user["id"]}, {"$set": update_data})
+            
+            # Log failed login
+            await db.user_activity.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": user["id"],
+                "action": "failed_login",
+                "details": {"attempt_number": failed_attempts, "reason": "invalid_password"},
+                "ip_address": request.client.host if request else None,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+            
+            if failed_attempts >= max_attempts:
+                raise HTTPException(
+                    status_code=403, 
+                    detail=f"Account locked due to {max_attempts} failed login attempts. Please try again in {lockout_minutes} minutes."
+                )
+            
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
-        if user.get("status") == "Suspended":
-            raise HTTPException(status_code=403, detail="Your account has been suspended")
-        
-        # Update last active
+        # Successful login - reset failed attempts and update activity
         await db.users.update_one(
             {"id": user["id"]},
-            {"$set": {"last_active": datetime.now(timezone.utc)}}
+            {"$set": {
+                "last_active": datetime.now(timezone.utc).isoformat(),
+                "failed_login_attempts": 0,
+                "locked_until": None,
+                "status": "Active" if user.get("status") == "Locked" else user.get("status", "Active")
+            }}
         )
+        
+        # Log successful login
+        await db.user_activity.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": user["id"],
+            "action": "login",
+            "details": {"using_temp_password": using_temp_password},
+            "ip_address": request.client.host if request else None,
+            "user_agent": request.headers.get("user-agent") if request else None,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Create session record
+        session_id = str(uuid.uuid4())
+        await db.user_sessions.insert_one({
+            "id": session_id,
+            "user_id": user["id"],
+            "ip_address": request.client.host if request else None,
+            "user_agent": request.headers.get("user-agent") if request else None,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "active": True
+        })
         
         # Generate JWT token
         token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
         
         # Return user data (without password and _id)
-        user_data = {k: v for k, v in user.items() if k not in ["password", "_id"]}
+        user_data = {k: v for k, v in user.items() if k not in ["password", "_id", "temp_password", "temp_password_expires"]}
         for key in ["created_at", "joined_date", "last_active"]:
             if key in user_data and hasattr(user_data[key], 'isoformat'):
                 user_data[key] = user_data[key].isoformat()
         
-        return {"user": user_data, "token": token}
+        return {"user": user_data, "token": token, "session_id": session_id}
     except HTTPException:
         raise
     except Exception as e:
