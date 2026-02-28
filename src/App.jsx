@@ -412,6 +412,9 @@ function App() {
                                 <Route path="api-logs" element={<AdminAPILogs />} />
                                 <Route path="integration-logs" element={<AdminIntegrationLogs />} />
                                 <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+                                <Route path="monitoring" element={<AdminMonitoringDashboard />} />
+                                <Route path="security-policies" element={<AdminSecurityPolicies />} />
+                                <Route path="meeting-analytics" element={<AdminMeetingAnalytics />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>
