@@ -59,6 +59,7 @@ const ParticipantTile = ({
   isLocal, 
   isActiveSpeaker,
   isFocused,
+  audioLevel = 0,
   onFocus 
 }) => {
   const videoRef = useRef(null);
@@ -77,7 +78,7 @@ const ParticipantTile = ({
     <motion.div 
       layout
       className={cn(
-        "relative bg-slate-800 rounded-xl overflow-hidden transition-all duration-300",
+        "relative bg-slate-800 rounded-xl overflow-hidden transition-all duration-300 min-h-[120px] sm:min-h-[150px]",
         isActiveSpeaker && "ring-2 ring-green-500 ring-offset-2 ring-offset-slate-950",
         isFocused && "col-span-2 row-span-2"
       )}
@@ -100,8 +101,8 @@ const ParticipantTile = ({
       {/* Avatar fallback when video is off */}
       {(!participant.video_enabled || !stream) && (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-          <Avatar className={cn("transition-all", isFocused ? "h-32 w-32" : "h-20 w-20")}>
-            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-2xl">
+          <Avatar className={cn("transition-all", isFocused ? "h-24 w-24 sm:h-32 sm:w-32" : "h-14 w-14 sm:h-20 sm:w-20")}>
+            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl sm:text-2xl">
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -109,25 +110,25 @@ const ParticipantTile = ({
       )}
       
       {/* Participant info overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/70 to-transparent">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-white text-sm font-medium truncate max-w-[120px]">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-white text-xs sm:text-sm font-medium truncate max-w-[80px] sm:max-w-[120px]">
               {participant.user_name}{isLocal && ' (You)'}
             </span>
             {isActiveSpeaker && (
-              <Volume2 className="w-4 h-4 text-green-400 animate-pulse" />
+              <AudioLevelIndicator level={audioLevel} isActive={true} />
             )}
           </div>
           <div className="flex items-center gap-1">
             {!participant.audio_enabled && (
-              <span className="bg-red-500/80 text-white p-1 rounded-full">
-                <MicOff className="w-3 h-3" />
+              <span className="bg-red-500/80 text-white p-0.5 sm:p-1 rounded-full">
+                <MicOff className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               </span>
             )}
             {participant.hand_raised && (
-              <span className="bg-yellow-500/80 text-white p-1 rounded-full">
-                <Hand className="w-3 h-3" />
+              <span className="bg-yellow-500/80 text-white p-0.5 sm:p-1 rounded-full">
+                <Hand className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               </span>
             )}
           </div>
@@ -136,8 +137,8 @@ const ParticipantTile = ({
       
       {/* Speaker indicator */}
       {isActiveSpeaker && (
-        <div className="absolute top-2 right-2">
-          <Badge className="bg-green-500/90 text-white text-xs">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2">
+          <Badge className="bg-green-500/90 text-white text-[10px] sm:text-xs px-1.5 py-0.5">
             Speaking
           </Badge>
         </div>
