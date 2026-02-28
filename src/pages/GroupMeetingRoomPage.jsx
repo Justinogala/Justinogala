@@ -1106,6 +1106,32 @@ const GroupMeetingRoomPage = () => {
               <TooltipContent><p>{isScreenSharing ? 'Stop screen sharing' : 'Share your screen'}</p></TooltipContent>
             </Tooltip>
             
+            {/* Virtual Background Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <Button
+                    size="lg"
+                    className={cn(
+                      "rounded-xl h-11 w-11 sm:h-14 sm:w-14 shadow-lg transition-all relative",
+                      virtualBgEnabled && backgroundEffect !== BACKGROUND_EFFECTS.NONE
+                        ? "bg-purple-500 hover:bg-purple-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
+                    )}
+                    onClick={() => setShowBackgroundSelector(true)}
+                    data-testid="virtual-bg-btn"
+                  >
+                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
+                    {bgProcessing && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                    )}
+                  </Button>
+                  <span className="text-[10px] sm:text-xs text-gray-300 mt-1 sm:mt-1.5 font-medium">Effects</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent><p>Virtual backgrounds & blur</p></TooltipContent>
+            </Tooltip>
+            
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
