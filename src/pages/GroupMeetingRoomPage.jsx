@@ -245,6 +245,12 @@ const GroupMeetingRoomPage = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [detectedActiveSpeaker, setDetectedActiveSpeaker] = useState(null);
   
+  // Virtual background state
+  const [showBackgroundSelector, setShowBackgroundSelector] = useState(false);
+  const [backgroundEffect, setBackgroundEffect] = useState(BACKGROUND_EFFECTS.NONE);
+  const [selectedBackground, setSelectedBackground] = useState(null);
+  const [virtualBgEnabled, setVirtualBgEnabled] = useState(false);
+  
   // Refs
   const previewVideoRef = useRef(null);
   const screenStreamRef = useRef(null);
