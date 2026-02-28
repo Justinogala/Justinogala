@@ -430,10 +430,15 @@ const MeetingRoomPage = () => {
                           {user?.name?.[0] || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <p className="text-gray-400 flex items-center gap-2 justify-center">
-                        <span className="w-2 h-2 bg-violet-500 rounded-full animate-pulse"></span>
-                        Starting camera...
-                      </p>
+                      <p className="text-gray-400 mb-4">Camera preview</p>
+                      <Button 
+                        onClick={startCamera}
+                        className="bg-violet-600 hover:bg-violet-700 text-white"
+                        data-testid="enable-camera-btn"
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        Enable Camera
+                      </Button>
                     </div>
                   </div>
                 )}
