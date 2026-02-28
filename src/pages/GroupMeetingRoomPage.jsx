@@ -324,12 +324,16 @@ const GroupMeetingRoomPage = () => {
     if (!loading && !joined) {
       startCamera();
     }
+  }, [loading, joined, startCamera]);
+  
+  // Cleanup preview stream on unmount
+  useEffect(() => {
     return () => {
       if (previewStream && !joined) {
         previewStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [loading, joined]);
+  }, [previewStream, joined]);
   
   // Call duration timer
   useEffect(() => {
