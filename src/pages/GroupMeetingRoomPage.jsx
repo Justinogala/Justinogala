@@ -702,11 +702,11 @@ const GroupMeetingRoomPage = () => {
           // Stop the old video-only stream (we don't need it anymore)
           // videoStream tracks are now in newStream
           
-          setLocalStream(newStream);
+          updateLocalStream(newStream);
           console.log('[toggleVideo] Created new stream with video track added');
         } else {
           // No existing stream, just use the video stream
-          setLocalStream(videoStream);
+          updateLocalStream(videoStream);
           console.log('[toggleVideo] Set new stream with video');
         }
         
