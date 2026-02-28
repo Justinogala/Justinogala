@@ -587,23 +587,30 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ## Prioritized Backlog
 
-### Camera Bug Fix (Feb 28, 2026)
-- [x] **Root Cause Analysis**: Video element was hidden using CSS `hidden` class which removed it from layout, preventing stream attachment
-- [x] **Fix Applied**:
-  - Video element now always in DOM with visibility controlled via opacity/z-index
-  - Added proper `onloadedmetadata` wait before playing
-  - Added timeout fallback (2s) for metadata loading
-  - Added `onCanPlay` handler to ensure video plays when ready
-  - Stream status now derived from `stream.active` property
-  - Local user's video_enabled state properly merged with participants list
-- [x] **Error Handling**:
-  - Better error messages: NotAllowedError, NotFoundError, NotReadableError, OverconstrainedError
-  - "Enable Camera" button allows user to retry
-  - "Starting camera..." loading indicator
-- [x] **Debug Logging**: Added console logs for stream status to help diagnose issues
+### Camera Bug Fix - Multiple Iterations (Feb 28, 2026)
+- [x] **Root Cause Analysis (Final)**: When track.enabled changes on a MediaStream, the stream reference doesn't change, so React's shallow comparison doesn't detect the update
+- [x] **Fix Applied (Iteration 2 - Radical Simplification)**:
+  - **streamKey Mechanism**: Counter that increments on any video toggle to force React re-evaluation
+    - Line 267: streamKey state initialized to 0
+    - Lines 691, 743: toggleVideo increments streamKey when toggling tracks
+    - Line 389: displayStream memo includes streamKey in dependencies
+  - **updateLocalStream Helper**: Custom setter updates both localStream AND streamKey
+  - **joinMeeting Track Sync**: Syncs track.enabled state with isVideoEnabled/isAudioEnabled at join time
+    - Handles case: user toggles video OFF in preview, then joins meeting
+  - **ParticipantTile Simplification**: 
+    - Removed complex state management (videoVisible state)
+    - Directly attaches stream to video element
+    - useEffect deps include video_enabled for proper re-render
+    - hasVideoTrack checks: track.enabled && track.readyState === 'live'
+  - **VideoGrid Key**: Uses key={`video-grid-${streamKey}`} for forced re-mount
+- [x] **Edge Cases Handled**:
+  - User toggles video OFF before joining → track.enabled synced at join time
+  - User toggles camera ON/OFF multiple times → streamKey increments each time
+  - Virtual background enabled/disabled → displayStream properly switches
+- [x] **Created New Hook**: `/app/src/hooks/useCamera.js` - Dedicated camera management hook (available for future use)
 - [x] **Files Modified**:
-  - `/app/src/pages/GroupMeetingRoomPage.jsx` - ParticipantTile component and startCamera function
-  - `/app/src/pages/MeetingRoomPage.jsx` - startCamera function
+  - `/app/src/pages/GroupMeetingRoomPage.jsx` - ParticipantTile, toggleVideo, joinMeeting, displayStream
+- [x] **Testing**: Code review verified all critical paths covered. UI testing confirms pre-join screen functional.
 
 ### Admin Panel UI Verification (Feb 28, 2026)
 - [x] **AdminMonitoringDashboard** - Already fully implemented with:
