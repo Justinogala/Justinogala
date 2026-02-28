@@ -279,6 +279,14 @@ const GroupMeetingRoomPage = () => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [previewStream, setPreviewStream] = useState(null);
+  const [streamKey, setStreamKey] = useState(0); // Force re-render when stream changes
+  
+  // Custom setter that also updates streamKey
+  const updateLocalStream = useCallback((newStream) => {
+    console.log('[updateLocalStream] Setting new stream:', newStream?.id);
+    setLocalStream(newStream);
+    setStreamKey(prev => prev + 1);
+  }, []);
   
   // UI state
   const [showChat, setShowChat] = useState(false);
