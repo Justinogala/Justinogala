@@ -952,6 +952,239 @@ async def get_call_status(call_id: str):
     return {"call": None, "error": "Call not found"}
 
 
+
+# ==================== GROUP VIDEO CALL API ====================
+# Room-based signaling for multi-participant video calls
+
+# In-memory storage for meeting rooms (use Redis in production)
+meeting_rooms: Dict[str, Dict] = {}  # room_id -> {participants: [], created_at, ...}
+room_signals: Dict[str, list] = []  # room_id -> list of signals
+
+class GroupCallJoinRequest(BaseModel):
+    room_id: str
+    user_id: str
+    user_name: str
+    video_enabled: bool = True
+    audio_enabled: bool = True
+
+class GroupCallLeaveRequest(BaseModel):
+    room_id: str
+    user_id: str
+
+class GroupCallSignalRequest(BaseModel):
+    room_id: str
+    sender_id: str
+    sender_name: str = ""
+    target_id: str  # specific participant to send to
+    signal_type: str  # offer, answer, ice_candidate
+    signal_data: Dict
+
+class GroupCallParticipantUpdate(BaseModel):
+    room_id: str
+    user_id: str
+    video_enabled: Optional[bool] = None
+    audio_enabled: Optional[bool] = None
+    hand_raised: Optional[bool] = None
+    is_speaking: Optional[bool] = None
+
+
+@api_router.post("/group-call/join")
+async def group_call_join(request: GroupCallJoinRequest):
+    """Join a group video call room"""
+    room_id = request.room_id
+    
+    # Create room if it doesn't exist
+    if room_id not in meeting_rooms:
+        meeting_rooms[room_id] = {
+            "id": room_id,
+            "participants": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "active_speaker": None
+        }
+    
+    room = meeting_rooms[room_id]
+    
+    # Check if user already in room
+    existing = next((p for p in room["participants"] if p["user_id"] == request.user_id), None)
+    if existing:
+        # Update their status
+        existing["video_enabled"] = request.video_enabled
+        existing["audio_enabled"] = request.audio_enabled
+        existing["joined_at"] = datetime.now(timezone.utc).isoformat()
+    else:
+        # Add new participant
+        participant = {
+            "user_id": request.user_id,
+            "user_name": request.user_name,
+            "video_enabled": request.video_enabled,
+            "audio_enabled": request.audio_enabled,
+            "hand_raised": False,
+            "is_speaking": False,
+            "joined_at": datetime.now(timezone.utc).isoformat()
+        }
+        room["participants"].append(participant)
+    
+    # Notify all existing participants about the new joiner via SSE
+    for p in room["participants"]:
+        if p["user_id"] != request.user_id:
+            await sse_manager.send_to_user(p["user_id"], "group_call_participant_joined", {
+                "room_id": room_id,
+                "participant": {
+                    "user_id": request.user_id,
+                    "user_name": request.user_name,
+                    "video_enabled": request.video_enabled,
+                    "audio_enabled": request.audio_enabled
+                }
+            })
+    
+    logger.info(f"User {request.user_id} joined room {room_id}. Total participants: {len(room['participants'])}")
+    
+    return {
+        "success": True,
+        "room": {
+            "id": room_id,
+            "participants": room["participants"],
+            "created_at": room["created_at"]
+        }
+    }
+
+
+@api_router.post("/group-call/leave")
+async def group_call_leave(request: GroupCallLeaveRequest):
+    """Leave a group video call room"""
+    room_id = request.room_id
+    
+    if room_id not in meeting_rooms:
+        return {"success": False, "error": "Room not found"}
+    
+    room = meeting_rooms[room_id]
+    
+    # Remove participant
+    room["participants"] = [p for p in room["participants"] if p["user_id"] != request.user_id]
+    
+    # Notify remaining participants
+    for p in room["participants"]:
+        await sse_manager.send_to_user(p["user_id"], "group_call_participant_left", {
+            "room_id": room_id,
+            "user_id": request.user_id
+        })
+    
+    logger.info(f"User {request.user_id} left room {room_id}. Remaining: {len(room['participants'])}")
+    
+    # Clean up empty rooms
+    if len(room["participants"]) == 0:
+        del meeting_rooms[room_id]
+        logger.info(f"Room {room_id} deleted (empty)")
+    
+    return {"success": True, "remaining_participants": len(room.get("participants", []))}
+
+
+@api_router.post("/group-call/signal")
+async def group_call_signal(request: GroupCallSignalRequest):
+    """Send WebRTC signaling data to a specific participant in a group call"""
+    room_id = request.room_id
+    
+    if room_id not in meeting_rooms:
+        return {"success": False, "error": "Room not found"}
+    
+    # Send signal via SSE to target participant
+    await sse_manager.send_to_user(request.target_id, f"group_call_signal", {
+        "room_id": room_id,
+        "sender_id": request.sender_id,
+        "sender_name": request.sender_name,
+        "signal_type": request.signal_type,
+        "signal_data": request.signal_data
+    })
+    
+    logger.debug(f"Signal {request.signal_type} sent from {request.sender_id} to {request.target_id} in room {room_id}")
+    
+    return {"success": True}
+
+
+@api_router.get("/group-call/room/{room_id}")
+async def get_group_call_room(room_id: str):
+    """Get current state of a group call room"""
+    if room_id not in meeting_rooms:
+        return {
+            "exists": False,
+            "room": {
+                "id": room_id,
+                "participants": [],
+                "created_at": None
+            }
+        }
+    
+    room = meeting_rooms[room_id]
+    return {
+        "exists": True,
+        "room": {
+            "id": room_id,
+            "participants": room["participants"],
+            "created_at": room["created_at"],
+            "active_speaker": room.get("active_speaker")
+        }
+    }
+
+
+@api_router.post("/group-call/update-participant")
+async def update_group_call_participant(request: GroupCallParticipantUpdate):
+    """Update a participant's status (video/audio/hand raised/speaking)"""
+    room_id = request.room_id
+    
+    if room_id not in meeting_rooms:
+        return {"success": False, "error": "Room not found"}
+    
+    room = meeting_rooms[room_id]
+    participant = next((p for p in room["participants"] if p["user_id"] == request.user_id), None)
+    
+    if not participant:
+        return {"success": False, "error": "Participant not found"}
+    
+    # Update fields if provided
+    update_data = {}
+    if request.video_enabled is not None:
+        participant["video_enabled"] = request.video_enabled
+        update_data["video_enabled"] = request.video_enabled
+    if request.audio_enabled is not None:
+        participant["audio_enabled"] = request.audio_enabled
+        update_data["audio_enabled"] = request.audio_enabled
+    if request.hand_raised is not None:
+        participant["hand_raised"] = request.hand_raised
+        update_data["hand_raised"] = request.hand_raised
+    if request.is_speaking is not None:
+        participant["is_speaking"] = request.is_speaking
+        update_data["is_speaking"] = request.is_speaking
+        # Update active speaker if this participant is speaking
+        if request.is_speaking:
+            room["active_speaker"] = request.user_id
+    
+    # Notify all participants about the update
+    for p in room["participants"]:
+        if p["user_id"] != request.user_id:
+            await sse_manager.send_to_user(p["user_id"], "group_call_participant_updated", {
+                "room_id": room_id,
+                "user_id": request.user_id,
+                "updates": update_data
+            })
+    
+    return {"success": True, "participant": participant}
+
+
+@api_router.get("/group-call/participants/{room_id}")
+async def get_group_call_participants(room_id: str):
+    """Get list of participants in a group call room"""
+    if room_id not in meeting_rooms:
+        return {"participants": [], "count": 0}
+    
+    room = meeting_rooms[room_id]
+    return {
+        "participants": room["participants"],
+        "count": len(room["participants"]),
+        "active_speaker": room.get("active_speaker")
+    }
+
+
+
 # ==================== ADMIN SETTINGS API ====================
 
 # Audit logging helper function (defined early so all endpoints can use it)
