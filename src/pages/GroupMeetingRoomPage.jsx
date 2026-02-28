@@ -669,11 +669,13 @@ const GroupMeetingRoomPage = () => {
       localStream.getVideoTracks().forEach(track => {
         track.enabled = newState;
       });
+      setIsVideoEnabled(newState);
+      updateParticipantStatus({ video_enabled: newState });
     } else if (newState) {
       // Need to get video permission - no stream or no video tracks
       console.log('[toggleVideo] Requesting camera access...');
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        const videoStream = await navigator.mediaDevices.getUserMedia({
           video: { 
             width: { ideal: 1280 },
             height: { ideal: 720 },
@@ -681,19 +683,27 @@ const GroupMeetingRoomPage = () => {
           }
         });
         
-        const videoTrack = stream.getVideoTracks()[0];
+        const videoTrack = videoStream.getVideoTracks()[0];
         console.log('[toggleVideo] Got video track:', videoTrack.id, 'enabled:', videoTrack.enabled);
         
         if (localStream) {
-          // Add video track to existing stream
-          localStream.addTrack(videoTrack);
-          console.log('[toggleVideo] Added video track to existing stream');
+          // Create a new MediaStream with all existing tracks plus the new video track
+          const existingTracks = localStream.getTracks();
+          const newStream = new MediaStream([...existingTracks, videoTrack]);
+          
+          // Stop the old video-only stream (we don't need it anymore)
+          // videoStream tracks are now in newStream
+          
+          setLocalStream(newStream);
+          console.log('[toggleVideo] Created new stream with video track added');
         } else {
-          // Create new stream with video
-          setLocalStream(stream);
+          // No existing stream, just use the video stream
+          setLocalStream(videoStream);
           console.log('[toggleVideo] Set new stream with video');
         }
         
+        setIsVideoEnabled(true);
+        updateParticipantStatus({ video_enabled: true });
         toast({ title: 'Camera started' });
       } catch (err) {
         console.error('[toggleVideo] Failed to get camera:', err);
@@ -706,12 +716,12 @@ const GroupMeetingRoomPage = () => {
           errorMsg = 'Camera is in use by another app.';
         }
         toast({ variant: 'destructive', title: errorMsg });
-        return;
       }
+    } else {
+      // Turning off video - just update state
+      setIsVideoEnabled(false);
+      updateParticipantStatus({ video_enabled: false });
     }
-    
-    setIsVideoEnabled(newState);
-    updateParticipantStatus({ video_enabled: newState });
   };
   
   // Toggle hand raise
