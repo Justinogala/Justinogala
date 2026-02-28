@@ -612,7 +612,11 @@ const MeetingRoomPage = () => {
                 autoPlay
                 playsInline
                 muted
-                className={cn("w-full h-full object-cover", (!isVideoEnabled && !isScreenSharing) && "hidden")}
+                onLoadedMetadata={(e) => e.target.play()}
+                className={cn(
+                  "w-full h-full object-cover",
+                  (!isVideoEnabled && !isScreenSharing) && "opacity-0 absolute"
+                )}
               />
               {!isVideoEnabled && !isScreenSharing && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
