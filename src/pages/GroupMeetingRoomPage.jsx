@@ -554,12 +554,33 @@ const GroupMeetingRoomPage = () => {
   const joinMeeting = async () => {
     try {
       let stream = previewStream;
-      if (!stream) {
+      
+      console.log('[joinMeeting] previewStream:', {
+        exists: !!previewStream,
+        id: previewStream?.id,
+        active: previewStream?.active,
+        videoTracks: previewStream?.getVideoTracks().length
+      });
+      
+      if (!stream || !stream.active) {
+        console.log('[joinMeeting] Creating new stream...');
         stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
           audio: true
         });
+        console.log('[joinMeeting] New stream created:', stream.id);
       }
+      
+      console.log('[joinMeeting] Setting localStream:', {
+        streamId: stream.id,
+        active: stream.active,
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length
+      });
       
       setLocalStream(stream);
       setJoined(true);
