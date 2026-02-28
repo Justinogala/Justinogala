@@ -4452,9 +4452,6 @@ async def get_meeting_analytics(days: int = 30):
 async def get_active_meetings():
     """Get currently active meetings (real-time)"""
     try:
-        # Get meetings happening now
-        now = datetime.now(timezone.utc).isoformat()
-        
         active_meetings = await db.meeting_sessions.find({
             "status": "active"
         }, {"_id": 0}).to_list(length=100)
