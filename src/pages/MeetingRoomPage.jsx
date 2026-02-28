@@ -47,6 +47,7 @@ const MeetingRoomPage = () => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [handRaised, setHandRaised] = useState(false);
   const [previewStarted, setPreviewStarted] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
