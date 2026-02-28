@@ -595,7 +595,7 @@ const GroupMeetingRoomPage = () => {
         audioTracks: stream.getAudioTracks().length
       });
       
-      setLocalStream(stream);
+      updateLocalStream(stream);
       setJoined(true);
       setCallStartTime(Date.now());
       
