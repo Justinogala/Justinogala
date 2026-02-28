@@ -77,44 +77,48 @@ export const useAudioLevelDetection = ({
     return rms;
   }, []);
   
-  // Main analysis loop
-  const analyzeAudio = useCallback(() => {
-    const newLevels = new Map();
-    const newSpeaking = new Map();
-    let maxLevel = 0;
-    let maxLevelUserId = null;
-    
-    analyzersRef.current.forEach((data, odId) => {
-      const level = calculateAudioLevel(data.analyser);
-      newLevels.set(odId, level);
+  // Main analysis loop using ref to avoid recursive callback issue
+  const analyzeAudioRef = useRef(null);
+  
+  useEffect(() => {
+    analyzeAudioRef.current = () => {
+      const newLevels = new Map();
+      const newSpeaking = new Map();
+      let maxLevel = 0;
+      let maxLevelUserId = null;
       
-      const speaking = level > threshold;
-      newSpeaking.set(odId, speaking);
-      
-      if (speaking && level > maxLevel) {
-        maxLevel = level;
-        maxLevelUserId = odId;
-      }
-    });
-    
-    setAudioLevels(newLevels);
-    setIsSpeaking(newSpeaking);
-    
-    // Update active speaker with debounce
-    if (maxLevelUserId && maxLevelUserId !== lastSpeakerRef.current) {
-      if (speakerTimeoutRef.current) {
-        clearTimeout(speakerTimeoutRef.current);
-      }
-      
-      speakerTimeoutRef.current = setTimeout(() => {
-        lastSpeakerRef.current = maxLevelUserId;
-        if (onActiveSpeakerChange) {
-          onActiveSpeakerChange(maxLevelUserId);
+      analyzersRef.current.forEach((data, odId) => {
+        const level = calculateAudioLevel(data.analyser);
+        newLevels.set(odId, level);
+        
+        const speaking = level > threshold;
+        newSpeaking.set(odId, speaking);
+        
+        if (speaking && level > maxLevel) {
+          maxLevel = level;
+          maxLevelUserId = odId;
         }
-      }, speakingDebounce);
-    }
-    
-    animationFrameRef.current = requestAnimationFrame(analyzeAudio);
+      });
+      
+      setAudioLevels(newLevels);
+      setIsSpeaking(newSpeaking);
+      
+      // Update active speaker with debounce
+      if (maxLevelUserId && maxLevelUserId !== lastSpeakerRef.current) {
+        if (speakerTimeoutRef.current) {
+          clearTimeout(speakerTimeoutRef.current);
+        }
+        
+        speakerTimeoutRef.current = setTimeout(() => {
+          lastSpeakerRef.current = maxLevelUserId;
+          if (onActiveSpeakerChange) {
+            onActiveSpeakerChange(maxLevelUserId);
+          }
+        }, speakingDebounce);
+      }
+      
+      animationFrameRef.current = requestAnimationFrame(analyzeAudioRef.current);
+    };
   }, [calculateAudioLevel, threshold, speakingDebounce, onActiveSpeakerChange]);
   
   // Setup analyser for local stream
