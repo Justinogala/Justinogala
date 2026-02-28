@@ -274,8 +274,8 @@ const MeetingRoomPage = () => {
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach(track => track.stop());
       }
-      if (localVideoRef.current && localStreamRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
+      if (inMeetingVideoRef.current && localStreamRef.current) {
+        inMeetingVideoRef.current.srcObject = localStreamRef.current;
       }
       setIsScreenSharing(false);
     } else {
@@ -285,12 +285,12 @@ const MeetingRoomPage = () => {
           audio: false
         });
         screenStreamRef.current = screenStream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = screenStream;
+        if (inMeetingVideoRef.current) {
+          inMeetingVideoRef.current.srcObject = screenStream;
         }
         screenStream.getVideoTracks()[0].onended = () => {
-          if (localVideoRef.current && localStreamRef.current) {
-            localVideoRef.current.srcObject = localStreamRef.current;
+          if (inMeetingVideoRef.current && localStreamRef.current) {
+            inMeetingVideoRef.current.srcObject = localStreamRef.current;
           }
           setIsScreenSharing(false);
         };
