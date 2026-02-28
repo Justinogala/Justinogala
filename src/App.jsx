@@ -340,6 +340,7 @@ function App() {
                                 <Route path="/my-meetings" element={<MeetingListPage />} />
                                 
                                 <Route path="/transcriptions" element={<TranscriptionHistoryPage />} />
+                                <Route path="/transcription/history" element={<TranscriptionHistoryPage />} />
                                 <Route path="/transcription/new" element={<NewTranscriptionPage />} /> 
                                 <Route path="/transcriptions/manage" element={<TranscriptionManagementPage />} />
                                 <Route path="/transcriptions/:id" element={<TranscriptionDetailPage />} />
