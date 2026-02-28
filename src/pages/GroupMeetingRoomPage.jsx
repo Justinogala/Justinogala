@@ -120,17 +120,19 @@ const ParticipantTile = ({
   
   const initials = participant.user_name?.split(' ').map(n => n[0]).join('').substring(0, 2) || 'U';
   
-  // Show video if: participant wants video enabled AND we have an active stream with enabled tracks
-  // Simplified: just check if tracks exist and are enabled, don't check readyState
-  const hasVideoTrack = stream?.getVideoTracks()?.some(t => t.enabled);
-  const showVideo = participant.video_enabled && stream && stream.active && hasVideoTrack;
+  // Show video based on participant's video_enabled state and stream existence
+  // We trust participant.video_enabled as the source of truth, not track.enabled
+  const hasStream = stream && stream.active;
+  const hasVideoTrack = stream?.getVideoTracks()?.length > 0;
+  const showVideo = participant.video_enabled && hasStream && hasVideoTrack;
   
   // Debug logging for showVideo calculation
   console.log(`[ParticipantTile] ${participant.user_name}: showVideo calculation`, {
     'participant.video_enabled': participant.video_enabled,
-    'stream exists': !!stream,
-    'stream.active': stream?.active,
+    'hasStream': hasStream,
     'hasVideoTrack': hasVideoTrack,
+    'stream.active': stream?.active,
+    'videoTracksCount': stream?.getVideoTracks()?.length,
     'RESULT showVideo': showVideo
   });
   
