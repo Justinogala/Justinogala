@@ -604,25 +604,26 @@ const MeetingRoomPage = () => {
 
       {/* Controls - Jizira Style */}
       <TooltipProvider>
-        <div className="flex items-center justify-center gap-2 py-4 px-6 bg-slate-900/80 border-t border-white/10">
+        <div className="flex items-center justify-center gap-3 py-5 px-6 bg-slate-900 border-t border-white/10">
           {/* Left Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
-                    variant="ghost"
                     size="lg"
                     className={cn(
-                      "rounded-xl h-12 w-12",
-                      !isAudioEnabled && "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      isAudioEnabled 
+                        ? "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600" 
+                        : "bg-red-500 hover:bg-red-400 text-white"
                     )}
                     onClick={toggleAudio}
                     data-testid="toggle-mic-btn"
                   >
-                    {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                    {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
                   </Button>
-                  <span className="text-[10px] text-gray-400 mt-1">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -634,18 +635,19 @@ const MeetingRoomPage = () => {
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
-                    variant="ghost"
                     size="lg"
                     className={cn(
-                      "rounded-xl h-12 w-12",
-                      !isVideoEnabled && "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      isVideoEnabled 
+                        ? "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600" 
+                        : "bg-red-500 hover:bg-red-400 text-white"
                     )}
                     onClick={toggleVideo}
                     data-testid="toggle-video-btn"
                   >
-                    {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                    {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
                   </Button>
-                  <span className="text-[10px] text-gray-400 mt-1">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -657,18 +659,19 @@ const MeetingRoomPage = () => {
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
-                    variant="ghost"
                     size="lg"
                     className={cn(
-                      "rounded-xl h-12 w-12",
-                      isScreenSharing && "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      isScreenSharing 
+                        ? "bg-indigo-500 hover:bg-indigo-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
                     )}
                     onClick={toggleScreenShare}
                     data-testid="share-screen-btn"
                   >
-                    {isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+                    {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
                   </Button>
-                  <span className="text-[10px] text-gray-400 mt-1">{isScreenSharing ? 'Stop Share' : 'Share Screen'}</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{isScreenSharing ? 'Stop Share' : 'Share'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -680,18 +683,19 @@ const MeetingRoomPage = () => {
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
-                    variant="ghost"
                     size="lg"
                     className={cn(
-                      "rounded-xl h-12 w-12",
-                      handRaised && "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+                      "rounded-xl h-14 w-14 shadow-lg transition-all",
+                      handRaised 
+                        ? "bg-yellow-500 hover:bg-yellow-400 text-white" 
+                        : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600"
                     )}
                     onClick={() => setHandRaised(!handRaised)}
                     data-testid="raise-hand-btn"
                   >
-                    <Hand className="w-5 h-5" />
+                    <Hand className="w-6 h-6" />
                   </Button>
-                  <span className="text-[10px] text-gray-400 mt-1">{handRaised ? 'Lower Hand' : 'Raise Hand'}</span>
+                  <span className="text-xs text-gray-300 mt-1.5 font-medium">{handRaised ? 'Lower' : 'Raise'}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -701,13 +705,13 @@ const MeetingRoomPage = () => {
           </div>
 
           {/* Center - End Call */}
-          <div className="mx-4">
+          <div className="mx-6">
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex flex-col items-center">
                   <Button
                     size="lg"
-                    className="rounded-xl h-12 px-6 bg-red-500 hover:bg-red-600 text-white"
+                    className="rounded-xl h-14 px-8 bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/30 font-semibold"
                     onClick={leaveMeeting}
                     data-testid="leave-meeting-btn"
                   >
