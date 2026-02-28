@@ -1,13 +1,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Plus, Video } from 'lucide-react';
+import { Calendar, Plus, Video, Copy, Check, Play, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 
 // Components
 import MeetingsList from './MeetingsList';
