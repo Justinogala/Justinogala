@@ -448,7 +448,7 @@ const MeetingRoomPage = () => {
               </div>
 
               {/* Attendees */}
-              {meeting.invitees?.length > 0 && (
+              {meeting?.invitees?.length > 0 && (
                 <div className="mt-6 pt-6 border-t border-white/10">
                   <h3 className="text-sm font-medium text-gray-400 mb-3">Invited ({meeting.invitees.length})</h3>
                   <div className="flex flex-wrap gap-2">
@@ -475,9 +475,11 @@ const MeetingRoomPage = () => {
   }
 
   // In-meeting view
+  const inMeetingTitle = meeting?.title || 'Instant Meeting';
+  
   return (
     <div className="h-screen bg-slate-950 flex flex-col">
-      <Helmet><title>{meeting.title} | Meeting</title></Helmet>
+      <Helmet><title>{inMeetingTitle} | Meeting</title></Helmet>
       
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-3 bg-slate-900/80 border-b border-white/10">
