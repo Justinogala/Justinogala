@@ -48,6 +48,7 @@ const MeetingRoomPage = () => {
   const [handRaised, setHandRaised] = useState(false);
   const [previewStarted, setPreviewStarted] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
   
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
