@@ -65,7 +65,6 @@ const ParticipantTile = ({
   onFocus 
 }) => {
   const videoRef = useRef(null);
-  const [videoReady, setVideoReady] = useState(false);
   
   // Attach stream to video element
   useEffect(() => {
@@ -90,7 +89,6 @@ const ParticipantTile = ({
       const playVideo = async () => {
         try {
           await video.play();
-          setVideoReady(true);
           console.log(`[ParticipantTile] Video playing for ${participant.user_name}`);
         } catch (err) {
           console.log('[ParticipantTile] Video play error:', err.message);
@@ -102,7 +100,6 @@ const ParticipantTile = ({
     } else {
       console.log(`[ParticipantTile] No stream for ${participant.user_name}, isLocal:`, isLocal);
       video.srcObject = null;
-      setVideoReady(false);
     }
   }, [stream, participant.user_name, isLocal, participant.video_enabled]);
   
