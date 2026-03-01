@@ -209,3 +209,295 @@ async def stripe_webhook(request: Request):
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== Plans Management ==============
+
+class PlanCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    price_monthly: float
+    price_annual: float
+    features: list
+    limits: Optional[Dict] = None
+    is_active: bool = True
+    is_popular: bool = False
+
+class PlanUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price_monthly: Optional[float] = None
+    price_annual: Optional[float] = None
+    features: Optional[list] = None
+    limits: Optional[Dict] = None
+    is_active: Optional[bool] = None
+    is_popular: Optional[bool] = None
+
+
+@router.get("/plans")
+async def get_plans():
+    """Get all subscription plans (public endpoint)"""
+    try:
+        # First check if plans exist in database
+        plans = await db.subscription_plans.find({}, {"_id": 0}).sort("price_monthly", 1).to_list(100)
+        
+        if not plans:
+            # Seed default plans if none exist
+            default_plans = [
+                {
+                    "id": "plan_free",
+                    "name": "Free",
+                    "description": "Perfect for getting started",
+                    "price_monthly": 0,
+                    "price_annual": 0,
+                    "features": [
+                        "5 meetings per month",
+                        "30 min transcription",
+                        "1 GB cloud storage",
+                        "AI-powered transcription",
+                        "Instant video meetings",
+                        "Team chat messaging",
+                        "Calendar & scheduling",
+                        "Basic AI summaries"
+                    ],
+                    "limits": {
+                        "meetings": 5,
+                        "transcription_minutes": 30,
+                        "storage_gb": 1,
+                        "workspaces": 1,
+                        "team_members": 1
+                    },
+                    "is_active": True,
+                    "is_popular": False,
+                    "subscribers": 0,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                {
+                    "id": "plan_pro",
+                    "name": "Pro",
+                    "description": "For professionals & small teams",
+                    "price_monthly": 29,
+                    "price_annual": 290,
+                    "features": [
+                        "100 meetings per month",
+                        "500 min transcription",
+                        "10 GB cloud storage",
+                        "Advanced AI summaries",
+                        "Voice chat channels",
+                        "Text to audio conversion",
+                        "Up to 5 workspaces",
+                        "Up to 10 team members",
+                        "Meeting recording",
+                        "Priority support",
+                        "Basic analytics"
+                    ],
+                    "limits": {
+                        "meetings": 100,
+                        "transcription_minutes": 500,
+                        "storage_gb": 10,
+                        "workspaces": 5,
+                        "team_members": 10
+                    },
+                    "is_active": True,
+                    "is_popular": True,
+                    "subscribers": 0,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                {
+                    "id": "plan_enterprise",
+                    "name": "Enterprise",
+                    "description": "For large organizations",
+                    "price_monthly": 99,
+                    "price_annual": 990,
+                    "features": [
+                        "Unlimited meetings",
+                        "Unlimited transcription",
+                        "100 GB cloud storage",
+                        "All Pro features included",
+                        "Unlimited workspaces",
+                        "Unlimited team members",
+                        "Full admin dashboard",
+                        "Cloud storage config (S3, GCS, R2)",
+                        "24/7 dedicated support",
+                        "API access & integrations",
+                        "Data migration tools",
+                        "Role-based access control"
+                    ],
+                    "limits": {
+                        "meetings": -1,
+                        "transcription_minutes": -1,
+                        "storage_gb": 100,
+                        "workspaces": -1,
+                        "team_members": -1
+                    },
+                    "is_active": True,
+                    "is_popular": False,
+                    "subscribers": 0,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            ]
+            await db.subscription_plans.insert_many(default_plans)
+            plans = default_plans
+        
+        return {"plans": plans}
+    except Exception as e:
+        logger.error(f"Error fetching plans: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/plans")
+async def create_plan(plan: PlanCreate):
+    """Create a new subscription plan (admin only)"""
+    try:
+        plan_id = f"plan_{plan.name.lower().replace(' ', '_')}"
+        
+        plan_doc = {
+            "id": plan_id,
+            "name": plan.name,
+            "description": plan.description,
+            "price_monthly": plan.price_monthly,
+            "price_annual": plan.price_annual,
+            "features": plan.features,
+            "limits": plan.limits or {},
+            "is_active": plan.is_active,
+            "is_popular": plan.is_popular,
+            "subscribers": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.subscription_plans.insert_one(plan_doc)
+        plan_doc.pop("_id", None)
+        
+        return {"success": True, "plan": plan_doc}
+    except Exception as e:
+        logger.error(f"Error creating plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/plans/{plan_id}")
+async def update_plan(plan_id: str, plan: PlanUpdate):
+    """Update a subscription plan (admin only)"""
+    try:
+        update_data = {k: v for k, v in plan.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # If setting as popular, unset all others
+        if plan.is_popular:
+            await db.subscription_plans.update_many({}, {"$set": {"is_popular": False}})
+        
+        result = await db.subscription_plans.update_one(
+            {"id": plan_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        
+        updated = await db.subscription_plans.find_one({"id": plan_id}, {"_id": 0})
+        return {"success": True, "plan": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/plans/{plan_id}")
+async def delete_plan(plan_id: str):
+    """Delete a subscription plan (admin only)"""
+    try:
+        result = await db.subscription_plans.delete_one({"id": plan_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        
+        return {"success": True, "message": "Plan deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user/{user_id}/subscription")
+async def get_user_subscription(user_id: str):
+    """Get user's current subscription and usage"""
+    try:
+        # Get user's subscription
+        subscription = await db.subscriptions.find_one(
+            {"user_id": user_id, "status": "active"},
+            {"_id": 0}
+        )
+        
+        # Get user's usage stats
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        
+        # Calculate usage (mock data for now - would be calculated from actual usage)
+        usage = {
+            "meetings": {"used": 3, "limit": 5},
+            "transcription_minutes": {"used": 15, "limit": 30},
+            "storage_gb": {"used": 0.2, "limit": 1},
+            "workspaces": {"used": 1, "limit": 1},
+            "team_members": {"used": 1, "limit": 1}
+        }
+        
+        # Get plan details if subscribed
+        plan = None
+        if subscription:
+            plan = await db.subscription_plans.find_one(
+                {"id": subscription.get("plan_id")},
+                {"_id": 0}
+            )
+            # Update limits based on plan
+            if plan and plan.get("limits"):
+                for key, limit in plan["limits"].items():
+                    if key in usage:
+                        usage[key]["limit"] = limit if limit > 0 else "Unlimited"
+        
+        return {
+            "subscription": subscription,
+            "plan": plan or {"name": "Free", "price_monthly": 0},
+            "usage": usage,
+            "user_email": user.get("email") if user else None
+        }
+    except Exception as e:
+        logger.error(f"Error fetching user subscription: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/admin/subscriptions")
+async def get_all_subscriptions():
+    """Get all subscriptions (admin only)"""
+    try:
+        subscriptions = await db.subscriptions.find({}, {"_id": 0}).to_list(1000)
+        
+        # Get plan subscriber counts
+        plans = await db.subscription_plans.find({}, {"_id": 0}).to_list(100)
+        plan_stats = {}
+        
+        for plan in plans:
+            count = await db.subscriptions.count_documents({
+                "plan_id": plan["id"],
+                "status": "active"
+            })
+            plan_stats[plan["id"]] = count
+        
+        # Calculate MRR
+        total_mrr = 0
+        for sub in subscriptions:
+            if sub.get("status") == "active":
+                plan = next((p for p in plans if p["id"] == sub.get("plan_id")), None)
+                if plan:
+                    total_mrr += plan.get("price_monthly", 0)
+        
+        return {
+            "subscriptions": subscriptions,
+            "plan_stats": plan_stats,
+            "total_mrr": total_mrr,
+            "total_active": len([s for s in subscriptions if s.get("status") == "active"])
+        }
+    except Exception as e:
+        logger.error(f"Error fetching subscriptions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
