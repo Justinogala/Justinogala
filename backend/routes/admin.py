@@ -663,3 +663,152 @@ async def start_storage_migration(migration: MigrationRequest, request: Request)
     except Exception as e:
         logger.error(f"Error starting migration: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Video History Management ==============
+
+@router.get("/video-history")
+async def get_all_video_history(
+    limit: int = Query(default=50, le=100),
+    skip: int = 0,
+    search: Optional[str] = None
+):
+    """Get all video history for admin (without video data for listing)"""
+    try:
+        query = {}
+        if search:
+            query["$or"] = [
+                {"title": {"$regex": search, "$options": "i"}},
+                {"prompt": {"$regex": search, "$options": "i"}}
+            ]
+        
+        cursor = db.video_history.find(
+            query,
+            {"video_base64": 0}  # Exclude large video data
+        ).sort("created_at", -1).skip(skip).limit(limit)
+        
+        videos = []
+        async for doc in cursor:
+            # Calculate days until deletion
+            created_at = doc.get("created_at")
+            days_remaining = None
+            if created_at:
+                expires_at = created_at + timedelta(days=7)
+                days_remaining = max(0, (expires_at - datetime.now(timezone.utc)).days)
+            
+            videos.append({
+                "id": str(doc["_id"]),
+                "title": doc.get("title", "Untitled"),
+                "prompt": doc.get("prompt", ""),
+                "duration": doc.get("duration"),
+                "size": doc.get("size"),
+                "file_size": doc.get("file_size"),
+                "created_at": created_at.isoformat() if created_at else None,
+                "days_until_deletion": days_remaining
+            })
+        
+        total = await db.video_history.count_documents(query)
+        
+        return {
+            "videos": videos,
+            "total": total,
+            "limit": limit,
+            "skip": skip
+        }
+    except Exception as e:
+        logger.error(f"Error fetching video history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/video-history/{video_id}")
+async def get_admin_video(video_id: str):
+    """Get a specific video from history (includes video data) - Admin only"""
+    try:
+        from bson import ObjectId
+        
+        doc = await db.video_history.find_one({"_id": ObjectId(video_id)})
+        
+        if not doc:
+            raise HTTPException(status_code=404, detail="Video not found")
+        
+        return {
+            "id": str(doc["_id"]),
+            "title": doc.get("title", "Untitled"),
+            "prompt": doc.get("prompt", ""),
+            "duration": doc.get("duration"),
+            "size": doc.get("size"),
+            "file_size": doc.get("file_size"),
+            "video_base64": doc.get("video_base64"),
+            "mime_type": doc.get("mime_type", "video/mp4"),
+            "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching video: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/video-history/{video_id}")
+async def delete_admin_video(video_id: str):
+    """Delete a video from history - Admin only"""
+    try:
+        from bson import ObjectId
+        
+        result = await db.video_history.delete_one({"_id": ObjectId(video_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Video not found")
+        
+        return {"success": True, "message": "Video deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting video: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/video-history")
+async def delete_all_videos():
+    """Delete all video history - Admin only (use with caution)"""
+    try:
+        result = await db.video_history.delete_many({})
+        return {
+            "success": True,
+            "deleted_count": result.deleted_count,
+            "message": f"Deleted {result.deleted_count} videos"
+        }
+    except Exception as e:
+        logger.error(f"Error deleting all videos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/video-history/stats")
+async def get_video_stats():
+    """Get video history statistics"""
+    try:
+        total = await db.video_history.count_documents({})
+        
+        # Get total storage used
+        pipeline = [
+            {"$group": {"_id": None, "total_size": {"$sum": "$file_size"}}}
+        ]
+        result = await db.video_history.aggregate(pipeline).to_list(1)
+        total_size = result[0]["total_size"] if result else 0
+        
+        # Get videos by duration
+        duration_pipeline = [
+            {"$group": {"_id": "$duration", "count": {"$sum": 1}}}
+        ]
+        duration_stats = await db.video_history.aggregate(duration_pipeline).to_list(None)
+        
+        return {
+            "total_videos": total,
+            "total_storage_bytes": total_size,
+            "total_storage_mb": round(total_size / (1024 * 1024), 2),
+            "videos_by_duration": {str(d["_id"]): d["count"] for d in duration_stats}
+        }
+    except Exception as e:
+        logger.error(f"Error fetching video stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
