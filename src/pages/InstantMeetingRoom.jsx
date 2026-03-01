@@ -1115,6 +1115,115 @@ const InstantMeetingRoom = () => {
             </div>
           </div>
         </div>
+
+        {/* Recording Options Modal */}
+        <AnimatePresence>
+          {showRecordingOptions && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => !isSavingToCloud && setShowRecordingOptions(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Recording Complete</h3>
+                  <p className="text-slate-400 text-sm">
+                    Your meeting recording is ready. Choose how to save it.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Download Option */}
+                  <Button
+                    onClick={downloadRecording}
+                    disabled={isSavingToCloud}
+                    className="w-full h-14 bg-slate-700 hover:bg-slate-600 text-white justify-start px-4"
+                    data-testid="download-recording-btn"
+                  >
+                    <Download className="w-5 h-5 mr-3" />
+                    <div className="text-left">
+                      <div className="font-medium">Download to Device</div>
+                      <div className="text-xs text-slate-400">Save to your downloads folder</div>
+                    </div>
+                  </Button>
+
+                  {/* Cloud Save Option */}
+                  <Button
+                    onClick={saveToCloud}
+                    disabled={isSavingToCloud}
+                    className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white justify-start px-4"
+                    data-testid="cloud-save-recording-btn"
+                  >
+                    {isSavingToCloud ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                        <div className="text-left">
+                          <div className="font-medium">Saving to Cloud...</div>
+                          <div className="text-xs text-indigo-300">Please wait</div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-5 h-5 mr-3" />
+                        <div className="text-left">
+                          <div className="font-medium">Save to Cloud</div>
+                          <div className="text-xs text-indigo-300">Access from File Manager anytime</div>
+                        </div>
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Both Option */}
+                  <Button
+                    onClick={async () => {
+                      downloadRecording();
+                      await saveToCloud();
+                    }}
+                    disabled={isSavingToCloud}
+                    variant="outline"
+                    className="w-full h-14 border-slate-600 text-slate-300 hover:bg-slate-700 justify-start px-4"
+                    data-testid="both-save-recording-btn"
+                  >
+                    <div className="flex items-center">
+                      <Download className="w-4 h-4 mr-1" />
+                      <span className="mx-1">+</span>
+                      <Cloud className="w-4 h-4 mr-3" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-medium">Download & Save to Cloud</div>
+                      <div className="text-xs text-slate-400">Keep a copy everywhere</div>
+                    </div>
+                  </Button>
+                </div>
+
+                {/* Discard */}
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <Button
+                    onClick={discardRecording}
+                    disabled={isSavingToCloud}
+                    variant="ghost"
+                    className="w-full text-slate-400 hover:text-red-400 hover:bg-red-500/10"
+                    data-testid="discard-recording-btn"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Discard Recording
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </>
   );
