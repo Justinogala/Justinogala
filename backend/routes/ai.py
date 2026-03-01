@@ -315,6 +315,175 @@ async def get_transcription_status():
     }
 
 
+# ============== Recording Transcription ==============
+
+import uuid
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+
+class RecordingTranscriptionRequest(BaseModel):
+    file_id: str
+    user_id: str
+    file_name: str
+
+@router.post("/ai/transcribe/recording")
+async def transcribe_recording(request: RecordingTranscriptionRequest):
+    """Transcribe a stored recording from GridFS"""
+    try:
+        api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Transcription service not configured")
+        
+        # Get the file from GridFS
+        fs = AsyncIOMotorGridFSBucket(db, bucket_name="chat_files")
+        
+        # Find the file metadata
+        file_doc = await db.chat_files.find_one({"id": request.file_id})
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        grid_id = file_doc.get("grid_id")
+        if not grid_id:
+            raise HTTPException(status_code=404, detail="Recording file not found in storage")
+        
+        from bson import ObjectId
+        import io
+        
+        # Download the file from GridFS
+        file_data = io.BytesIO()
+        await fs.download_to_stream(ObjectId(grid_id), file_data)
+        file_data.seek(0)
+        
+        # Check file size (25MB limit for Whisper)
+        file_size = file_data.getbuffer().nbytes
+        if file_size > 25 * 1024 * 1024:
+            # For large files, we need to extract audio only
+            # For now, return error - can implement ffmpeg extraction later
+            raise HTTPException(
+                status_code=400, 
+                detail="Recording too large for transcription (>25MB). Support for large files coming soon."
+            )
+        
+        # Prepare file for transcription
+        file_data.name = request.file_name or "recording.webm"
+        
+        from emergentintegrations.llm.openai import OpenAISpeechToText
+        
+        # Initialize STT
+        stt = OpenAISpeechToText(api_key=api_key)
+        
+        # Transcribe
+        response = await stt.transcribe(
+            file=file_data,
+            model="whisper-1",
+            response_format="verbose_json",
+            language="en",
+            timestamp_granularities=["segment"]
+        )
+        
+        # Build transcript data
+        transcript_id = str(uuid.uuid4())
+        segments = []
+        
+        if hasattr(response, 'segments') and response.segments:
+            segments = [
+                {
+                    "start": seg.start if hasattr(seg, 'start') else seg.get('start'),
+                    "end": seg.end if hasattr(seg, 'end') else seg.get('end'),
+                    "text": seg.text if hasattr(seg, 'text') else seg.get('text')
+                }
+                for seg in response.segments
+            ]
+        
+        # Store transcript in database
+        transcript_doc = {
+            "id": transcript_id,
+            "file_id": request.file_id,
+            "user_id": request.user_id,
+            "file_name": request.file_name,
+            "text": response.text,
+            "language": getattr(response, 'language', 'en'),
+            "duration": getattr(response, 'duration', None),
+            "segments": segments,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "status": "completed"
+        }
+        
+        await db.recording_transcripts.insert_one(transcript_doc)
+        
+        # Update the file record with transcript reference
+        await db.chat_files.update_one(
+            {"id": request.file_id},
+            {"$set": {"transcript_id": transcript_id, "has_transcript": True}}
+        )
+        
+        return {
+            "success": True,
+            "transcript_id": transcript_id,
+            "text": response.text,
+            "duration": getattr(response, 'duration', None),
+            "segments": segments
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Recording transcription error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/transcribe/recording/{file_id}")
+async def get_recording_transcript(file_id: str):
+    """Get transcript for a recording"""
+    try:
+        transcript = await db.recording_transcripts.find_one(
+            {"file_id": file_id},
+            {"_id": 0}
+        )
+        
+        if not transcript:
+            return {"success": False, "message": "No transcript found for this recording"}
+        
+        return {"success": True, "transcript": transcript}
+        
+    except Exception as e:
+        logger.error(f"Get transcript error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/transcripts/user/{user_id}")
+async def get_user_transcripts(user_id: str, limit: int = 50):
+    """Get all transcripts for a user"""
+    try:
+        transcripts = await db.recording_transcripts.find(
+            {"user_id": user_id},
+            {"_id": 0}
+        ).sort("created_at", -1).limit(limit).to_list(limit)
+        
+        return {"success": True, "transcripts": transcripts, "count": len(transcripts)}
+        
+    except Exception as e:
+        logger.error(f"Get user transcripts error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/ai/transcripts/{transcript_id}")
+async def delete_transcript(transcript_id: str):
+    """Delete a transcript"""
+    try:
+        result = await db.recording_transcripts.delete_one({"id": transcript_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Transcript not found")
+        
+        return {"success": True, "message": "Transcript deleted"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete transcript error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============== Video Generation (Sora 2) ==============
 
 import asyncio
