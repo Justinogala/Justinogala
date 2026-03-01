@@ -487,7 +487,7 @@ const CalendarPage = () => {
             </div>
             
             <div className="space-y-3">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Switch 
                     checked={eventForm.all_day}
@@ -502,6 +502,30 @@ const CalendarPage = () => {
                   />
                   <Label>Video call</Label>
                 </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const instantId = uuidv4();
+                    const instantLink = `${window.location.origin}/meet/${instantId}`;
+                    setEventForm({
+                      ...eventForm, 
+                      video_call: true, 
+                      meeting_link: instantLink
+                    });
+                    navigator.clipboard.writeText(instantLink);
+                    toast({
+                      title: 'Instant Meeting Created!',
+                      description: 'Meeting link has been generated and copied to clipboard.',
+                    });
+                  }}
+                  className="bg-violet-50 hover:bg-violet-100 text-violet-600 border-violet-200 dark:bg-violet-900/20 dark:hover:bg-violet-900/40 dark:text-violet-400 dark:border-violet-700"
+                  data-testid="instant-meeting-btn"
+                >
+                  <Zap className="w-4 h-4 mr-1" />
+                  Instant Meeting
+                </Button>
               </div>
               
               {/* Meeting Link Input - shown when video call is enabled */}
@@ -509,23 +533,38 @@ const CalendarPage = () => {
                 <div className="pl-0 space-y-2">
                   <Label className="flex items-center gap-2">
                     <Link className="w-4 h-4 text-indigo-500" />
-                    Jizira Meeting Link
+                    Meeting Link
                   </Label>
-                  <Input 
-                    value={eventForm.meeting_link}
-                    onChange={e => setEventForm({...eventForm, meeting_link: e.target.value})}
-                    placeholder="https://conferencing.jizira.com/your-meeting-room"
-                    className="font-mono text-sm"
-                  />
+                  <div className="flex gap-2">
+                    <Input 
+                      value={eventForm.meeting_link}
+                      onChange={e => setEventForm({...eventForm, meeting_link: e.target.value})}
+                      placeholder="https://conferencing.jizira.com/your-meeting-room"
+                      className="font-mono text-sm flex-1"
+                    />
+                    {eventForm.meeting_link && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(eventForm.meeting_link);
+                          toast({ title: 'Link copied!' });
+                        }}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Enter your Jizira meeting room link. You can create one at{' '}
+                    Enter a Jizira meeting link or use "Instant Meeting" to auto-generate one.{' '}
                     <a 
                       href="https://conferencing.jizira.com/register" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-indigo-500 hover:text-indigo-600 underline"
                     >
-                      conferencing.jizira.com
+                      Create Jizira room
                     </a>
                   </p>
                 </div>
