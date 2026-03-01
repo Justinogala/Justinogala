@@ -120,6 +120,39 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         }
       });
 
+      // Group call events
+      eventSource.addEventListener('group_call_participant_joined', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE group participant joined:', data);
+        if (window.__groupCallHandler) {
+          window.__groupCallHandler({ type: 'participant_joined', data });
+        }
+      });
+
+      eventSource.addEventListener('group_call_participant_left', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE group participant left:', data);
+        if (window.__groupCallHandler) {
+          window.__groupCallHandler({ type: 'participant_left', data });
+        }
+      });
+
+      eventSource.addEventListener('group_call_signal', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE group call signal:', data);
+        if (window.__groupCallHandler) {
+          window.__groupCallHandler({ type: 'signal', data });
+        }
+      });
+
+      eventSource.addEventListener('group_call_participant_updated', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE group participant updated:', data);
+        if (window.__groupCallHandler) {
+          window.__groupCallHandler({ type: 'participant_updated', data });
+        }
+      });
+
       eventSource.addEventListener('ping', () => {
         // Keep-alive ping received, connection is healthy
       });
