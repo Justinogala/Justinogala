@@ -34,7 +34,7 @@ const fallbackPlans = [
       "100 video meetings per month",
       "500 minutes AI transcription",
       "10 GB secure cloud storage",
-      "HD video meetings with recording",
+      "Text to Audio & Text to Video (12s)",
       "Up to 10 team members per workspace",
       "Priority support"
     ],
@@ -49,7 +49,7 @@ const fallbackPlans = [
       "Unlimited video meetings",
       "Unlimited AI transcription",
       "100 GB secure cloud storage",
-      "Unlimited team members",
+      "Text to Video (up to 60s extended)",
       "Admin dashboard & controls",
       "24/7 dedicated support"
     ],
