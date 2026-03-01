@@ -204,6 +204,7 @@ const CalendarPage = () => {
       category: 'meeting',
       recurrence: 'none',
       video_call: false,
+      meeting_link: '',
       invitees: []
     });
     setSelectedEvent(null);
