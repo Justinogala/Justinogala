@@ -3,14 +3,13 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Bell, Shield, AlertTriangle, Music, Image as ImageIcon } from 'lucide-react';
+import { User, Bell, Shield, AlertTriangle, Music } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import AccountSettingsSection from '@/components/settings/AccountSettingsSection';
 import NotificationsSettingsSection from '@/components/settings/NotificationsSettingsSection';
 import PrivacySettingsSection from '@/components/settings/PrivacySettingsSection';
 import DangerZoneSection from '@/components/settings/DangerZoneSection';
 import CallRingtoneSettings from '@/components/video/CallRingtoneSettings';
-import BackgroundSettings from '@/components/settings/BackgroundSettings';
 
 const UserSettingsPage = () => {
   const [activeTab, setActiveTab] = useState("account");
@@ -58,13 +57,6 @@ const UserSettingsPage = () => {
                 Sound
               </TabsTrigger>
               <TabsTrigger 
-                value="backgrounds"
-                className="data-[state=active]:bg-violet-100 dark:data-[state=active]:bg-violet-900/30 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 rounded-lg px-4 py-2 transition-all hover:text-violet-600"
-              >
-                <ImageIcon className="w-4 h-4 mr-2 hidden sm:inline" />
-                Backgrounds
-              </TabsTrigger>
-              <TabsTrigger 
                 value="privacy"
                 className="data-[state=active]:bg-violet-100 dark:data-[state=active]:bg-violet-900/30 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 rounded-lg px-4 py-2 transition-all hover:text-violet-600"
               >
@@ -97,10 +89,6 @@ const UserSettingsPage = () => {
 
               <TabsContent value="ringtone" className="mt-0 focus-visible:outline-none">
                 <CallRingtoneSettings />
-              </TabsContent>
-
-              <TabsContent value="backgrounds" className="mt-0 focus-visible:outline-none">
-                <BackgroundSettings />
               </TabsContent>
 
               <TabsContent value="privacy" className="mt-0 focus-visible:outline-none">
