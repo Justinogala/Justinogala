@@ -388,24 +388,73 @@ const AdminCloudStoragePage = () => {
                     <span className="text-slate-400">Migration Status</span>
                     <Badge 
                       variant={migrationStatus.status === 'completed' ? 'default' : 'secondary'}
-                      className={migrationStatus.status === 'completed' ? 'bg-green-600' : ''}
+                      className={
+                        migrationStatus.status === 'completed' ? 'bg-green-600' : 
+                        migrationStatus.status === 'in_progress' ? 'bg-blue-600 animate-pulse' :
+                        migrationStatus.status === 'completed_with_errors' ? 'bg-yellow-600' :
+                        migrationStatus.status === 'failed' ? 'bg-red-600' : ''
+                      }
                     >
-                      {migrationStatus.status}
+                      {migrationStatus.status === 'in_progress' ? 'In Progress...' : migrationStatus.status}
                     </Badge>
                   </div>
+                  
                   <Progress 
-                    value={(migrationStatus.migrated_files / migrationStatus.total_files) * 100} 
+                    value={migrationStatus.total_files > 0 ? (migrationStatus.migrated_files / migrationStatus.total_files) * 100 : 0} 
                     className="h-2"
                   />
+                  
                   <div className="flex justify-between text-sm text-slate-400">
                     <span>{migrationStatus.migrated_files} migrated</span>
+                    <span>{migrationStatus.failed_files} failed</span>
                     <span>{migrationStatus.total_files} total</span>
                   </div>
+                  
+                  {/* Current file being processed */}
+                  {migrationStatus.status === 'in_progress' && migrationStatus.current_file && (
+                    <div className="text-xs text-slate-500 truncate">
+                      <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />
+                      {migrationStatus.current_file}
+                    </div>
+                  )}
+                  
+                  {/* Timestamps */}
+                  <div className="text-xs text-slate-500 space-y-1">
+                    {migrationStatus.started_at && (
+                      <p>Started: {new Date(migrationStatus.started_at).toLocaleString()}</p>
+                    )}
+                    {migrationStatus.completed_at && (
+                      <p>Completed: {new Date(migrationStatus.completed_at).toLocaleString()}</p>
+                    )}
+                  </div>
+                  
                   {migrationStatus.failed_files > 0 && (
                     <Alert variant="destructive">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
                         {migrationStatus.failed_files} files failed to migrate
+                        {migrationStatus.errors && migrationStatus.errors.length > 0 && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-xs">View errors ({migrationStatus.errors.length})</summary>
+                            <ul className="mt-2 text-xs space-y-1 max-h-32 overflow-y-auto">
+                              {migrationStatus.errors.slice(0, 10).map((err, i) => (
+                                <li key={i} className="text-red-300">{err}</li>
+                              ))}
+                              {migrationStatus.errors.length > 10 && (
+                                <li className="text-slate-400">...and {migrationStatus.errors.length - 10} more</li>
+                              )}
+                            </ul>
+                          </details>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {migrationStatus.status === 'completed' && (
+                    <Alert className="bg-green-900/30 border-green-700">
+                      <CheckCircle className="h-4 w-4 text-green-400" />
+                      <AlertDescription className="text-green-300">
+                        Migration completed successfully! All {migrationStatus.migrated_files} files have been moved to {migrationStatus.target_provider}.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -448,20 +497,29 @@ const AdminCloudStoragePage = () => {
                 )}
               </div>
 
-              {/* Start Migration Button */}
-              <Button
-                onClick={handleStartMigration}
-                disabled={migrating || currentProvider === 'gridfs'}
-                className="bg-purple-600 hover:bg-purple-700"
-                data-testid="start-migration-btn"
-              >
-                {migrating ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4 mr-2" />
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleStartMigration}
+                  disabled={migrating || currentProvider === 'gridfs' || migrationStatus?.status === 'in_progress'}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="start-migration-btn"
+                >
+                  {migrating || migrationStatus?.status === 'in_progress' ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {migrationStatus?.status === 'in_progress' ? 'Migration in Progress...' : 'Start Migration'}
+                </Button>
+                
+                {migrationStatus?.status === 'in_progress' && (
+                  <Button variant="outline" onClick={loadData}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh Status
+                  </Button>
                 )}
-                Start Migration
-              </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
