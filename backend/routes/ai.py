@@ -552,3 +552,133 @@ async def get_video_generation_status():
         },
         "supported_models": ["sora-2", "sora-2-pro"]
     }
+
+
+# ============== Video History ==============
+
+class SaveVideoRequest(BaseModel):
+    video_base64: str
+    prompt: str
+    duration: int
+    size: str
+    title: Optional[str] = None
+
+
+@router.post("/ai/video/history")
+async def save_video_to_history(request: SaveVideoRequest):
+    """Save generated video to user's history"""
+    try:
+        db = get_database()
+        
+        # Calculate file size from base64
+        video_bytes = base64.b64decode(request.video_base64)
+        file_size = len(video_bytes)
+        
+        video_doc = {
+            "title": request.title or f"Video - {request.duration}s",
+            "prompt": request.prompt,
+            "duration": request.duration,
+            "size": request.size,
+            "file_size": file_size,
+            "video_base64": request.video_base64,
+            "created_at": datetime.now(timezone.utc),
+            "mime_type": "video/mp4"
+        }
+        
+        result = await db.video_history.insert_one(video_doc)
+        
+        return {
+            "success": True,
+            "video_id": str(result.inserted_id),
+            "message": "Video saved to history"
+        }
+    except Exception as e:
+        logger.error(f"Error saving video to history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/video/history")
+async def get_video_history(limit: int = 20, skip: int = 0):
+    """Get user's video history (without video data for listing)"""
+    try:
+        db = get_database()
+        
+        # Get videos without the large base64 data
+        cursor = db.video_history.find(
+            {},
+            {"video_base64": 0}  # Exclude large video data
+        ).sort("created_at", -1).skip(skip).limit(limit)
+        
+        videos = []
+        async for doc in cursor:
+            videos.append({
+                "id": str(doc["_id"]),
+                "title": doc.get("title", "Untitled"),
+                "prompt": doc.get("prompt", ""),
+                "duration": doc.get("duration"),
+                "size": doc.get("size"),
+                "file_size": doc.get("file_size"),
+                "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None
+            })
+        
+        total = await db.video_history.count_documents({})
+        
+        return {
+            "videos": videos,
+            "total": total,
+            "limit": limit,
+            "skip": skip
+        }
+    except Exception as e:
+        logger.error(f"Error fetching video history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/video/history/{video_id}")
+async def get_video_from_history(video_id: str):
+    """Get a specific video from history (includes video data)"""
+    try:
+        from bson import ObjectId
+        db = get_database()
+        
+        doc = await db.video_history.find_one({"_id": ObjectId(video_id)})
+        
+        if not doc:
+            raise HTTPException(status_code=404, detail="Video not found")
+        
+        return {
+            "id": str(doc["_id"]),
+            "title": doc.get("title", "Untitled"),
+            "prompt": doc.get("prompt", ""),
+            "duration": doc.get("duration"),
+            "size": doc.get("size"),
+            "file_size": doc.get("file_size"),
+            "video_base64": doc.get("video_base64"),
+            "mime_type": doc.get("mime_type", "video/mp4"),
+            "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching video: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/ai/video/history/{video_id}")
+async def delete_video_from_history(video_id: str):
+    """Delete a video from history"""
+    try:
+        from bson import ObjectId
+        db = get_database()
+        
+        result = await db.video_history.delete_one({"_id": ObjectId(video_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Video not found")
+        
+        return {"success": True, "message": "Video deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting video: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
