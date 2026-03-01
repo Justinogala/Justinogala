@@ -957,46 +957,76 @@ const InstantMeetingRoom = () => {
 
         {/* Control Bar */}
         <div className="border-t border-slate-800 bg-slate-900/80 backdrop-blur-xl p-4">
-          <div className="flex items-center justify-center gap-3">
-            <Button
-              variant={isAudioEnabled ? "secondary" : "destructive"}
-              size="lg"
-              className="rounded-full w-14 h-14"
-              onClick={toggleAudio}
-              data-testid="mic-toggle"
-            >
-              {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
-            </Button>
+          <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+            {/* Microphone */}
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant={isAudioEnabled ? "secondary" : "destructive"}
+                size="lg"
+                className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
+                onClick={toggleAudio}
+                data-testid="mic-toggle"
+              >
+                {isAudioEnabled ? <Mic className="w-5 h-5 sm:w-6 sm:h-6" /> : <MicOff className="w-5 h-5 sm:w-6 sm:h-6" />}
+              </Button>
+              <span className="text-xs text-slate-400">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
+            </div>
 
-            <Button
-              variant={isVideoEnabled ? "secondary" : "destructive"}
-              size="lg"
-              className="rounded-full w-14 h-14"
-              onClick={toggleVideo}
-              data-testid="video-toggle"
-            >
-              {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
-            </Button>
+            {/* Camera */}
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant={isVideoEnabled ? "secondary" : "destructive"}
+                size="lg"
+                className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
+                onClick={toggleVideo}
+                data-testid="video-toggle"
+              >
+                {isVideoEnabled ? <Video className="w-5 h-5 sm:w-6 sm:h-6" /> : <VideoOff className="w-5 h-5 sm:w-6 sm:h-6" />}
+              </Button>
+              <span className="text-xs text-slate-400">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
+            </div>
 
-            <Button
-              variant={isScreenSharing ? "default" : "secondary"}
-              size="lg"
-              className={cn("rounded-full w-14 h-14", isScreenSharing && "bg-indigo-600")}
-              onClick={toggleScreenShare}
-              data-testid="screen-share-toggle"
-            >
-              <Monitor className="w-6 h-6" />
-            </Button>
+            {/* Screen Share */}
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant={isScreenSharing ? "default" : "secondary"}
+                size="lg"
+                className={cn("rounded-full w-12 h-12 sm:w-14 sm:h-14", isScreenSharing && "bg-indigo-600")}
+                onClick={toggleScreenShare}
+                data-testid="screen-share-toggle"
+              >
+                <Monitor className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Button>
+              <span className="text-xs text-slate-400">{isScreenSharing ? 'Stop Share' : 'Share'}</span>
+            </div>
 
-            <Button
-              variant="destructive"
-              size="lg"
-              className="rounded-full w-14 h-14 ml-4"
-              onClick={leaveMeeting}
-              data-testid="leave-meeting-btn"
-            >
-              <PhoneOff className="w-6 h-6" />
-            </Button>
+            {/* Record */}
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                variant={isRecording ? "destructive" : "secondary"}
+                size="lg"
+                className={cn("rounded-full w-12 h-12 sm:w-14 sm:h-14", isRecording && "animate-pulse")}
+                onClick={toggleRecording}
+                data-testid="record-toggle"
+              >
+                {isRecording ? <Square className="w-5 h-5 sm:w-6 sm:h-6" /> : <Circle className="w-5 h-5 sm:w-6 sm:h-6" />}
+              </Button>
+              <span className="text-xs text-slate-400">{isRecording ? 'Stop' : 'Record'}</span>
+            </div>
+
+            {/* Leave Meeting */}
+            <div className="flex flex-col items-center gap-1 ml-2 sm:ml-4">
+              <Button
+                variant="destructive"
+                size="lg"
+                className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
+                onClick={leaveMeeting}
+                data-testid="leave-meeting-btn"
+              >
+                <PhoneOff className="w-5 h-5 sm:w-6 sm:h-6" />
+              </Button>
+              <span className="text-xs text-red-400">Leave</span>
+            </div>
           </div>
         </div>
       </div>
