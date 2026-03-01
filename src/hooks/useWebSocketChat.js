@@ -170,7 +170,8 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
           console.log(`[Chat] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
-            connectSSE();
+            // Use the connectSSERef to avoid stale closure
+            if (connectSSERef.current) connectSSERef.current();
           }, delay);
         } else {
           setConnectionError('Connection lost. Click to reconnect.');
