@@ -87,7 +87,18 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript }) =
                     <div className="p-2 rounded-lg bg-white/5">
                       <FileIcon type={file.type} bucket={file.bucket} />
                     </div>
-                    <span className="truncate font-medium text-gray-200">{file.name}</span>
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="truncate font-medium text-gray-200">{file.name}</span>
+                      {file.has_transcript && (
+                        <Badge 
+                          variant="outline" 
+                          className="w-fit mt-1 text-[10px] py-0 px-1.5 border-indigo-500/50 text-indigo-400 bg-indigo-500/10"
+                        >
+                          <FileType className="w-2.5 h-2.5 mr-1" />
+                          Transcript
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="col-span-3 hidden md:block text-sm text-gray-400">
@@ -103,6 +114,17 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript }) =
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onPreview(file)}>
                         <Eye className="w-4 h-4 text-gray-400" />
                       </Button>
+                      {file.has_transcript && onViewTranscript && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-8 w-8" 
+                          onClick={() => onViewTranscript(file)}
+                          title="View Transcript"
+                        >
+                          <FileType className="w-4 h-4 text-indigo-400" />
+                        </Button>
+                      )}
                       <Button size="icon" variant="ghost" className="h-8 w-8">
                         <Download className="w-4 h-4 text-gray-400" />
                       </Button>
@@ -114,13 +136,18 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript }) =
                           <MoreVertical className="w-4 h-4 text-gray-400" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40 bg-slate-800 border-white/10 text-gray-200">
+                      <DropdownMenuContent align="end" className="w-44 bg-slate-800 border-white/10 text-gray-200">
                         <DropdownMenuItem onClick={() => onDetails(file)}>
                           View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onPreview(file)} className="md:hidden">
                           <Eye className="w-4 h-4 mr-2" /> Preview
                         </DropdownMenuItem>
+                        {file.has_transcript && onViewTranscript && (
+                          <DropdownMenuItem onClick={() => onViewTranscript(file)}>
+                            <FileType className="w-4 h-4 mr-2 text-indigo-400" /> View Transcript
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem className="md:hidden">
                           <Download className="w-4 h-4 mr-2" /> Download
                         </DropdownMenuItem>
