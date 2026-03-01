@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Mic, FileText, Briefcase, Settings, LogOut, ChevronLeft, 
   ChevronRight, User, HardDrive, CreditCard, DollarSign, MessageSquare,
   CircleDot, ExternalLink, ChevronDown, ChevronUp, Coins, Tag, Receipt, Volume2,
-  Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar
+  Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar, Video
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
