@@ -539,6 +539,112 @@ const InstantMeetingRoom = () => {
     toast({ title: 'Link Copied!' });
   };
 
+  // Start recording
+  const startRecording = async () => {
+    try {
+      // Create a canvas to combine all video streams
+      const canvas = document.createElement('canvas');
+      canvas.width = 1280;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d');
+      
+      // Get the stream to record (local + screen if sharing)
+      const streamToRecord = isScreenSharing && screenStream ? screenStream : localStream;
+      
+      if (!streamToRecord) {
+        toast({ variant: 'destructive', title: 'No stream to record' });
+        return;
+      }
+
+      // Create a combined stream with canvas video + local audio
+      const canvasStream = canvas.captureStream(30);
+      const audioTracks = streamToRecord.getAudioTracks();
+      audioTracks.forEach(track => canvasStream.addTrack(track));
+
+      // Draw video frames to canvas
+      const videoElement = document.createElement('video');
+      videoElement.srcObject = streamToRecord;
+      videoElement.muted = true;
+      await videoElement.play();
+
+      const drawFrame = () => {
+        if (isRecording) {
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          requestAnimationFrame(drawFrame);
+        }
+      };
+
+      // Initialize MediaRecorder
+      const chunks = [];
+      const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+      
+      // Fallback to other codecs if vp9 not supported
+      let mimeType = 'video/webm;codecs=vp9,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8,opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'video/webm';
+        }
+      }
+
+      const recorder = new MediaRecorder(canvasStream, { mimeType });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+          setRecordedChunks(prev => [...prev, e.data]);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `meeting-${meetingId}-${new Date().toISOString().slice(0,10)}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast({ title: 'Recording Saved', description: 'Your recording has been downloaded.' });
+      };
+
+      recorder.start(1000); // Collect data every second
+      recordingStartRef.current = Date.now();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      drawFrame();
+      
+      toast({ title: 'Recording Started', description: 'Your meeting is being recorded.' });
+    } catch (err) {
+      console.error('Recording error:', err);
+      toast({ variant: 'destructive', title: 'Recording Failed', description: err.message });
+    }
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setRecordingDuration(0);
+      recordingStartRef.current = null;
+    }
+  };
+
+  // Toggle recording
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
   // Send chat message
   const sendChat = () => {
     if (!chatInput.trim()) return;
