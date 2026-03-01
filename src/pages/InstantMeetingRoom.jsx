@@ -284,7 +284,11 @@ const InstantMeetingRoom = () => {
       if (data.success) {
         setParticipants(data.room.participants);
         setJoined(true);
-        callStartRef.current = Date.now();
+        
+        // Set call start time after state update
+        setTimeout(() => {
+          callStartRef.current = performance.now();
+        }, 0);
 
         // Connect to existing participants
         const others = data.room.participants.filter(p => p.user_id !== user?.id);
