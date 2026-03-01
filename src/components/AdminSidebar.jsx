@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
-  Activity, BarChart3, Lock
+  Activity, BarChart3, Lock, Cloud
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
