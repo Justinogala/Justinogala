@@ -533,20 +533,40 @@ const TextToVideoPage = () => {
                       className="min-h-[100px] resize-none text-base"
                       data-testid="video-prompt-input"
                     />
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="text-xs text-gray-500">{prompt.length} / 1000 characters</span>
-                      <div className="flex gap-2">
-                        {videoData && (
-                          <Button
-                            variant="outline"
-                            onClick={handleDownload}
-                            className="gap-2"
-                            data-testid="download-video-btn"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download
-                          </Button>
+                      <div className="flex gap-2 flex-wrap">
+                        {videoData?.video_base64 && (
+                          <>
+                            <Button
+                              variant="outline"
+                              onClick={() => handleDownload()}
+                              className="gap-2"
+                              data-testid="download-video-btn"
+                            >
+                              <Download className="w-4 h-4" />
+                              Download
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowSaveDialog(true)}
+                              className="gap-2"
+                              data-testid="save-video-btn"
+                            >
+                              <Save className="w-4 h-4" />
+                              Save to History
+                            </Button>
+                          </>
                         )}
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowHistory(true)}
+                          className="gap-2"
+                          data-testid="history-btn"
+                        >
+                          <History className="w-4 h-4" />
+                          History
+                        </Button>
                         <Button
                           onClick={handleGenerate}
                           disabled={generating || !prompt.trim()}
