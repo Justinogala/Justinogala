@@ -664,7 +664,6 @@ async def delete_video_from_history(video_id: str):
     """Delete a video from history"""
     try:
         from bson import ObjectId
-        db = get_database()
         
         result = await db.video_history.delete_one({"_id": ObjectId(video_id)})
         
