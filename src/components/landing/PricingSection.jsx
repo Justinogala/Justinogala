@@ -1,59 +1,126 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
-const plans = [
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+
+// Fallback plans if API fails
+const fallbackPlans = [
   {
-    name: "Free Plan",
-    price: "$0",
-    period: "/mo",
+    id: "plan_free",
+    name: "Free",
+    description: "Perfect for individuals getting started",
+    price_monthly: 0,
     features: [
-      "10 hours of transcription/mo",
-      "Basic AI summaries",
-      "1 User",
-      "Google Meet Integration",
-      "7-day history retention"
+      "5 video meetings per month",
+      "30 minutes AI transcription",
+      "1 GB secure cloud storage",
+      "Basic AI-powered transcription",
+      "Instant video meetings with screen share",
+      "Email support"
     ],
-    cta: "Get Started",
-    variant: "outline"
+    is_popular: false
   },
   {
-    name: "Pro Plan",
-    price: "$29",
-    period: "/mo",
-    recommended: true,
+    id: "plan_pro",
+    name: "Pro",
+    description: "Best for professionals & growing teams",
+    price_monthly: 29,
     features: [
-      "100 hours of transcription/mo",
-      "Advanced AI insights",
-      "Unlimited history",
-      "Zoom & Teams Integration",
-      "Priority Support",
-      "Export to PDF/Docx"
+      "100 video meetings per month",
+      "500 minutes AI transcription",
+      "10 GB secure cloud storage",
+      "HD video meetings with recording",
+      "Up to 10 team members per workspace",
+      "Priority support"
     ],
-    cta: "Start Free Trial",
-    variant: "default"
+    is_popular: true
   },
   {
+    id: "plan_enterprise",
     name: "Enterprise",
-    price: "Custom",
-    period: "",
+    description: "For large organizations",
+    price_monthly: 99,
     features: [
-      "Unlimited transcription",
-      "Custom AI models",
-      "SSO & Audit Logs",
-      "Dedicated Success Manager",
-      "On-premise deployment",
-      "SLA Guarantees"
+      "Unlimited video meetings",
+      "Unlimited AI transcription",
+      "100 GB secure cloud storage",
+      "Unlimited team members",
+      "Admin dashboard & controls",
+      "24/7 dedicated support"
     ],
-    cta: "Contact Sales",
-    variant: "outline"
+    is_popular: false
   }
 ];
 
 const PricingSection = () => {
+  const navigate = useNavigate();
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/payments/plans`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter active plans and limit features shown
+          const activePlans = (data.plans || [])
+            .filter(p => p.is_active)
+            .map(p => ({
+              ...p,
+              // Show max 6 features on landing page
+              displayFeatures: p.features?.slice(0, 6) || []
+            }));
+          setPlans(activePlans.length > 0 ? activePlans : fallbackPlans);
+        } else {
+          setPlans(fallbackPlans);
+        }
+      } catch (error) {
+        console.error('Error fetching plans:', error);
+        setPlans(fallbackPlans);
+      }
+      setLoading(false);
+    };
+    fetchPlans();
+  }, []);
+
+  const handleCTA = (plan) => {
+    if (plan.price_monthly === 0) {
+      navigate('/signup');
+    } else if (plan.name.toLowerCase() === 'enterprise') {
+      navigate('/contact');
+    } else {
+      navigate('/signup');
+    }
+  };
+
+  const getButtonText = (plan) => {
+    if (plan.price_monthly === 0) return 'Get Started';
+    if (plan.name.toLowerCase() === 'enterprise') return 'Contact Sales';
+    return 'Start Free Trial';
+  };
+
+  const formatPrice = (plan) => {
+    if (plan.price_monthly === 0) return '$0';
+    if (plan.name.toLowerCase() === 'enterprise' && plan.price_monthly >= 99) return '$99';
+    return `$${plan.price_monthly}`;
+  };
+
+  if (loading) {
+    return (
+      <section className="py-24 bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
+        <div className="container mx-auto px-6 flex justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-24 bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
       <div className="container mx-auto px-6">
@@ -69,37 +136,49 @@ const PricingSection = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, idx) => (
             <motion.div
-              key={idx}
+              key={plan.id || idx}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className={plan.recommended ? 'md:-mt-4 md:mb-4 relative z-10' : ''}
+              className={plan.is_popular ? 'md:-mt-4 md:mb-4 relative z-10' : ''}
             >
               <Card 
                 className={`h-full flex flex-col bg-white dark:bg-slate-900 ${
-                  plan.recommended 
+                  plan.is_popular 
                     ? 'border-2 border-violet-500 shadow-xl shadow-violet-500/10 dark:shadow-none' 
                     : 'border border-gray-200 dark:border-slate-800 shadow-lg dark:shadow-none'
                 }`}
               >
-                {plan.recommended && (
+                {plan.is_popular && (
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
                     <Badge className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-1">Most Popular</Badge>
                   </div>
                 )}
                 
                 <CardHeader className="text-center pt-8 pb-4">
-                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</CardTitle>
+                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    {plan.name} {plan.price_monthly > 0 && 'Plan'}
+                  </CardTitle>
                   <div className="flex items-baseline justify-center">
-                    <span className="text-4xl font-bold text-gray-900 dark:text-white">{plan.price}</span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1 font-medium">{plan.period}</span>
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">
+                      {formatPrice(plan)}
+                    </span>
+                    {plan.price_monthly > 0 && (
+                      <span className="text-gray-500 dark:text-gray-400 ml-1 font-medium">/mo</span>
+                    )}
+                    {plan.price_monthly === 0 && (
+                      <span className="text-gray-500 dark:text-gray-400 ml-1 font-medium">/mo</span>
+                    )}
                   </div>
+                  {plan.description && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{plan.description}</p>
+                  )}
                 </CardHeader>
                 
                 <CardContent className="flex-grow px-8">
                   <ul className="space-y-4">
-                    {plan.features.map((feature, i) => (
+                    {(plan.displayFeatures || plan.features || []).map((feature, i) => (
                       <li key={i} className="flex items-start">
                         <Check className="w-5 h-5 text-green-600 dark:text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                         <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{feature}</span>
@@ -110,14 +189,16 @@ const PricingSection = () => {
                 
                 <CardFooter className="p-8 pt-4">
                   <Button 
+                    onClick={() => handleCTA(plan)}
                     className={`w-full h-12 text-lg rounded-xl font-semibold ${
-                      plan.recommended 
+                      plan.is_popular 
                         ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25' 
                         : 'text-gray-900 dark:text-white border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
                     }`}
-                    variant={plan.variant}
+                    variant={plan.is_popular ? 'default' : 'outline'}
+                    data-testid={`pricing-cta-${plan.id}`}
                   >
-                    {plan.cta}
+                    {getButtonText(plan)}
                   </Button>
                 </CardFooter>
               </Card>
