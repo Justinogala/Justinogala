@@ -184,23 +184,21 @@ const TextToVideoPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Panel - Settings */}
             <div className="space-y-4">
-              <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-                <Card className="border-gray-200 dark:border-slate-800">
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <Settings2 className="w-4 h-4" />
-                          General Settings
-                        </CardTitle>
-                        <Badge variant="outline" className="text-xs">
-                          {settingsOpen ? 'Collapse' : 'Expand'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="space-y-6 pt-0">
+              <Card className="border-gray-200 dark:border-slate-800">
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                >
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Settings2 className="w-4 h-4" />
+                      General Settings
+                    </CardTitle>
+                    <ChevronDown className={cn("w-4 h-4 transition-transform", settingsOpen && "rotate-180")} />
+                  </div>
+                </CardHeader>
+                {settingsOpen && (
+                  <CardContent className="space-y-6 pt-0">
                       {/* Model */}
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Model</Label>
