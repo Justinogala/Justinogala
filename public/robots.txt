@@ -1,3 +1,31 @@
+# Robots.txt for Munal
+# https://munal.ai
+
 User-agent: *
 Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /user/settings
+Disallow: /workspace/
+Disallow: /meeting/
+Disallow: /instant-meeting/
+
+# Allow crawlers to access public pages
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /login
+Allow: /register
+Allow: /use-cases
+Allow: /resources
+Allow: /downloads
+Allow: /company
+
+# Sitemap location
 Sitemap: https://munal.ai/sitemap.xml
+
+# Crawl delay (optional, for polite crawling)
+Crawl-delay: 1
