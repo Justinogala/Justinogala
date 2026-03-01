@@ -1,5 +1,5 @@
 """
-Admin routes - settings, monitoring, analytics, user management.
+Admin routes - settings, monitoring, analytics, user management, cloud storage.
 """
 from fastapi import APIRouter, HTTPException, Request, Query
 from datetime import datetime, timezone, timedelta
@@ -11,6 +11,7 @@ import asyncio
 import resend
 
 from config import db, logger, SENDER_EMAIL
+from services.storage import storage_service, STORAGE_PROVIDERS
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -44,6 +45,13 @@ class TaxRateCreate(BaseModel):
 
 class SMTPTestRequest(BaseModel):
     to_email: str
+
+class CloudStorageConfig(BaseModel):
+    provider: str
+    config: Dict[str, str]
+
+class MigrationRequest(BaseModel):
+    target_provider: str
 
 
 # ============== Helper Functions ==============
