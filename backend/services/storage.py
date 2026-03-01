@@ -2,13 +2,14 @@
 Cloud storage service - supports AWS S3, Google Cloud Storage, Cloudflare R2.
 Provides unified interface for file upload/download with provider switching.
 """
-from typing import Optional, BinaryIO, Dict, Any
+from typing import Optional, BinaryIO, Dict, Any, List
 from datetime import datetime, timezone
 import os
 import base64
 import logging
+import asyncio
 
-from config import db
+from config import db, fs_recordings, fs_chat_files
 
 logger = logging.getLogger(__name__)
 
