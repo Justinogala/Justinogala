@@ -16,6 +16,7 @@ import NewMeetingDialog from '@/components/meetings/NewMeetingDialog';
 import MeetingSearchBar from '@/components/meetings/MeetingSearchBar';
 
 const MeetingsManagementPage = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [meetings, setMeetings] = useState([]);
   const [filteredMeetings, setFilteredMeetings] = useState([]);
