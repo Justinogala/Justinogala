@@ -34,6 +34,7 @@ import {
 
 const WorkspaceChatPage = () => {
   const { user: currentUser } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const { toast } = useToast();
   
   const {
