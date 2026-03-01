@@ -16,7 +16,8 @@ export const adminUserDataService = {
       }
       
       const data = await response.json();
-      return data.users || [];
+      // API returns a list directly, or an object with 'users' property
+      return Array.isArray(data) ? data : (data.users || []);
     } catch (error) {
       console.error('Error fetching users from API:', error);
       // Fallback to localStorage for backward compatibility
