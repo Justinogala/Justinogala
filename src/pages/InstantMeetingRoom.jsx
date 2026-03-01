@@ -603,18 +603,9 @@ const InstantMeetingRoom = () => {
 
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        
-        // Create download link
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `meeting-${meetingId}-${new Date().toISOString().slice(0,10)}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        toast({ title: 'Recording Saved', description: 'Your recording has been downloaded.' });
+        setRecordedBlob(blob);
+        setShowRecordingOptions(true);
+        toast({ title: 'Recording Complete', description: 'Choose how to save your recording.' });
       };
 
       recorder.start(1000); // Collect data every second
