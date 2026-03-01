@@ -449,7 +449,7 @@ def stitch_videos_with_ffmpeg(video_paths: list, output_path: str) -> bool:
 
 @router.post("/ai/video/generate")
 async def generate_video(request: VideoGenerationRequest):
-    """Generate video from text prompt using Sora 2. Supports extended durations via multi-clip stitching."""
+    """Start async video generation job. Returns job_id immediately for polling."""
     try:
         api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
         if not api_key:
@@ -458,7 +458,7 @@ async def generate_video(request: VideoGenerationRequest):
         # Validate parameters
         valid_sizes = ["1280x720", "1792x1024", "1024x1792", "1024x1024"]
         base_durations = [4, 8, 12]
-        extended_durations = [24, 36, 48, 60]  # Multi-clip durations
+        extended_durations = [24, 36, 48, 60]
         all_valid_durations = base_durations + extended_durations
         valid_models = ["sora-2", "sora-2-pro"]
         
@@ -469,78 +469,30 @@ async def generate_video(request: VideoGenerationRequest):
         if request.model not in valid_models:
             raise HTTPException(status_code=400, detail=f"Invalid model. Must be one of: {valid_models}")
         
-        from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
         import uuid
-        import os
+        job_id = str(uuid.uuid4())
         
-        video_id = str(uuid.uuid4())
-        video_gen = OpenAIVideoGeneration(api_key=api_key)
+        # Initialize job status
+        video_jobs[job_id] = {"status": "queued", "progress": 0}
         
-        # Check if extended duration (requires multi-clip)
-        if request.duration in extended_durations:
-            # Calculate number of 12-second clips needed
-            num_clips = request.duration // 12
-            clip_duration = 12
-            
-            logger.info(f"Extended video: generating {num_clips} clips of {clip_duration}s each for {request.duration}s total")
-            
-            clip_paths = []
-            for i in range(num_clips):
-                logger.info(f"Generating clip {i+1}/{num_clips}...")
-                
-                clip_bytes = await generate_single_clip(
-                    video_gen, request.prompt, request.model, 
-                    request.size, clip_duration, clip_num=i+1
-                )
-                
-                if not clip_bytes:
-                    raise HTTPException(status_code=500, detail=f"Failed to generate clip {i+1}")
-                
-                # Save clip temporarily
-                clip_path = f"/tmp/clip_{video_id}_{i}.mp4"
-                video_gen.save_video(clip_bytes, clip_path)
-                clip_paths.append(clip_path)
-            
-            # Stitch clips together
-            output_path = f"/tmp/video_{video_id}.mp4"
-            logger.info(f"Stitching {num_clips} clips together...")
-            
-            if not stitch_videos_with_ffmpeg(clip_paths, output_path):
-                raise HTTPException(status_code=500, detail="Failed to stitch video clips together")
-            
-            # Read final video
-            with open(output_path, 'rb') as f:
-                video_bytes = f.read()
-            os.remove(output_path)
-            
-        else:
-            # Single clip generation
-            logger.info(f"Single clip: prompt='{request.prompt[:50]}...', size={request.size}, duration={request.duration}s")
-            
-            video_bytes = video_gen.text_to_video(
-                prompt=request.prompt,
-                model=request.model,
-                size=request.size,
-                duration=request.duration,
-                max_wait_time=600
-            )
-            
-            if not video_bytes:
-                raise HTTPException(status_code=500, detail="Video generation failed - no video returned")
+        # Start generation in background thread
+        video_executor.submit(
+            generate_video_sync,
+            job_id,
+            request.prompt,
+            request.model,
+            request.size,
+            request.duration,
+            api_key
+        )
         
-        # Convert to base64 for response
-        video_base64 = base64.b64encode(video_bytes).decode('utf-8')
-        
-        logger.info(f"Video generation complete: {len(video_bytes)} bytes, duration={request.duration}s")
+        logger.info(f"Video job {job_id} started: prompt='{request.prompt[:50]}...', duration={request.duration}s")
         
         return {
             "success": True,
-            "video_id": video_id,
-            "video_base64": video_base64,
-            "size": request.size,
-            "duration": request.duration,
-            "mime_type": "video/mp4",
-            "is_extended": request.duration in extended_durations
+            "job_id": job_id,
+            "status": "queued",
+            "message": "Video generation started. Poll /api/ai/video/job/{job_id} for status."
         }
         
     except HTTPException:
@@ -548,6 +500,41 @@ async def generate_video(request: VideoGenerationRequest):
     except Exception as e:
         logger.error(f"Video generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/video/job/{job_id}")
+async def get_video_job_status(job_id: str):
+    """Poll video generation job status"""
+    if job_id not in video_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job = video_jobs[job_id]
+    
+    # If completed, include the video data
+    if job.get("status") == "completed":
+        return {
+            "success": True,
+            "status": "completed",
+            "progress": 100,
+            "video_base64": job.get("video_base64"),
+            "size": job.get("size"),
+            "duration": job.get("duration"),
+            "file_size": job.get("file_size"),
+            "mime_type": "video/mp4"
+        }
+    elif job.get("status") == "failed":
+        return {
+            "success": False,
+            "status": "failed",
+            "error": job.get("error", "Unknown error")
+        }
+    else:
+        return {
+            "success": True,
+            "status": job.get("status", "processing"),
+            "progress": job.get("progress", 0),
+            "message": job.get("message", "Generating video...")
+        }
 
 
 @router.get("/ai/video/status")
