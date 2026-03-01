@@ -131,16 +131,6 @@ const PricingPage = () => {
       { name: '24/7 dedicated support', free: false, pro: false, business: false, enterprise: true }
     ]}
   ];
-      { name: 'Recurring events', free: true, pro: true, business: true },
-      { name: 'Jizira integration', free: true, pro: true, business: true }
-    ]},
-    { category: 'Support & API', features: [
-      { name: 'Email support', free: true, pro: true, business: true },
-      { name: 'Priority support', free: false, pro: true, business: true },
-      { name: '24/7 dedicated support', free: false, pro: false, business: true },
-      { name: 'API access', free: false, pro: false, business: true }
-    ]}
-  ];
 
   const faqs = [
     {
