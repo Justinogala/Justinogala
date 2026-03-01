@@ -508,23 +508,23 @@ const CalendarPage = () => {
                 <div className="pl-0 space-y-2">
                   <Label className="flex items-center gap-2">
                     <Link className="w-4 h-4 text-indigo-500" />
-                    Jitsi Meeting Link
+                    Jizira Meeting Link
                   </Label>
                   <Input 
                     value={eventForm.meeting_link}
                     onChange={e => setEventForm({...eventForm, meeting_link: e.target.value})}
-                    placeholder="https://meet.jit.si/your-meeting-room"
+                    placeholder="https://conferencing.jizira.com/your-meeting-room"
                     className="font-mono text-sm"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Enter your Jitsi meeting room link. You can create one at{' '}
+                    Enter your Jizira meeting room link. You can create one at{' '}
                     <a 
-                      href="https://meet.jit.si" 
+                      href="https://conferencing.jizira.com/register" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-indigo-500 hover:text-indigo-600 underline"
                     >
-                      meet.jit.si
+                      conferencing.jizira.com
                     </a>
                   </p>
                 </div>
