@@ -168,17 +168,90 @@ const TextToVideoPage = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (!videoData?.video_base64) return;
+  const handleDownload = (videoB64, filename) => {
+    const base64Data = videoB64 || videoData?.video_base64;
+    if (!base64Data) return;
     
     const link = document.createElement('a');
-    link.href = `data:video/mp4;base64,${videoData.video_base64}`;
-    link.download = `munal-video-${videoData.video_id}.mp4`;
+    link.href = `data:video/mp4;base64,${base64Data}`;
+    link.download = filename || `munal-video-${Date.now()}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
     toast({ title: 'Video downloaded!' });
+  };
+
+  const handleSaveToHistory = async () => {
+    if (!videoData?.video_base64) return;
+    
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/api/ai/video/history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          video_base64: videoData.video_base64,
+          prompt: prompt,
+          duration: duration,
+          size: size,
+          title: saveTitle || `Video - ${duration}s`
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to save video');
+      
+      toast({ title: 'Video saved to history!' });
+      setShowSaveDialog(false);
+      setSaveTitle('');
+      loadHistory();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Failed to save', description: error.message });
+    }
+    setSaving(false);
+  };
+
+  const handleDeleteFromHistory = async (videoId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/ai/video/history/${videoId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!res.ok) throw new Error('Failed to delete');
+      
+      toast({ title: 'Video deleted' });
+      loadHistory();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Failed to delete', description: error.message });
+    }
+  };
+
+  const handleLoadFromHistory = async (videoId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/ai/video/history/${videoId}`);
+      if (!res.ok) throw new Error('Failed to load video');
+      
+      const data = await res.json();
+      setVideoData(data);
+      setPrompt(data.prompt || '');
+      setShowHistory(false);
+      toast({ title: 'Video loaded from history' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Failed to load', description: error.message });
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'Unknown';
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(2)} MB`;
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
   };
 
   const getSizeIcon = (sizeValue) => {
