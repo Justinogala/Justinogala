@@ -536,13 +536,13 @@ const InstantMeetingRoom = () => {
     // TODO: Broadcast to other participants via signaling
   };
 
-  // Get all video tiles to display
-  const allParticipants = [
+  // Get all video tiles to display - useMemo for proper reactive behavior
+  const allParticipants = React.useMemo(() => [
     { 
       user_id: user?.id, 
       user_name: user?.name || 'You', 
       isLocal: true,
-      stream: isScreenSharing ? screenStreamRef.current : localStream 
+      stream: isScreenSharing ? screenStream : localStream 
     },
     ...participants
       .filter(p => p.user_id !== user?.id)
@@ -551,7 +551,7 @@ const InstantMeetingRoom = () => {
         isLocal: false, 
         stream: remoteStreams.get(p.user_id) 
       }))
-  ];
+  ], [user, isScreenSharing, screenStream, localStream, participants, remoteStreams]);
 
   // Pre-join screen
   if (!joined) {
