@@ -104,7 +104,7 @@ const MeetingsManagementPage = () => {
       title: "Connecting...", 
       description: `Starting session for ${m.title}` 
     });
-    // Add navigation logic here
+    navigate(`/meet/${m.id}`);
   };
 
   const handleEmbed = (m) => {
