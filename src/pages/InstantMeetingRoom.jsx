@@ -296,8 +296,7 @@ const InstantMeetingRoom = () => {
           await createOfferTo(p.user_id, p.user_name);
         }
 
-        // Start SSE for signaling
-        startSignaling();
+        // Signaling is handled by global SSE via window.__groupCallHandler
 
         toast({ title: 'Joined Meeting', description: `Room: ${meetingId}` });
       }
