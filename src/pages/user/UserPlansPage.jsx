@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Check, Zap, Star, Crown, ArrowRight, Loader2 } from 'lucide-react';
+import { Check, Zap, Star, Crown, ArrowRight, Loader2, CreditCard, Calendar, Clock, AlertCircle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,97 +9,63 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL;
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const UserPlansPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
-  
-  // Current plan data (could be fetched from backend)
-  const currentPlan = {
-    name: 'Free',
-    price: 0,
-    renewalDate: null,
-    usage: {
-      meetings: { used: 3, limit: 5 },
-      storage: { used: 0.2, limit: 1 },
-      transcriptions: { used: 15, limit: 30 }
-    }
+  const [plans, setPlans] = useState([]);
+  const [subscription, setSubscription] = useState(null);
+  const [usage, setUsage] = useState(null);
+  const [currentPlan, setCurrentPlan] = useState({ name: 'Free', price_monthly: 0 });
+
+  // Fetch plans and user subscription
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch plans
+        const plansRes = await fetch(`${API_URL}/api/payments/plans`);
+        const plansData = await plansRes.json();
+        setPlans(plansData.plans || []);
+
+        // Fetch user subscription if logged in
+        if (user?.id) {
+          const subRes = await fetch(`${API_URL}/api/payments/user/${user.id}/subscription`);
+          const subData = await subRes.json();
+          setSubscription(subData.subscription);
+          setUsage(subData.usage);
+          if (subData.plan) {
+            setCurrentPlan(subData.plan);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching plans:', error);
+        toast({ variant: 'destructive', title: 'Failed to load plans' });
+      }
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [user?.id, toast]);
+
+  const getIcon = (planName) => {
+    const icons = {
+      'Free': Zap,
+      'Pro': Star,
+      'Enterprise': Crown
+    };
+    return icons[planName] || Zap;
   };
 
-  const plans = [
-    {
-      id: 'free',
-      packageId: 'free',
-      name: 'Free',
-      icon: Zap,
-      price: { monthly: 0, annual: 0 },
-      description: 'Perfect for getting started',
-      features: [
-        '5 meetings per month',
-        '30 min transcription',
-        '1 GB cloud storage',
-        'AI-powered transcription',
-        'Instant video meetings',
-        'Team chat messaging',
-        'Calendar & scheduling',
-        'Basic AI summaries'
-      ],
-      popular: false
-    },
-    {
-      id: 'pro',
-      packageId: isAnnual ? 'pro_annual' : 'pro_monthly',
-      name: 'Pro',
-      icon: Star,
-      price: { monthly: 29, annual: 290 },
-      description: 'For professionals & small teams',
-      features: [
-        '100 meetings per month',
-        '500 min transcription',
-        '10 GB cloud storage',
-        'Advanced AI summaries',
-        'Voice chat channels',
-        'Text to audio conversion',
-        'Up to 5 workspaces',
-        'Up to 10 team members',
-        'Meeting recording',
-        'Priority support',
-        'Basic analytics'
-      ],
-      popular: true
-    },
-    {
-      id: 'enterprise',
-      packageId: isAnnual ? 'enterprise_annual' : 'enterprise_monthly',
-      name: 'Enterprise',
-      icon: Crown,
-      price: { monthly: 99, annual: 990 },
-      description: 'For large organizations',
-      features: [
-        'Unlimited meetings',
-        'Unlimited transcription',
-        '100 GB cloud storage',
-        'All Pro features included',
-        'Unlimited workspaces',
-        'Unlimited team members',
-        'Full admin dashboard',
-        'Cloud storage config (S3, GCS, R2)',
-        '24/7 dedicated support',
-        'API access & integrations',
-        'Data migration tools',
-        'Role-based access control'
-      ],
-      popular: false
-    }
-  ];
-
   const handleUpgrade = async (plan) => {
-    if (plan.price.monthly === 0) {
+    if (plan.price_monthly === 0) {
       toast({
         title: "Free Plan",
         description: "You're already on the free plan or it's automatically available."
@@ -110,26 +76,24 @@ const UserPlansPage = () => {
     setCheckoutLoading(plan.id);
     
     try {
+      const packageId = isAnnual 
+        ? `${plan.name.toLowerCase()}_annual` 
+        : `${plan.name.toLowerCase()}_monthly`;
+
       const response = await fetch(`${API_URL}/api/payments/checkout`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          package_id: plan.packageId,
+          package_id: packageId,
           origin_url: window.location.origin,
           user_id: user?.id || null,
           user_email: user?.email || null
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create checkout session');
-      }
-
       const data = await response.json();
 
-      if (data.requires_payment === false) {
+      if (data.requires_payment === false || data.success) {
         toast({
           title: "Plan Activated",
           description: `${plan.name} plan is now active!`
@@ -138,10 +102,9 @@ const UserPlansPage = () => {
       }
 
       if (data.checkout_url) {
-        // Redirect to Stripe Checkout
         window.location.href = data.checkout_url;
       } else {
-        throw new Error('No checkout URL received');
+        throw new Error(data.detail || 'No checkout URL received');
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -165,6 +128,19 @@ const UserPlansPage = () => {
 
   const isCurrent = (planName) => planName === currentPlan.name;
 
+  const formatLimit = (value) => {
+    if (value === -1 || value === "Unlimited") return "Unlimited";
+    return value;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto" data-testid="user-plans-page">
       <Helmet><title>Plans & Billing | Munal</title></Helmet>
@@ -172,152 +148,324 @@ const UserPlansPage = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Plans & Billing</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your subscription and billing details</p>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your subscription and track your usage</p>
       </div>
 
-      {/* Current Plan Summary */}
-      <Card className="mb-8 border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Current Plan: {currentPlan.name}</CardTitle>
-              <CardDescription>
-                {currentPlan.renewalDate 
-                  ? `Next billing date: ${new Date(currentPlan.renewalDate).toLocaleDateString()}`
-                  : 'No active subscription'
-                }
-              </CardDescription>
-            </div>
-            <Badge className="bg-indigo-600 text-white">
-              {currentPlan.price === 0 ? 'Free' : `$${currentPlan.price}/month`}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600 dark:text-gray-400">Meetings</span>
-                <span className="font-medium">{currentPlan.usage.meetings.used}/{currentPlan.usage.meetings.limit}</span>
-              </div>
-              <Progress value={(currentPlan.usage.meetings.used / currentPlan.usage.meetings.limit) * 100} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600 dark:text-gray-400">Storage</span>
-                <span className="font-medium">{currentPlan.usage.storage.used}/{currentPlan.usage.storage.limit} GB</span>
-              </div>
-              <Progress value={(currentPlan.usage.storage.used / currentPlan.usage.storage.limit) * 100} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600 dark:text-gray-400">Transcriptions</span>
-                <span className="font-medium">{currentPlan.usage.transcriptions.used}/{currentPlan.usage.transcriptions.limit} min</span>
-              </div>
-              <Progress value={(currentPlan.usage.transcriptions.used / currentPlan.usage.transcriptions.limit) * 100} className="h-2" />
-            </div>
-          </div>
-        </CardContent>
-        {currentPlan.price > 0 && (
-          <CardFooter className="flex justify-between border-t pt-4">
-            <Button variant="outline" onClick={handleCancelPlan} className="text-red-600 border-red-200 hover:bg-red-50">
-              Cancel Subscription
-            </Button>
-            <Button variant="outline">
-              Update Payment Method
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="plans">Plans</TabsTrigger>
+          <TabsTrigger value="usage">Usage</TabsTrigger>
+        </TabsList>
 
-      {/* Billing Toggle */}
-      <div className="flex items-center justify-center gap-4 mb-8">
-        <Label htmlFor="billing-toggle" className={!isAnnual ? "font-semibold" : "text-gray-500"}>Monthly</Label>
-        <Switch
-          id="billing-toggle"
-          checked={isAnnual}
-          onCheckedChange={setIsAnnual}
-        />
-        <Label htmlFor="billing-toggle" className={isAnnual ? "font-semibold" : "text-gray-500"}>
-          Annual <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700">Save 17%</Badge>
-        </Label>
-      </div>
-
-      {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan) => {
-          const planIsCurrent = isCurrent(plan.name);
-          const price = isAnnual ? plan.price.annual : plan.price.monthly;
-          const Icon = plan.icon;
-          const isLoading = checkoutLoading === plan.id;
-          
-          return (
-            <Card 
-              key={plan.id} 
-              className={`relative ${plan.popular ? 'border-2 border-indigo-500 shadow-lg shadow-indigo-500/10' : ''} ${planIsCurrent ? 'ring-2 ring-green-500' : ''}`}
-              data-testid={`plan-card-${plan.id}`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-indigo-600 text-white px-3">Most Popular</Badge>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Current Plan Summary */}
+          <Card className="border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {React.createElement(getIcon(currentPlan.name), { className: "w-8 h-8 text-indigo-600" })}
+                  <div>
+                    <CardTitle className="text-xl">Current Plan: {currentPlan.name}</CardTitle>
+                    <CardDescription>
+                      {subscription?.renewal_date 
+                        ? `Next billing: ${new Date(subscription.renewal_date).toLocaleDateString()}`
+                        : currentPlan.price_monthly > 0 ? 'Active subscription' : 'Free tier - no billing'
+                      }
+                    </CardDescription>
+                  </div>
                 </div>
-              )}
-              {planIsCurrent && (
-                <div className="absolute -top-3 right-4">
-                  <Badge className="bg-green-600 text-white px-3">Current Plan</Badge>
+                <Badge className="bg-indigo-600 text-white text-lg px-4 py-1">
+                  {currentPlan.price_monthly === 0 ? 'Free' : `$${currentPlan.price_monthly}/mo`}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <Calendar className="w-4 h-4" />
+                    Meetings
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {usage?.meetings?.used || 0}/{formatLimit(usage?.meetings?.limit || 5)}
+                  </p>
                 </div>
-              )}
-              
-              <CardHeader className="text-center pt-8">
-                <div className={`w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center ${plan.popular ? 'bg-indigo-100 dark:bg-indigo-900/50' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                  <Icon className={`w-6 h-6 ${plan.popular ? 'text-indigo-600' : 'text-gray-600 dark:text-gray-400'}`} />
+                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <Clock className="w-4 h-4" />
+                    Transcription
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {usage?.transcription_minutes?.used || 0}/{formatLimit(usage?.transcription_minutes?.limit || 30)} min
+                  </p>
                 </div>
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-gray-900 dark:text-white">${price}</span>
-                  <span className="text-gray-500">/{isAnnual ? 'year' : 'month'}</span>
+                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <TrendingUp className="w-4 h-4" />
+                    Storage
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {usage?.storage_gb?.used || 0}/{formatLimit(usage?.storage_gb?.limit || 1)} GB
+                  </p>
                 </div>
-              </CardHeader>
-              
-              <CardContent>
-                <ul className="space-y-3">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 shrink-0" />
-                      <span className="text-gray-600 dark:text-gray-400">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              
-              <CardFooter>
-                <Button 
-                  className={`w-full ${plan.popular ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
-                  variant={planIsCurrent ? "outline" : "default"}
-                  disabled={planIsCurrent || isLoading}
-                  onClick={() => handleUpgrade(plan)}
-                  data-testid={`select-plan-${plan.id}`}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : planIsCurrent ? (
-                    'Current Plan'
-                  ) : (
-                    <>
-                      {plan.price.monthly === 0 ? 'Get Started' : 'Upgrade'} 
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
+                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <CreditCard className="w-4 h-4" />
+                    Workspaces
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {usage?.workspaces?.used || 1}/{formatLimit(usage?.workspaces?.limit || 1)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+            {currentPlan.price_monthly > 0 && (
+              <CardFooter className="flex justify-between border-t pt-4">
+                <Button variant="outline" onClick={handleCancelPlan} className="text-red-600 border-red-200 hover:bg-red-50">
+                  Cancel Subscription
+                </Button>
+                <Button variant="outline">
+                  Update Payment Method
                 </Button>
               </CardFooter>
+            )}
+          </Card>
+
+          {/* Features included */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Features Included in {currentPlan.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(currentPlan.features || [
+                  "5 meetings per month",
+                  "30 min transcription", 
+                  "1 GB cloud storage",
+                  "AI-powered transcription",
+                  "Instant video meetings",
+                  "Team chat messaging",
+                  "Calendar & scheduling",
+                  "Basic AI summaries"
+                ]).map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Upgrade prompt for free users */}
+          {currentPlan.name === 'Free' && (
+            <Alert className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200 dark:border-violet-800">
+              <Star className="h-5 w-5 text-violet-600" />
+              <AlertDescription className="text-violet-900 dark:text-violet-100">
+                <span className="font-semibold">Unlock more features!</span> Upgrade to Pro for 100 meetings/month, 
+                500 min transcription, voice chat, and priority support.
+                <Button size="sm" className="ml-4 bg-violet-600 hover:bg-violet-700" onClick={() => {
+                  const proPlan = plans.find(p => p.name === 'Pro');
+                  if (proPlan) handleUpgrade(proPlan);
+                }}>
+                  Upgrade Now <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+
+        {/* Plans Tab */}
+        <TabsContent value="plans" className="space-y-6">
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4">
+            <Label className={!isAnnual ? "font-semibold" : "text-gray-500"}>Monthly</Label>
+            <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
+            <Label className={isAnnual ? "font-semibold" : "text-gray-500"}>
+              Annual <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Save 17%</Badge>
+            </Label>
+          </div>
+
+          {/* Plans Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {plans.map((plan) => {
+              const planIsCurrent = isCurrent(plan.name);
+              const price = isAnnual ? plan.price_annual : plan.price_monthly;
+              const Icon = getIcon(plan.name);
+              
+              return (
+                <Card 
+                  key={plan.id} 
+                  className={`relative ${plan.is_popular ? 'border-indigo-500 dark:border-indigo-400 shadow-lg scale-105' : ''} ${planIsCurrent ? 'ring-2 ring-green-500' : ''}`}
+                >
+                  {plan.is_popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge className="bg-indigo-600 text-white">Most Popular</Badge>
+                    </div>
+                  )}
+                  {planIsCurrent && (
+                    <div className="absolute -top-3 right-4">
+                      <Badge className="bg-green-600 text-white">Current</Badge>
+                    </div>
+                  )}
+                  
+                  <CardHeader className="text-center pb-2">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="text-center">
+                    <div className="mb-6">
+                      <span className="text-4xl font-bold text-gray-900 dark:text-white">
+                        ${isAnnual ? Math.round(price / 12) : price}
+                      </span>
+                      <span className="text-gray-500">/month</span>
+                      {isAnnual && price > 0 && (
+                        <p className="text-sm text-green-600 mt-1">
+                          Billed ${price}/year
+                        </p>
+                      )}
+                    </div>
+                    
+                    <ul className="space-y-3 text-left mb-6">
+                      {plan.features?.slice(0, 8).map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm">
+                          <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-gray-600 dark:text-gray-300">{feature}</span>
+                        </li>
+                      ))}
+                      {plan.features?.length > 8 && (
+                        <li className="text-sm text-indigo-600 dark:text-indigo-400">
+                          +{plan.features.length - 8} more features
+                        </li>
+                      )}
+                    </ul>
+                  </CardContent>
+                  
+                  <CardFooter>
+                    <Button 
+                      className={`w-full ${plan.is_popular ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
+                      variant={plan.is_popular ? 'default' : 'outline'}
+                      onClick={() => handleUpgrade(plan)}
+                      disabled={planIsCurrent || checkoutLoading === plan.id}
+                    >
+                      {checkoutLoading === plan.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : null}
+                      {planIsCurrent ? 'Current Plan' : price === 0 ? 'Get Started' : 'Upgrade'}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        {/* Usage Tab */}
+        <TabsContent value="usage" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Meetings Usage */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-indigo-500" />
+                  Meetings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Used this month</span>
+                    <span className="font-medium">{usage?.meetings?.used || 0} / {formatLimit(usage?.meetings?.limit)}</span>
+                  </div>
+                  <Progress value={usage?.meetings?.limit === -1 ? 0 : ((usage?.meetings?.used || 0) / (usage?.meetings?.limit || 5)) * 100} className="h-3" />
+                  <p className="text-xs text-gray-500">Resets on the 1st of each month</p>
+                </div>
+              </CardContent>
             </Card>
-          );
-        })}
-      </div>
+
+            {/* Transcription Usage */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-purple-500" />
+                  Transcription Minutes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Used this month</span>
+                    <span className="font-medium">{usage?.transcription_minutes?.used || 0} / {formatLimit(usage?.transcription_minutes?.limit)} min</span>
+                  </div>
+                  <Progress value={usage?.transcription_minutes?.limit === -1 ? 0 : ((usage?.transcription_minutes?.used || 0) / (usage?.transcription_minutes?.limit || 30)) * 100} className="h-3" />
+                  <p className="text-xs text-gray-500">Resets on the 1st of each month</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Storage Usage */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                  Cloud Storage
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Currently using</span>
+                    <span className="font-medium">{usage?.storage_gb?.used || 0} / {formatLimit(usage?.storage_gb?.limit)} GB</span>
+                  </div>
+                  <Progress value={((usage?.storage_gb?.used || 0) / (usage?.storage_gb?.limit || 1)) * 100} className="h-3" />
+                  <p className="text-xs text-gray-500">Includes files, recordings, and transcriptions</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Team Usage */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-amber-500" />
+                  Team & Workspaces
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Workspaces</span>
+                    <span className="font-medium">{usage?.workspaces?.used || 1} / {formatLimit(usage?.workspaces?.limit)}</span>
+                  </div>
+                  <Progress value={usage?.workspaces?.limit === -1 ? 0 : ((usage?.workspaces?.used || 1) / (usage?.workspaces?.limit || 1)) * 100} className="h-3" />
+                  <div className="flex justify-between text-sm mt-4">
+                    <span className="text-gray-600 dark:text-gray-400">Team Members</span>
+                    <span className="font-medium">{usage?.team_members?.used || 1} / {formatLimit(usage?.team_members?.limit)}</span>
+                  </div>
+                  <Progress value={usage?.team_members?.limit === -1 ? 0 : ((usage?.team_members?.used || 1) / (usage?.team_members?.limit || 1)) * 100} className="h-3" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Usage warning */}
+          {usage && (usage.meetings?.used / usage.meetings?.limit > 0.8 || usage.transcription_minutes?.used / usage.transcription_minutes?.limit > 0.8) && (
+            <Alert variant="warning" className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+              <AlertDescription className="text-amber-900 dark:text-amber-100">
+                You're approaching your usage limits. Consider upgrading your plan for uninterrupted service.
+              </AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
