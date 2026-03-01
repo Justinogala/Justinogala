@@ -285,21 +285,22 @@ const PricingPage = () => {
               </p>
             </motion.div>
 
-            <div className="max-w-5xl mx-auto overflow-x-auto border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm">
-              <table className="w-full min-w-[800px]">
+            <div className="max-w-6xl mx-auto overflow-x-auto border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm">
+              <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
-                    <th className="text-left py-4 px-6 text-gray-600 dark:text-gray-400 font-semibold w-1/4">Feature</th>
-                    <th className="text-center py-4 px-4 text-gray-900 dark:text-white font-bold w-1/4">Free</th>
-                    <th className="text-center py-4 px-4 text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50/50 dark:bg-indigo-900/10 w-1/4">Pro</th>
-                    <th className="text-center py-4 px-4 text-gray-900 dark:text-white font-bold w-1/4">Business</th>
+                    <th className="text-left py-4 px-6 text-gray-600 dark:text-gray-400 font-semibold w-1/5">Feature</th>
+                    <th className="text-center py-4 px-4 text-gray-900 dark:text-white font-bold w-1/5">Free</th>
+                    <th className="text-center py-4 px-4 text-gray-900 dark:text-white font-bold w-1/5">Pro</th>
+                    <th className="text-center py-4 px-4 text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-50/50 dark:bg-indigo-900/10 w-1/5">Business</th>
+                    <th className="text-center py-4 px-4 text-gray-900 dark:text-white font-bold w-1/5">Enterprise</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                   {comparisonFeatures.map((category, catIndex) => (
                     <React.Fragment key={catIndex}>
                       <tr>
-                        <td colSpan="4" className="py-4 px-6 bg-gray-50/50 dark:bg-slate-900/50">
+                        <td colSpan="5" className="py-4 px-6 bg-gray-50/50 dark:bg-slate-900/50">
                           <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider">{category.category}</h3>
                         </td>
                       </tr>
@@ -307,8 +308,9 @@ const PricingPage = () => {
                         <tr key={featIndex} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                           <td className="py-4 px-6 text-gray-700 dark:text-gray-300 font-medium">{feature.name}</td>
                           <td className="py-4 px-4 text-center">{renderFeatureValue(feature.free)}</td>
-                          <td className="py-4 px-4 text-center bg-indigo-50/20 dark:bg-indigo-900/5">{renderFeatureValue(feature.pro)}</td>
-                          <td className="py-4 px-4 text-center">{renderFeatureValue(feature.business)}</td>
+                          <td className="py-4 px-4 text-center">{renderFeatureValue(feature.pro)}</td>
+                          <td className="py-4 px-4 text-center bg-indigo-50/20 dark:bg-indigo-900/5">{renderFeatureValue(feature.business)}</td>
+                          <td className="py-4 px-4 text-center">{renderFeatureValue(feature.enterprise)}</td>
                         </tr>
                       ))}
                     </React.Fragment>
