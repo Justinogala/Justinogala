@@ -401,7 +401,7 @@ const InstantMeetingRoom = () => {
         }
       }
     }
-  }, [meetingId, user, createPeerConnection, toast]);
+  }, [meetingId, user, createPeerConnection, createOfferTo, toast]);
 
   // Setup global handler for group call signals
   useEffect(() => {
