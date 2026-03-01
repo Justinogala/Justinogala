@@ -41,9 +41,13 @@ const UserPlansPage = () => {
       description: 'Perfect for getting started',
       features: [
         '5 meetings per month',
-        '1 GB storage',
         '30 min transcription',
-        'Basic support'
+        '1 GB cloud storage',
+        'AI-powered transcription',
+        'Instant video meetings',
+        'Team chat messaging',
+        'Calendar & scheduling',
+        'Basic AI summaries'
       ],
       popular: false
     },
@@ -53,14 +57,19 @@ const UserPlansPage = () => {
       name: 'Pro',
       icon: Star,
       price: { monthly: 29, annual: 290 },
-      description: 'Best for professionals',
+      description: 'For professionals & small teams',
       features: [
         '100 meetings per month',
-        '10 GB storage',
         '500 min transcription',
+        '10 GB cloud storage',
+        'Advanced AI summaries',
+        'Voice chat channels',
+        'Text to audio conversion',
+        'Up to 5 workspaces',
+        'Up to 10 team members',
+        'Meeting recording',
         'Priority support',
-        'Custom integrations',
-        'Team workspaces'
+        'Basic analytics'
       ],
       popular: true
     },
@@ -73,13 +82,17 @@ const UserPlansPage = () => {
       description: 'For large organizations',
       features: [
         'Unlimited meetings',
-        '100 GB storage',
         'Unlimited transcription',
+        '100 GB cloud storage',
+        'All Pro features included',
+        'Unlimited workspaces',
+        'Unlimited team members',
+        'Full admin dashboard',
+        'Cloud storage config (S3, GCS, R2)',
         '24/7 dedicated support',
-        'SSO & SAML',
-        'Custom branding',
-        'API access',
-        'SLA guarantee'
+        'API access & integrations',
+        'Data migration tools',
+        'Role-based access control'
       ],
       popular: false
     }
