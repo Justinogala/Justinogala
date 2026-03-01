@@ -755,13 +755,24 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - `DELETE /api/ai/transcripts/{transcript_id}` - Delete a transcript
   - Transcripts stored in `recording_transcripts` collection
   - Files marked with `has_transcript: true` when transcribed
-- [x] **Labeled Action Buttons** - All meeting controls now have text labels
-  - Pre-join screen: "Mute/Unmute", "Stop Video/Start Video"
-  - In-call controls: "Mute/Unmute", "Stop Video/Start Video", "Share/Stop Share", "Record/Stop", "Leave"
-  - Responsive sizing for mobile and desktop
+- [x] **Large File Support (>25MB)** - FFmpeg audio extraction
+  - Automatically extracts audio from video files >25MB
+  - Compresses to 64kbps mono MP3 at 16kHz for optimal speech transcription
+  - Handles up to ~2 hour recordings after compression
+- [x] **Transcript Viewer UI** - View transcripts in File Manager
+  - Search across transcript text with highlighted matches
+  - Clickable timestamps with Play icon
+  - Copy full transcript to clipboard
+  - Download transcript as .txt file
+  - Expandable/collapsible segments view
+  - Word count and language detection
+  - Files with transcripts show "Transcript" badge in file list
 - [x] **Files Modified**:
   - `/app/src/pages/InstantMeetingRoom.jsx` - Added recording, cloud save, transcription
-  - `/app/backend/routes/ai.py` - Added recording transcription endpoints
+  - `/app/backend/routes/ai.py` - Added recording transcription endpoints with ffmpeg support
+  - `/app/src/components/RecordingTranscriptViewer.jsx` - NEW: Transcript viewer modal
+  - `/app/src/components/FileList.jsx` - Added transcript badge and view button
+  - `/app/src/pages/FileManagementPage.jsx` - Integrated transcript viewer
 
 ### Pricing Layout Fix (Mar 1, 2026)
 - [x] **4-Tier Pricing on Landing Page** - Verified correct horizontal display
