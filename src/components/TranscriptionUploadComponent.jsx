@@ -1,27 +1,39 @@
 
-import React, { useState, useCallback } from 'react';
-import { Upload, X, FileAudio, AlertCircle, Settings, ArrowRight, Loader2, Save } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Upload, X, FileAudio, AlertCircle, Loader2, ArrowRight, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { transcriptionService } from '@/services/transcriptionService';
-import { useAPIKeyManagement } from '@/hooks/useAPIKeyManagement';
-import { useNavigate } from 'react-router-dom';
 
 const MAX_SIZE_MB = 25; // Whisper limit
 
 const TranscriptionUploadComponent = ({ onTranscriptionComplete }) => {
-  const navigate = useNavigate();
-  const { isValid: hasValidKey } = useAPIKeyManagement();
-  
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState(null);
   const [language, setLanguage] = useState('en');
-  const [status, setStatus] = useState('idle'); // idle, processing, saving, completed, failed
+  const [status, setStatus] = useState('idle'); // idle, checking, processing, saving, completed, failed, unavailable
   const [error, setError] = useState('');
-  const [progress, setProgress] = useState(0); 
+  const [progress, setProgress] = useState(0);
+  const [serviceAvailable, setServiceAvailable] = useState(true);
   const { toast } = useToast();
+
+  // Check service availability on mount
+  useEffect(() => {
+    const checkService = async () => {
+      setStatus('checking');
+      try {
+        const result = await transcriptionService.checkAvailability();
+        setServiceAvailable(result.available);
+        setStatus(result.available ? 'idle' : 'unavailable');
+      } catch {
+        setServiceAvailable(true); // Assume available if check fails
+        setStatus('idle');
+      }
+    };
+    checkService();
+  }, []);
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
@@ -41,7 +53,7 @@ const TranscriptionUploadComponent = ({ onTranscriptionComplete }) => {
       return false;
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`File size exceeds Munal AI Whisper limit of ${MAX_SIZE_MB}MB.`);
+      setError(`File size exceeds Whisper limit of ${MAX_SIZE_MB}MB.`);
       return false;
     }
     return true;
@@ -66,29 +78,25 @@ const TranscriptionUploadComponent = ({ onTranscriptionComplete }) => {
 
   const handleStart = async () => {
     if (!file) return;
-    if (!hasValidKey) {
-      setError('Munal AI API Key is missing. Please configure it below.');
-      return;
-    }
 
     setStatus('processing');
     setError('');
     setProgress(0);
 
     try {
-      // Fake progress
+      // Progress simulation
       const progressInterval = setInterval(() => {
         setProgress(old => (old >= 90 ? 90 : old + 5));
       }, 500);
 
-      // 1. Create Transcription (Upload + Transcribe)
+      // 1. Create Transcription (Upload + Transcribe via backend)
       const result = await transcriptionService.createTranscription(file, { language });
       
       clearInterval(progressInterval);
       setProgress(95);
       setStatus('saving');
 
-      // 2. Save to History explicitly
+      // 2. Save to History
       const savedRecord = await transcriptionService.saveTranscription(result);
       
       setProgress(100);
@@ -122,16 +130,29 @@ const TranscriptionUploadComponent = ({ onTranscriptionComplete }) => {
     setProgress(0);
   };
 
-  if (!hasValidKey) {
+  // Service unavailable state
+  if (status === 'unavailable' || !serviceAvailable) {
     return (
       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-6 text-center">
-        <Settings className="w-8 h-8 text-amber-600 mx-auto mb-2" />
-        <h3 className="text-lg font-semibold mb-2">Munal AI API Key Required</h3>
-        <Button onClick={() => navigate('/settings/api-keys')} variant="outline">Configure API Key</Button>
+        <AlertCircle className="w-8 h-8 text-amber-600 mx-auto mb-2" />
+        <h3 className="text-lg font-semibold mb-2">Transcription Service Unavailable</h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          The transcription service is temporarily unavailable. Please try again later or contact support.
+        </p>
       </div>
     );
   }
 
+  // Loading/checking state
+  if (status === 'checking') {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  // Processing states
   if (status !== 'idle') {
     return (
       <div className="w-full max-w-xl mx-auto space-y-6 text-center p-8 border rounded-xl bg-white dark:bg-slate-900 shadow-sm">
@@ -150,9 +171,10 @@ const TranscriptionUploadComponent = ({ onTranscriptionComplete }) => {
         {status === 'completed' && (
           <div className="space-y-4">
              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
-               <ArrowRight className="w-8 h-8" />
+               <CheckCircle className="w-8 h-8" />
              </div>
              <h3 className="text-xl font-semibold text-green-600">Transcription Complete!</h3>
+             <Button onClick={reset} variant="outline">Transcribe Another</Button>
           </div>
         )}
 
@@ -210,6 +232,13 @@ const TranscriptionUploadComponent = ({ onTranscriptionComplete }) => {
         )}
       </div>
 
+      {error && (
+        <div className="flex items-center gap-2 text-red-600 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row gap-4 items-end">
         <div className="w-full sm:w-1/2 space-y-2">
           <label className="text-sm font-medium">Language</label>
@@ -220,11 +249,22 @@ const TranscriptionUploadComponent = ({ onTranscriptionComplete }) => {
               <SelectItem value="es">Spanish</SelectItem>
               <SelectItem value="fr">French</SelectItem>
               <SelectItem value="de">German</SelectItem>
+              <SelectItem value="it">Italian</SelectItem>
+              <SelectItem value="pt">Portuguese</SelectItem>
+              <SelectItem value="nl">Dutch</SelectItem>
+              <SelectItem value="ja">Japanese</SelectItem>
+              <SelectItem value="ko">Korean</SelectItem>
+              <SelectItem value="zh">Chinese</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="w-full sm:w-1/2">
-          <Button onClick={handleStart} disabled={!file} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button 
+            onClick={handleStart} 
+            disabled={!file} 
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+            data-testid="start-transcription-btn"
+          >
             Start Transcription
           </Button>
         </div>
