@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, 
   Clock, MapPin, Users, Video, X, Edit, Trash2, Check,
-  Bell, Repeat, Circle
+  Bell, Repeat, Circle, Link
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
   addDays, addMonths, subMonths, isSameMonth, isSameDay, 
