@@ -347,6 +347,9 @@ async def transcribe_recording(request: RecordingTranscriptionRequest):
         
         from bson import ObjectId
         import io
+        import tempfile
+        import subprocess
+        import os
         
         # Download the file from GridFS
         file_data = io.BytesIO()
@@ -355,16 +358,81 @@ async def transcribe_recording(request: RecordingTranscriptionRequest):
         
         # Check file size (25MB limit for Whisper)
         file_size = file_data.getbuffer().nbytes
-        if file_size > 25 * 1024 * 1024:
-            # For large files, we need to extract audio only
-            # For now, return error - can implement ffmpeg extraction later
-            raise HTTPException(
-                status_code=400, 
-                detail="Recording too large for transcription (>25MB). Support for large files coming soon."
-            )
+        audio_file = file_data
+        temp_files = []
         
-        # Prepare file for transcription
-        file_data.name = request.file_name or "recording.webm"
+        if file_size > 25 * 1024 * 1024:
+            # Large file - extract audio using ffmpeg
+            logger.info(f"Large file detected ({file_size / (1024*1024):.1f}MB), extracting audio with ffmpeg")
+            
+            try:
+                # Save video to temp file
+                with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as video_temp:
+                    video_temp.write(file_data.read())
+                    video_temp_path = video_temp.name
+                    temp_files.append(video_temp_path)
+                
+                # Create temp file for audio output
+                audio_temp_fd, audio_temp_path = tempfile.mkstemp(suffix='.mp3')
+                os.close(audio_temp_fd)
+                temp_files.append(audio_temp_path)
+                
+                # Extract audio using ffmpeg (compress to mp3 at lower bitrate)
+                ffmpeg_cmd = [
+                    'ffmpeg', '-y',
+                    '-i', video_temp_path,
+                    '-vn',  # No video
+                    '-acodec', 'libmp3lame',
+                    '-ab', '64k',  # Lower bitrate for smaller file
+                    '-ar', '16000',  # 16kHz sample rate (good for speech)
+                    '-ac', '1',  # Mono
+                    audio_temp_path
+                ]
+                
+                result = subprocess.run(
+                    ffmpeg_cmd, 
+                    capture_output=True, 
+                    text=True,
+                    timeout=300  # 5 minute timeout
+                )
+                
+                if result.returncode != 0:
+                    logger.error(f"FFmpeg error: {result.stderr}")
+                    raise Exception(f"Audio extraction failed: {result.stderr[:200]}")
+                
+                # Check extracted audio size
+                extracted_size = os.path.getsize(audio_temp_path)
+                logger.info(f"Extracted audio size: {extracted_size / (1024*1024):.1f}MB")
+                
+                if extracted_size > 25 * 1024 * 1024:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Recording audio too long for transcription. Please split into shorter segments."
+                    )
+                
+                # Read the extracted audio
+                audio_file = io.BytesIO()
+                with open(audio_temp_path, 'rb') as f:
+                    audio_file.write(f.read())
+                audio_file.seek(0)
+                audio_file.name = 'audio.mp3'
+                
+            except subprocess.TimeoutExpired:
+                raise HTTPException(status_code=500, detail="Audio extraction timed out")
+            except Exception as e:
+                logger.error(f"FFmpeg extraction error: {e}")
+                raise HTTPException(status_code=500, detail=f"Audio extraction failed: {str(e)}")
+            finally:
+                # Cleanup temp files
+                for temp_path in temp_files:
+                    try:
+                        if os.path.exists(temp_path):
+                            os.unlink(temp_path)
+                    except:
+                        pass
+        else:
+            # Prepare file for transcription
+            audio_file.name = request.file_name or "recording.webm"
         
         from emergentintegrations.llm.openai import OpenAISpeechToText
         
@@ -373,7 +441,7 @@ async def transcribe_recording(request: RecordingTranscriptionRequest):
         
         # Transcribe
         response = await stt.transcribe(
-            file=file_data,
+            file=audio_file,
             model="whisper-1",
             response_format="verbose_json",
             language="en",
