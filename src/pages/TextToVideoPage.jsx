@@ -281,9 +281,8 @@ const TextToVideoPage = () => {
                         <p className="text-xs text-gray-500">Longer videos take more time to generate</p>
                       </div>
                     </CardContent>
-                  </CollapsibleContent>
+                  )}
                 </Card>
-              </Collapsible>
 
               {/* Info Card */}
               <Card className="bg-gradient-to-br from-fuchsia-50 to-pink-50 dark:from-fuchsia-950/30 dark:to-pink-950/30 border-fuchsia-200 dark:border-fuchsia-800">
