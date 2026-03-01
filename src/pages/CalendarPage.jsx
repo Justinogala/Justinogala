@@ -557,7 +557,7 @@ const CalendarPage = () => {
                     )}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Enter a Jizira meeting link or use "Instant Meeting" to auto-generate one.{' '}
+                    Enter a Jizira meeting link or use Instant Meeting to auto-generate one.{' '}
                     <a 
                       href="https://conferencing.jizira.com/register" 
                       target="_blank" 
