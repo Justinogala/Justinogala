@@ -17,24 +17,39 @@ router = APIRouter(prefix="/calendar", tags=["Calendar"])
 class CalendarEventCreate(BaseModel):
     title: str
     description: Optional[str] = None
-    start_time: datetime
-    end_time: datetime
-    organizer_id: str
+    start_time: str  # Accept string format from frontend
+    end_time: str
+    created_by: Optional[str] = None  # From frontend
+    organizer_id: Optional[str] = None
     organizer_name: Optional[str] = None
     attendees: List[dict] = []
+    invitees: List[str] = []  # User IDs from frontend
     location: Optional[str] = None
     is_recurring: bool = False
+    recurrence: Optional[str] = None  # From frontend (daily, weekly, monthly)
     recurrence_rule: Optional[str] = None
     reminders: List[dict] = []
+    all_day: bool = False
+    video_call: bool = False
+    meeting_link: Optional[str] = None  # Custom meeting link from user
+    color: Optional[str] = "blue"
+    category: Optional[str] = "meeting"
 
 class CalendarEventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
     attendees: Optional[List[dict]] = None
+    invitees: Optional[List[str]] = None
     location: Optional[str] = None
     status: Optional[str] = None
+    all_day: Optional[bool] = None
+    video_call: Optional[bool] = None
+    meeting_link: Optional[str] = None
+    color: Optional[str] = None
+    category: Optional[str] = None
+    recurrence: Optional[str] = None
 
 class EventResponse(BaseModel):
     response: str  # accepted, declined, tentative
