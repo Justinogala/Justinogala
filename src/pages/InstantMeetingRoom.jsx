@@ -640,6 +640,91 @@ const InstantMeetingRoom = () => {
     }
   };
 
+  // Download recording locally
+  const downloadRecording = () => {
+    if (!recordedBlob) return;
+    
+    const url = URL.createObjectURL(recordedBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `meeting-${meetingId}-${new Date().toISOString().slice(0, 10)}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({ title: 'Downloaded', description: 'Recording saved to your device.' });
+    setShowRecordingOptions(false);
+    setRecordedBlob(null);
+    setRecordedChunks([]);
+  };
+
+  // Save recording to cloud (File Manager)
+  const saveToCloud = async () => {
+    if (!recordedBlob || !user?.id) return;
+    
+    setIsSavingToCloud(true);
+    
+    try {
+      // Convert blob to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise((resolve, reject) => {
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(recordedBlob);
+      const base64Data = await base64Promise;
+      
+      const fileName = `meeting-${meetingId}-${new Date().toISOString().slice(0, 10)}.webm`;
+      
+      // Upload to backend
+      const formData = new FormData();
+      formData.append('user_id', user.id);
+      formData.append('file_name', fileName);
+      formData.append('file_data', base64Data);
+      formData.append('content_type', 'video/webm');
+      formData.append('category', 'meeting-recordings');
+      
+      const response = await fetch(`${API_URL}/api/chat/files/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      toast({ 
+        title: 'Saved to Cloud', 
+        description: 'Recording saved to your File Manager. Access it anytime from Files > Meeting Recordings.' 
+      });
+      
+      setShowRecordingOptions(false);
+      setRecordedBlob(null);
+      setRecordedChunks([]);
+    } catch (err) {
+      console.error('Cloud save error:', err);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Cloud Save Failed', 
+        description: 'Could not save to cloud. Try downloading instead.' 
+      });
+    } finally {
+      setIsSavingToCloud(false);
+    }
+  };
+
+  // Discard recording
+  const discardRecording = () => {
+    setShowRecordingOptions(false);
+    setRecordedBlob(null);
+    setRecordedChunks([]);
+    toast({ title: 'Recording Discarded' });
+  };
+
   // Send chat message
   const sendChat = () => {
     if (!chatInput.trim()) return;
