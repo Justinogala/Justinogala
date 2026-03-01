@@ -19,7 +19,7 @@ const fallbackPlans = [
       "5 video meetings per month",
       "30 minutes AI transcription",
       "1 GB secure cloud storage",
-      "Basic AI-powered transcription",
+      "Text to Audio & Text to Video (4s)",
       "Instant video meetings with screen share",
       "Email support"
     ],
