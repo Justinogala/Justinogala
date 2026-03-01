@@ -719,32 +719,38 @@ const InstantMeetingRoom = () => {
                 )}
 
                 {/* Preview Controls */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
-                  <Button
-                    variant={isAudioEnabled ? "secondary" : "destructive"}
-                    size="lg"
-                    className="rounded-full w-14 h-14"
-                    onClick={() => {
-                      localStream?.getAudioTracks().forEach(t => t.enabled = !isAudioEnabled);
-                      setIsAudioEnabled(!isAudioEnabled);
-                    }}
-                    data-testid="preview-mic-toggle"
-                  >
-                    {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
-                  </Button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
+                  <div className="flex flex-col items-center gap-1">
+                    <Button
+                      variant={isAudioEnabled ? "secondary" : "destructive"}
+                      size="lg"
+                      className="rounded-full w-14 h-14"
+                      onClick={() => {
+                        localStream?.getAudioTracks().forEach(t => t.enabled = !isAudioEnabled);
+                        setIsAudioEnabled(!isAudioEnabled);
+                      }}
+                      data-testid="preview-mic-toggle"
+                    >
+                      {isAudioEnabled ? <Mic className="w-6 h-6" /> : <MicOff className="w-6 h-6" />}
+                    </Button>
+                    <span className="text-xs text-white/70">{isAudioEnabled ? 'Mute' : 'Unmute'}</span>
+                  </div>
                   
-                  <Button
-                    variant={isVideoEnabled ? "secondary" : "destructive"}
-                    size="lg"
-                    className="rounded-full w-14 h-14"
-                    onClick={() => {
-                      localStream?.getVideoTracks().forEach(t => t.enabled = !isVideoEnabled);
-                      setIsVideoEnabled(!isVideoEnabled);
-                    }}
-                    data-testid="preview-video-toggle"
-                  >
-                    {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
-                  </Button>
+                  <div className="flex flex-col items-center gap-1">
+                    <Button
+                      variant={isVideoEnabled ? "secondary" : "destructive"}
+                      size="lg"
+                      className="rounded-full w-14 h-14"
+                      onClick={() => {
+                        localStream?.getVideoTracks().forEach(t => t.enabled = !isVideoEnabled);
+                        setIsVideoEnabled(!isVideoEnabled);
+                      }}
+                      data-testid="preview-video-toggle"
+                    >
+                      {isVideoEnabled ? <Video className="w-6 h-6" /> : <VideoOff className="w-6 h-6" />}
+                    </Button>
+                    <span className="text-xs text-white/70">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
+                  </div>
                 </div>
               </div>
 
