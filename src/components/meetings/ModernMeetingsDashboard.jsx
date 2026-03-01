@@ -60,7 +60,7 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
         category: 'meeting',
         color: 'violet',
         video_call: true,
-        id: meetingId
+        meeting_link: `${window.location.origin}/meet/${meetingId}`
       };
 
       await fetch(`${API_URL}/api/calendar/events`, {
@@ -70,11 +70,11 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
       });
 
       // Navigate to meeting room
-      navigate(`/workspace/meeting/${meetingId}`);
+      navigate(`/meet/${meetingId}`);
     } catch (error) {
       console.error('Error starting instant meeting:', error);
       // Still navigate even if event creation fails
-      navigate(`/workspace/meeting/${meetingId}`);
+      navigate(`/meet/${meetingId}`);
     }
   };
 
