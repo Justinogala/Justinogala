@@ -115,7 +115,6 @@ const InstantMeetingRoom = () => {
   // Refs (only for non-render values)
   const previewRef = useRef(null);
   const callStartRef = useRef(null);
-  const eventSourceRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
 
   // ICE servers config - defined outside component to avoid recreating
