@@ -81,7 +81,7 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
   // Copy instant meeting link
   const handleCopyInstantLink = () => {
     const meetingId = instantMeetingId || uuidv4();
-    const link = `${window.location.origin}/workspace/meeting/${meetingId}`;
+    const link = `${window.location.origin}/meet/${meetingId}`;
     navigator.clipboard.writeText(link);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
