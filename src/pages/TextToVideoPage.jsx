@@ -260,25 +260,55 @@ const TextToVideoPage = () => {
                           <Label className="text-sm font-medium">Duration</Label>
                           <span className="text-sm font-semibold text-fuchsia-600">{duration} seconds</span>
                         </div>
-                        <div className="flex gap-2">
-                          {[4, 8, 12].map((d) => (
-                            <Button
-                              key={d}
-                              variant={duration === d ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setDuration(d)}
-                              disabled={generating}
-                              className={cn(
-                                "flex-1",
-                                duration === d && "bg-gradient-to-r from-fuchsia-500 to-pink-500 border-0"
-                              )}
-                            >
-                              <Clock className="w-3 h-3 mr-1" />
-                              {d}s
-                            </Button>
-                          ))}
+                        
+                        {/* Base durations */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-500 font-medium">Quick clips</p>
+                          <div className="flex gap-2">
+                            {[4, 8, 12].map((d) => (
+                              <Button
+                                key={d}
+                                variant={duration === d ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setDuration(d)}
+                                disabled={generating}
+                                className={cn(
+                                  "flex-1",
+                                  duration === d && "bg-gradient-to-r from-fuchsia-500 to-pink-500 border-0"
+                                )}
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                {d}s
+                              </Button>
+                            ))}
+                          </div>
                         </div>
-                        <p className="text-xs text-gray-500">Longer videos take more time to generate</p>
+                        
+                        {/* Extended durations */}
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-500 font-medium">Extended (multi-clip)</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[24, 36, 48, 60].map((d) => (
+                              <Button
+                                key={d}
+                                variant={duration === d ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setDuration(d)}
+                                disabled={generating}
+                                className={cn(
+                                  duration === d && "bg-gradient-to-r from-violet-500 to-fuchsia-500 border-0"
+                                )}
+                              >
+                                {d}s
+                              </Button>
+                            ))}
+                          </div>
+                          {duration >= 24 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400">
+                              ⚡ Extended: {Math.ceil(duration / 12)} clips will be generated and stitched together
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   )}
