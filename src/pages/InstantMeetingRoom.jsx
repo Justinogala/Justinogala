@@ -111,6 +111,13 @@ const InstantMeetingRoom = () => {
   const [callDuration, setCallDuration] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  
+  // Recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordedChunks, setRecordedChunks] = useState([]);
+  const mediaRecorderRef = useRef(null);
+  const recordingStartRef = useRef(null);
 
   // Refs (only for non-render values)
   const previewRef = useRef(null);
