@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://meeting-stream-test.preview.emergentagent.com"
+    BASE_URL = "https://webrtc-studio.preview.emergentagent.com"
 
 
 class TestHealthCheck:
