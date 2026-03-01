@@ -202,7 +202,7 @@ const InstantMeetingRoom = () => {
       return peerConnectionsRef.current.get(participantId);
     }
 
-    const pc = new RTCPeerConnection(iceServers);
+    const pc = new RTCPeerConnection(iceServersConfig);
     peerConnectionsRef.current.set(participantId, pc);
 
     // Add local tracks
