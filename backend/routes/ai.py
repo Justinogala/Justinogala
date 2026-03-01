@@ -319,13 +319,62 @@ async def get_transcription_status():
 class VideoGenerationRequest(BaseModel):
     prompt: str
     size: str = "1280x720"  # 1280x720, 1792x1024, 1024x1792, 1024x1024
-    duration: int = 4  # 4, 8, or 12 seconds
+    duration: int = 12  # Base: 4, 8, 12. Extended: 24, 36, 48, 60 (multi-clip)
     model: str = "sora-2"  # sora-2 or sora-2-pro
+
+
+async def generate_single_clip(video_gen, prompt: str, model: str, size: str, duration: int, clip_num: int = 1) -> bytes:
+    """Generate a single video clip"""
+    # Add continuation hint for subsequent clips
+    if clip_num > 1:
+        prompt = f"Continuation of scene: {prompt}"
+    
+    video_bytes = video_gen.text_to_video(
+        prompt=prompt,
+        model=model,
+        size=size,
+        duration=duration,
+        max_wait_time=600
+    )
+    return video_bytes
+
+
+def stitch_videos_with_ffmpeg(video_paths: list, output_path: str) -> bool:
+    """Stitch multiple videos together using ffmpeg"""
+    import subprocess
+    import os
+    
+    # Create a file list for ffmpeg concat
+    list_file = f"/tmp/video_list_{os.path.basename(output_path)}.txt"
+    with open(list_file, 'w') as f:
+        for path in video_paths:
+            f.write(f"file '{path}'\n")
+    
+    try:
+        # Use ffmpeg concat demuxer for seamless stitching
+        cmd = [
+            'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+            '-i', list_file,
+            '-c', 'copy',  # Copy without re-encoding for speed
+            output_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
+        
+        # Cleanup temp files
+        os.remove(list_file)
+        for path in video_paths:
+            if os.path.exists(path):
+                os.remove(path)
+        
+        return result.returncode == 0
+    except Exception as e:
+        logger.error(f"FFmpeg stitching error: {e}")
+        return False
 
 
 @router.post("/ai/video/generate")
 async def generate_video(request: VideoGenerationRequest):
-    """Generate video from text prompt using Sora 2"""
+    """Generate video from text prompt using Sora 2. Supports extended durations via multi-clip stitching."""
     try:
         api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
         if not api_key:
@@ -333,13 +382,15 @@ async def generate_video(request: VideoGenerationRequest):
         
         # Validate parameters
         valid_sizes = ["1280x720", "1792x1024", "1024x1792", "1024x1024"]
-        valid_durations = [4, 8, 12]
+        base_durations = [4, 8, 12]
+        extended_durations = [24, 36, 48, 60]  # Multi-clip durations
+        all_valid_durations = base_durations + extended_durations
         valid_models = ["sora-2", "sora-2-pro"]
         
         if request.size not in valid_sizes:
             raise HTTPException(status_code=400, detail=f"Invalid size. Must be one of: {valid_sizes}")
-        if request.duration not in valid_durations:
-            raise HTTPException(status_code=400, detail=f"Invalid duration. Must be one of: {valid_durations}")
+        if request.duration not in all_valid_durations:
+            raise HTTPException(status_code=400, detail=f"Invalid duration. Must be one of: {all_valid_durations}")
         if request.model not in valid_models:
             raise HTTPException(status_code=400, detail=f"Invalid model. Must be one of: {valid_models}")
         
@@ -347,32 +398,65 @@ async def generate_video(request: VideoGenerationRequest):
         import uuid
         import os
         
-        # Generate unique filename
         video_id = str(uuid.uuid4())
-        output_path = f"/tmp/video_{video_id}.mp4"
-        
-        logger.info(f"Starting video generation: prompt='{request.prompt[:50]}...', size={request.size}, duration={request.duration}s")
-        
-        # Generate video
         video_gen = OpenAIVideoGeneration(api_key=api_key)
-        video_bytes = video_gen.text_to_video(
-            prompt=request.prompt,
-            model=request.model,
-            size=request.size,
-            duration=request.duration,
-            max_wait_time=600
-        )
         
-        if not video_bytes:
-            raise HTTPException(status_code=500, detail="Video generation failed - no video returned")
-        
-        # Save to temp file
-        video_gen.save_video(video_bytes, output_path)
+        # Check if extended duration (requires multi-clip)
+        if request.duration in extended_durations:
+            # Calculate number of 12-second clips needed
+            num_clips = request.duration // 12
+            clip_duration = 12
+            
+            logger.info(f"Extended video: generating {num_clips} clips of {clip_duration}s each for {request.duration}s total")
+            
+            clip_paths = []
+            for i in range(num_clips):
+                logger.info(f"Generating clip {i+1}/{num_clips}...")
+                
+                clip_bytes = await generate_single_clip(
+                    video_gen, request.prompt, request.model, 
+                    request.size, clip_duration, clip_num=i+1
+                )
+                
+                if not clip_bytes:
+                    raise HTTPException(status_code=500, detail=f"Failed to generate clip {i+1}")
+                
+                # Save clip temporarily
+                clip_path = f"/tmp/clip_{video_id}_{i}.mp4"
+                video_gen.save_video(clip_bytes, clip_path)
+                clip_paths.append(clip_path)
+            
+            # Stitch clips together
+            output_path = f"/tmp/video_{video_id}.mp4"
+            logger.info(f"Stitching {num_clips} clips together...")
+            
+            if not stitch_videos_with_ffmpeg(clip_paths, output_path):
+                raise HTTPException(status_code=500, detail="Failed to stitch video clips together")
+            
+            # Read final video
+            with open(output_path, 'rb') as f:
+                video_bytes = f.read()
+            os.remove(output_path)
+            
+        else:
+            # Single clip generation
+            logger.info(f"Single clip: prompt='{request.prompt[:50]}...', size={request.size}, duration={request.duration}s")
+            
+            video_bytes = video_gen.text_to_video(
+                prompt=request.prompt,
+                model=request.model,
+                size=request.size,
+                duration=request.duration,
+                max_wait_time=600
+            )
+            
+            if not video_bytes:
+                raise HTTPException(status_code=500, detail="Video generation failed - no video returned")
         
         # Convert to base64 for response
         video_base64 = base64.b64encode(video_bytes).decode('utf-8')
         
-        logger.info(f"Video generation complete: {len(video_bytes)} bytes")
+        logger.info(f"Video generation complete: {len(video_bytes)} bytes, duration={request.duration}s")
         
         return {
             "success": True,
@@ -380,7 +464,8 @@ async def generate_video(request: VideoGenerationRequest):
             "video_base64": video_base64,
             "size": request.size,
             "duration": request.duration,
-            "mime_type": "video/mp4"
+            "mime_type": "video/mp4",
+            "is_extended": request.duration in extended_durations
         }
         
     except HTTPException:
@@ -398,6 +483,9 @@ async def get_video_generation_status():
         "available": bool(api_key),
         "provider": "sora-2",
         "supported_sizes": ["1280x720", "1792x1024", "1024x1792", "1024x1024"],
-        "supported_durations": [4, 8, 12],
+        "supported_durations": {
+            "base": [4, 8, 12],
+            "extended": [24, 36, 48, 60]
+        },
         "supported_models": ["sora-2", "sora-2-pro"]
     }
