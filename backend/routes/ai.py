@@ -428,7 +428,7 @@ async def transcribe_recording(request: RecordingTranscriptionRequest):
                     try:
                         if os.path.exists(temp_path):
                             os.unlink(temp_path)
-                    except:
+                    except Exception:
                         pass
         else:
             # Prepare file for transcription
