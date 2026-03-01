@@ -118,13 +118,13 @@ const InstantMeetingRoom = () => {
   const eventSourceRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
 
-  // ICE servers config
-  const iceServers = {
+  // ICE servers config - defined outside component to avoid recreating
+  const iceServersConfig = React.useMemo(() => ({
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' }
     ]
-  };
+  }), []);
 
   // Initialize camera for preview
   const initCamera = useCallback(async () => {
