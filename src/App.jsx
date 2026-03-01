@@ -463,6 +463,7 @@ function App() {
                                 <Route path="monitoring" element={<AdminMonitoringDashboard />} />
                                 <Route path="security-policies" element={<AdminSecurityPolicies />} />
                                 <Route path="meeting-analytics" element={<AdminMeetingAnalytics />} />
+                                <Route path="cloud-storage" element={<AdminCloudStoragePage />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>
