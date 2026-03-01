@@ -1224,16 +1224,12 @@ const InstantMeetingRoom = () => {
                       </>
                     )}
                   </Button>
-                        </div>
-                      </>
-                    )}
-                  </Button>
 
                   {/* Both Option */}
                   <Button
                     onClick={async () => {
                       downloadRecording();
-                      await saveToCloud();
+                      await saveToCloud(true);
                     }}
                     disabled={isSavingToCloud}
                     variant="outline"
@@ -1246,8 +1242,8 @@ const InstantMeetingRoom = () => {
                       <Cloud className="w-4 h-4 mr-3" />
                     </div>
                     <div className="text-left">
-                      <div className="font-medium">Download & Save to Cloud</div>
-                      <div className="text-xs text-slate-400">Keep a copy everywhere</div>
+                      <div className="font-medium">Download & Save + Transcribe</div>
+                      <div className="text-xs text-slate-400">Keep a copy everywhere with transcript</div>
                     </div>
                   </Button>
                 </div>
