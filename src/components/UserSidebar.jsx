@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Mic, FileText, Briefcase, Settings, LogOut, ChevronLeft, 
-  ChevronRight, User, HardDrive, CreditCard, DollarSign, MessageSquare, Video,
+  ChevronRight, User, HardDrive, CreditCard, DollarSign, MessageSquare,
   CircleDot, ExternalLink, ChevronDown, ChevronUp, Coins, Tag, Receipt, Volume2,
   Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar
 } from 'lucide-react';
