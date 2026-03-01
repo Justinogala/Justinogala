@@ -148,6 +148,18 @@ async def startup_event():
     try:
         await db.command("ping")
         logger.info("Database connection successful")
+        
+        # Create TTL index for video_history - auto-delete after 7 days
+        try:
+            await db.video_history.create_index(
+                "created_at",
+                expireAfterSeconds=7 * 24 * 60 * 60  # 7 days in seconds
+            )
+            logger.info("Video history TTL index created (7 day expiry)")
+        except Exception as idx_err:
+            # Index might already exist
+            logger.info(f"TTL index status: {idx_err}")
+            
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
 
