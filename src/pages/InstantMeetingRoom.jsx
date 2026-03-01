@@ -413,9 +413,6 @@ const InstantMeetingRoom = () => {
 
   // Leave meeting
   const leaveMeeting = async () => {
-    // Close SSE
-    eventSourceRef.current?.close();
-
     // Close peer connections
     peerConnectionsRef.current.forEach(pc => pc.close());
     peerConnectionsRef.current.clear();
