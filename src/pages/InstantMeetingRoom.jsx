@@ -196,6 +196,18 @@ const InstantMeetingRoom = () => {
     return () => clearInterval(interval);
   }, [joined]);
 
+  // Recording duration timer
+  useEffect(() => {
+    let interval;
+    if (isRecording && recordingStartRef.current) {
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - recordingStartRef.current) / 1000);
+        setRecordingDuration(elapsed);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
   const formatDuration = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
