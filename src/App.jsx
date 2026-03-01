@@ -359,6 +359,7 @@ function App() {
                                 <Route path="/workspace/:workspaceId/manage" element={<WorkspaceDetailPage />} />
                                 <Route path="/workspace/:id" element={<WorkspaceDetailPage />} /> 
                                 <Route path="/calendar" element={<CalendarPage />} />
+                                <Route path="/meet/:meetingId" element={<InstantMeetingRoom />} />
                                 <Route path="/meeting/:meetingId" element={<InstantMeetingRoom />} />
                                 <Route path="/workspace/meeting/:meetingId" element={<InstantMeetingRoom />} />
                                 <Route path="/workspace/meeting-old/:meetingId" element={<MeetingRoomPage />} />
