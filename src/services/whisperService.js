@@ -1,8 +1,11 @@
 
-export const whisperService = {
-  transcribeAudio: async (audioFile, apiKey) => {
-    if (!apiKey) throw new Error("OpenAI API Key is missing. Please configure it in settings.");
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
+export const whisperService = {
+  /**
+   * Transcribe audio using the backend API (uses platform's API key)
+   */
+  transcribeAudio: async (audioFile, language = 'en') => {
     // File validation
     const maxSize = 25 * 1024 * 1024; // 25MB Whisper limit
     if (audioFile.size > maxSize) {
@@ -11,37 +14,30 @@ export const whisperService = {
 
     const formData = new FormData();
     formData.append("file", audioFile);
-    formData.append("model", "whisper-1");
-    // We request verbose_json to get segment timestamps and other metadata
-    formData.append("response_format", "verbose_json"); 
+    formData.append("language", language);
 
     try {
-      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      const response = await fetch(`${API_BASE}/api/ai/transcribe`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-        },
         body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `Whisper API request failed: ${response.statusText}`);
+        throw new Error(errorData.detail || `Transcription failed: ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      // Return comprehensive structure
+      // Return comprehensive structure matching existing format
       return {
         text: data.text,
         segments: data.segments || [], 
-        duration: data.duration, // in seconds
-        language: data.language,
-        confidence: 0.95, // Whisper doesn't always provide global confidence, but segments have it
+        duration: data.duration,
+        language: data.language || language,
+        confidence: 0.95,
         jobId: `whisper-${Date.now()}`,
         status: 'completed',
-        // Metadata not from API but useful to pass through if needed, 
-        // though usually the caller handles file metadata.
         raw: data
       };
     } catch (error) {
@@ -50,13 +46,25 @@ export const whisperService = {
     }
   },
 
+  /**
+   * Check if transcription service is available
+   */
+  checkAvailability: async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/ai/transcribe/status`);
+      if (!response.ok) return { available: false };
+      return await response.json();
+    } catch {
+      return { available: false };
+    }
+  },
+
   validateAudioFile: (file) => {
     const validTypes = [
       'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 
       'audio/mp4', 'audio/x-m4a', 'audio/ogg', 'audio/webm', 'video/mp4', 'video/webm'
     ];
-    // Also check extension as fallback
-    const validExtensions = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm'];
+    const validExtensions = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm', '.ogg'];
     const ext = '.' + file.name.split('.').pop().toLowerCase();
 
     const isValidType = validTypes.includes(file.type) || validExtensions.includes(ext);
@@ -76,11 +84,13 @@ export const whisperService = {
     let message = "An unknown error occurred during transcription.";
     
     if (error.message.includes("401")) {
-      message = "Invalid OpenAI API Key. Please check your settings.";
+      message = "Authentication error. Please contact support.";
     } else if (error.message.includes("413") || error.message.includes("File size")) {
       message = "File is too large. OpenAI Whisper accepts files up to 25MB.";
     } else if (error.message.includes("429")) {
       message = "Rate limit exceeded. Please try again later.";
+    } else if (error.message.includes("not configured")) {
+      message = "Transcription service is not available. Please contact support.";
     } else if (error.message) {
       message = error.message;
     }
