@@ -119,6 +119,7 @@ const FileManagementPage = () => {
               onPreview={setSelectedPreviewFile}
               onDetails={setSelectedDetailFile}
               onDelete={handleDelete}
+              onViewTranscript={setTranscriptFile}
             />
           </motion.div>
         </main>
