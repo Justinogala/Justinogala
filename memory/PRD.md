@@ -743,17 +743,25 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Cloud Save for Recordings** - Save recordings to File Manager
   - Recording options modal after stopping
   - "Download to Device" - Save locally to downloads folder
-  - "Save to Cloud" - Upload to File Manager (GridFS) with "meeting-recordings" category
-  - "Download & Save to Cloud" - Both options combined
+  - "Save to Cloud + Transcribe" - Upload with auto-transcription
+  - "Download & Save + Transcribe" - Both options combined
   - "Discard Recording" - Delete without saving
   - Loading state with spinner during cloud upload
   - Toast notifications for success/failure
+- [x] **Auto-Transcription for Recordings** - Whisper-powered transcription
+  - `POST /api/ai/transcribe/recording` - Transcribe stored recording from GridFS
+  - `GET /api/ai/transcribe/recording/{file_id}` - Get transcript for a recording
+  - `GET /api/ai/transcripts/user/{user_id}` - Get all user transcripts
+  - `DELETE /api/ai/transcripts/{transcript_id}` - Delete a transcript
+  - Transcripts stored in `recording_transcripts` collection
+  - Files marked with `has_transcript: true` when transcribed
 - [x] **Labeled Action Buttons** - All meeting controls now have text labels
   - Pre-join screen: "Mute/Unmute", "Stop Video/Start Video"
   - In-call controls: "Mute/Unmute", "Stop Video/Start Video", "Share/Stop Share", "Record/Stop", "Leave"
   - Responsive sizing for mobile and desktop
 - [x] **Files Modified**:
-  - `/app/src/pages/InstantMeetingRoom.jsx` - Added recording states, functions, cloud save, and labeled button UI
+  - `/app/src/pages/InstantMeetingRoom.jsx` - Added recording, cloud save, transcription
+  - `/app/backend/routes/ai.py` - Added recording transcription endpoints
 
 ### Pricing Layout Fix (Mar 1, 2026)
 - [x] **4-Tier Pricing on Landing Page** - Verified correct horizontal display
