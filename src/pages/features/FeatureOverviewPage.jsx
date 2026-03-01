@@ -88,7 +88,14 @@ const FeatureOverviewPage = () => {
                     transition={{ delay: idx * 0.05 }}
                   >
                     <Link to={feature.link} className="block h-full group">
-                      <Card className="h-full border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900">
+                      <Card className="h-full border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 relative overflow-hidden">
+                        {feature.badge && (
+                          <div className="absolute top-4 right-4">
+                            <span className="px-2 py-1 text-xs font-bold bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white rounded-full">
+                              {feature.badge}
+                            </span>
+                          </div>
+                        )}
                         <CardContent className="p-8">
                           <div className={`w-14 h-14 rounded-2xl ${feature.bg} flex items-center justify-center mb-6 transition-transform group-hover:scale-110 duration-300`}>
                             <feature.icon className={`w-7 h-7 ${feature.color}`} />
