@@ -815,34 +815,3 @@ async def delete_all_videos():
     except Exception as e:
         logger.error(f"Error deleting all videos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/video-history/stats")
-async def get_video_stats():
-    """Get video history statistics"""
-    try:
-        total = await db.video_history.count_documents({})
-        
-        # Get total storage used
-        pipeline = [
-            {"$group": {"_id": None, "total_size": {"$sum": "$file_size"}}}
-        ]
-        result = await db.video_history.aggregate(pipeline).to_list(1)
-        total_size = result[0]["total_size"] if result else 0
-        
-        # Get videos by duration
-        duration_pipeline = [
-            {"$group": {"_id": "$duration", "count": {"$sum": 1}}}
-        ]
-        duration_stats = await db.video_history.aggregate(duration_pipeline).to_list(None)
-        
-        return {
-            "total_videos": total,
-            "total_storage_bytes": total_size,
-            "total_storage_mb": round(total_size / (1024 * 1024), 2),
-            "videos_by_duration": {str(d["_id"]): d["count"] for d in duration_stats}
-        }
-    except Exception as e:
-        logger.error(f"Error fetching video stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
