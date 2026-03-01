@@ -798,6 +798,12 @@ const InstantMeetingRoom = () => {
               <Clock className="w-4 h-4" />
               {formatDuration(callDuration)}
             </span>
+            {isRecording && (
+              <Badge variant="destructive" className="animate-pulse">
+                <Circle className="w-3 h-3 mr-1 fill-current" />
+                REC {formatDuration(recordingDuration)}
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
