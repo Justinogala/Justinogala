@@ -1,7 +1,7 @@
 """
 AI routes - TTS, transcription, chat.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from pydantic import BaseModel
