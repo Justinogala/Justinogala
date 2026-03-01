@@ -213,6 +213,7 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
   // Connect when userId changes
   useEffect(() => {
     if (userId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       connectSSE();
     }
     
