@@ -354,8 +354,16 @@ const TextToVideoPage = () => {
                   ) : generating ? (
                     <div className="text-center text-white p-8">
                       <Loader2 className="w-16 h-16 animate-spin mx-auto mb-4 text-fuchsia-400" />
-                      <h3 className="text-xl font-semibold mb-2">Generating your video...</h3>
-                      <p className="text-gray-400 text-sm mb-4">This may take 2-5 minutes</p>
+                      <h3 className="text-xl font-semibold mb-2">
+                        {duration >= 24 
+                          ? `Generating ${Math.ceil(duration / 12)} clips...` 
+                          : 'Generating your video...'}
+                      </h3>
+                      <p className="text-gray-400 text-sm mb-4">
+                        {duration >= 24 
+                          ? `Extended video: ${duration}s total. This may take ${Math.ceil(duration / 12) * 3}-${Math.ceil(duration / 12) * 5} minutes`
+                          : 'This may take 2-5 minutes'}
+                      </p>
                       <div className="w-64 mx-auto bg-slate-700 rounded-full h-2">
                         <div 
                           className="bg-gradient-to-r from-fuchsia-500 to-pink-500 h-2 rounded-full transition-all duration-1000"
