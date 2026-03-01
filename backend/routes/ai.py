@@ -316,6 +316,13 @@ async def get_transcription_status():
 
 # ============== Video Generation (Sora 2) ==============
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+# Store for video generation jobs
+video_jobs = {}
+video_executor = ThreadPoolExecutor(max_workers=2)
+
 class VideoGenerationRequest(BaseModel):
     prompt: str
     size: str = "1280x720"  # 1280x720, 1792x1024, 1024x1792, 1024x1024
@@ -323,20 +330,88 @@ class VideoGenerationRequest(BaseModel):
     model: str = "sora-2"  # sora-2 or sora-2-pro
 
 
-async def generate_single_clip(video_gen, prompt: str, model: str, size: str, duration: int, clip_num: int = 1) -> bytes:
-    """Generate a single video clip"""
-    # Add continuation hint for subsequent clips
-    if clip_num > 1:
-        prompt = f"Continuation of scene: {prompt}"
-    
-    video_bytes = video_gen.text_to_video(
-        prompt=prompt,
-        model=model,
-        size=size,
-        duration=duration,
-        max_wait_time=600
-    )
-    return video_bytes
+def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str):
+    """Synchronous video generation (runs in thread pool)"""
+    try:
+        from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+        
+        video_jobs[job_id] = {"status": "generating", "progress": 10}
+        
+        video_gen = OpenAIVideoGeneration(api_key=api_key)
+        
+        base_durations = [4, 8, 12]
+        extended_durations = [24, 36, 48, 60]
+        
+        if duration in extended_durations:
+            num_clips = duration // 12
+            clip_duration = 12
+            clip_paths = []
+            
+            for i in range(num_clips):
+                video_jobs[job_id] = {
+                    "status": "generating", 
+                    "progress": 10 + (i * 80 // num_clips),
+                    "message": f"Generating clip {i+1}/{num_clips}..."
+                }
+                
+                clip_prompt = f"Continuation of scene: {prompt}" if i > 0 else prompt
+                clip_bytes = video_gen.text_to_video(
+                    prompt=clip_prompt,
+                    model=model,
+                    size=size,
+                    duration=clip_duration,
+                    max_wait_time=600
+                )
+                
+                if not clip_bytes:
+                    video_jobs[job_id] = {"status": "failed", "error": f"Failed to generate clip {i+1}"}
+                    return
+                
+                clip_path = f"/tmp/clip_{job_id}_{i}.mp4"
+                video_gen.save_video(clip_bytes, clip_path)
+                clip_paths.append(clip_path)
+            
+            # Stitch clips
+            video_jobs[job_id] = {"status": "generating", "progress": 90, "message": "Stitching clips..."}
+            output_path = f"/tmp/video_{job_id}.mp4"
+            
+            if not stitch_videos_with_ffmpeg(clip_paths, output_path):
+                video_jobs[job_id] = {"status": "failed", "error": "Failed to stitch clips"}
+                return
+            
+            with open(output_path, 'rb') as f:
+                video_bytes = f.read()
+            import os
+            os.remove(output_path)
+        else:
+            video_jobs[job_id] = {"status": "generating", "progress": 30, "message": "Generating video..."}
+            video_bytes = video_gen.text_to_video(
+                prompt=prompt,
+                model=model,
+                size=size,
+                duration=duration,
+                max_wait_time=600
+            )
+        
+        if not video_bytes:
+            video_jobs[job_id] = {"status": "failed", "error": "No video returned"}
+            return
+        
+        # Save result
+        video_base64 = base64.b64encode(video_bytes).decode('utf-8')
+        video_jobs[job_id] = {
+            "status": "completed",
+            "progress": 100,
+            "video_base64": video_base64,
+            "size": size,
+            "duration": duration,
+            "file_size": len(video_bytes)
+        }
+        logger.info(f"Video job {job_id} completed: {len(video_bytes)} bytes")
+        
+    except Exception as e:
+        logger.error(f"Video job {job_id} failed: {e}")
+        video_jobs[job_id] = {"status": "failed", "error": str(e)}
 
 
 def stitch_videos_with_ffmpeg(video_paths: list, output_path: str) -> bool:
