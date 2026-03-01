@@ -335,7 +335,7 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
                 <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
                   type="text"
-                  placeholder="Enter Meeting ID"
+                  placeholder="Enter Meeting ID or paste link"
                   value={meetingIdInput}
                   onChange={(e) => setMeetingIdInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleJoinByMeetingId()}
