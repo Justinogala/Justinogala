@@ -11,6 +11,7 @@ import DocumentUpload from '@/components/DocumentUpload';
 import FileList from '@/components/FileList';
 import FilePreview from '@/components/FilePreview';
 import FileDetailsModal from '@/components/FileDetailsModal';
+import RecordingTranscriptViewer from '@/components/RecordingTranscriptViewer';
 import { fileService } from '@/services/fileService';
 import PageTransition from '@/components/PageTransition';
 
@@ -20,6 +21,7 @@ const FileManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPreviewFile, setSelectedPreviewFile] = useState(null);
   const [selectedDetailFile, setSelectedDetailFile] = useState(null);
+  const [transcriptFile, setTranscriptFile] = useState(null);
 
   const fetchFiles = async () => {
     setLoading(true);
