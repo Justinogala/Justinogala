@@ -740,12 +740,20 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - Recording indicator in header with "REC" badge and duration
   - Auto-downloads WebM file when stopped
   - Supports vp9/opus or vp8/opus codecs with fallback
+- [x] **Cloud Save for Recordings** - Save recordings to File Manager
+  - Recording options modal after stopping
+  - "Download to Device" - Save locally to downloads folder
+  - "Save to Cloud" - Upload to File Manager (GridFS) with "meeting-recordings" category
+  - "Download & Save to Cloud" - Both options combined
+  - "Discard Recording" - Delete without saving
+  - Loading state with spinner during cloud upload
+  - Toast notifications for success/failure
 - [x] **Labeled Action Buttons** - All meeting controls now have text labels
   - Pre-join screen: "Mute/Unmute", "Stop Video/Start Video"
   - In-call controls: "Mute/Unmute", "Stop Video/Start Video", "Share/Stop Share", "Record/Stop", "Leave"
   - Responsive sizing for mobile and desktop
 - [x] **Files Modified**:
-  - `/app/src/pages/InstantMeetingRoom.jsx` - Added recording states, functions, and labeled button UI
+  - `/app/src/pages/InstantMeetingRoom.jsx` - Added recording states, functions, cloud save, and labeled button UI
 
 ### Pricing Layout Fix (Mar 1, 2026)
 - [x] **4-Tier Pricing on Landing Page** - Verified correct horizontal display
