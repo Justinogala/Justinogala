@@ -418,7 +418,7 @@ const InstantMeetingRoom = () => {
 
     // Stop streams
     localStream?.getTracks().forEach(t => t.stop());
-    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStream?.getTracks().forEach(t => t.stop());
 
     // Notify server
     try {
