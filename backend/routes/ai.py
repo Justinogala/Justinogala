@@ -227,3 +227,86 @@ async def ai_chat_stream(request: AIChatRequest):
     except Exception as e:
         logger.error(f"AI chat stream error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/transcribe")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str = Form(default="en")
+):
+    """Transcribe audio file using OpenAI Whisper - uses platform API key"""
+    try:
+        api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Transcription service not configured")
+        
+        # Validate file size (25MB limit)
+        contents = await file.read()
+        if len(contents) > 25 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File size exceeds 25MB limit")
+        
+        # Validate file type
+        valid_extensions = ['.mp3', '.mp4', '.mpeg', '.mpga', '.m4a', '.wav', '.webm', '.ogg']
+        file_ext = '.' + file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+        if file_ext not in valid_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid file format. Supported: {', '.join(valid_extensions)}"
+            )
+        
+        from emergentintegrations.llm.openai import OpenAISpeechToText
+        import io
+        
+        # Initialize STT
+        stt = OpenAISpeechToText(api_key=api_key)
+        
+        # Create file-like object from contents
+        audio_file = io.BytesIO(contents)
+        audio_file.name = file.filename
+        
+        # Transcribe
+        response = await stt.transcribe(
+            file=audio_file,
+            model="whisper-1",
+            response_format="verbose_json",
+            language=language if language else None,
+            timestamp_granularities=["segment"]
+        )
+        
+        # Build response
+        result = {
+            "success": True,
+            "text": response.text,
+            "language": getattr(response, 'language', language),
+            "duration": getattr(response, 'duration', None),
+            "segments": []
+        }
+        
+        # Add segments if available
+        if hasattr(response, 'segments') and response.segments:
+            result["segments"] = [
+                {
+                    "start": seg.start if hasattr(seg, 'start') else seg.get('start'),
+                    "end": seg.end if hasattr(seg, 'end') else seg.get('end'),
+                    "text": seg.text if hasattr(seg, 'text') else seg.get('text')
+                }
+                for seg in response.segments
+            ]
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Transcription error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/transcribe/status")
+async def get_transcription_status():
+    """Check if transcription service is available (platform has API key configured)"""
+    api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+    return {
+        "available": bool(api_key),
+        "provider": "openai_whisper"
+    }
