@@ -2,19 +2,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import { whisperService } from './whisperService';
 import { transcriptionHistoryService } from './transcriptionHistoryService';
-import { transcriptionConfigService } from './transcriptionConfigService';
 import { transcriptionDataSync } from '@/utils/transcriptionDataSync';
 import { generateTranscriptionNotification } from '@/utils/notificationGenerators';
 
 export const transcriptionService = {
-  // Main method to orchestrate transcription
-  createTranscription: async (file, metadata, apiKeyOverride = null) => {
-    const apiKey = apiKeyOverride || transcriptionConfigService.getOpenAIApiKey();
-
-    if (!apiKey) {
-      throw new Error("OpenAI API Key required. Please configure it in settings.");
-    }
-
+  // Main method to orchestrate transcription - NO API KEY REQUIRED (uses backend)
+  createTranscription: async (file, metadata) => {
     const newId = uuidv4();
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
     const fileType = file.type || 'audio/' + file.name.split('.').pop();
@@ -23,8 +16,8 @@ export const transcriptionService = {
       // 1. Validate
       whisperService.validateAudioFile(file);
       
-      // 2. Transcribe
-      const result = await whisperService.transcribeAudio(file, apiKey);
+      // 2. Transcribe via backend (uses platform API key)
+      const result = await whisperService.transcribeAudio(file, metadata.language || 'en');
 
       // 3. Format result into application domain model
       const transcriptionData = {
@@ -57,6 +50,11 @@ export const transcriptionService = {
     }
   },
 
+  // Check if transcription is available
+  checkAvailability: async () => {
+    return whisperService.checkAvailability();
+  },
+
   // Save with validation
   saveTranscription: async (data) => {
     // 1. Normalize
@@ -83,7 +81,6 @@ export const transcriptionService = {
       
       return saved;
     } catch (error) {
-      // Attempt recovery if critical save failed (optional, depends on severity)
       console.error("Save failed, attempting recovery...", error);
       throw error;
     }
@@ -98,7 +95,6 @@ export const transcriptionService = {
   },
   
   updateTranscription: async (id, updates) => {
-    // We can fetch, merge, and save
     const current = transcriptionHistoryService.getTranscriptionById(id);
     if (!current) throw new Error("Transcription not found");
     const merged = { ...current, ...updates };
