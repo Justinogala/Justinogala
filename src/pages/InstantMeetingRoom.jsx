@@ -307,7 +307,7 @@ const InstantMeetingRoom = () => {
   };
 
   // Create and send offer
-  const createOfferTo = async (participantId, participantName) => {
+  const createOfferTo = useCallback(async (participantId, participantName) => {
     const pc = createPeerConnection(participantId, participantName, true);
     
     try {
@@ -329,7 +329,7 @@ const InstantMeetingRoom = () => {
     } catch (err) {
       console.error('Offer error:', err);
     }
-  };
+  }, [createPeerConnection, meetingId, user]);
 
   // Handle incoming signals via global handler (from SSE)
   const handleGroupCallSignal = useCallback(async ({ type, data }) => {
