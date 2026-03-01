@@ -183,7 +183,8 @@ const InstantMeetingRoom = () => {
     let interval;
     if (joined && callStartRef.current) {
       interval = setInterval(() => {
-        setCallDuration(Math.floor((Date.now() - callStartRef.current) / 1000));
+        const elapsed = Math.floor((performance.now() - callStartRef.current) / 1000);
+        setCallDuration(elapsed);
       }, 1000);
     }
     return () => clearInterval(interval);
