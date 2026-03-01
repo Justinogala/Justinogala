@@ -97,6 +97,7 @@ const InstantMeetingRoom = () => {
   // Core states
   const [joined, setJoined] = useState(false);
   const [localStream, setLocalStream] = useState(null);
+  const [screenStream, setScreenStream] = useState(null);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -111,10 +112,9 @@ const InstantMeetingRoom = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
 
-  // Refs
+  // Refs (only for non-render values)
   const previewRef = useRef(null);
   const callStartRef = useRef(null);
-  const screenStreamRef = useRef(null);
   const eventSourceRef = useRef(null);
   const peerConnectionsRef = useRef(new Map());
 
