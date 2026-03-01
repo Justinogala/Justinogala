@@ -40,10 +40,6 @@ const AdminCloudStoragePage = () => {
   const [migrationStatus, setMigrationStatus] = useState(null);
   const [storageStats, setStorageStats] = useState(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -71,6 +67,10 @@ const AdminCloudStoragePage = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleProviderChange = (provider) => {
     setSelectedProvider(provider);
