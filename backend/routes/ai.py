@@ -1,14 +1,15 @@
 """
-AI routes - TTS, transcription, chat.
+AI routes - TTS, transcription, chat, video generation.
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from pydantic import BaseModel
+from datetime import datetime, timezone
 import os
 import base64
 
-from config import logger
+from config import logger, get_database
 
 router = APIRouter(tags=["AI"])
 
