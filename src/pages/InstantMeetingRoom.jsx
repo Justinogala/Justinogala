@@ -250,7 +250,7 @@ const InstantMeetingRoom = () => {
     };
 
     return pc;
-  }, [localStream, meetingId, user]);
+  }, [localStream, meetingId, user, iceServersConfig]);
 
   // Join meeting
   const joinMeeting = async () => {
