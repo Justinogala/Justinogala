@@ -568,8 +568,6 @@ class SaveVideoRequest(BaseModel):
 async def save_video_to_history(request: SaveVideoRequest):
     """Save generated video to user's history"""
     try:
-        db = get_database()
-        
         # Calculate file size from base64
         video_bytes = base64.b64decode(request.video_base64)
         file_size = len(video_bytes)
