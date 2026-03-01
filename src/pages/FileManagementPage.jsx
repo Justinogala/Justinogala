@@ -136,6 +136,13 @@ const FileManagementPage = () => {
           onClose={() => setSelectedDetailFile(null)}
           onDelete={handleDelete}
         />
+        
+        <RecordingTranscriptViewer
+          fileId={transcriptFile?.id}
+          fileName={transcriptFile?.name}
+          isOpen={!!transcriptFile}
+          onClose={() => setTranscriptFile(null)}
+        />
       </div>
     </PageTransition>
   );
