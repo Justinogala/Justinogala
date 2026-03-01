@@ -13,14 +13,14 @@ const fallbackPlans = [
   {
     id: "plan_free",
     name: "Free",
-    description: "Perfect for individuals getting started",
+    description: "Perfect for getting started",
     price_monthly: 0,
     features: [
       "5 video meetings per month",
       "30 minutes AI transcription",
       "1 GB secure cloud storage",
-      "Text to Audio & Text to Video (4s)",
-      "Instant video meetings with screen share",
+      "Text to Video (up to 4s)",
+      "Basic AI features",
       "Email support"
     ],
     is_popular: false
@@ -28,15 +28,30 @@ const fallbackPlans = [
   {
     id: "plan_pro",
     name: "Pro",
-    description: "Best for professionals & growing teams",
-    price_monthly: 29,
+    description: "For professionals and freelancers",
+    price_monthly: 19,
     features: [
-      "100 video meetings per month",
-      "500 minutes AI transcription",
-      "10 GB secure cloud storage",
-      "Text to Audio & Text to Video (12s)",
-      "Up to 10 team members per workspace",
-      "Priority support"
+      "50 video meetings per month",
+      "300 minutes AI transcription",
+      "5 GB secure cloud storage",
+      "Text to Video (up to 8s)",
+      "Up to 3 workspaces",
+      "Priority email support"
+    ],
+    is_popular: false
+  },
+  {
+    id: "plan_business",
+    name: "Business",
+    description: "For growing teams and startups",
+    price_monthly: 39,
+    features: [
+      "150 video meetings per month",
+      "1000 minutes AI transcription",
+      "25 GB secure cloud storage",
+      "Text to Video (up to 24s)",
+      "Up to 25 team members",
+      "Priority chat & email support"
     ],
     is_popular: true
   },
@@ -44,13 +59,13 @@ const fallbackPlans = [
     id: "plan_enterprise",
     name: "Enterprise",
     description: "For large organizations",
-    price_monthly: 99,
+    price_monthly: 79,
     features: [
       "Unlimited video meetings",
       "Unlimited AI transcription",
       "100 GB secure cloud storage",
-      "Text to Video (up to 60s extended)",
-      "Admin dashboard & controls",
+      "Text to Video (up to 60s)",
+      "Unlimited team members",
       "24/7 dedicated support"
     ],
     is_popular: false
