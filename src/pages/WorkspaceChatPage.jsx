@@ -718,16 +718,35 @@ const WorkspaceChatPage = () => {
                 <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-amber-500" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome to Chat</h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-6">
-                Select a team member from the sidebar to start a real-time conversation
-              </p>
+              {!currentWorkspace ? (
+                <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-6">
+                  Please select a workspace first to chat with team members
+                </p>
+              ) : filteredUsers.length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-6">
+                  No team members in this workspace yet. Add members from the Workspaces page to start chatting.
+                </p>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400 max-w-sm mb-6">
+                  Select a team member from the sidebar to start a real-time conversation
+                </p>
+              )}
               <div className="flex items-center gap-2 text-sm text-gray-400">
-                <div className="flex -space-x-2">
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className={cn("w-8 h-8 rounded-full bg-gradient-to-br ring-2 ring-white dark:ring-slate-900", getAvatarGradient(i))} />
-                  ))}
-                </div>
-                <span>{filteredUsers.length} team members available</span>
+                {filteredUsers.length > 0 && (
+                  <>
+                    <div className="flex -space-x-2">
+                      {filteredUsers.slice(0, 3).map((u, i) => (
+                        <div key={u.id || i} className={cn("w-8 h-8 rounded-full bg-gradient-to-br ring-2 ring-white dark:ring-slate-900", getAvatarGradient(i))} />
+                      ))}
+                    </div>
+                    <span>{filteredUsers.length} team member{filteredUsers.length !== 1 ? 's' : ''} available</span>
+                  </>
+                )}
+                {currentWorkspace && filteredUsers.length === 0 && (
+                  <span className="text-violet-500">
+                    Workspace: {currentWorkspace.name}
+                  </span>
+                )}
               </div>
             </div>
           )}
