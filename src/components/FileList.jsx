@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Music, Video, MoreVertical, 
-  Download, Eye, Trash2, Search, Filter 
+  Download, Eye, Trash2, Search, Filter,
+  FileType, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +22,7 @@ const FileIcon = ({ type, bucket }) => {
   return <FileText className="w-5 h-5 text-emerald-500" />;
 };
 
-const FileList = ({ files, onPreview, onDetails, onDelete }) => {
+const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript }) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
 
