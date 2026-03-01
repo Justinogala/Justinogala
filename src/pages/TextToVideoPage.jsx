@@ -3,10 +3,12 @@ import { Helmet } from 'react-helmet';
 import { 
   Video, Sparkles, Download, RefreshCw, Play, Pause, 
   Loader2, AlertCircle, Settings2, Clock, Maximize, 
-  Square, RectangleHorizontal, RectangleVertical, Film, ChevronDown
+  Square, RectangleHorizontal, RectangleVertical, Film, ChevronDown,
+  Save, History, Trash2, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +21,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 
 const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
@@ -36,8 +45,18 @@ const TextToVideoPage = () => {
   const [model, setModel] = useState('sora-2');
   const [size, setSize] = useState('1280x720');
   const [duration, setDuration] = useState(4);
+  
+  // History
+  const [videoHistory, setVideoHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  
+  // Save dialog
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveTitle, setSaveTitle] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  // Check service availability
+  // Check service availability and load history
   useEffect(() => {
     const checkService = async () => {
       try {
@@ -51,7 +70,22 @@ const TextToVideoPage = () => {
       }
     };
     checkService();
+    loadHistory();
   }, []);
+
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/ai/video/history?limit=10`);
+      if (res.ok) {
+        const data = await res.json();
+        setVideoHistory(data.videos || []);
+      }
+    } catch (error) {
+      console.error('Error loading video history:', error);
+    }
+    setHistoryLoading(false);
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
