@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import os
 import base64
 
-from config import logger, get_database
+from config import logger, db
 
 router = APIRouter(tags=["AI"])
 
