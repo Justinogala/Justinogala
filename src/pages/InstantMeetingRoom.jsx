@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Video, VideoOff, Mic, MicOff, PhoneOff, Users, 
   MessageSquare, Monitor, Copy, Check, Clock, Grid,
-  Settings, Maximize2, X, Share2, Circle, Square, Download
+  Settings, Maximize2, X, Share2, Circle, Square, Download, 
+  Cloud, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
