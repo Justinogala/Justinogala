@@ -94,29 +94,43 @@ const WorkspaceChatPage = () => {
 
   const isTyping = selectedUserId ? isUserTyping(selectedUserId) : false;
 
-  // Load real users from database
+  // Load workspace members instead of all users
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadWorkspaceMembers = async () => {
+      if (!currentWorkspace?.id) {
+        console.log('[Chat] No workspace selected, cannot load members');
+        setUsers([]);
+        return;
+      }
+      
       try {
-        const baseUrl = window.location.origin;
-        const response = await fetch(`${baseUrl}/api/users`);
-        if (response.ok) {
-          const data = await response.json();
-          // Filter out current user and add status
-          const otherUsers = (data.users || []).filter(u => u.id !== activeUser?.id);
-          setUsers(otherUsers);
-        }
+        console.log('[Chat] Loading members for workspace:', currentWorkspace.id);
+        const members = await getMembers(currentWorkspace.id);
+        
+        // Extract user data from members and filter out current user
+        const workspaceUsers = members
+          .filter(m => m.user && m.user_id !== activeUser?.id)
+          .map(m => ({
+            id: m.user_id,
+            name: m.user?.name || m.user?.email?.split('@')[0] || 'Unknown',
+            email: m.user?.email || '',
+            initials: m.user?.name?.charAt(0)?.toUpperCase() || m.user?.email?.charAt(0)?.toUpperCase() || '?',
+            role: m.role,
+            avatar_url: m.user?.avatar_url
+          }));
+        
+        console.log('[Chat] Loaded workspace members:', workspaceUsers.length);
+        setUsers(workspaceUsers);
       } catch (err) {
-        console.error('Error loading users:', err);
-        // Fallback to mock data
-        setUsers(messagingService.getAllUsers());
+        console.error('Error loading workspace members:', err);
+        setUsers([]);
       }
     };
     
     if (activeUser) {
-      loadUsers();
+      loadWorkspaceMembers();
     }
-  }, [activeUser?.id]);
+  }, [activeUser?.id, currentWorkspace?.id]);
 
   useEffect(() => {
     if (selectedUserId && activeUser) {
