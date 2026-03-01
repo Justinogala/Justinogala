@@ -39,7 +39,6 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: Mic, label: 'Voice Chat', path: '/voice-chat', gradient: 'from-indigo-500 to-blue-500' },
     { icon: Briefcase, label: 'Workspaces', path: '/workspaces', gradient: 'from-teal-500 to-cyan-500' },
     { icon: MessageSquare, label: 'Chat', path: '/workspace/chat', gradient: 'from-pink-500 to-rose-500' },
-    { icon: Video, label: 'Calls', path: 'https://conferencing.jizira.com/', external: true, gradient: 'from-purple-500 to-violet-500' },
     { icon: HardDrive, label: 'Files', path: '/files', gradient: 'from-slate-500 to-gray-500' },
   ];
 
