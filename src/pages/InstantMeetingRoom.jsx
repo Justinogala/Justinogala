@@ -660,7 +660,7 @@ const InstantMeetingRoom = () => {
   };
 
   // Save recording to cloud (File Manager)
-  const saveToCloud = async () => {
+  const saveToCloud = async (autoTranscribe = true) => {
     if (!recordedBlob || !user?.id) return;
     
     setIsSavingToCloud(true);
@@ -697,10 +697,49 @@ const InstantMeetingRoom = () => {
         throw new Error('Upload failed');
       }
       
+      const uploadResult = await response.json();
+      const fileId = uploadResult?.file?.id;
+      
       toast({ 
         title: 'Saved to Cloud', 
-        description: 'Recording saved to your File Manager. Access it anytime from Files > Meeting Recordings.' 
+        description: autoTranscribe 
+          ? 'Recording saved! Starting transcription...' 
+          : 'Recording saved to your File Manager.'
       });
+      
+      // Auto-transcribe if enabled
+      if (autoTranscribe && fileId) {
+        try {
+          const transcribeResponse = await fetch(`${API_URL}/api/ai/transcribe/recording`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file_id: fileId,
+              user_id: user.id,
+              file_name: fileName
+            })
+          });
+          
+          if (transcribeResponse.ok) {
+            const transcriptResult = await transcribeResponse.json();
+            toast({ 
+              title: 'Transcription Complete', 
+              description: `Generated ${transcriptResult.segments?.length || 0} segments. View in Files > Meeting Recordings.`
+            });
+          } else {
+            const errorData = await transcribeResponse.json();
+            console.warn('Transcription failed:', errorData);
+            toast({ 
+              variant: 'default',
+              title: 'Transcription Pending', 
+              description: errorData.detail || 'Transcription will be available soon.'
+            });
+          }
+        } catch (transcribeErr) {
+          console.warn('Transcription error:', transcribeErr);
+          // Don't show error toast - transcription is optional
+        }
+      }
       
       setShowRecordingOptions(false);
       setRecordedBlob(null);
