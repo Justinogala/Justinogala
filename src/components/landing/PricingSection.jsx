@@ -148,7 +148,7 @@ const PricingSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {plans.map((plan, idx) => (
             <motion.div
               key={plan.id || idx}
@@ -156,7 +156,7 @@ const PricingSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className={plan.is_popular ? 'md:-mt-4 md:mb-4 relative z-10' : ''}
+              className={plan.is_popular ? 'lg:-mt-4 lg:mb-4 relative z-10' : ''}
             >
               <Card 
                 className={`h-full flex flex-col bg-white dark:bg-slate-900 ${
@@ -172,7 +172,7 @@ const PricingSection = () => {
                 )}
                 
                 <CardHeader className="text-center pt-8 pb-4">
-                  <CardTitle className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  <CardTitle className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                     {plan.name} {plan.price_monthly > 0 && 'Plan'}
                   </CardTitle>
                   <div className="flex items-baseline justify-center">
