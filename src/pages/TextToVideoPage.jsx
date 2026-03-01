@@ -594,6 +594,116 @@ const TextToVideoPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Save to History Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Save className="w-5 h-5 text-fuchsia-500" />
+              Save Video to History
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title (optional)</Label>
+              <Input
+                id="title"
+                placeholder={`Video - ${duration}s`}
+                value={saveTitle}
+                onChange={(e) => setSaveTitle(e.target.value)}
+              />
+            </div>
+            <div className="text-sm text-gray-500">
+              <p><strong>Prompt:</strong> {prompt.slice(0, 100)}...</p>
+              <p><strong>Duration:</strong> {duration}s | <strong>Resolution:</strong> {size}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>Cancel</Button>
+            <Button 
+              onClick={handleSaveToHistory} 
+              disabled={saving}
+              className="bg-gradient-to-r from-fuchsia-500 to-pink-500"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video History Dialog */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-fuchsia-500" />
+              Video History
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {historyLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-fuchsia-500" />
+              </div>
+            ) : videoHistory.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Video className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No saved videos yet</p>
+              </div>
+            ) : (
+              videoHistory.map((video) => (
+                <Card key={video.id} className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium truncate">{video.title}</h4>
+                      <p className="text-sm text-gray-500 truncate">{video.prompt}</p>
+                      <div className="flex gap-4 mt-1 text-xs text-gray-400">
+                        <span>{video.duration}s</span>
+                        <span>{video.size}</span>
+                        <span>{formatFileSize(video.file_size)}</span>
+                        <span>{formatDate(video.created_at)}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleLoadFromHistory(video.id)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          const res = await fetch(`${API_URL}/api/ai/video/history/${video.id}`);
+                          const data = await res.json();
+                          handleDownload(data.video_base64, `${video.title}.mp4`);
+                        }}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={() => handleDeleteFromHistory(video.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowHistory(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
