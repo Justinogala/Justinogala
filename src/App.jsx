@@ -198,6 +198,7 @@ const AdminAuditLogsPage = lazy(() => import('@/pages/admin/AdminAuditLogsPage')
 const AdminMonitoringDashboard = lazy(() => import('@/pages/admin/AdminMonitoringDashboard'));
 const AdminSecurityPolicies = lazy(() => import('@/pages/admin/AdminSecurityPolicies'));
 const AdminMeetingAnalytics = lazy(() => import('@/pages/admin/AdminMeetingAnalytics'));
+const AdminCloudStoragePage = lazy(() => import('@/pages/admin/AdminCloudStoragePage'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 
