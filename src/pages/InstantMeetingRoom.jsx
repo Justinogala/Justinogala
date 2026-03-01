@@ -117,6 +117,9 @@ const InstantMeetingRoom = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordedChunks, setRecordedChunks] = useState([]);
+  const [recordedBlob, setRecordedBlob] = useState(null);
+  const [showRecordingOptions, setShowRecordingOptions] = useState(false);
+  const [isSavingToCloud, setIsSavingToCloud] = useState(false);
   const mediaRecorderRef = useRef(null);
   const recordingStartRef = useRef(null);
 
