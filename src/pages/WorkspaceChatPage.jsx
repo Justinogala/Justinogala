@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/context/AuthContext';
+import { useWorkspace } from '@/context/WorkspaceContext';
 import { useWebSocketChatContext } from '@/context/WebSocketChatContext';
 import { useWebRTCCall } from '@/hooks/useWebRTCCall';
 import { messagingService } from '@/services/messagingService';
+import { getMembers } from '@/services/workspaceService';
 import PageTransition from '@/components/PageTransition';
 import EnhancedMessageInput from '@/components/chat/EnhancedMessageInput';
 import CallInterface from '@/components/chat/CallInterface';
