@@ -337,6 +337,7 @@ function App() {
                                 <Route path="/user/dashboard" element={<UserDashboard />} />
                                 <Route path="/quick-record" element={<QuickRecordPage />} />
                                 <Route path="/text-to-audio" element={<TextToAudioPage />} />
+                                <Route path="/text-to-video" element={<TextToVideoPage />} />
                                 <Route path="/meetings" element={<MeetingsPage />} />
                                 <Route path="/meeting/:id" element={<MeetingDetailPage />} />
                                 <Route path="/meeting-calendar" element={<MeetingCalendarPage />} />
