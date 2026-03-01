@@ -11,6 +11,7 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const connectSSERef = useRef(null);
   const maxReconnectAttempts = 5;
 
   // Connect using Server-Sent Events (SSE) - more reliable with reverse proxies
