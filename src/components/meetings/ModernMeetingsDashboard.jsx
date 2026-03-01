@@ -91,24 +91,55 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
     });
   };
 
-  // Join meeting by ID
+  // Join meeting by ID or URL
   const handleJoinByMeetingId = () => {
     if (!meetingIdInput.trim()) {
       toast({
         title: 'Enter Meeting ID',
-        description: 'Please enter a valid meeting ID to join.',
+        description: 'Please enter a valid meeting ID or meeting link to join.',
         variant: 'destructive'
       });
       return;
     }
     
-    // Extract ID if user pasted full URL
-    let meetingId = meetingIdInput.trim();
-    if (meetingId.includes('/meeting/')) {
-      meetingId = meetingId.split('/meeting/').pop().split('/')[0];
+    let input = meetingIdInput.trim();
+    
+    // Check if it's an external URL (Jizira, Zoom, etc.)
+    if (input.startsWith('http://') || input.startsWith('https://')) {
+      // Check if it's our own app URL
+      const currentOrigin = window.location.origin;
+      if (input.startsWith(currentOrigin)) {
+        // Extract meeting ID from our URL formats
+        let meetingId = input;
+        
+        // Handle /workspace/meeting/ID format
+        if (input.includes('/workspace/meeting/')) {
+          meetingId = input.split('/workspace/meeting/').pop().split('?')[0].split('/')[0];
+        }
+        // Handle /meeting/ID format
+        else if (input.includes('/meeting/')) {
+          meetingId = input.split('/meeting/').pop().split('?')[0].split('/')[0];
+        }
+        // Handle /meet/ID format
+        else if (input.includes('/meet/')) {
+          meetingId = input.split('/meet/').pop().split('?')[0].split('/')[0];
+        }
+        
+        navigate(`/meet/${meetingId}`);
+      } else {
+        // External meeting link - open in new tab
+        window.open(input, '_blank');
+        toast({
+          title: 'Opening External Meeting',
+          description: 'The meeting link will open in a new tab.',
+        });
+      }
+    } else {
+      // Just a meeting ID - navigate to our meeting room
+      navigate(`/meet/${input}`);
     }
     
-    navigate(`/workspace/meeting/${meetingId}`);
+    setMeetingIdInput('');
   };
 
   // Load meetings from MongoDB calendar events
