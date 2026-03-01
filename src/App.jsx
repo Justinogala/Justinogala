@@ -470,6 +470,7 @@ function App() {
                                 <Route path="security-policies" element={<AdminSecurityPolicies />} />
                                 <Route path="meeting-analytics" element={<AdminMeetingAnalytics />} />
                                 <Route path="cloud-storage" element={<AdminCloudStoragePage />} />
+                                <Route path="video-history" element={<AdminVideoHistoryPage />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>
