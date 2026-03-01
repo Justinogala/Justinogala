@@ -90,29 +90,49 @@ const PricingPage = () => {
   ];
 
   const comparisonFeatures = [
-    { category: 'Transcription', features: [
-      { name: 'Monthly minutes', free: '100', pro: '500', business: '2000' },
-      { name: 'AI accuracy', free: 'Standard', pro: 'High', business: 'Highest' },
+    { category: 'Meetings & Video', features: [
+      { name: 'Meetings per month', free: '5', pro: '100', business: 'Unlimited' },
+      { name: 'Instant video meetings', free: true, pro: true, business: true },
+      { name: 'Screen sharing', free: true, pro: true, business: true },
+      { name: 'Meeting recording', free: false, pro: true, business: true },
+      { name: 'Meeting scheduling', free: true, pro: true, business: true }
+    ]},
+    { category: 'Transcription & AI', features: [
+      { name: 'Transcription minutes/month', free: '30', pro: '500', business: 'Unlimited' },
+      { name: 'AI-powered accuracy', free: 'Standard', pro: 'High', business: 'Highest' },
       { name: 'Speaker identification', free: true, pro: true, business: true },
-      { name: 'Custom vocabulary', free: false, pro: true, business: true }
+      { name: 'AI summaries', free: 'Basic', pro: 'Advanced', business: 'Advanced' },
+      { name: 'Text to audio', free: false, pro: true, business: true }
     ]},
-    { category: 'AI Features', features: [
-      { name: 'Meeting summaries', free: 'Basic', pro: 'Advanced', business: 'Advanced' },
-      { name: 'Action item extraction', free: true, pro: true, business: true },
-      { name: 'AI chat', free: false, pro: true, business: true },
-      { name: 'Custom prompts', free: false, pro: false, business: true }
+    { category: 'Communication', features: [
+      { name: 'Team chat', free: true, pro: true, business: true },
+      { name: 'Voice chat channels', free: false, pro: true, business: true },
+      { name: 'File sharing in chat', free: true, pro: true, business: true },
+      { name: 'Real-time messaging', free: true, pro: true, business: true }
     ]},
-    { category: 'Collaboration', features: [
-      { name: 'Team members', free: '1', pro: '5', business: 'Unlimited' },
-      { name: 'Shared workspaces', free: false, pro: false, business: true },
-      { name: 'Comments & annotations', free: false, pro: true, business: true },
-      { name: 'Role-based access', free: false, pro: false, business: true }
+    { category: 'Storage & Files', features: [
+      { name: 'Cloud storage', free: '1 GB', pro: '10 GB', business: '100 GB' },
+      { name: 'File management', free: true, pro: true, business: true },
+      { name: 'Cloud provider config', free: false, pro: false, business: true },
+      { name: 'Data migration tools', free: false, pro: false, business: true }
     ]},
-    { category: 'Support', features: [
+    { category: 'Team & Collaboration', features: [
+      { name: 'Team workspaces', free: '1', pro: '5', business: 'Unlimited' },
+      { name: 'Team members', free: '1', pro: '10', business: 'Unlimited' },
+      { name: 'Role-based access', free: false, pro: true, business: true },
+      { name: 'Admin dashboard', free: false, pro: false, business: true }
+    ]},
+    { category: 'Calendar & Scheduling', features: [
+      { name: 'Full calendar', free: true, pro: true, business: true },
+      { name: 'Event management', free: true, pro: true, business: true },
+      { name: 'Recurring events', free: true, pro: true, business: true },
+      { name: 'Jizira integration', free: true, pro: true, business: true }
+    ]},
+    { category: 'Support & API', features: [
       { name: 'Email support', free: true, pro: true, business: true },
       { name: 'Priority support', free: false, pro: true, business: true },
-      { name: 'Dedicated manager', free: false, pro: false, business: true },
-      { name: 'Phone support', free: false, pro: false, business: true }
+      { name: '24/7 dedicated support', free: false, pro: false, business: true },
+      { name: 'API access', free: false, pro: false, business: true }
     ]}
   ];
 
