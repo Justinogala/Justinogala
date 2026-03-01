@@ -599,8 +599,6 @@ async def save_video_to_history(request: SaveVideoRequest):
 async def get_video_history(limit: int = 20, skip: int = 0):
     """Get user's video history (without video data for listing)"""
     try:
-        db = get_database()
-        
         # Get videos without the large base64 data
         cursor = db.video_history.find(
             {},
