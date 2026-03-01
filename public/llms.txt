@@ -26,6 +26,7 @@
 - [Forgot Password | Munal AI](/forgotpassword): No description available
 - [History | Munal](/transcriptionhistory): No description available
 - [Integrations - Munal](/integrationsettings): No description available
+- [Join Meeting | Munal](/instantmeetingroom): No description available
 - [Join Meeting | Munal AI](/groupmeetingroom): No description available
 - [Login - Munal AI](/login): Log in to your Munal AI account for meeting intelligence.
 - [Manage Transcriptions | Munal](/transcriptionmanagement): No description available
