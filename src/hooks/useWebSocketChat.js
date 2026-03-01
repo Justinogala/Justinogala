@@ -188,6 +188,11 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
     }
   }, [userId, onMessage, onPresence, onTyping, onReadReceipt]);
 
+  // Keep connectSSERef in sync with the latest connectSSE function
+  useEffect(() => {
+    connectSSERef.current = connectSSE;
+  }, [connectSSE]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
