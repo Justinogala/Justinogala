@@ -635,7 +635,6 @@ async def get_video_from_history(video_id: str):
     """Get a specific video from history (includes video data)"""
     try:
         from bson import ObjectId
-        db = get_database()
         
         doc = await db.video_history.find_one({"_id": ObjectId(video_id)})
         
