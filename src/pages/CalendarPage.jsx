@@ -485,21 +485,50 @@ const CalendarPage = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch 
-                  checked={eventForm.all_day}
-                  onCheckedChange={v => setEventForm({...eventForm, all_day: v})}
-                />
-                <Label>All day</Label>
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={eventForm.all_day}
+                    onCheckedChange={v => setEventForm({...eventForm, all_day: v})}
+                  />
+                  <Label>All day</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={eventForm.video_call}
+                    onCheckedChange={v => setEventForm({...eventForm, video_call: v, meeting_link: v ? eventForm.meeting_link : ''})}
+                  />
+                  <Label>Video call</Label>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Switch 
-                  checked={eventForm.video_call}
-                  onCheckedChange={v => setEventForm({...eventForm, video_call: v})}
-                />
-                <Label>Video call</Label>
-              </div>
+              
+              {/* Meeting Link Input - shown when video call is enabled */}
+              {eventForm.video_call && (
+                <div className="pl-0 space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Link className="w-4 h-4 text-indigo-500" />
+                    Jitsi Meeting Link
+                  </Label>
+                  <Input 
+                    value={eventForm.meeting_link}
+                    onChange={e => setEventForm({...eventForm, meeting_link: e.target.value})}
+                    placeholder="https://meet.jit.si/your-meeting-room"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Enter your Jitsi meeting room link. You can create one at{' '}
+                    <a 
+                      href="https://meet.jit.si" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-indigo-500 hover:text-indigo-600 underline"
+                    >
+                      meet.jit.si
+                    </a>
+                  </p>
+                </div>
+              )}
             </div>
             
             <div>
