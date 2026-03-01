@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { 
   Video, Sparkles, Download, RefreshCw, Play, Pause, 
   Loader2, AlertCircle, Settings2, Clock, Maximize, 
-  Square, RectangleHorizontal, RectangleVertical, Film
+  Square, RectangleHorizontal, RectangleVertical, Film, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,11 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { cn } from '@/lib/utils';
 
 const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
