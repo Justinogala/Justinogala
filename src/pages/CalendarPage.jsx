@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, 
   Clock, MapPin, Users, Video, X, Edit, Trash2, Check,
-  Bell, Repeat, Circle, Link
+  Bell, Repeat, Circle, Link, Zap, Copy
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, 
   addDays, addMonths, subMonths, isSameMonth, isSameDay, 
   parseISO, addWeeks, subWeeks, startOfDay, endOfDay,
   setHours, setMinutes } from 'date-fns';
+import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
