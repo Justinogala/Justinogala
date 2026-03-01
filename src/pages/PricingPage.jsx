@@ -16,76 +16,74 @@ const PricingPage = () => {
       name: 'Free',
       price: '$0',
       period: '/month',
-      description: 'Perfect for individuals getting started',
+      description: 'Perfect for getting started',
       features: [
         { text: '5 meetings per month', included: true },
-        { text: '30 min transcription/month', included: true },
+        { text: '30 min transcription', included: true },
         { text: '1 GB cloud storage', included: true },
-        { text: 'AI-powered transcription', included: true },
-        { text: 'Basic AI summaries', included: true },
+        { text: 'Basic AI transcription', included: true },
         { text: 'Instant video meetings', included: true },
+        { text: 'Text to video (up to 4s)', included: true },
         { text: 'Team chat messaging', included: true },
         { text: 'Calendar & scheduling', included: true },
-        { text: 'Text to audio conversion', included: true },
-        { text: 'Text to video (up to 4s)', included: true },
-        { text: 'Voice chat channels', included: false },
-        { text: 'Team workspaces', included: false },
-        { text: 'Priority support', included: false },
-        { text: 'Admin dashboard', included: false },
-        { text: 'Cloud storage config', included: false },
-        { text: 'API access', included: false }
+        { text: 'Email support', included: true }
       ],
       cta: 'Start Free',
       popular: false
     },
     {
       name: 'Pro',
-      price: '$29',
+      price: '$19',
       period: '/month',
-      description: 'For professionals and small teams',
+      description: 'For professionals and freelancers',
       features: [
-        { text: '100 meetings per month', included: true },
-        { text: '500 min transcription/month', included: true },
-        { text: '10 GB cloud storage', included: true },
-        { text: 'AI-powered transcription', included: true },
-        { text: 'Advanced AI summaries', included: true },
-        { text: 'Instant video meetings', included: true },
-        { text: 'Team chat messaging', included: true },
-        { text: 'Calendar & scheduling', included: true },
+        { text: '50 meetings per month', included: true },
+        { text: '300 min transcription', included: true },
+        { text: '5 GB cloud storage', included: true },
+        { text: 'AI transcription', included: true },
+        { text: 'HD video meetings', included: true },
+        { text: 'Text to video (up to 8s)', included: true },
         { text: 'Voice chat channels', included: true },
-        { text: 'Text to audio conversion', included: true },
-        { text: 'Text to video (up to 12s)', included: true },
-        { text: 'Up to 5 team workspaces', included: true },
-        { text: 'Priority support', included: true },
-        { text: 'Basic analytics', included: true },
-        { text: 'Cloud storage config', included: false },
-        { text: 'API access', included: false }
+        { text: 'Up to 3 workspaces', included: true },
+        { text: 'Priority email support', included: true }
       ],
-      cta: 'Start Pro Trial',
+      cta: 'Start Pro',
+      popular: false
+    },
+    {
+      name: 'Business',
+      price: '$39',
+      period: '/month',
+      description: 'For growing teams and startups',
+      features: [
+        { text: '150 meetings per month', included: true },
+        { text: '1000 min transcription', included: true },
+        { text: '25 GB cloud storage', included: true },
+        { text: 'Advanced AI with speaker ID', included: true },
+        { text: 'HD video + recording', included: true },
+        { text: 'Text to video (up to 24s)', included: true },
+        { text: 'Up to 25 team members', included: true },
+        { text: 'Analytics dashboard', included: true },
+        { text: 'Priority chat & email support', included: true }
+      ],
+      cta: 'Start Business',
       popular: true
     },
     {
       name: 'Enterprise',
-      price: '$99',
+      price: '$79',
       period: '/month',
-      description: 'For large teams and organizations',
+      description: 'For large organizations',
       features: [
         { text: 'Unlimited meetings', included: true },
         { text: 'Unlimited transcription', included: true },
         { text: '100 GB cloud storage', included: true },
-        { text: 'AI-powered transcription', included: true },
-        { text: 'Advanced AI summaries', included: true },
-        { text: 'Instant video meetings', included: true },
-        { text: 'Team chat messaging', included: true },
-        { text: 'Calendar & scheduling', included: true },
-        { text: 'Voice chat channels', included: true },
-        { text: 'Text to audio conversion', included: true },
-        { text: 'Text to video (up to 60s extended)', included: true },
-        { text: 'Unlimited workspaces', included: true },
-        { text: '24/7 dedicated support', included: true },
+        { text: 'Enterprise AI features', included: true },
+        { text: '4K video + recording', included: true },
+        { text: 'Text to video (up to 60s)', included: true },
+        { text: 'Unlimited team members', included: true },
         { text: 'Full admin dashboard', included: true },
-        { text: 'Cloud storage config (S3, GCS, R2)', included: true },
-        { text: 'API access & integrations', included: true }
+        { text: '24/7 dedicated support', included: true }
       ],
       cta: 'Contact Sales',
       popular: false
@@ -94,40 +92,45 @@ const PricingPage = () => {
 
   const comparisonFeatures = [
     { category: 'Meetings & Video', features: [
-      { name: 'Meetings per month', free: '5', pro: '100', business: 'Unlimited' },
-      { name: 'Instant video meetings', free: true, pro: true, business: true },
-      { name: 'Screen sharing', free: true, pro: true, business: true },
-      { name: 'Meeting recording', free: false, pro: true, business: true },
-      { name: 'Meeting scheduling', free: true, pro: true, business: true }
+      { name: 'Meetings per month', free: '5', pro: '50', business: '150', enterprise: 'Unlimited' },
+      { name: 'Instant video meetings', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Screen sharing', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Meeting recording', free: false, pro: true, business: true, enterprise: true },
+      { name: 'Video quality', free: 'HD', pro: 'HD', business: 'HD', enterprise: '4K' }
     ]},
     { category: 'Transcription & AI', features: [
-      { name: 'Transcription minutes/month', free: '30', pro: '500', business: 'Unlimited' },
-      { name: 'AI-powered accuracy', free: 'Standard', pro: 'High', business: 'Highest' },
-      { name: 'Speaker identification', free: true, pro: true, business: true },
-      { name: 'AI summaries', free: 'Basic', pro: 'Advanced', business: 'Advanced' },
-      { name: 'Text to audio', free: false, pro: true, business: true }
+      { name: 'Transcription minutes/month', free: '30', pro: '300', business: '1000', enterprise: 'Unlimited' },
+      { name: 'AI-powered accuracy', free: 'Standard', pro: 'High', business: 'Advanced', enterprise: 'Enterprise' },
+      { name: 'Speaker identification', free: false, pro: true, business: true, enterprise: true },
+      { name: 'AI summaries', free: 'Basic', pro: 'Standard', business: 'Advanced', enterprise: 'Advanced' },
+      { name: 'Text to audio', free: true, pro: true, business: true, enterprise: true }
     ]},
-    { category: 'Communication', features: [
-      { name: 'Team chat', free: true, pro: true, business: true },
-      { name: 'Voice chat channels', free: false, pro: true, business: true },
-      { name: 'File sharing in chat', free: true, pro: true, business: true },
-      { name: 'Real-time messaging', free: true, pro: true, business: true }
+    { category: 'Text to Video', features: [
+      { name: 'Video generation', free: 'Up to 4s', pro: 'Up to 8s', business: 'Up to 24s', enterprise: 'Up to 60s' },
+      { name: 'Extended multi-clip', free: false, pro: false, business: true, enterprise: true },
+      { name: 'Video history', free: true, pro: true, business: true, enterprise: true }
     ]},
     { category: 'Storage & Files', features: [
-      { name: 'Cloud storage', free: '1 GB', pro: '10 GB', business: '100 GB' },
-      { name: 'File management', free: true, pro: true, business: true },
-      { name: 'Cloud provider config', free: false, pro: false, business: true },
-      { name: 'Data migration tools', free: false, pro: false, business: true }
+      { name: 'Cloud storage', free: '1 GB', pro: '5 GB', business: '25 GB', enterprise: '100 GB' },
+      { name: 'File management', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Cloud provider config', free: false, pro: false, business: false, enterprise: true }
     ]},
     { category: 'Team & Collaboration', features: [
-      { name: 'Team workspaces', free: '1', pro: '5', business: 'Unlimited' },
-      { name: 'Team members', free: '1', pro: '10', business: 'Unlimited' },
-      { name: 'Role-based access', free: false, pro: true, business: true },
-      { name: 'Admin dashboard', free: false, pro: false, business: true }
+      { name: 'Team workspaces', free: '1', pro: '3', business: '10', enterprise: 'Unlimited' },
+      { name: 'Team members', free: '1', pro: '5', business: '25', enterprise: 'Unlimited' },
+      { name: 'Admin dashboard', free: false, pro: false, business: true, enterprise: true }
     ]},
     { category: 'Calendar & Scheduling', features: [
-      { name: 'Full calendar', free: true, pro: true, business: true },
-      { name: 'Event management', free: true, pro: true, business: true },
+      { name: 'Full calendar', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Jizira integration', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Recurring events', free: true, pro: true, business: true, enterprise: true }
+    ]},
+    { category: 'Support', features: [
+      { name: 'Email support', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Priority support', free: false, pro: true, business: true, enterprise: true },
+      { name: '24/7 dedicated support', free: false, pro: false, business: false, enterprise: true }
+    ]}
+  ];
       { name: 'Recurring events', free: true, pro: true, business: true },
       { name: 'Jizira integration', free: true, pro: true, business: true }
     ]},
