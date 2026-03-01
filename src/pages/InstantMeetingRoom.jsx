@@ -156,16 +156,27 @@ const InstantMeetingRoom = () => {
 
   // Start preview on mount
   useEffect(() => {
-    if (!joined) {
-      initCamera();
-    }
+    let isMounted = true;
     
-    return () => {
-      if (localStream && !joined) {
-        localStream.getTracks().forEach(t => t.stop());
+    const startPreview = async () => {
+      if (!joined && isMounted) {
+        await initCamera();
       }
     };
-  }, []);
+    
+    startPreview();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [joined, initCamera]);
+
+  // Cleanup streams on unmount
+  useEffect(() => {
+    return () => {
+      localStream?.getTracks().forEach(t => t.stop());
+    };
+  }, [localStream]);
 
   // Call duration timer
   useEffect(() => {
