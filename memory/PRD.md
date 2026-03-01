@@ -732,3 +732,29 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - Added `/transcription/history` as alias for `/transcriptions`
   - Ensures backward compatibility for bookmarked URLs
 
+### Meeting Room Enhancements (Mar 1, 2026)
+- [x] **Recording Feature** - Record meetings for later viewing
+  - `startRecording()` - Uses MediaRecorder API with canvas compositing
+  - `stopRecording()` - Stops recording and triggers auto-download
+  - `toggleRecording()` - Toggle between recording states
+  - Recording indicator in header with "REC" badge and duration
+  - Auto-downloads WebM file when stopped
+  - Supports vp9/opus or vp8/opus codecs with fallback
+- [x] **Labeled Action Buttons** - All meeting controls now have text labels
+  - Pre-join screen: "Mute/Unmute", "Stop Video/Start Video"
+  - In-call controls: "Mute/Unmute", "Stop Video/Start Video", "Share/Stop Share", "Record/Stop", "Leave"
+  - Responsive sizing for mobile and desktop
+- [x] **Files Modified**:
+  - `/app/src/pages/InstantMeetingRoom.jsx` - Added recording states, functions, and labeled button UI
+
+### Pricing Layout Fix (Mar 1, 2026)
+- [x] **4-Tier Pricing on Landing Page** - Verified correct horizontal display
+  - Free ($0), Pro ($19), Business ($39), Enterprise ($79)
+  - Grid layout: `grid-cols-1 md:grid-cols-2 lg:grid-cols-4`
+  - "Most Popular" badge on Business plan
+  - All features listed for each tier
+- [x] **Files Modified**:
+  - `/app/src/components/landing/PricingSection.jsx` - Layout confirmed working
+  - `/app/src/pages/PricingPage.jsx` - Fixed duplicate code causing syntax error
+
+
