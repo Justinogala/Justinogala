@@ -458,8 +458,8 @@ const InstantMeetingRoom = () => {
   const toggleScreenShare = async () => {
     if (isScreenSharing) {
       // Stop screen share
-      screenStreamRef.current?.getTracks().forEach(t => t.stop());
-      screenStreamRef.current = null;
+      screenStream?.getTracks().forEach(t => t.stop());
+      setScreenStream(null);
       setIsScreenSharing(false);
       
       // Replace tracks with camera
@@ -474,11 +474,11 @@ const InstantMeetingRoom = () => {
       }
     } else {
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        screenStreamRef.current = screenStream;
+        const newScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        setScreenStream(newScreenStream);
         setIsScreenSharing(true);
 
-        const screenTrack = screenStream.getVideoTracks()[0];
+        const screenTrack = newScreenStream.getVideoTracks()[0];
         
         // Replace video track in all connections
         peerConnectionsRef.current.forEach(pc => {
@@ -490,7 +490,18 @@ const InstantMeetingRoom = () => {
 
         // Handle screen share stop
         screenTrack.onended = () => {
-          toggleScreenShare();
+          setScreenStream(null);
+          setIsScreenSharing(false);
+          // Restore camera track
+          if (localStream) {
+            peerConnectionsRef.current.forEach(pc => {
+              const videoSender = pc.getSenders().find(s => s.track?.kind === 'video');
+              const cameraTrack = localStream.getVideoTracks()[0];
+              if (videoSender && cameraTrack) {
+                videoSender.replaceTrack(cameraTrack);
+              }
+            });
+          }
         };
       } catch (err) {
         console.error('Screen share error:', err);
