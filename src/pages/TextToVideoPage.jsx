@@ -63,33 +63,66 @@ const TextToVideoPage = () => {
     setProgress(0);
     setVideoData(null);
 
-    // Simulate progress (video generation takes time)
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 95) return prev;
-        return prev + Math.random() * 5;
-      });
-    }, 3000);
-
     try {
+      // Start the generation job
       const res = await fetch(`${API_URL}/api/ai/video/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, model, size, duration })
       });
 
-      clearInterval(progressInterval);
-
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.detail || 'Video generation failed');
+        throw new Error(error.detail || 'Failed to start video generation');
       }
 
-      const data = await res.json();
-      setProgress(100);
-      setVideoData(data);
+      const startData = await res.json();
+      const jobId = startData.job_id;
       
-      toast({ title: 'Video generated successfully!' });
+      if (!jobId) {
+        throw new Error('No job ID received');
+      }
+
+      toast({ title: 'Video generation started', description: 'This may take a few minutes...' });
+
+      // Poll for job status
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`${API_URL}/api/ai/video/job/${jobId}`);
+          const statusData = await statusRes.json();
+          
+          if (statusData.status === 'completed') {
+            clearInterval(pollInterval);
+            setProgress(100);
+            setVideoData(statusData);
+            setGenerating(false);
+            toast({ title: 'Video generated successfully!' });
+          } else if (statusData.status === 'failed') {
+            clearInterval(pollInterval);
+            setGenerating(false);
+            throw new Error(statusData.error || 'Video generation failed');
+          } else {
+            // Update progress
+            setProgress(statusData.progress || 0);
+          }
+        } catch (pollError) {
+          console.error('Polling error:', pollError);
+        }
+      }, 3000); // Poll every 3 seconds
+
+      // Safety timeout after 10 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        if (generating) {
+          setGenerating(false);
+          toast({ 
+            variant: 'destructive', 
+            title: 'Timeout', 
+            description: 'Video generation is taking too long. Please try again.' 
+          });
+        }
+      }, 600000);
+
     } catch (error) {
       console.error('Video generation error:', error);
       toast({ 
@@ -97,8 +130,6 @@ const TextToVideoPage = () => {
         title: 'Generation failed', 
         description: error.message 
       });
-    } finally {
-      clearInterval(progressInterval);
       setGenerating(false);
     }
   };
