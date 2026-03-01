@@ -91,23 +91,50 @@ async def create_calendar_event(event: CalendarEventCreate):
     """Create a new calendar event"""
     try:
         event_id = str(uuid.uuid4())
-        meeting_link = f"/workspace/meeting/{event_id}"
+        
+        # Use user-provided meeting link if available, otherwise generate one for video calls
+        video_call_link = None
+        if event.video_call:
+            video_call_link = event.meeting_link if event.meeting_link else f"/workspace/meeting/{event_id}"
+        
+        # Get organizer info
+        organizer_id = event.created_by or event.organizer_id
+        
+        # Build attendees from invitees list
+        attendees = event.attendees or []
+        if event.invitees:
+            for user_id in event.invitees:
+                user = await db.users.find_one({"id": user_id}, {"_id": 0, "name": 1, "email": 1})
+                if user:
+                    attendees.append({
+                        "user_id": user_id,
+                        "name": user.get("name"),
+                        "email": user.get("email"),
+                        "status": "pending"
+                    })
         
         event_doc = {
             "id": event_id,
             "title": event.title,
             "description": event.description,
-            "start_time": event.start_time.isoformat() if isinstance(event.start_time, datetime) else event.start_time,
-            "end_time": event.end_time.isoformat() if isinstance(event.end_time, datetime) else event.end_time,
-            "organizer_id": event.organizer_id,
+            "start_time": event.start_time,
+            "end_time": event.end_time,
+            "organizer_id": organizer_id,
             "organizer_name": event.organizer_name,
-            "attendees": event.attendees,
+            "attendees": attendees,
+            "invitees": [{"user_id": a.get("user_id"), "name": a.get("name"), "email": a.get("email"), "status": a.get("status")} for a in attendees],
             "location": event.location,
-            "meeting_link": meeting_link,
-            "is_recurring": event.is_recurring,
+            "all_day": event.all_day,
+            "video_call": event.video_call,
+            "meeting_link": video_call_link,
+            "color": event.color or "blue",
+            "category": event.category or "meeting",
+            "recurrence": event.recurrence,
+            "is_recurring": event.recurrence is not None and event.recurrence != "none",
             "recurrence_rule": event.recurrence_rule,
             "reminders": event.reminders,
             "status": "scheduled",
+            "created_by": organizer_id,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
@@ -117,7 +144,7 @@ async def create_calendar_event(event: CalendarEventCreate):
         if "_id" in event_doc:
             del event_doc["_id"]
         
-        logger.info(f"Event {event_id} created by {event.organizer_id}")
+        logger.info(f"Event {event_id} created by {organizer_id}")
         return {"success": True, "event": event_doc}
     except Exception as e:
         logger.error(f"Error creating event: {e}")
