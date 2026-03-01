@@ -332,79 +332,85 @@ const InstantMeetingRoom = () => {
     }
   };
 
-  // Handle incoming signals via SSE
-  const startSignaling = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
+  // Handle incoming signals via global handler (from SSE)
+  const handleGroupCallSignal = useCallback(async ({ type, data }) => {
+    console.log('[Meeting] Group call signal:', type, data);
+    
+    // Only handle signals for our room
+    if (data.room_id !== meetingId) return;
 
-    const sse = new EventSource(`${API_URL}/api/group-call/signals/${meetingId}/${user?.id}`);
-    eventSourceRef.current = sse;
-
-    sse.onmessage = async (e) => {
-      try {
-        const signal = JSON.parse(e.data);
-        
-        if (signal.target_id !== user?.id) return;
-
-        const { sender_id, sender_name, signal_type, signal_data } = signal;
-
-        if (signal_type === 'offer') {
-          const pc = createPeerConnection(sender_id, sender_name, false);
-          await pc.setRemoteDescription(new RTCSessionDescription(signal_data.offer));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-
-          await fetch(`${API_URL}/api/group-call/signal`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              room_id: meetingId,
-              sender_id: user?.id,
-              sender_name: user?.name,
-              target_id: sender_id,
-              signal_type: 'answer',
-              signal_data: { answer: pc.localDescription }
-            })
-          });
-        } else if (signal_type === 'answer') {
-          const pc = peerConnectionsRef.current.get(sender_id);
-          if (pc) {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal_data.answer));
-          }
-        } else if (signal_type === 'ice_candidate') {
-          const pc = peerConnectionsRef.current.get(sender_id);
-          if (pc && signal_data.candidate) {
-            await pc.addIceCandidate(new RTCIceCandidate(signal_data.candidate));
-          }
-        } else if (signal_type === 'participant_joined') {
-          setParticipants(prev => {
-            if (!prev.find(p => p.user_id === sender_id)) {
-              toast({ title: `${sender_name} joined` });
-              return [...prev, { user_id: sender_id, user_name: sender_name }];
-            }
-            return prev;
-          });
-        } else if (signal_type === 'participant_left') {
-          setParticipants(prev => prev.filter(p => p.user_id !== sender_id));
-          setRemoteStreams(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(sender_id);
-            return newMap;
-          });
-          peerConnectionsRef.current.get(sender_id)?.close();
-          peerConnectionsRef.current.delete(sender_id);
-          toast({ title: `${sender_name} left` });
+    if (type === 'participant_joined') {
+      const { participant } = data;
+      setParticipants(prev => {
+        if (!prev.find(p => p.user_id === participant.user_id)) {
+          toast({ title: `${participant.user_name} joined` });
+          // Create offer to new participant
+          createOfferTo(participant.user_id, participant.user_name);
+          return [...prev, participant];
         }
-      } catch (err) {
-        console.error('Signal handling error:', err);
-      }
-    };
+        return prev;
+      });
+    } else if (type === 'participant_left') {
+      const { user_id } = data;
+      setParticipants(prev => {
+        const p = prev.find(p => p.user_id === user_id);
+        if (p) toast({ title: `${p.user_name} left` });
+        return prev.filter(p => p.user_id !== user_id);
+      });
+      setRemoteStreams(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(user_id);
+        return newMap;
+      });
+      peerConnectionsRef.current.get(user_id)?.close();
+      peerConnectionsRef.current.delete(user_id);
+    } else if (type === 'participant_updated') {
+      const { user_id, updates } = data;
+      setParticipants(prev => prev.map(p => 
+        p.user_id === user_id ? { ...p, ...updates } : p
+      ));
+    } else if (type === 'signal') {
+      const { sender_id, sender_name, signal_type, signal_data } = data;
+      
+      if (signal_type === 'offer') {
+        const pc = createPeerConnection(sender_id, sender_name, false);
+        await pc.setRemoteDescription(new RTCSessionDescription(signal_data.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
 
-    sse.onerror = () => {
-      console.log('SSE error, reconnecting...');
-    };
+        await fetch(`${API_URL}/api/group-call/signal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            room_id: meetingId,
+            sender_id: user?.id,
+            sender_name: user?.name,
+            target_id: sender_id,
+            signal_type: 'answer',
+            signal_data: { answer: pc.localDescription }
+          })
+        });
+      } else if (signal_type === 'answer') {
+        const pc = peerConnectionsRef.current.get(sender_id);
+        if (pc) {
+          await pc.setRemoteDescription(new RTCSessionDescription(signal_data.answer));
+        }
+      } else if (signal_type === 'ice_candidate') {
+        const pc = peerConnectionsRef.current.get(sender_id);
+        if (pc && signal_data.candidate) {
+          await pc.addIceCandidate(new RTCIceCandidate(signal_data.candidate));
+        }
+      }
+    }
   }, [meetingId, user, createPeerConnection, toast]);
+
+  // Setup global handler for group call signals
+  useEffect(() => {
+    window.__groupCallHandler = handleGroupCallSignal;
+    return () => {
+      window.__groupCallHandler = null;
+    };
+  }, [handleGroupCallSignal]);
 
   // Leave meeting
   const leaveMeeting = async () => {
