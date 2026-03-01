@@ -312,3 +312,92 @@ async def get_transcription_status():
         "available": bool(api_key),
         "provider": "openai_whisper"
     }
+
+
+# ============== Video Generation (Sora 2) ==============
+
+class VideoGenerationRequest(BaseModel):
+    prompt: str
+    size: str = "1280x720"  # 1280x720, 1792x1024, 1024x1792, 1024x1024
+    duration: int = 4  # 4, 8, or 12 seconds
+    model: str = "sora-2"  # sora-2 or sora-2-pro
+
+
+@router.post("/ai/video/generate")
+async def generate_video(request: VideoGenerationRequest):
+    """Generate video from text prompt using Sora 2"""
+    try:
+        api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Video generation service not configured")
+        
+        # Validate parameters
+        valid_sizes = ["1280x720", "1792x1024", "1024x1792", "1024x1024"]
+        valid_durations = [4, 8, 12]
+        valid_models = ["sora-2", "sora-2-pro"]
+        
+        if request.size not in valid_sizes:
+            raise HTTPException(status_code=400, detail=f"Invalid size. Must be one of: {valid_sizes}")
+        if request.duration not in valid_durations:
+            raise HTTPException(status_code=400, detail=f"Invalid duration. Must be one of: {valid_durations}")
+        if request.model not in valid_models:
+            raise HTTPException(status_code=400, detail=f"Invalid model. Must be one of: {valid_models}")
+        
+        from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+        import uuid
+        import os
+        
+        # Generate unique filename
+        video_id = str(uuid.uuid4())
+        output_path = f"/tmp/video_{video_id}.mp4"
+        
+        logger.info(f"Starting video generation: prompt='{request.prompt[:50]}...', size={request.size}, duration={request.duration}s")
+        
+        # Generate video
+        video_gen = OpenAIVideoGeneration(api_key=api_key)
+        video_bytes = video_gen.text_to_video(
+            prompt=request.prompt,
+            model=request.model,
+            size=request.size,
+            duration=request.duration,
+            max_wait_time=600
+        )
+        
+        if not video_bytes:
+            raise HTTPException(status_code=500, detail="Video generation failed - no video returned")
+        
+        # Save to temp file
+        video_gen.save_video(video_bytes, output_path)
+        
+        # Convert to base64 for response
+        video_base64 = base64.b64encode(video_bytes).decode('utf-8')
+        
+        logger.info(f"Video generation complete: {len(video_bytes)} bytes")
+        
+        return {
+            "success": True,
+            "video_id": video_id,
+            "video_base64": video_base64,
+            "size": request.size,
+            "duration": request.duration,
+            "mime_type": "video/mp4"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Video generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/video/status")
+async def get_video_generation_status():
+    """Check if video generation service is available"""
+    api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+    return {
+        "available": bool(api_key),
+        "provider": "sora-2",
+        "supported_sizes": ["1280x720", "1792x1024", "1024x1792", "1024x1024"],
+        "supported_durations": [4, 8, 12],
+        "supported_models": ["sora-2", "sora-2-pro"]
+    }
