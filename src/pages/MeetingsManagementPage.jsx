@@ -144,6 +144,7 @@ const MeetingsManagementPage = () => {
 
   const handleInstantJoin = (id) => {
     toast({ title: "Joining Meeting", description: `Connecting to session ID: ${id}...` });
+    navigate(`/meet/${id}`);
   };
 
   return (
