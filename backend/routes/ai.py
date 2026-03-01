@@ -101,11 +101,12 @@ async def generate_tts(request: TTSRequest):
         if not api_key:
             raise HTTPException(status_code=500, detail="TTS service not configured")
         
-        from emergentintegrations.llm.openai import tts
+        from emergentintegrations.llm.openai import OpenAITextToSpeech
         
-        audio_bytes = await tts(
-            api_key=api_key,
+        tts = OpenAITextToSpeech(api_key=api_key)
+        audio_bytes = await tts.generate_speech(
             text=request.text,
+            model="tts-1",
             voice=request.voice,
             speed=request.speed
         )
@@ -128,11 +129,12 @@ async def generate_tts_base64(request: TTSRequest):
         if not api_key:
             raise HTTPException(status_code=500, detail="TTS service not configured")
         
-        from emergentintegrations.llm.openai import tts
+        from emergentintegrations.llm.openai import OpenAITextToSpeech
         
-        audio_bytes = await tts(
-            api_key=api_key,
+        tts = OpenAITextToSpeech(api_key=api_key)
+        audio_bytes = await tts.generate_speech(
             text=request.text,
+            model="tts-1",
             voice=request.voice,
             speed=request.speed
         )
