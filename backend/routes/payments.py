@@ -132,61 +132,99 @@ async def create_checkout_session(request: CheckoutRequest):
 
 @router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str):
-    """Get payment status for a checkout session"""
+    """Get payment status for a checkout session and activate subscription if paid"""
+    import stripe
+    
     try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout
-        
         api_key = await get_stripe_api_key()
-        stripe_checkout = StripeCheckout(api_key=api_key, webhook_url="")
+        stripe.api_key = api_key
         
-        status = await stripe_checkout.get_checkout_status(session_id)
+        # Retrieve checkout session from Stripe
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        payment_status = session.payment_status
+        status = session.status
+        amount_total = session.amount_total
+        currency = session.currency
+        subscription_id = session.subscription
+        customer_email = session.customer_email
+        metadata = session.metadata or {}
         
         # Update transaction in database
         update_data = {
-            "status": status.status,
-            "payment_status": status.payment_status,
-            "amount_total": status.amount_total,
-            "currency": status.currency,
+            "status": status,
+            "payment_status": payment_status,
+            "amount_total": amount_total,
+            "currency": currency,
+            "subscription_id": subscription_id,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         
-        # Check if already processed to prevent duplicate credit additions
+        # Check if already processed to prevent duplicate activations
         existing = await db.payment_transactions.find_one({"session_id": session_id})
         
-        if existing and existing.get("payment_status") != "paid" and status.payment_status == "paid":
+        if existing and existing.get("payment_status") != "paid" and payment_status == "paid":
             # First time marking as paid - update user subscription
-            user_id = existing.get("user_id")
-            plan_id = existing.get("plan_id")
+            user_id = existing.get("user_id") or metadata.get("user_id")
+            plan_id = existing.get("plan_id") or metadata.get("plan_id")
             
             if user_id and plan_id:
                 # Update user's subscription plan
-                await db.users.update_one(
+                result = await db.users.update_one(
                     {"id": user_id},
                     {
                         "$set": {
                             "subscription_plan": plan_id,
                             "subscription_status": "active",
+                            "subscription_id": subscription_id,
                             "subscription_updated_at": datetime.now(timezone.utc).isoformat()
                         }
                     }
                 )
-                update_data["subscription_activated"] = True
-                logger.info(f"Subscription activated for user {user_id}: {plan_id}")
+                if result.modified_count > 0:
+                    update_data["subscription_activated"] = True
+                    logger.info(f"Subscription activated for user {user_id}: {plan_id}")
+                else:
+                    # Try by email
+                    if customer_email:
+                        result = await db.users.update_one(
+                            {"email": customer_email},
+                            {
+                                "$set": {
+                                    "subscription_plan": plan_id,
+                                    "subscription_status": "active",
+                                    "subscription_id": subscription_id,
+                                    "subscription_updated_at": datetime.now(timezone.utc).isoformat()
+                                }
+                            }
+                        )
+                        if result.modified_count > 0:
+                            update_data["subscription_activated"] = True
+                            logger.info(f"Subscription activated by email {customer_email}: {plan_id}")
         
         await db.payment_transactions.update_one(
             {"session_id": session_id},
             {"$set": update_data}
         )
         
+        # Get plan name for response
+        plan_id = existing.get("plan_id") if existing else metadata.get("plan_id")
+        plan_name = plan_id.capitalize() if plan_id else "Unknown"
+        
         return {
             "success": True,
             "session_id": session_id,
-            "status": status.status,
-            "payment_status": status.payment_status,
-            "amount_total": status.amount_total,
-            "currency": status.currency
+            "status": status,
+            "payment_status": payment_status,
+            "amount_total": amount_total,
+            "currency": currency,
+            "plan_name": plan_name,
+            "subscription_activated": update_data.get("subscription_activated", existing.get("subscription_activated", False) if existing else False)
         }
         
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error getting payment status: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Payment status error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -194,56 +232,142 @@ async def get_payment_status(session_id: str):
 
 @webhook_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
-    """Handle Stripe webhook events"""
+    """Handle Stripe webhook events for subscription payments"""
+    import stripe
+    
     try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout
-        
         api_key = await get_stripe_api_key()
-        stripe_checkout = StripeCheckout(api_key=api_key, webhook_url="")
+        stripe.api_key = api_key
+        
+        # Get webhook secret from admin settings (optional but recommended)
+        webhook_settings = await db.admin_settings.find_one({"category": "stripe_webhook"})
+        webhook_secret = webhook_settings.get("secret") if webhook_settings else None
         
         body = await request.body()
         signature = request.headers.get("Stripe-Signature")
         
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        # Verify webhook signature if secret is configured
+        if webhook_secret and signature:
+            try:
+                event = stripe.Webhook.construct_event(body, signature, webhook_secret)
+            except stripe.error.SignatureVerificationError as e:
+                logger.error(f"Webhook signature verification failed: {e}")
+                raise HTTPException(status_code=400, detail="Invalid signature")
+        else:
+            # Parse event without verification (for development/testing)
+            import json
+            event = json.loads(body)
         
-        logger.info(f"Webhook received: {webhook_response.event_type} - {webhook_response.session_id}")
+        event_type = event.get("type", "")
+        logger.info(f"Webhook received: {event_type}")
         
-        # Update transaction based on webhook event
-        if webhook_response.session_id:
-            update_data = {
-                "webhook_event": webhook_response.event_type,
-                "payment_status": webhook_response.payment_status,
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }
+        # Handle checkout.session.completed event
+        if event_type == "checkout.session.completed":
+            session = event.get("data", {}).get("object", {})
+            session_id = session.get("id")
+            payment_status = session.get("payment_status")
+            subscription_id = session.get("subscription")
+            customer_email = session.get("customer_email")
+            metadata = session.get("metadata", {})
             
-            # Handle successful payment
-            if webhook_response.payment_status == "paid":
-                existing = await db.payment_transactions.find_one({"session_id": webhook_response.session_id})
+            logger.info(f"Checkout completed: session={session_id}, status={payment_status}")
+            
+            # Get transaction from our database
+            existing = await db.payment_transactions.find_one({"session_id": session_id})
+            
+            if existing:
+                user_id = existing.get("user_id") or metadata.get("user_id")
+                plan_id = existing.get("plan_id") or metadata.get("plan_id")
                 
-                if existing and not existing.get("subscription_activated"):
-                    user_id = existing.get("user_id")
-                    plan_id = existing.get("plan_id")
-                    
+                update_data = {
+                    "webhook_event": event_type,
+                    "payment_status": payment_status,
+                    "subscription_id": subscription_id,
+                    "customer_email": customer_email,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                
+                # Activate subscription if payment is successful
+                if payment_status == "paid" and not existing.get("subscription_activated"):
                     if user_id and plan_id:
-                        await db.users.update_one(
+                        # Update user's subscription
+                        result = await db.users.update_one(
                             {"id": user_id},
                             {
                                 "$set": {
                                     "subscription_plan": plan_id,
                                     "subscription_status": "active",
+                                    "subscription_id": subscription_id,
                                     "subscription_updated_at": datetime.now(timezone.utc).isoformat()
                                 }
                             }
                         )
-                        update_data["subscription_activated"] = True
+                        
+                        if result.modified_count > 0:
+                            update_data["subscription_activated"] = True
+                            logger.info(f"Subscription activated for user {user_id}: plan={plan_id}")
+                        else:
+                            # Try updating by email if user_id didn't match
+                            if customer_email:
+                                result = await db.users.update_one(
+                                    {"email": customer_email},
+                                    {
+                                        "$set": {
+                                            "subscription_plan": plan_id,
+                                            "subscription_status": "active",
+                                            "subscription_id": subscription_id,
+                                            "subscription_updated_at": datetime.now(timezone.utc).isoformat()
+                                        }
+                                    }
+                                )
+                                if result.modified_count > 0:
+                                    update_data["subscription_activated"] = True
+                                    logger.info(f"Subscription activated by email {customer_email}: plan={plan_id}")
+                
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": update_data}
+                )
+            else:
+                logger.warning(f"No transaction found for session {session_id}")
+        
+        # Handle subscription updated events
+        elif event_type in ["customer.subscription.updated", "customer.subscription.deleted"]:
+            subscription = event.get("data", {}).get("object", {})
+            subscription_id = subscription.get("id")
+            status = subscription.get("status")  # active, canceled, past_due, etc.
             
-            await db.payment_transactions.update_one(
-                {"session_id": webhook_response.session_id},
-                {"$set": update_data}
-            )
+            logger.info(f"Subscription {event_type}: {subscription_id}, status={status}")
+            
+            # Update user subscription status
+            if subscription_id:
+                new_status = "active" if status == "active" else status
+                await db.users.update_one(
+                    {"subscription_id": subscription_id},
+                    {"$set": {"subscription_status": new_status}}
+                )
         
-        return {"success": True, "event": webhook_response.event_type}
+        # Handle invoice payment events
+        elif event_type == "invoice.payment_succeeded":
+            invoice = event.get("data", {}).get("object", {})
+            subscription_id = invoice.get("subscription")
+            logger.info(f"Invoice payment succeeded for subscription {subscription_id}")
         
+        elif event_type == "invoice.payment_failed":
+            invoice = event.get("data", {}).get("object", {})
+            subscription_id = invoice.get("subscription")
+            logger.warning(f"Invoice payment failed for subscription {subscription_id}")
+            
+            if subscription_id:
+                await db.users.update_one(
+                    {"subscription_id": subscription_id},
+                    {"$set": {"subscription_status": "past_due"}}
+                )
+        
+        return {"success": True, "event": event_type}
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
