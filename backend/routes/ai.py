@@ -716,9 +716,6 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
             
             # Download video
             video_bytes = download_video(video_id)
-                duration=duration,
-                max_wait_time=600
-            )
         
         if not video_bytes:
             video_jobs[job_id] = {"status": "failed", "error": "No video returned"}
