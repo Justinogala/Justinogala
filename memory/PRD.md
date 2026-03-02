@@ -784,4 +784,15 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - `/app/src/components/landing/PricingSection.jsx` - Layout confirmed working
   - `/app/src/pages/PricingPage.jsx` - Fixed duplicate code causing syntax error
 
+### Text-to-Video Custom API Key Support (Mar 2, 2026)
+- [x] **Custom OpenAI API Key Option** - Users can now use their own OpenAI API key for video generation
+  - Toggle switch: "Use my own OpenAI key"
+  - Secure password input field for API key
+  - Key is used only for the session, never stored
+  - Warning message when using platform credits (may be insufficient)
+  - Backend validates and uses custom key if provided
+- [x] **Files Modified**:
+  - `/app/src/pages/TextToVideoPage.jsx` - Added API key settings UI
+  - `/app/backend/routes/ai.py` - Added `custom_api_key` parameter to video generation endpoint
+
 
