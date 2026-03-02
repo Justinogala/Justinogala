@@ -21,7 +21,27 @@ const AdminAPISettingsPage = () => {
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
-    if (apiConfig) setLocalConfig(apiConfig);
+    if (apiConfig) {
+      // Ensure all required properties exist with defaults
+      setLocalConfig({
+        openai: { 
+          key: '', 
+          status: 'inactive', 
+          health: 'neutral',
+          lastTested: null,
+          ...apiConfig.openai 
+        },
+        googleCloud: { 
+          key: '', 
+          status: 'inactive', 
+          health: 'neutral',
+          lastTested: null,
+          ...apiConfig.googleCloud 
+        },
+        defaults: apiConfig.defaults || { transcription: 'openai', summarization: 'openai' },
+        usage: apiConfig.usage || {}
+      });
+    }
   }, [apiConfig]);
 
   if (loading || !localConfig) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>;
