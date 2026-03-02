@@ -580,18 +580,76 @@ async def get_video_api_key():
 
 
 def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str):
-    """Synchronous video generation (runs in thread pool)"""
+    """Synchronous video generation using OpenAI API directly (runs in thread pool)"""
+    import requests
+    import time
+    
     try:
-        from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
-        
-        video_jobs[job_id] = {"status": "generating", "progress": 10}
-        
-        video_gen = OpenAIVideoGeneration(api_key=api_key)
+        video_jobs[job_id] = {"status": "generating", "progress": 10, "message": "Starting video generation..."}
         
         base_durations = [4, 8, 12]
         extended_durations = [24, 36, 48, 60]
         
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        def create_video_job(prompt_text, dur):
+            """Create a video generation job with OpenAI API"""
+            response = requests.post(
+                'https://api.openai.com/v1/videos',
+                headers=headers,
+                json={
+                    'model': model,
+                    'prompt': prompt_text,
+                    'seconds': str(dur),
+                    'size': size
+                },
+                timeout=60
+            )
+            if response.status_code not in [200, 201]:
+                raise Exception(f"API error: {response.text}")
+            return response.json()
+        
+        def poll_video_job(video_id, max_wait=600):
+            """Poll for video job completion"""
+            start_time = time.time()
+            while time.time() - start_time < max_wait:
+                response = requests.get(
+                    f'https://api.openai.com/v1/videos/{video_id}',
+                    headers=headers,
+                    timeout=30
+                )
+                if response.status_code != 200:
+                    raise Exception(f"Poll error: {response.text}")
+                
+                data = response.json()
+                status = data.get('status')
+                progress = data.get('progress', 0)
+                
+                if status == 'completed':
+                    return data
+                elif status == 'failed':
+                    raise Exception(f"Video generation failed: {data.get('error', 'Unknown error')}")
+                
+                time.sleep(5)
+            
+            raise Exception("Video generation timed out")
+        
+        def download_video(video_id):
+            """Download the generated video"""
+            response = requests.get(
+                f'https://api.openai.com/v1/videos/{video_id}/content',
+                headers=headers,
+                timeout=120
+            )
+            if response.status_code != 200:
+                raise Exception(f"Download error: {response.text}")
+            return response.content
+        
         if duration in extended_durations:
+            # Extended duration - generate multiple clips and stitch
             num_clips = duration // 12
             clip_duration = 12
             clip_paths = []
@@ -599,25 +657,29 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
             for i in range(num_clips):
                 video_jobs[job_id] = {
                     "status": "generating", 
-                    "progress": 10 + (i * 80 // num_clips),
+                    "progress": 10 + (i * 70 // num_clips),
                     "message": f"Generating clip {i+1}/{num_clips}..."
                 }
                 
                 clip_prompt = f"Continuation of scene: {prompt}" if i > 0 else prompt
-                clip_bytes = video_gen.text_to_video(
-                    prompt=clip_prompt,
-                    model=model,
-                    size=size,
-                    duration=clip_duration,
-                    max_wait_time=600
-                )
+                
+                # Create job
+                job_data = create_video_job(clip_prompt, clip_duration)
+                video_id = job_data['id']
+                
+                # Poll for completion
+                completed_data = poll_video_job(video_id)
+                
+                # Download video
+                clip_bytes = download_video(video_id)
                 
                 if not clip_bytes:
-                    video_jobs[job_id] = {"status": "failed", "error": f"Failed to generate clip {i+1}"}
+                    video_jobs[job_id] = {"status": "failed", "error": f"Failed to download clip {i+1}"}
                     return
                 
                 clip_path = f"/tmp/clip_{job_id}_{i}.mp4"
-                video_gen.save_video(clip_bytes, clip_path)
+                with open(clip_path, 'wb') as f:
+                    f.write(clip_bytes)
                 clip_paths.append(clip_path)
             
             # Stitch clips
@@ -632,12 +694,28 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
                 video_bytes = f.read()
             import os
             os.remove(output_path)
+            for cp in clip_paths:
+                try:
+                    os.remove(cp)
+                except:
+                    pass
         else:
+            # Standard duration
+            video_jobs[job_id] = {"status": "generating", "progress": 20, "message": "Creating video job..."}
+            
+            # Create job
+            job_data = create_video_job(prompt, duration)
+            video_id = job_data['id']
+            
             video_jobs[job_id] = {"status": "generating", "progress": 30, "message": "Generating video..."}
-            video_bytes = video_gen.text_to_video(
-                prompt=prompt,
-                model=model,
-                size=size,
+            
+            # Poll for completion
+            completed_data = poll_video_job(video_id)
+            
+            video_jobs[job_id] = {"status": "generating", "progress": 80, "message": "Downloading video..."}
+            
+            # Download video
+            video_bytes = download_video(video_id)
                 duration=duration,
                 max_wait_time=600
             )
