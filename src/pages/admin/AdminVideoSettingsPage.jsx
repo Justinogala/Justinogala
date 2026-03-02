@@ -53,7 +53,7 @@ const AdminVideoSettingsPage = () => {
 
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/video-api`, {
+      const res = await fetch(`${API_URL}/api/admin/video-api-settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
