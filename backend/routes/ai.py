@@ -697,7 +697,7 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
             for cp in clip_paths:
                 try:
                     os.remove(cp)
-                except:
+                except Exception:
                     pass
         else:
             # Standard duration
