@@ -808,4 +808,63 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - `/app/src/components/AdminSidebar.jsx` - Added "Video Settings" link
   - `/app/src/App.jsx` - Added route for video settings page
 
+### 4-Tier Subscription & Stripe Integration (Mar 2, 2026)
+- [x] **4-Tier Pricing Structure** - Complete pricing system
+  - Free ($0/month) - 5 meetings, 30 min transcription, 1GB storage
+  - Pro ($19/month) - 50 meetings, 300 min transcription, 5GB storage
+  - Business ($39/month) - 150 meetings, 1000 min transcription, 25GB storage
+  - Enterprise ($79/month) - Unlimited meetings & transcription, 100GB storage
+- [x] **Backend Plans API**:
+  - `GET /api/payments/plans` - Returns all 4 plans with features and limits
+  - `GET /api/payments/user/{user_id}/subscription` - Returns user subscription and usage
+  - `POST /api/payments/checkout` - Creates Stripe checkout session
+  - `GET /api/payments/status/{session_id}` - Gets payment status
+  - `POST /api/webhook/stripe` - Handles Stripe webhook events
+- [x] **Admin Stripe Settings Page** - `/admin/stripe-settings`
+  - Stripe API Key configuration
+  - Price IDs for Pro, Business, Enterprise plans
+  - Payment status sidebar showing configuration state
+  - Transactions tab for viewing payment history
+  - Step-by-step setup instructions
+- [x] **User Plans Page** - `/user/plans`
+  - Overview tab: Current plan, usage metrics, features included
+  - Plans tab: All 4 tiers with Monthly/Annual toggle (Save 17%)
+  - Usage tab: Meetings, transcription, storage, workspaces tracking
+  - "Most Popular" badge on Pro plan
+  - "Current" badge on user's active plan
+- [x] **Public Pricing Page** - `/pricing`
+  - 4-column grid layout for all tiers
+  - Feature comparison table
+  - FAQ section
+  - CTA for free trial
+- [x] **Files Modified**:
+  - `/app/backend/routes/payments.py` - Added plans API, user subscription, DEFAULT_PLANS constant
+  - `/app/src/config/subscriptionPlans.js` - Updated to 4-tier structure
+  - `/app/src/pages/user/UserPlansPage.jsx` - 4-column grid, Monthly/Annual toggle
+  - `/app/src/pages/PricingPage.jsx` - Public pricing page with all 4 tiers
+  - `/app/src/components/billing/PlanComparisonTable.jsx` - Updated for 4 plans
+  - `/app/src/pages/admin/AdminStripeSettingsPage.jsx` - Admin Stripe config UI
+- [x] **Test Results**: 100% pass rate (18/18 backend tests, all frontend verified)
+- [x] **Note**: Stripe checkout is MOCKED - requires admin to configure real Stripe API keys and Price IDs
+
+## Prioritized Backlog
+
+### P0 (Critical)
+- [ ] End-to-end Cloud Storage Migration test (carried over)
+
+### P1 (High)
+- [ ] User subscription entitlements enforcement (limit meetings, transcription based on plan)
+- [ ] Stripe webhook handling for payment events
+- [ ] User plan upgrade/downgrade flow testing
+
+### P2 (Medium)
+- [ ] Payment history view for users
+- [ ] Invoice generation and download
+- [ ] Refactor/remove legacy GroupMeetingRoomPage.jsx
+
+### Future
+- [ ] Annual billing discount implementation
+- [ ] Team billing for workspaces
+- [ ] Usage alerts when approaching limits
+
 
