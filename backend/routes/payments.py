@@ -390,6 +390,7 @@ async def stripe_webhook(request: Request):
 
 class StripeSettingsUpdate(BaseModel):
     api_key: Optional[str] = None
+    webhook_secret: Optional[str] = None
     # Monthly prices
     pro_price_id: Optional[str] = None
     business_price_id: Optional[str] = None
@@ -406,14 +407,19 @@ async def get_stripe_settings():
     try:
         stripe_settings = await db.admin_settings.find_one({"category": "stripe"})
         price_settings = await db.admin_settings.find_one({"category": "stripe_prices"})
+        webhook_settings = await db.admin_settings.find_one({"category": "stripe_webhook"})
         
         api_key = stripe_settings.get("api_key", "") if stripe_settings else ""
         masked_key = f"{api_key[:7]}...{api_key[-4:]}" if len(api_key) > 12 else ""
+        
+        webhook_secret = webhook_settings.get("secret", "") if webhook_settings else ""
+        webhook_configured = bool(webhook_secret and webhook_secret.startswith("whsec_"))
         
         return {
             "success": True,
             "configured": bool(api_key and not api_key.startswith("sk_test_emergent")),
             "api_key_preview": masked_key if api_key else None,
+            "webhook_configured": webhook_configured,
             "prices": {
                 "pro": price_settings.get("pro_price_id", "") if price_settings else "",
                 "business": price_settings.get("business_price_id", "") if price_settings else "",
@@ -445,6 +451,20 @@ async def update_stripe_settings(request: StripeSettingsUpdate):
                     "$set": {
                         "category": "stripe",
                         "api_key": request.api_key,
+                        "updated_at": now
+                    }
+                },
+                upsert=True
+            )
+        
+        # Update webhook secret if provided
+        if request.webhook_secret:
+            await db.admin_settings.update_one(
+                {"category": "stripe_webhook"},
+                {
+                    "$set": {
+                        "category": "stripe_webhook",
+                        "secret": request.webhook_secret,
                         "updated_at": now
                     }
                 },
