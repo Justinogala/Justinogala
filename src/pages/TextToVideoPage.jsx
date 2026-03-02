@@ -105,16 +105,28 @@ const TextToVideoPage = () => {
       return;
     }
 
+    // Validate custom API key if using it
+    if (useCustomKey && !customApiKey.trim()) {
+      toast({ variant: 'destructive', title: 'Please enter your OpenAI API key' });
+      return;
+    }
+
     setGenerating(true);
     setProgress(0);
     setVideoData(null);
 
     try {
+      // Build request body
+      const requestBody = { prompt, model, size, duration };
+      if (useCustomKey && customApiKey.trim()) {
+        requestBody.custom_api_key = customApiKey.trim();
+      }
+
       // Start the generation job
       const res = await fetch(`${API_URL}/api/ai/video/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model, size, duration })
+        body: JSON.stringify(requestBody)
       });
 
       if (!res.ok) {
@@ -129,7 +141,11 @@ const TextToVideoPage = () => {
         throw new Error('No job ID received');
       }
 
-      toast({ title: 'Video generation started', description: 'This may take a few minutes...' });
+      const keySource = startData.key_source === 'custom' ? 'your API key' : 'platform credits';
+      toast({ 
+        title: 'Video generation started', 
+        description: `Using ${keySource}. This may take a few minutes...` 
+      });
 
       // Poll for job status
       const pollInterval = setInterval(async () => {
