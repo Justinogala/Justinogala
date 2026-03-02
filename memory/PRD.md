@@ -784,15 +784,28 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - `/app/src/components/landing/PricingSection.jsx` - Layout confirmed working
   - `/app/src/pages/PricingPage.jsx` - Fixed duplicate code causing syntax error
 
-### Text-to-Video Custom API Key Support (Mar 2, 2026)
-- [x] **Custom OpenAI API Key Option** - Users can now use their own OpenAI API key for video generation
-  - Toggle switch: "Use my own OpenAI key"
-  - Secure password input field for API key
-  - Key is used only for the session, never stored
-  - Warning message when using platform credits (may be insufficient)
-  - Backend validates and uses custom key if provided
+### Text-to-Video Admin API Key Management (Mar 2, 2026)
+- [x] **Removed user-facing API key option** - Users no longer need to provide their own key
+- [x] **Admin Video Settings Page** - New admin page at `/admin/video-settings`
+  - Configure OpenAI API key for all users
+  - Status indicator (Configured/Not Configured)
+  - Masked key preview after saving
+  - Test connection functionality
+  - Remove key option
+  - Instructions for obtaining API key
+  - Service status sidebar
+- [x] **Backend API Endpoints**:
+  - `GET /api/admin/settings/video-api` - Get video API settings (masked)
+  - `POST /api/admin/settings/video-api` - Save video API key
+  - `DELETE /api/admin/settings/video-api` - Remove video API key
+  - `POST /api/admin/settings/video-api/test` - Test API key
+- [x] **API key priority**: Admin-configured key > Environment variables (EMERGENT_LLM_KEY/OPENAI_API_KEY)
 - [x] **Files Modified**:
-  - `/app/src/pages/TextToVideoPage.jsx` - Added API key settings UI
-  - `/app/backend/routes/ai.py` - Added `custom_api_key` parameter to video generation endpoint
+  - `/app/src/pages/TextToVideoPage.jsx` - Removed user API key input
+  - `/app/backend/routes/ai.py` - Updated to use admin-configured key
+  - `/app/backend/routes/admin.py` - Added video API settings endpoints
+  - `/app/src/pages/admin/AdminVideoSettingsPage.jsx` - NEW: Admin UI for video settings
+  - `/app/src/components/AdminSidebar.jsx` - Added "Video Settings" link
+  - `/app/src/App.jsx` - Added route for video settings page
 
 
