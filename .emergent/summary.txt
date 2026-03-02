@@ -1,162 +1,194 @@
 <analysis>**original_problem_statement**:
-The user's goal is to build a full-stack AI-powered application called Munal/EchoNote AI. The scope includes a modern chat interface, screen/camera recording, AI-driven analysis, Stripe payments, a comprehensive admin panel, and a full-featured calendar for booking and managing meetings.
+The user's goal is to build a full-stack AI-powered application called Munal/EchoNote AI. The scope includes a modern chat interface, screen/camera recording, AI-driven analysis, Stripe payments, a comprehensive admin panel, and a full-featured calendar.
 
-Recent user requests implemented in this session include:
-- Optimizing the application for mobile devices and search engines.
-- Removing the user-facing API key requirement for Whisper transcription and making it use the platform's shared key.
-- Fixing a bug in the Text-to-Speech (TTS) service.
-- Dynamically updating the landing page's pricing section from the database.
-- Implementing a new Text to Video feature using OpenAI's Sora 2, complete with extended duration options, async generation, download/history functionality, and admin oversight.
-- Restructuring the application's pricing from a 3-tier to a 4-tier model (Free, Pro, Business, Enterprise) with new prices and feature allocations.
+Recent user requests from this session include:
+- Enhancing the video meeting room with recording capabilities (local download and cloud save) and labeled action buttons.
+- Adding automatic transcription for cloud-saved meeting recordings using Whisper, including support for large files via .
+- Creating a transcript viewer in the File Manager with search and clickable timestamps.
+- Reworking the Text-to-Video feature to use a persistent, admin-configured OpenAI API key instead of the platform's key, to resolve billing limit issues.
+- Fixing several critical frontend bugs on the admin portal that were causing pages to crash.
+- A request to integrate Stripe for subscription payments.
+- A request to update the application's pricing pages with a detailed list of features for each of the four subscription tiers.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack project with a Vite/React frontend and a modular FastAPI backend using MongoDB. Key functionalities include:
-- **Core**: JWT authentication, real-time chat (SSE), and a working instant video meeting room. The critical camera bug is now considered resolved.
-- **AI Features**:
-    - **Whisper Transcription**: Now uses a centralized platform key, removing the need for users to provide their own.
-    - **Text-to-Speech (TTS)**: A functional text-to-audio generation feature.
-    - **Text-to-Video (NEW)**: A new feature powered by OpenAI's Sora 2. It supports generating videos up to 60 seconds (via multi-clip stitching), async job processing to handle long generation times, and a video history for users.
-- **Admin Panel**: A comprehensive dashboard for managing Users, Plans & Pricing, Cloud Storage, and a new section for viewing all user-generated **Video History**.
-- **User Features**: A calendar with Jizira integration, a meetings dashboard, and workspace-specific chat.
-- **Billing & Pricing**: A fully database-driven, 4-tier pricing system (Free, Pro, Business, Enterprise) is in place. The pricing is reflected on the main landing page, a dedicated pricing page, and the features page.
+The application is a full-stack project with a Vite/React frontend and a modular FastAPI backend using MongoDB.
+- **Core AI & Media**:
+    - **Text-to-Video**: Fully functional using OpenAI's Sora 2, powered by a direct OpenAI API key managed in a new admin settings page.
+    - **Transcription**: Automatic transcription for cloud-saved meeting recordings is implemented, leveraging the existing Whisper integration. It supports large files by extracting audio with  first.
+    - **Meeting Room**: The  component now includes a recording feature (local download & cloud save) and clearly labeled control buttons.
+- **User-Facing Features**:
+    - **File Manager**: Now includes a transcript viewer UI that allows users to read and search through their meeting transcripts.
+    - **Pricing Pages**: The 4-tier pricing model is displayed, but the feature lists are awaiting a final update based on the user's latest message.
+- **Admin Panel**:
+    - Now includes a dedicated Video API Settings page to manage the Sora 2 API key and a Stripe Settings page to manage Stripe keys and product price IDs.
+    - The admin login and API settings pages, which were previously crashing, have been stabilized.
+- **Stripe Integration**:
+    - Backend routes for creating checkout sessions and handling webhooks are in place.
+    - Frontend admin UI for configuration is complete. The user-facing checkout flow is partially implemented but not yet fully connected.
 
 **Last working item**:
-The agent was updating the landing page's pricing section to correctly display the new 4-tier plan structure in a single, horizontally-scrollable line for better presentation.
+The agent was in the process of implementing Stripe integration. After creating the necessary backend routes and admin UI, the user provided a detailed list of features for each of the four pricing plans. The agent's last action was to acknowledge this new requirement, which now needs to be implemented.
 
-- **Last item agent was working**: Adjusting the CSS in  to ensure the four pricing cards are displayed in a single row and that their content is adapted for the more compact layout.
+- **Last item agent was working**: Updating the pricing plans to match the detailed feature list provided by the user, as a prerequisite to completing the Stripe checkout integration.
 - **Status**: IN PROGRESS
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: screenshot tool. The next agent should take a screenshot of the main landing page to verify that the pricing section correctly displays four plans in a single line without layout issues.
+- **Which testing method agent to use?**: both
+    - **Backend**: The agent will need to update the plan details, likely in the database via an admin endpoint or a script. This can be verified with a  command to the endpoint that fetches plan data.
+    - **Frontend**: The agent must use the  to verify that both the landing page's pricing section and the dedicated  page correctly display the new, detailed feature lists for all four plans.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Verify 4-Tier Pricing Layout on Landing Page (Priority: P0 - HIGHEST)**
-    - **Description**: The agent modified  to accommodate a 4-tier layout in a single row but did not visually verify the final result. The layout might be broken or not display as the user intended.
-    - **Attempted fixes**: The agent updated the Tailwind CSS grid classes from  to  and made adjustments to the component's content.
-    - **Next debug checklist**:
-        1. Take a screenshot of the main landing page ().
-        2. Inspect the Pricing section.
-        3. If the layout is broken, edit  to fix the CSS, likely focusing on grid, flexbox, or overflow properties.
-    - **Why fix this issue and what will be achieved with the fix?**: This is the final step in the pricing rework and is critical for presenting the new subscription model to potential customers on the main landing page.
-    - **Status**: IN PROGRESS
+- **Issue 1: Text-to-Video Transcription (User Confusion)** (Priority: P1)
+    - **Description**: In chat message #492, the user stated The text-to-video isnt transcribing, which seems to conflate two separate features. The agent correctly identified that the actual issue was a billing limit error with the Text-to-Video *generation* service.
+    - **Attempted fixes**: The agent fixed the video generation issue by switching to a direct OpenAI key.
+    - **Next debug checklist**: This is not a technical bug but a point of clarification. The next agent should be aware that the user might refer to transcription when they mean generation in the context of Text-to-Video. No code changes are needed unless the user reports a new problem.
+    - **Why fix this issue and what will be achieved with the fix?**: Prevents confusion and wasted effort debugging the wrong feature.
+    - **Status**: RESOLVED (but good to be aware of).
     - **Is recurring issue?**: N
-    - **Should Test frontend/backend/both after fix?**: Frontend
+    - **Should Test frontend/backend/both after fix?**: NA
 
 **In progress Task List**:
-- **Task 1: Complete and Verify the Landing Page Pricing Section Update**
-    - **Where to resume**: Take a screenshot of the application's homepage to visually confirm the changes made to .
-    - **What will be achieved with this?**: The landing page will correctly display the four new pricing plans (Free, Pro, Business, Enterprise) in a single, clean row, completing the user's request.
-    - **Status**: IN PROGRESS
+- **Task 1: Update All Pricing Plans with Detailed Features (Priority: P0 - HIGHEST)**
+    - **Where to resume**: The user provided a complete feature list for the Free, Pro, Business, and Enterprise plans in message #565. The agent needs to update the application's database to reflect these details. This will likely involve using or modifying an admin endpoint.
+    - **What will be achieved with this?**: The application's public-facing pricing information will be accurate and match the user's business requirements, setting the stage for the Stripe integration.
+    - **Status**: NOT STARTED
     - **Should Test frontend/backend/both after fix?**: Frontend
+- **Task 2: Complete Stripe Integration (Priority: P1)**
+    - **Where to resume**: After updating the pricing plan features, the agent needs to connect the Subscribe buttons on  to the  endpoint. The agent must also ensure the Stripe webhook handler () is fully implemented to update a user's subscription status in the database after a successful payment.
+    - **What will be achieved with this?**: A complete, end-to-end subscription workflow, allowing the application to accept payments.
+    - **Status**: IN PROGRESS
+    - **Should Test frontend/backend/both after fix?**: Both
+    - **Blocked on something**: Task 1: Update All Pricing Plans with Detailed Features.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - **(P1) End-to-End Test Cloud Storage Migration**: The UI and backend worker for migrating files from GridFS to cloud storage are complete, but the full flow has never been tested. This task involves uploading a file, configuring a cloud provider in the admin panel, triggering the migration, and verifying the file's transfer and accessibility.
-    - **(P2) Meeting Room Modifications**: The user mentioned that the new, working meeting room will need modifications in the future. The next agent should ask the user to specify these requirements so they can be added to the backlog.
+    - **(P1) End-to-End Test Cloud Storage Migration**: A carry-over task from a previous session. The UI and backend worker are complete, but the full flow (upload, configure, migrate, verify) has not been tested.
 - **Future Tasks**:
-    - No other future tasks are currently in the backlog. The user explicitly requested the removal of Virtual Backgrounds, Rename useSseChat.js, and Standardize env vars to VITE_.
+    - **Refactor Legacy Meeting Room**: The old  and its associated hooks () are technical debt now that the new  is confirmed to work. They should be formally deprecated and removed.
 
 **Completed work in this session**
-- **Mobile & SEO Optimization (DONE)**: Fully implemented SEO meta tags (Open Graph, Twitter Cards, JSON-LD), mobile viewport settings, and generated a custom .
-- **Whisper Transcription API Key Fix (DONE)**: Removed the user-facing API key input and refactored the feature to use the backend's centralized .
-- **TTS Service Bug Fix (DONE)**: Corrected a backend import error () that was crashing the TTS service.
-- **Camera Bug Resolution (DONE)**: User confirmed that the new  works correctly, resolving the long-standing critical camera bug.
-- **New Feature: Text to Video (DONE)**:
-    - Implemented a full-featured Text to Video page using OpenAI's Sora 2.
-    - Backend uses an asynchronous job queue with polling to handle long generation times and avoid gateway timeouts.
-    - Implemented extended duration (up to 60s) via  clip stitching.
-    - Added features for users to download or save generated videos to a personal history.
-    - Implemented a 7-day auto-deletion policy for saved videos using a MongoDB TTL index.
-    - Created an admin page for viewing and managing all user-generated videos.
-- **Pricing System Rework (DONE)**:
-    - Restructured the pricing model from 3 tiers to a 4-tier system: Free (/bin/bash), Pro (9), Business (9), and Enterprise (9).
-    - Updated all relevant database entries and frontend components (, , ) to reflect the new structure.
+- **Meeting Room Enhancements (DONE)**: Implemented a recording feature with local download and cloud save options, and added clear text labels to all in-meeting control buttons.
+- **Automatic Transcription for Recordings (DONE)**: Integrated Whisper to automatically transcribe meeting recordings saved to the cloud. The backend now handles large files by extracting audio with .
+- **Transcript Viewer UI (DONE)**: Created a new UI in the File Manager to display, search, and navigate transcripts with clickable timestamps.
+- **Text-to-Video API Rework (DONE)**: Re-engineered the feature to use an admin-configured, direct OpenAI API key, fixing a key persistence bug and bypassing platform billing limits.
+- **Admin Panel Stability Fixes (DONE)**: Resolved two critical frontend crashes on the Admin Login and API Settings pages by adding robust null-checking and default values in React Contexts.
+- **Stripe Integration Scaffolding (DONE)**: Built the backend API endpoints and frontend admin UI for managing Stripe integration, paving the way for the full implementation.
 
 **Earlier issues found/mentioned but not fixed**
 - The **End-to-End Test for Cloud Storage Migration** remains pending from the initial handoff summary.
 
 **Known issue recurrence from previous fork**
-- **Issue recurrence in previous fork**: Camera fails to start or display video in meeting rooms.
+- **Issue recurrence in previous fork**: Camera fails to start.
 - **Recurrence count**: HIGH
-- **Status**: **RESOLVED**. The user confirmed that the new  component has fixed this issue.
+- **Status**: **RESOLVED**. This was confirmed fixed in the previous session and no new issues arose.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Frontend**: React, Vite, Tailwind CSS, Shadcn/UI
-- **Backend**: Modular FastAPI, Motor (async MongoDB driver)
-- **Real-time**: WebRTC, Server-Sent Events (SSE)
-- **Database**: MongoDB (with GridFS and TTL Indexes)
-- **AI/ML**:
-    - **OpenAI Sora 2**: For text-to-video generation.
-    - **OpenAI Whisper**: For audio transcription.
-    - **OpenAI TTS**: For text-to-speech.
-- **Tooling**:  for video processing (stitching).
+- **Frontend**: React, Vite, Tailwind CSS, Shadcn/UI, React Context API
+- **Backend**: FastAPI, Motor (async MongoDB), Pydantic
+- **Payments**: Stripe (Checkout Sessions, Webhooks)
+- **Database**: MongoDB (with GridFS for large file storage)
+- **AI/ML**: OpenAI Sora 2 (via direct ), OpenAI Whisper
+- **Tooling**:  for audio extraction from video files
 
 **key DB schema**
--   **plans**:  (MODIFIED: Updated with new 4-tier structure)
--   **video_history**:  (NEW collection with a 7-day TTL index on )
+- **settings**:  (Now stores , , and ).
+- **transcripts**:  (NEW collection to store Whisper transcription results).
+- **plans**:  (The  array needs to be updated with the detailed list from the user).
 
 **changes in tech stack**
-- **** is now a system dependency used by the backend for video processing.
+- The backend now uses the official usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit and  Python libraries.
+- The Text-to-Video feature was refactored to use direct HTTP  to the OpenAI API instead of the  library to support a direct API key.
 
 **All files of reference**
-- **Pricing Rework**: , , 
-- **Text to Video Feature**: , , , 
-- **Whisper API Key Fix**: , 
-- **SEO Optimization**: , 
-- **TTS Fix**: 
+- **Stripe Integration**: , , 
+- **Transcription & Viewer**: , , 
+- **Meeting Room Recording**: 
+- **Admin Panel**: , , , 
 
 **Areas that need refactoring**:
-- With the new  confirmed as working, the old  and its associated complex hooks () are now technical debt. A future task should be to formally deprecate and remove them to simplify the codebase.
+- ****: Now that  has been enhanced and is stable, the old meeting room component and its related hooks are technical debt and should be scheduled for removal to simplify the codebase.
 
 **key api endpoints**
+- **Stripe**:
+    - : Creates a Stripe checkout session.
+    - : Handles incoming Stripe webhooks for payment events.
+    - , : Manage Stripe API keys and Price IDs.
 - **Video Generation**:
-    - : (Async) Starts a video generation job.
-    - : Polls for the status of a generation job.
-    - : Fetches the completed video.
-- **Video History**:
-    - : Saves a generated video to the user's history.
-    - : Gets the current user's video history.
-    - : Deletes a video from history.
-- **Admin**:
-    - : Fetches all videos from all users for admin review.
-    - : Gets statistics about generated videos.
+    - , : Manages the admin-configured OpenAI key for Sora 2.
+- **Transcription**:
+    - : Triggers transcription for a file stored in GridFS.
+    - : Retrieves the transcript for a given file.
 
 **Critical Info for New Agent**
-- **User is Decisive**: The user actively prunes the backlog and makes quick decisions on features and pricing. It's important to present clear options and act on their choices.
-- **Camera Bug is Resolved**: Do not spend time investigating the old camera bug. The user has confirmed the new meeting room implementation works.
-- **Async Video Generation**: The text-to-video feature is asynchronous to prevent timeouts. The frontend initiates a job and polls for completion. This pattern is crucial for the feature's stability.
-- **Pricing is Dynamic**: All pricing tiers and features are now managed in the database and fetched via API. Frontend static content for pricing should not be created; instead, modify the dynamic rendering logic or update the plans via the admin panel/API.
+- **Update Pricing Plans First**: The user's highest priority is to see their detailed feature list on the pricing pages. This must be done **before** completing the Stripe checkout flow. The plan data is likely stored in the database and fetched by the frontend.
+- **Stripe Integration Is In Progress**: The backend routes and admin UI are built, but the crucial pieces are missing: wiring up the frontend Subscribe buttons and implementing the webhook handler to grant user entitlements after payment.
+- **Text-to-Video Uses Direct OpenAI Key**: The implementation was successfully switched from the platform key to a direct OpenAI API key managed by the admin. The agent should not attempt to revert this logic. The cause of failure was an OpenAI billing limit, not a code bug.
+- **Admin Panel Stability**: Recent fixes involved adding default values and null-checks in React contexts () and components () to prevent crashes from unexpectedly structured data. If new admin pages are built, they should follow this robust pattern.
 
 **documents and test reports created in this job**
--  was updated with completed tasks.
+-  was updated multiple times throughout the session.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User**:  - **Status**: IN PROGRESS. Agent started implementing the layout change.
-9.  **User**:  (choosing the 4-tier pricing option) - **Status**: COMPLETED.
-8.  **User**:  - **Status**: ADDRESSED. Agent provided recommendations, and the user chose one.
-7.  **User**:  - **Status**: COMPLETED.
-6.  **User**:  - **Status**: COMPLETED.
-5.  **User**:  - **Status**: COMPLETED.
-4.  **User**:  - **Status**: COMPLETED.
-3.  **User**:  (referring to the text-to-video generation) - **Status**: COMPLETED. Agent tested and then fixed a timeout issue by implementing async processing.
-2.  **User**:  - **Status**: ADDRESSED. Agent explained the generation time and the need for a live test.
-1.  **User**:  - **Status**: COMPLETED.
+10. User provided a detailed breakdown of features for all 4 pricing plans. **Status: IN PROGRESS**.
+9.  User confirmed they want the agent to implement Stripe now with placeholder price IDs. **Status: IN PROGRESS**.
+8.  User asked for the best process to connect the app to Stripe. **Status: ADDRESSED**.
+7.  User reported text-to-video isnt transcribing, which was a billing limit error on video *generation*. **Status: RESOLVED**.
+6.  User reported that the Admin API settings page was unreachable. **Status: RESOLVED**.
+5.  User reported a crash on the admin login page. **Status: RESOLVED**.
+4.  User reported that the saved video API key was not persisting on refresh. **Status: RESOLVED**.
+3.  User provided an OpenAI API key for testing. **Status: ADDRESSED**.
+2.  User requested that the video API key be managed by an admin, not by individual users. **Status: COMPLETED**.
+1.  User reported that text-to-video was not working. **Status: RESOLVED**.
 
 **Project Health Check:**
-- **Broken**: None. The most critical bug (camera) has been resolved.
-- **Mocked**: None.
+- **Broken**: None.
+- **Mocked**: The Stripe integration relies on placeholder s that the user will need to configure in the admin panel. The checkout flow itself is not yet functional.
 
 **3rd Party Integrations**
-- **OpenAI GPT-4o**: Core AI features. Uses **Emergent LLM Key**.
-- **OpenAI Whisper**: Transcription. Uses **Emergent LLM Key**.
-- **OpenAI TTS**: Text-to-speech. Uses **Emergent LLM Key**.
-- **OpenAI Sora 2**: Text-to-video generation. Uses **Emergent LLM Key**.
-- **Stripe**: Payment processing. Requires a User API Key.
+- **OpenAI GPT-4o / Sora 2 / Whisper / TTS**: Core AI features. All now use a direct, admin-configured OpenAI key. The Emergent LLM Key is no longer used for video generation.
+- **Stripe**: **(IN PROGRESS)** Payment processing. Requires a User API Key and Price IDs, configurable in the admin panel.
 - **Resend**: Email delivery.
 - **Jizira**: External meeting service.
 
@@ -171,5 +203,4 @@ The agent was updating the landing page's pricing section to correctly display t
 - **User**: Register any new user via the signup page.
 
 **What agent forgot to execute**
-- The agent did not perform a final visual verification (via screenshot) of the 4-tier pricing layout on the landing page after making code changes.
 - The end-to-end test for the **Cloud Storage Migration** feature, which was pending from the previous fork, was not addressed in this session.</analysis>

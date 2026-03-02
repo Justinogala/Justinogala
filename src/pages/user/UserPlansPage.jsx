@@ -59,6 +59,7 @@ const UserPlansPage = () => {
     const icons = {
       'Free': Zap,
       'Pro': Star,
+      'Business': TrendingUp,
       'Enterprise': Crown
     };
     return icons[planName] || Zap;
@@ -76,15 +77,11 @@ const UserPlansPage = () => {
     setCheckoutLoading(plan.id);
     
     try {
-      const packageId = isAnnual 
-        ? `${plan.name.toLowerCase()}_annual` 
-        : `${plan.name.toLowerCase()}_monthly`;
-
       const response = await fetch(`${API_URL}/api/payments/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          package_id: packageId,
+          plan_id: plan.id,
           origin_url: window.location.origin,
           user_id: user?.id || null,
           user_email: user?.email || null
@@ -93,18 +90,14 @@ const UserPlansPage = () => {
 
       const data = await response.json();
 
-      if (data.requires_payment === false || data.success) {
-        toast({
-          title: "Plan Activated",
-          description: `${plan.name} plan is now active!`
-        });
-        return;
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to create checkout session');
       }
 
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        throw new Error(data.detail || 'No checkout URL received');
+        throw new Error('No checkout URL received');
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -290,7 +283,7 @@ const UserPlansPage = () => {
           </div>
 
           {/* Plans Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {plans.map((plan) => {
               const planIsCurrent = isCurrent(plan.name);
               const price = isAnnual ? plan.price_annual : plan.price_monthly;
@@ -299,7 +292,7 @@ const UserPlansPage = () => {
               return (
                 <Card 
                   key={plan.id} 
-                  className={`relative ${plan.is_popular ? 'border-indigo-500 dark:border-indigo-400 shadow-lg scale-105' : ''} ${planIsCurrent ? 'ring-2 ring-green-500' : ''}`}
+                  className={`relative ${plan.is_popular ? 'border-indigo-500 dark:border-indigo-400 shadow-lg scale-[1.02]' : ''} ${planIsCurrent ? 'ring-2 ring-green-500' : ''}`}
                 >
                   {plan.is_popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -333,16 +326,16 @@ const UserPlansPage = () => {
                       )}
                     </div>
                     
-                    <ul className="space-y-3 text-left mb-6">
-                      {plan.features?.slice(0, 8).map((feature, idx) => (
+                    <ul className="space-y-2 text-left mb-6">
+                      {plan.features?.slice(0, 6).map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm">
                           <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                           <span className="text-gray-600 dark:text-gray-300">{feature}</span>
                         </li>
                       ))}
-                      {plan.features?.length > 8 && (
-                        <li className="text-sm text-indigo-600 dark:text-indigo-400">
-                          +{plan.features.length - 8} more features
+                      {plan.features?.length > 6 && (
+                        <li className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                          +{plan.features.length - 6} more features
                         </li>
                       )}
                     </ul>

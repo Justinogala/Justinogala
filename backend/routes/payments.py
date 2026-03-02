@@ -341,3 +341,255 @@ async def get_payment_transactions(limit: int = 50):
     except Exception as e:
         logger.error(f"Error getting transactions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Plans Endpoints ==============
+
+# Default plans configuration - 4-tier structure
+DEFAULT_PLANS = [
+    {
+        "id": "free",
+        "name": "Free",
+        "description": "Perfect for individuals getting started",
+        "price_monthly": 0,
+        "price_annual": 0,
+        "is_popular": False,
+        "features": [
+            "5 video meetings per month",
+            "30 minutes AI transcription",
+            "1 GB secure cloud storage",
+            "Basic AI-powered transcription",
+            "Instant video meetings with screen share",
+            "Team chat messaging",
+            "Calendar & scheduling",
+            "Text-to-Audio conversion (basic)",
+            "Email support"
+        ],
+        "limits": {
+            "meetings_per_month": 5,
+            "transcription_minutes": 30,
+            "storage_gb": 1,
+            "workspaces": 1,
+            "team_members": 1,
+            "video_duration_seconds": 4
+        }
+    },
+    {
+        "id": "pro",
+        "name": "Pro",
+        "description": "Best for professionals & growing teams",
+        "price_monthly": 19,
+        "price_annual": 190,
+        "is_popular": True,
+        "features": [
+            "50 video meetings per month",
+            "300 minutes AI transcription",
+            "5 GB secure cloud storage",
+            "AI-powered transcription",
+            "HD video meetings with recording",
+            "Team chat messaging",
+            "Voice chat channels",
+            "Text-to-Audio conversion",
+            "Priority email support",
+            "Speaker identification",
+            "3 team workspaces",
+            "Up to 5 team members",
+            "Text-to-Video (up to 8s)"
+        ],
+        "limits": {
+            "meetings_per_month": 50,
+            "transcription_minutes": 300,
+            "storage_gb": 5,
+            "workspaces": 3,
+            "team_members": 5,
+            "video_duration_seconds": 8
+        }
+    },
+    {
+        "id": "business",
+        "name": "Business",
+        "description": "For growing teams and startups",
+        "price_monthly": 39,
+        "price_annual": 390,
+        "is_popular": False,
+        "features": [
+            "150 video meetings per month",
+            "1000 minutes AI transcription",
+            "25 GB secure cloud storage",
+            "Advanced AI transcription with speaker ID",
+            "HD video meetings with recording",
+            "Screen sharing & collaboration",
+            "Unlimited team chat",
+            "Voice chat channels",
+            "Priority support",
+            "AI meeting summaries",
+            "10 team workspaces",
+            "Up to 25 team members",
+            "Text-to-Video (up to 24s)",
+            "Extended multi-clip video",
+            "Admin dashboard",
+            "Advanced analytics",
+            "Custom integrations"
+        ],
+        "limits": {
+            "meetings_per_month": 150,
+            "transcription_minutes": 1000,
+            "storage_gb": 25,
+            "workspaces": 10,
+            "team_members": 25,
+            "video_duration_seconds": 24
+        }
+    },
+    {
+        "id": "enterprise",
+        "name": "Enterprise",
+        "description": "For large organizations",
+        "price_monthly": 79,
+        "price_annual": 790,
+        "is_popular": False,
+        "features": [
+            "Unlimited video meetings",
+            "Unlimited AI transcription",
+            "100 GB secure cloud storage",
+            "Enterprise-grade AI transcription",
+            "4K video meetings with recording",
+            "Screen sharing & virtual backgrounds",
+            "Unlimited team chat",
+            "Voice chat channels",
+            "24/7 dedicated support",
+            "AI meeting summaries & insights",
+            "Unlimited workspaces",
+            "Unlimited team members",
+            "Text-to-Video (up to 60s)",
+            "Extended multi-clip video",
+            "Full admin dashboard",
+            "Cloud provider configuration",
+            "Custom branding",
+            "SSO/SAML integration",
+            "Dedicated account manager",
+            "SLA guarantee",
+            "API access"
+        ],
+        "limits": {
+            "meetings_per_month": -1,
+            "transcription_minutes": -1,
+            "storage_gb": 100,
+            "workspaces": -1,
+            "team_members": -1,
+            "video_duration_seconds": 60
+        }
+    }
+]
+
+
+@router.get("/payments/plans")
+async def get_plans():
+    """Get all subscription plans"""
+    try:
+        # Try to get plans from database (if admin customized)
+        db_plans = await db.plans.find({}, {"_id": 0}).to_list(10)
+        
+        if db_plans and len(db_plans) >= 4:
+            return {"success": True, "plans": db_plans}
+        
+        # Return default plans
+        return {"success": True, "plans": DEFAULT_PLANS}
+    except Exception as e:
+        logger.error(f"Error getting plans: {e}")
+        return {"success": True, "plans": DEFAULT_PLANS}
+
+
+@router.get("/payments/user/{user_id}/subscription")
+async def get_user_subscription(user_id: str):
+    """Get user's subscription status and usage"""
+    try:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        
+        if not user:
+            return {
+                "success": True,
+                "subscription": None,
+                "plan": DEFAULT_PLANS[0],
+                "usage": {
+                    "meetings": {"used": 0, "limit": 5},
+                    "transcription_minutes": {"used": 0, "limit": 30},
+                    "storage_gb": {"used": 0, "limit": 1},
+                    "workspaces": {"used": 1, "limit": 1},
+                    "team_members": {"used": 1, "limit": 1}
+                }
+            }
+        
+        # Get user's plan
+        plan_id = user.get("subscription_plan", "free")
+        plan = next((p for p in DEFAULT_PLANS if p["id"] == plan_id), DEFAULT_PLANS[0])
+        
+        # Get usage from usage_metrics collection
+        usage_doc = await db.usage_metrics.find_one({"user_id": user_id}, {"_id": 0})
+        
+        limits = plan.get("limits", {})
+        usage = {
+            "meetings": {
+                "used": usage_doc.get("meetings_used", 0) if usage_doc else 0,
+                "limit": limits.get("meetings_per_month", 5)
+            },
+            "transcription_minutes": {
+                "used": usage_doc.get("transcription_minutes_used", 0) if usage_doc else 0,
+                "limit": limits.get("transcription_minutes", 30)
+            },
+            "storage_gb": {
+                "used": usage_doc.get("storage_gb_used", 0) if usage_doc else 0,
+                "limit": limits.get("storage_gb", 1)
+            },
+            "workspaces": {
+                "used": usage_doc.get("workspaces_used", 1) if usage_doc else 1,
+                "limit": limits.get("workspaces", 1)
+            },
+            "team_members": {
+                "used": usage_doc.get("team_members_used", 1) if usage_doc else 1,
+                "limit": limits.get("team_members", 1)
+            }
+        }
+        
+        subscription = {
+            "plan_id": plan_id,
+            "status": user.get("subscription_status", "active"),
+            "renewal_date": user.get("subscription_updated_at")
+        }
+        
+        return {
+            "success": True,
+            "subscription": subscription,
+            "plan": plan,
+            "usage": usage
+        }
+    except Exception as e:
+        logger.error(f"Error getting user subscription: {e}")
+        return {
+            "success": False,
+            "subscription": None,
+            "plan": DEFAULT_PLANS[0],
+            "usage": {
+                "meetings": {"used": 0, "limit": 5},
+                "transcription_minutes": {"used": 0, "limit": 30},
+                "storage_gb": {"used": 0, "limit": 1},
+                "workspaces": {"used": 1, "limit": 1},
+                "team_members": {"used": 1, "limit": 1}
+            }
+        }
+
+
+@router.post("/admin/plans")
+async def update_plans(plans: list):
+    """Admin: Update subscription plans in database"""
+    try:
+        # Clear existing plans
+        await db.plans.delete_many({})
+        
+        # Insert new plans
+        for plan in plans:
+            await db.plans.insert_one(plan)
+        
+        return {"success": True, "message": f"Updated {len(plans)} plans"}
+    except Exception as e:
+        logger.error(f"Error updating plans: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
