@@ -39,7 +39,10 @@ const AdminAPISettingsPage = () => {
           ...apiConfig.googleCloud 
         },
         defaults: apiConfig.defaults || { transcription: 'openai', summarization: 'openai' },
-        usage: apiConfig.usage || {}
+        usage: {
+          openai: { calls: 0, quota: 1000, cost: 0, ...apiConfig.usage?.openai },
+          googleCloud: { calls: 0, quota: 1000, cost: 0, ...apiConfig.usage?.googleCloud }
+        }
       });
     }
   }, [apiConfig]);
