@@ -107,7 +107,7 @@ const AdminVideoSettingsPage = () => {
   const handleTest = async () => {
     setTesting(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/video-api/test`, {
+      const res = await fetch(`${API_URL}/api/admin/video-api-settings/test`, {
         method: 'POST'
       });
       const data = await res.json();
