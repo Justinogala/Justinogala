@@ -4,15 +4,68 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, X, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import Header from '@/components/Header';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
+
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const PricingPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(null);
+
+  const handleSubscribe = async (planId) => {
+    // Free plan - just go to signup
+    if (planId === 'free') {
+      if (isAuthenticated) {
+        toast({ title: 'You already have an account!' });
+      } else {
+        navigate('/signup');
+      }
+      return;
+    }
+
+    // Paid plans - create Stripe checkout
+    setLoadingPlan(planId);
+    try {
+      const response = await fetch(`${API_URL}/api/payments/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan_id: planId,
+          user_id: user?.id || null,
+          user_email: user?.email || null,
+          origin_url: window.location.origin
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({ 
+        variant: 'destructive', 
+        title: 'Checkout Error', 
+        description: error.message || 'Failed to start checkout. Please try again.' 
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   const pricingTiers = [
     {
+      id: 'free',
       name: 'Free',
       price: '$0',
       period: '/month',
@@ -32,6 +85,7 @@ const PricingPage = () => {
       popular: false
     },
     {
+      id: 'pro',
       name: 'Pro',
       price: '$19',
       period: '/month',
@@ -51,6 +105,7 @@ const PricingPage = () => {
       popular: false
     },
     {
+      id: 'business',
       name: 'Business',
       price: '$39',
       period: '/month',
@@ -70,6 +125,7 @@ const PricingPage = () => {
       popular: true
     },
     {
+      id: 'enterprise',
       name: 'Enterprise',
       price: '$79',
       period: '/month',
@@ -246,9 +302,17 @@ const PricingPage = () => {
                       <Button 
                         className="w-full h-12 text-base font-semibold"
                         variant={tier.popular ? 'default' : 'outline'}
-                        onClick={() => navigate('/signup')}
+                        onClick={() => handleSubscribe(tier.id)}
+                        disabled={loadingPlan === tier.id}
                       >
-                        {tier.cta}
+                        {loadingPlan === tier.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Redirecting...
+                          </>
+                        ) : (
+                          tier.cta
+                        )}
                       </Button>
                     </CardContent>
                   </Card>

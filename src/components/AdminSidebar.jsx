@@ -112,6 +112,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500' },
     { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500' },
     { icon: Video, label: 'Video Settings', path: '/admin/video-settings', gradient: 'from-fuchsia-500 to-pink-500' },
+    { icon: CreditCard, label: 'Stripe Settings', path: '/admin/stripe-settings', gradient: 'from-green-500 to-emerald-500' },
     { icon: Video, label: 'Video History', path: '/admin/video-history', gradient: 'from-purple-500 to-fuchsia-500' },
     { icon: Key, label: 'API Settings', path: '/admin/api-settings', gradient: 'from-amber-500 to-orange-500' },
     { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500' },

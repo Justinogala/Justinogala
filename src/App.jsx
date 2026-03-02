@@ -62,6 +62,9 @@ const FeatureAnalyticsPage = lazy(() => import('@/pages/features/FeatureAnalytic
 const FeatureVoiceChatPage = lazy(() => import('@/pages/features/FeatureVoiceChatPage'));
 const FeatureCalendarIntegrationPage = lazy(() => import('@/pages/features/FeatureCalendarIntegrationPage'));
 
+// Payment Pages
+const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
+
 // User Pages
 const UserDashboard = lazy(() => import('@/pages/user/UserDashboard')); 
 const NotFound = lazy(() => import('@/pages/NotFound'));
@@ -193,6 +196,7 @@ const AdminIntegrationLogs = lazy(() => import('@/pages/admin/AdminIntegrationLo
 const AdminSettingsPersistenceTest = lazy(() => import('@/pages/admin/AdminSettingsPersistenceTest'));
 const AdminTranscriptionSettingsPage = lazy(() => import('@/pages/admin/AdminTranscriptionSettingsPage')); 
 const AdminVideoSettingsPage = lazy(() => import('@/pages/admin/AdminVideoSettingsPage'));
+const AdminStripeSettingsPage = lazy(() => import('@/pages/admin/AdminStripeSettingsPage'));
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'));
 const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage'));
 const AdminTaxRatesPage = lazy(() => import('@/pages/admin/AdminTaxRatesPage'));
@@ -319,6 +323,7 @@ function App() {
                               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                               <Route path="/password-reset" element={<PasswordResetPage />} />
                               <Route path="/pricing" element={<PricingPage />} />
+                              <Route path="/payment/success" element={<PaymentSuccessPage />} />
                               <Route path="/shared/:shareToken" element={<SharedMeetingPage />} />
                               <Route path="/shared/recording/:shareToken" element={<SharedRecordingPage />} />
                               <Route path="/checkout/:planId" element={<CheckoutPage />} />
@@ -465,6 +470,7 @@ function App() {
                                 <Route path="transactions" element={<AdminTransactionsPage />} />
                                 <Route path="transcription-settings" element={<AdminTranscriptionSettingsPage />} />
                                 <Route path="video-settings" element={<AdminVideoSettingsPage />} />
+                                <Route path="stripe-settings" element={<AdminStripeSettingsPage />} />
                                 <Route path="api-logs" element={<AdminAPILogs />} />
                                 <Route path="integration-logs" element={<AdminIntegrationLogs />} />
                                 <Route path="audit-logs" element={<AdminAuditLogsPage />} />
