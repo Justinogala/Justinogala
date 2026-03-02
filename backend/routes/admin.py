@@ -882,7 +882,7 @@ async def update_video_api_settings(request: VideoAPIKeyUpdate):
         logger.error(f"Error updating video API settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/settings/video-api")
+@router.delete("/video-api-settings")
 async def delete_video_api_settings():
     """Remove video generation API key"""
     try:
@@ -892,7 +892,7 @@ async def delete_video_api_settings():
         logger.error(f"Error deleting video API settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/settings/video-api/test")
+@router.post("/video-api-settings/test")
 async def test_video_api_key():
     """Test the configured video API key"""
     try:
