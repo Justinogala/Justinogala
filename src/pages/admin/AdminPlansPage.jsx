@@ -46,6 +46,8 @@ const AdminPlansPage = () => {
     description: '',
     price_monthly: 0,
     price_annual: 0,
+    stripe_price_id_monthly: '',
+    stripe_price_id_yearly: '',
     features: '',
     is_active: true,
     is_popular: false
@@ -132,9 +134,11 @@ const AdminPlansPage = () => {
       description: plan.description || '',
       price_monthly: plan.price_monthly,
       price_annual: plan.price_annual,
+      stripe_price_id_monthly: plan.stripe_price_id_monthly || '',
+      stripe_price_id_yearly: plan.stripe_price_id_yearly || '',
       features: plan.features?.join('\n') || '',
-      is_active: plan.is_active,
-      is_popular: plan.is_popular
+      is_active: plan.is_active !== false,
+      is_popular: plan.is_popular || false
     });
     setEditDialogOpen(true);
   };
@@ -146,6 +150,8 @@ const AdminPlansPage = () => {
       description: '',
       price_monthly: 0,
       price_annual: 0,
+      stripe_price_id_monthly: '',
+      stripe_price_id_yearly: '',
       features: '',
       is_active: true,
       is_popular: false
@@ -182,6 +188,8 @@ const AdminPlansPage = () => {
         description: formData.description,
         price_monthly: parseFloat(formData.price_monthly),
         price_annual: parseFloat(formData.price_annual),
+        stripe_price_id_monthly: formData.stripe_price_id_monthly || null,
+        stripe_price_id_yearly: formData.stripe_price_id_yearly || null,
         features: formData.features.split('\n').filter(f => f.trim()),
         is_active: formData.is_active,
         is_popular: formData.is_popular
@@ -451,6 +459,28 @@ const AdminPlansPage = () => {
                   type="number"
                   value={formData.price_annual}
                   onChange={(e) => setFormData({ ...formData, price_annual: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Stripe Price IDs */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Stripe Monthly Price ID</Label>
+                <Input 
+                  value={formData.stripe_price_id_monthly}
+                  onChange={(e) => setFormData({ ...formData, stripe_price_id_monthly: e.target.value })}
+                  placeholder="price_xxxxx"
+                  className="font-mono text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Stripe Yearly Price ID</Label>
+                <Input 
+                  value={formData.stripe_price_id_yearly}
+                  onChange={(e) => setFormData({ ...formData, stripe_price_id_yearly: e.target.value })}
+                  placeholder="price_xxxxx"
+                  className="font-mono text-sm"
                 />
               </div>
             </div>

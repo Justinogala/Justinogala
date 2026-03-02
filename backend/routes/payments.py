@@ -84,14 +84,25 @@ async def create_checkout_session(request: CheckoutRequest):
         
         stripe.api_key = api_key
         
-        # Get price IDs based on billing period
-        prices = await get_stripe_prices(request.billing_period)
-        price_id = prices.get(request.plan_id)
+        # First try to get price ID from the plan itself
+        plan = await db.plans.find_one({"id": request.plan_id}, {"_id": 0})
+        price_id = None
+        
+        if plan:
+            if request.billing_period == "yearly":
+                price_id = plan.get("stripe_price_id_yearly")
+            else:
+                price_id = plan.get("stripe_price_id_monthly")
+        
+        # Fall back to global settings if plan doesn't have price ID
+        if not price_id:
+            prices = await get_stripe_prices(request.billing_period)
+            price_id = prices.get(request.plan_id)
         
         if not price_id or "placeholder" in price_id:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Stripe {request.billing_period} price IDs not configured. Please configure in Admin > Stripe Settings."
+                detail=f"Stripe {request.billing_period} price ID not configured for {request.plan_id}. Please configure in Admin > Plans."
             )
         
         # Build success and cancel URLs
@@ -793,6 +804,8 @@ class PlanUpdate(BaseModel):
     description: Optional[str] = None
     price_monthly: Optional[float] = None
     price_annual: Optional[float] = None
+    stripe_price_id_monthly: Optional[str] = None
+    stripe_price_id_yearly: Optional[str] = None
     features: Optional[list] = None
     is_active: Optional[bool] = None
     is_popular: Optional[bool] = None
@@ -827,6 +840,10 @@ async def update_plan(plan_id: str, request: PlanUpdate):
             update_data["price_monthly"] = request.price_monthly
         if request.price_annual is not None:
             update_data["price_annual"] = request.price_annual
+        if request.stripe_price_id_monthly is not None:
+            update_data["stripe_price_id_monthly"] = request.stripe_price_id_monthly
+        if request.stripe_price_id_yearly is not None:
+            update_data["stripe_price_id_yearly"] = request.stripe_price_id_yearly
         if request.features is not None:
             update_data["features"] = request.features
         if request.is_active is not None:
