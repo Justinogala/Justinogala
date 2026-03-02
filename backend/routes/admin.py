@@ -824,7 +824,7 @@ class VideoAPIKeyUpdate(BaseModel):
     api_key: str
     provider: str = "openai"  # openai for Sora 2
 
-@router.get("/settings/video-api")
+@router.get("/video-api-settings")
 async def get_video_api_settings():
     """Get video generation API key settings (masked)"""
     try:
@@ -853,7 +853,7 @@ async def get_video_api_settings():
         logger.error(f"Error getting video API settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/settings/video-api")
+@router.post("/video-api-settings")
 async def update_video_api_settings(request: VideoAPIKeyUpdate):
     """Update video generation API key"""
     try:
