@@ -23,20 +23,38 @@ export const AdminSettingsProvider = ({ children }) => {
       try {
         const apis = apiConfigService.getConfig();
         const ints = integrationConfigService.getConfig();
-        setApiConfig(apis);
-        setIntegrationConfig(ints);
-        setApiLogs(apiConfigService.getLogs());
-        setIntegrationLogs(integrationConfigService.getLogs());
+        
+        // Ensure apis has required structure
+        const safeApis = {
+          openai: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
+          googleCloud: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
+          defaults: { transcription: 'openai', summarization: 'openai' },
+          usage: {},
+          ...apis
+        };
+        
+        setApiConfig(safeApis);
+        setIntegrationConfig(ints || {});
+        setApiLogs(apiConfigService.getLogs() || []);
+        setIntegrationLogs(integrationConfigService.getLogs() || []);
         
         const apiStatus = persistentSettingsService.getSettingsStatus('api', 'config');
         const intStatus = persistentSettingsService.getSettingsStatus('integration', 'config');
         
         setSettingsStatus({
-          api: apiStatus,
-          integration: intStatus
+          api: apiStatus || { saved: false, isActive: false },
+          integration: intStatus || { saved: false, isActive: false }
         });
       } catch (e) {
         console.error("Error loading admin settings:", e);
+        // Set safe defaults on error
+        setApiConfig({
+          openai: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
+          googleCloud: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
+          defaults: { transcription: 'openai', summarization: 'openai' },
+          usage: {}
+        });
+        setIntegrationConfig({});
       } finally {
         setLoading(false);
       }
