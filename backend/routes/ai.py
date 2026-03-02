@@ -566,7 +566,17 @@ class VideoGenerationRequest(BaseModel):
     size: str = "1280x720"  # 1280x720, 1792x1024, 1024x1792, 1024x1024
     duration: int = 12  # Base: 4, 8, 12. Extended: 24, 36, 48, 60 (multi-clip)
     model: str = "sora-2"  # sora-2 or sora-2-pro
-    custom_api_key: str = None  # Optional: User's own OpenAI API key
+
+
+async def get_video_api_key():
+    """Get the video generation API key from admin settings or fallback to env"""
+    # First try admin-configured key from database
+    settings = await db.admin_settings.find_one({"category": "video_api"})
+    if settings and settings.get("api_key"):
+        return settings["api_key"]
+    
+    # Fallback to environment variables
+    return EMERGENT_LLM_KEY or OPENAI_API_KEY
 
 
 def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str):
