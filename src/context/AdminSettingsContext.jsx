@@ -24,13 +24,23 @@ export const AdminSettingsProvider = ({ children }) => {
         const apis = apiConfigService.getConfig();
         const ints = integrationConfigService.getConfig();
         
-        // Ensure apis has required structure
+        // Ensure apis has required structure with full defaults
         const safeApis = {
           openai: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
           googleCloud: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
           defaults: { transcription: 'openai', summarization: 'openai' },
-          usage: {},
-          ...apis
+          usage: {
+            openai: { calls: 0, quota: 1000, cost: 0 },
+            googleCloud: { calls: 0, quota: 1000, cost: 0 }
+          },
+          ...apis,
+          // Merge nested objects properly
+          openai: { key: '', status: 'inactive', health: 'neutral', lastTested: null, ...apis?.openai },
+          googleCloud: { key: '', status: 'inactive', health: 'neutral', lastTested: null, ...apis?.googleCloud },
+          usage: {
+            openai: { calls: 0, quota: 1000, cost: 0, ...apis?.usage?.openai },
+            googleCloud: { calls: 0, quota: 1000, cost: 0, ...apis?.usage?.googleCloud }
+          }
         };
         
         setApiConfig(safeApis);
@@ -52,7 +62,10 @@ export const AdminSettingsProvider = ({ children }) => {
           openai: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
           googleCloud: { key: '', status: 'inactive', health: 'neutral', lastTested: null },
           defaults: { transcription: 'openai', summarization: 'openai' },
-          usage: {}
+          usage: {
+            openai: { calls: 0, quota: 1000, cost: 0 },
+            googleCloud: { calls: 0, quota: 1000, cost: 0 }
+          }
         });
         setIntegrationConfig({});
       } finally {
