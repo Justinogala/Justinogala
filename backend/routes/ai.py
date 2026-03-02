@@ -566,6 +566,7 @@ class VideoGenerationRequest(BaseModel):
     size: str = "1280x720"  # 1280x720, 1792x1024, 1024x1792, 1024x1024
     duration: int = 12  # Base: 4, 8, 12. Extended: 24, 36, 48, 60 (multi-clip)
     model: str = "sora-2"  # sora-2 or sora-2-pro
+    custom_api_key: str = None  # Optional: User's own OpenAI API key
 
 
 def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str):
