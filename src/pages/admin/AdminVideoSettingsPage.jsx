@@ -30,7 +30,7 @@ const AdminVideoSettingsPage = () => {
   const loadSettings = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/settings/video-api`);
+      const res = await fetch(`${API_URL}/api/admin/video-api-settings`);
       if (res.ok) {
         const data = await res.json();
         setConfig({
