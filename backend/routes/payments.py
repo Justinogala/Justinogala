@@ -668,11 +668,28 @@ async def get_plans():
         if db_plans and len(db_plans) >= 4:
             return {"success": True, "plans": db_plans}
         
-        # Return default plans
-        return {"success": True, "plans": DEFAULT_PLANS}
+        # If no DB plans, initialize them from defaults
+        if not db_plans or len(db_plans) < 4:
+            for plan in DEFAULT_PLANS:
+                # Add default is_active status
+                plan_with_status = {**plan, "is_active": True}
+                await db.plans.update_one(
+                    {"id": plan["id"]},
+                    {"$set": plan_with_status},
+                    upsert=True
+                )
+            # Fetch again
+            db_plans = await db.plans.find({}, {"_id": 0}).to_list(10)
+            if db_plans:
+                return {"success": True, "plans": db_plans}
+        
+        # Return default plans with is_active
+        plans_with_status = [{**p, "is_active": True} for p in DEFAULT_PLANS]
+        return {"success": True, "plans": plans_with_status}
     except Exception as e:
         logger.error(f"Error getting plans: {e}")
-        return {"success": True, "plans": DEFAULT_PLANS}
+        plans_with_status = [{**p, "is_active": True} for p in DEFAULT_PLANS]
+        return {"success": True, "plans": plans_with_status}
 
 
 @router.get("/payments/user/{user_id}/subscription")
@@ -769,3 +786,192 @@ async def update_plans(plans: list):
     except Exception as e:
         logger.error(f"Error updating plans: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class PlanUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price_monthly: Optional[float] = None
+    price_annual: Optional[float] = None
+    features: Optional[list] = None
+    is_active: Optional[bool] = None
+    is_popular: Optional[bool] = None
+
+
+@router.put("/payments/plans/{plan_id}")
+async def update_plan(plan_id: str, request: PlanUpdate):
+    """Update a specific plan's settings"""
+    try:
+        # First check if plan exists in database
+        existing_plan = await db.plans.find_one({"id": plan_id})
+        
+        if not existing_plan:
+            # Initialize plans in DB from defaults if not present
+            db_plans = await db.plans.find({}, {"_id": 0}).to_list(10)
+            if not db_plans or len(db_plans) < 4:
+                # Insert default plans into database
+                for plan in DEFAULT_PLANS:
+                    await db.plans.update_one(
+                        {"id": plan["id"]},
+                        {"$set": plan},
+                        upsert=True
+                    )
+        
+        # Build update dict from non-None values
+        update_data = {}
+        if request.name is not None:
+            update_data["name"] = request.name
+        if request.description is not None:
+            update_data["description"] = request.description
+        if request.price_monthly is not None:
+            update_data["price_monthly"] = request.price_monthly
+        if request.price_annual is not None:
+            update_data["price_annual"] = request.price_annual
+        if request.features is not None:
+            update_data["features"] = request.features
+        if request.is_active is not None:
+            update_data["is_active"] = request.is_active
+        if request.is_popular is not None:
+            update_data["is_popular"] = request.is_popular
+            # If setting this plan as popular, unset others
+            if request.is_popular:
+                await db.plans.update_many(
+                    {"id": {"$ne": plan_id}},
+                    {"$set": {"is_popular": False}}
+                )
+        
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Update the plan
+        result = await db.plans.update_one(
+            {"id": plan_id},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count > 0 or result.matched_count > 0:
+            updated_plan = await db.plans.find_one({"id": plan_id}, {"_id": 0})
+            logger.info(f"Plan {plan_id} updated: {update_data}")
+            return {"success": True, "plan": updated_plan}
+        else:
+            raise HTTPException(status_code=404, detail=f"Plan {plan_id} not found")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating plan {plan_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/payments/plans")
+async def create_plan(request: PlanUpdate):
+    """Create a new subscription plan"""
+    try:
+        if not request.name:
+            raise HTTPException(status_code=400, detail="Plan name is required")
+        
+        # Generate plan ID from name
+        plan_id = request.name.lower().replace(" ", "_")
+        
+        # Check if plan already exists
+        existing = await db.plans.find_one({"id": plan_id})
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Plan '{request.name}' already exists")
+        
+        new_plan = {
+            "id": plan_id,
+            "name": request.name,
+            "description": request.description or "",
+            "price_monthly": request.price_monthly or 0,
+            "price_annual": request.price_annual or 0,
+            "features": request.features or [],
+            "is_active": request.is_active if request.is_active is not None else True,
+            "is_popular": request.is_popular or False,
+            "limits": {},
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.plans.insert_one(new_plan)
+        
+        # Remove _id before returning
+        new_plan.pop("_id", None)
+        
+        logger.info(f"New plan created: {plan_id}")
+        return {"success": True, "plan": new_plan}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/payments/plans/{plan_id}")
+async def delete_plan(plan_id: str):
+    """Delete a subscription plan"""
+    try:
+        # Don't allow deleting default plans
+        default_ids = ["free", "pro", "business", "enterprise"]
+        if plan_id in default_ids:
+            raise HTTPException(status_code=400, detail="Cannot delete default plans")
+        
+        result = await db.plans.delete_one({"id": plan_id})
+        
+        if result.deleted_count > 0:
+            logger.info(f"Plan deleted: {plan_id}")
+            return {"success": True, "message": f"Plan {plan_id} deleted"}
+        else:
+            raise HTTPException(status_code=404, detail=f"Plan {plan_id} not found")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting plan {plan_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/payments/admin/subscriptions")
+async def get_subscription_stats():
+    """Get subscription statistics for admin dashboard"""
+    try:
+        # Count subscribers per plan
+        plan_stats = {}
+        total_mrr = 0
+        total_active = 0
+        
+        # Get all users with subscriptions
+        pipeline = [
+            {"$match": {"subscription_plan": {"$exists": True, "$ne": "free"}}},
+            {"$group": {
+                "_id": "$subscription_plan",
+                "count": {"$sum": 1}
+            }}
+        ]
+        
+        async for stat in db.users.aggregate(pipeline):
+            plan_id = stat["_id"]
+            count = stat["count"]
+            plan_stats[plan_id] = count
+            total_active += count
+            
+            # Calculate MRR
+            plan = next((p for p in DEFAULT_PLANS if p["id"] == plan_id), None)
+            if plan:
+                total_mrr += plan["price_monthly"] * count
+        
+        return {
+            "success": True,
+            "total_mrr": total_mrr,
+            "total_active": total_active,
+            "plan_stats": plan_stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting subscription stats: {e}")
+        return {
+            "success": True,
+            "total_mrr": 0,
+            "total_active": 0,
+            "plan_stats": {}
+        }
+
