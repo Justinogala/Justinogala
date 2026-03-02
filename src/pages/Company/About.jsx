@@ -13,7 +13,7 @@ const About = () => {
   return (
     <PageTransition>
       <Helmet>
-        <title>About Us - EchoNote AI</title>
+        <title>About Us - Munal AI</title>
       </Helmet>
       
       <Header />
@@ -33,9 +33,10 @@ const About = () => {
       <PageSection>
         <div className="grid md:grid-cols-2 gap-12 items-center">
            <div>
-              <h2 className="text-3xl font-bold font-heading mb-6 text-text-primary">The EchoNote Story</h2>
+              <h2 className="text-3xl font-bold font-heading mb-6 text-text-primary">The Munal AI Story</h2>
               <p className="text-text-secondary text-lg mb-4">Founded in 2024, we realized that 30% of meeting time is wasted on recap and note-taking. We asked ourselves: "What if your notes just... appeared?"</p>
-              <p className="text-text-secondary text-lg mb-6">Today, EchoNote serves over 10,000 teams worldwide, processing millions of minutes of conversation every month.</p>
+              <p className="text-text-secondary text-lg mb-4">Today, Munal AI serves over 10,000 teams worldwide, processing millions of minutes of conversation every month.</p>
+              <p className="text-text-secondary text-lg mb-6 font-medium">Munal AI is a division of Jiffix Inc.</p>
               
               <div className="grid grid-cols-3 gap-4 mt-8">
                  <div className="text-center">
@@ -53,7 +54,7 @@ const About = () => {
               </div>
            </div>
            <div className="rounded-2xl overflow-hidden shadow-2xl">
-              <img src="https://images.unsplash.com/photo-1493882552576-fce827c6161e" alt="EchoNote Team" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1493882552576-fce827c6161e" alt="Munal AI Team" className="w-full h-full object-cover" />
            </div>
         </div>
       </PageSection>
