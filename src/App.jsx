@@ -192,6 +192,7 @@ const AdminAPILogs = lazy(() => import('@/pages/admin/AdminAPILogs'));
 const AdminIntegrationLogs = lazy(() => import('@/pages/admin/AdminIntegrationLogs'));
 const AdminSettingsPersistenceTest = lazy(() => import('@/pages/admin/AdminSettingsPersistenceTest'));
 const AdminTranscriptionSettingsPage = lazy(() => import('@/pages/admin/AdminTranscriptionSettingsPage')); 
+const AdminVideoSettingsPage = lazy(() => import('@/pages/admin/AdminVideoSettingsPage'));
 const AdminPlansPage = lazy(() => import('@/pages/admin/AdminPlansPage'));
 const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage'));
 const AdminTaxRatesPage = lazy(() => import('@/pages/admin/AdminTaxRatesPage'));
