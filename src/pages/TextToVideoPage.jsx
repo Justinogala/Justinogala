@@ -4,7 +4,7 @@ import {
   Video, Sparkles, Download, RefreshCw, Play, Pause, 
   Loader2, AlertCircle, Settings2, Clock, Maximize, 
   Square, RectangleHorizontal, RectangleVertical, Film, ChevronDown,
-  Save, History, Trash2, Eye, Key, Info
+  Save, History, Trash2, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/components/ui/use-toast';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -29,12 +28,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 
 const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
@@ -52,11 +45,6 @@ const TextToVideoPage = () => {
   const [model, setModel] = useState('sora-2');
   const [size, setSize] = useState('1280x720');
   const [duration, setDuration] = useState(4);
-  
-  // API Key settings
-  const [useCustomKey, setUseCustomKey] = useState(false);
-  const [customApiKey, setCustomApiKey] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
   
   // History
   const [videoHistory, setVideoHistory] = useState([]);
