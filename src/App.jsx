@@ -464,6 +464,7 @@ function App() {
                                 <Route path="tax-rates" element={<AdminTaxRatesPage />} />
                                 <Route path="transactions" element={<AdminTransactionsPage />} />
                                 <Route path="transcription-settings" element={<AdminTranscriptionSettingsPage />} />
+                                <Route path="video-settings" element={<AdminVideoSettingsPage />} />
                                 <Route path="api-logs" element={<AdminAPILogs />} />
                                 <Route path="integration-logs" element={<AdminIntegrationLogs />} />
                                 <Route path="audit-logs" element={<AdminAuditLogsPage />} />
