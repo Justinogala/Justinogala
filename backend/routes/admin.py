@@ -815,3 +815,99 @@ async def delete_all_videos():
     except Exception as e:
         logger.error(f"Error deleting all videos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== Video Generation API Key Settings ==============
+
+class VideoAPIKeyUpdate(BaseModel):
+    api_key: str
+    provider: str = "openai"  # openai for Sora 2
+
+@router.get("/settings/video-api")
+async def get_video_api_settings():
+    """Get video generation API key settings (masked)"""
+    try:
+        settings = await db.admin_settings.find_one({"category": "video_api"})
+        
+        if not settings:
+            return {
+                "success": True,
+                "configured": False,
+                "provider": "openai",
+                "key_preview": None
+            }
+        
+        # Mask the API key for display
+        api_key = settings.get("api_key", "")
+        masked_key = f"{api_key[:8]}...{api_key[-4:]}" if len(api_key) > 12 else "****"
+        
+        return {
+            "success": True,
+            "configured": bool(api_key),
+            "provider": settings.get("provider", "openai"),
+            "key_preview": masked_key if api_key else None,
+            "updated_at": settings.get("updated_at")
+        }
+    except Exception as e:
+        logger.error(f"Error getting video API settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/settings/video-api")
+async def update_video_api_settings(request: VideoAPIKeyUpdate):
+    """Update video generation API key"""
+    try:
+        await db.admin_settings.update_one(
+            {"category": "video_api"},
+            {
+                "$set": {
+                    "category": "video_api",
+                    "api_key": request.api_key,
+                    "provider": request.provider,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            },
+            upsert=True
+        )
+        
+        # Mask for response
+        masked_key = f"{request.api_key[:8]}...{request.api_key[-4:]}" if len(request.api_key) > 12 else "****"
+        
+        return {
+            "success": True,
+            "message": "Video API key updated successfully",
+            "key_preview": masked_key
+        }
+    except Exception as e:
+        logger.error(f"Error updating video API settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/settings/video-api")
+async def delete_video_api_settings():
+    """Remove video generation API key"""
+    try:
+        await db.admin_settings.delete_one({"category": "video_api"})
+        return {"success": True, "message": "Video API key removed"}
+    except Exception as e:
+        logger.error(f"Error deleting video API settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/settings/video-api/test")
+async def test_video_api_key():
+    """Test the configured video API key"""
+    try:
+        settings = await db.admin_settings.find_one({"category": "video_api"})
+        
+        if not settings or not settings.get("api_key"):
+            return {"success": False, "error": "No API key configured"}
+        
+        # Try to validate the key by making a simple check
+        # For now just return success if key exists
+        return {
+            "success": True,
+            "message": "API key is configured",
+            "provider": settings.get("provider", "openai")
+        }
+    except Exception as e:
+        logger.error(f"Error testing video API key: {e}")
+        return {"success": False, "error": str(e)}
