@@ -17,6 +17,7 @@ const PricingPage = () => {
   const { user, isAuthenticated } = useAuth();
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [loadingPlan, setLoadingPlan] = useState(null);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   const handleSubscribe = async (planId) => {
     // Free plan - just go to signup
@@ -37,6 +38,7 @@ const PricingPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan_id: planId,
+          billing_period: isAnnual ? 'yearly' : 'monthly',
           user_id: user?.id || null,
           user_email: user?.email || null,
           origin_url: window.location.origin

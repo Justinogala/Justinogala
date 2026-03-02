@@ -82,6 +82,7 @@ const UserPlansPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan_id: plan.id,
+          billing_period: isAnnual ? 'yearly' : 'monthly',
           origin_url: window.location.origin,
           user_id: user?.id || null,
           user_email: user?.email || null

@@ -25,15 +25,22 @@ async def get_stripe_api_key():
     return os.environ.get("STRIPE_API_KEY", "sk_test_emergent")
 
 # Get Stripe price IDs from admin settings
-async def get_stripe_prices():
+async def get_stripe_prices(billing_period: str = "monthly"):
     """Get Stripe price IDs from admin settings"""
     settings = await db.admin_settings.find_one({"category": "stripe_prices"})
     if settings:
-        return {
-            "pro": settings.get("pro_price_id", "price_pro_placeholder"),
-            "business": settings.get("business_price_id", "price_business_placeholder"),
-            "enterprise": settings.get("enterprise_price_id", "price_enterprise_placeholder")
-        }
+        if billing_period == "yearly":
+            return {
+                "pro": settings.get("pro_yearly_price_id", "price_pro_yearly_placeholder"),
+                "business": settings.get("business_yearly_price_id", "price_business_yearly_placeholder"),
+                "enterprise": settings.get("enterprise_yearly_price_id", "price_enterprise_yearly_placeholder")
+            }
+        else:
+            return {
+                "pro": settings.get("pro_price_id", "price_pro_placeholder"),
+                "business": settings.get("business_price_id", "price_business_placeholder"),
+                "enterprise": settings.get("enterprise_price_id", "price_enterprise_placeholder")
+            }
     return {
         "pro": "price_pro_placeholder",
         "business": "price_business_placeholder",
@@ -43,6 +50,7 @@ async def get_stripe_prices():
 
 class CheckoutRequest(BaseModel):
     plan_id: str  # "pro", "business", "enterprise"
+    billing_period: str = "monthly"  # "monthly" or "yearly"
     user_id: Optional[str] = None
     user_email: Optional[str] = None
     origin_url: str  # Frontend origin for success/cancel URLs
@@ -64,6 +72,11 @@ async def create_checkout_session(request: CheckoutRequest):
         if request.plan_id not in valid_plans:
             raise HTTPException(status_code=400, detail=f"Invalid plan. Must be one of: {valid_plans}")
         
+        # Validate billing period
+        valid_periods = ["monthly", "yearly"]
+        if request.billing_period not in valid_periods:
+            raise HTTPException(status_code=400, detail=f"Invalid billing period. Must be one of: {valid_periods}")
+        
         # Get Stripe API key
         api_key = await get_stripe_api_key()
         if not api_key or api_key == "sk_test_emergent":
@@ -71,14 +84,14 @@ async def create_checkout_session(request: CheckoutRequest):
         
         stripe.api_key = api_key
         
-        # Get price IDs
-        prices = await get_stripe_prices()
+        # Get price IDs based on billing period
+        prices = await get_stripe_prices(request.billing_period)
         price_id = prices.get(request.plan_id)
         
         if not price_id or "placeholder" in price_id:
             raise HTTPException(
                 status_code=400, 
-                detail="Stripe price IDs not configured. Please configure in Admin > Stripe Settings."
+                detail=f"Stripe {request.billing_period} price IDs not configured. Please configure in Admin > Stripe Settings."
             )
         
         # Build success and cancel URLs
@@ -377,9 +390,14 @@ async def stripe_webhook(request: Request):
 
 class StripeSettingsUpdate(BaseModel):
     api_key: Optional[str] = None
+    # Monthly prices
     pro_price_id: Optional[str] = None
     business_price_id: Optional[str] = None
     enterprise_price_id: Optional[str] = None
+    # Yearly prices
+    pro_yearly_price_id: Optional[str] = None
+    business_yearly_price_id: Optional[str] = None
+    enterprise_yearly_price_id: Optional[str] = None
 
 
 @router.get("/admin/stripe-settings")
@@ -400,6 +418,11 @@ async def get_stripe_settings():
                 "pro": price_settings.get("pro_price_id", "") if price_settings else "",
                 "business": price_settings.get("business_price_id", "") if price_settings else "",
                 "enterprise": price_settings.get("enterprise_price_id", "") if price_settings else ""
+            },
+            "yearly_prices": {
+                "pro": price_settings.get("pro_yearly_price_id", "") if price_settings else "",
+                "business": price_settings.get("business_yearly_price_id", "") if price_settings else "",
+                "enterprise": price_settings.get("enterprise_yearly_price_id", "") if price_settings else ""
             },
             "updated_at": stripe_settings.get("updated_at") if stripe_settings else None
         }
@@ -430,12 +453,20 @@ async def update_stripe_settings(request: StripeSettingsUpdate):
         
         # Update price IDs if any provided
         price_update = {}
+        # Monthly prices
         if request.pro_price_id:
             price_update["pro_price_id"] = request.pro_price_id
         if request.business_price_id:
             price_update["business_price_id"] = request.business_price_id
         if request.enterprise_price_id:
             price_update["enterprise_price_id"] = request.enterprise_price_id
+        # Yearly prices
+        if request.pro_yearly_price_id:
+            price_update["pro_yearly_price_id"] = request.pro_yearly_price_id
+        if request.business_yearly_price_id:
+            price_update["business_yearly_price_id"] = request.business_yearly_price_id
+        if request.enterprise_yearly_price_id:
+            price_update["enterprise_yearly_price_id"] = request.enterprise_yearly_price_id
         
         if price_update:
             price_update["category"] = "stripe_prices"
