@@ -57,9 +57,7 @@ class CheckoutResponse(BaseModel):
 async def create_checkout_session(request: CheckoutRequest):
     """Create a Stripe checkout session for subscription"""
     try:
-        from emergentintegrations.payments.stripe.checkout import (
-            StripeCheckout, CheckoutSessionRequest
-        )
+        import stripe
         
         # Validate plan
         valid_plans = ["pro", "business", "enterprise"]
@@ -69,8 +67,9 @@ async def create_checkout_session(request: CheckoutRequest):
         # Get Stripe API key
         api_key = await get_stripe_api_key()
         if not api_key or api_key == "sk_test_emergent":
-            # Check if it's a placeholder
-            logger.warning("Using test/placeholder Stripe key")
+            raise HTTPException(status_code=400, detail="Stripe API key not configured. Please configure in Admin > Stripe Settings.")
+        
+        stripe.api_key = api_key
         
         # Get price IDs
         prices = await get_stripe_prices()
@@ -86,28 +85,27 @@ async def create_checkout_session(request: CheckoutRequest):
         success_url = f"{request.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{request.origin_url}/pricing"
         
-        # Initialize Stripe checkout
-        webhook_url = f"{request.origin_url}/api/webhook/stripe"
-        stripe_checkout = StripeCheckout(api_key=api_key, webhook_url=webhook_url)
-        
-        # Create checkout session
-        checkout_request = CheckoutSessionRequest(
-            stripe_price_id=price_id,
-            quantity=1,
+        # Create checkout session with SUBSCRIPTION mode for recurring prices
+        session = stripe.checkout.Session.create(
+            mode='subscription',
+            payment_method_types=['card'],
+            line_items=[{
+                'price': price_id,
+                'quantity': 1,
+            }],
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
                 "plan_id": request.plan_id,
                 "user_id": request.user_id or "",
                 "user_email": request.user_email or ""
-            }
+            },
+            customer_email=request.user_email if request.user_email else None,
         )
-        
-        session = await stripe_checkout.create_checkout_session(checkout_request)
         
         # Create payment transaction record
         transaction = {
-            "session_id": session.session_id,
+            "session_id": session.id,
             "plan_id": request.plan_id,
             "user_id": request.user_id,
             "user_email": request.user_email,
@@ -118,12 +116,15 @@ async def create_checkout_session(request: CheckoutRequest):
         }
         await db.payment_transactions.insert_one(transaction)
         
-        logger.info(f"Checkout session created: {session.session_id} for plan {request.plan_id}")
+        logger.info(f"Checkout session created: {session.id} for plan {request.plan_id}")
         
-        return CheckoutResponse(url=session.url, session_id=session.session_id)
+        return CheckoutResponse(url=session.url, session_id=session.id)
         
     except HTTPException:
         raise
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Checkout error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
