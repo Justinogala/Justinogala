@@ -480,6 +480,71 @@ const TextToVideoPage = () => {
                   )}
                 </Card>
 
+              {/* API Key Settings */}
+              <Card className="border-gray-200 dark:border-slate-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    API Key
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="w-3.5 h-3.5 text-gray-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Use your own OpenAI API key for video generation, or use platform credits (requires balance).</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-0">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="use-custom-key" className="text-sm">Use my own OpenAI key</Label>
+                    <Switch
+                      id="use-custom-key"
+                      checked={useCustomKey}
+                      onCheckedChange={setUseCustomKey}
+                      disabled={generating}
+                    />
+                  </div>
+                  
+                  {useCustomKey && (
+                    <div className="space-y-2">
+                      <Label className="text-sm">OpenAI API Key</Label>
+                      <div className="relative">
+                        <Input
+                          type={showApiKey ? 'text' : 'password'}
+                          placeholder="sk-..."
+                          value={customApiKey}
+                          onChange={(e) => setCustomApiKey(e.target.value)}
+                          disabled={generating}
+                          className="pr-20"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 text-xs"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                        >
+                          {showApiKey ? 'Hide' : 'Show'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Your key is used only for this session and never stored.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!useCustomKey && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                      ⚠️ Platform credits may be insufficient. Add balance in Profile → Universal Key, or use your own key.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Info Card */}
               <Card className="bg-gradient-to-br from-fuchsia-50 to-pink-50 dark:from-fuchsia-950/30 dark:to-pink-950/30 border-fuchsia-200 dark:border-fuchsia-800">
                 <CardContent className="p-4">
