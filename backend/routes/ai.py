@@ -700,18 +700,13 @@ def stitch_videos_with_ffmpeg(video_paths: list, output_path: str) -> bool:
 async def generate_video(request: VideoGenerationRequest):
     """Start async video generation job. Returns job_id immediately for polling."""
     try:
-        # Use custom API key if provided, otherwise fall back to platform keys
-        if request.custom_api_key and request.custom_api_key.strip():
-            api_key = request.custom_api_key.strip()
-            key_source = "custom"
-        else:
-            api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
-            key_source = "platform"
+        # Get API key from admin settings or fallback to env
+        api_key = await get_video_api_key()
         
         if not api_key:
             raise HTTPException(
                 status_code=500, 
-                detail="No API key available. Please provide your own OpenAI API key or contact support."
+                detail="Video generation not configured. Please contact administrator."
             )
         
         # Validate parameters
@@ -732,7 +727,7 @@ async def generate_video(request: VideoGenerationRequest):
         job_id = str(uuid.uuid4())
         
         # Initialize job status
-        video_jobs[job_id] = {"status": "queued", "progress": 0, "key_source": key_source}
+        video_jobs[job_id] = {"status": "queued", "progress": 0}
         
         # Start generation in background thread
         video_executor.submit(
@@ -745,13 +740,12 @@ async def generate_video(request: VideoGenerationRequest):
             api_key
         )
         
-        logger.info(f"Video job {job_id} started: prompt='{request.prompt[:50]}...', duration={request.duration}s, key={key_source}")
+        logger.info(f"Video job {job_id} started: prompt='{request.prompt[:50]}...', duration={request.duration}s")
         
         return {
             "success": True,
             "job_id": job_id,
             "status": "queued",
-            "key_source": key_source,
             "message": "Video generation started. Poll /api/ai/video/job/{job_id} for status."
         }
         
