@@ -75,7 +75,8 @@ const CalendarPage = () => {
     recurrence: 'none',
     video_call: false,
     meeting_link: '',
-    invitees: []
+    invitees: [],
+    inviteEmail: ''
   });
 
   // Load events
@@ -148,11 +149,27 @@ const CalendarPage = () => {
       
       const method = selectedEvent ? 'PUT' : 'POST';
       
-      const body = selectedEvent ? eventForm : {
+      // Format invitees for backend - extract emails
+      const formattedInvitees = eventForm.invitees.map(inv => {
+        if (typeof inv === 'string') {
+          const user = workspaceUsers.find(u => u.id === inv);
+          return user?.email || inv;
+        }
+        return inv.email;
+      }).filter(Boolean);
+      
+      const body = selectedEvent ? {
         ...eventForm,
+        invitees: formattedInvitees
+      } : {
+        ...eventForm,
+        invitees: formattedInvitees,
         created_by: user.id,
         recurrence: eventForm.recurrence === 'none' ? null : eventForm.recurrence
       };
+      
+      // Remove the inviteEmail field as it's only for UI
+      delete body.inviteEmail;
       
       const response = await fetch(endpoint, {
         method,
@@ -164,7 +181,7 @@ const CalendarPage = () => {
       
       toast({ 
         title: selectedEvent ? 'Event Updated' : 'Event Created',
-        description: eventForm.invitees.length > 0 ? 'Invitations sent via email' : undefined
+        description: formattedInvitees.length > 0 ? `Invitations sent to ${formattedInvitees.length} participant(s)` : undefined
       });
       
       setShowEventModal(false);
@@ -644,33 +661,136 @@ const CalendarPage = () => {
             
             <div>
               <Label>Invite Members</Label>
-              <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">
-                {workspaceUsers.map(u => (
-                  <label key={u.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={eventForm.invitees.includes(u.id)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          setEventForm({...eventForm, invitees: [...eventForm.invitees, u.id]});
-                        } else {
-                          setEventForm({...eventForm, invitees: eventForm.invitees.filter(id => id !== u.id)});
-                        }
-                      }}
-                      className="rounded"
-                    />
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-indigo-100 text-indigo-600 text-sm">
-                        {u.name?.[0]?.toUpperCase() || u.email[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="text-sm font-medium">{u.name || u.email}</div>
-                      <div className="text-xs text-gray-500">{u.email}</div>
-                    </div>
-                  </label>
-                ))}
+              
+              {/* Email input for external invites */}
+              <div className="mt-2 flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="Enter email to invite..."
+                  value={eventForm.inviteEmail || ''}
+                  onChange={e => setEventForm({...eventForm, inviteEmail: e.target.value})}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && eventForm.inviteEmail) {
+                      e.preventDefault();
+                      const email = eventForm.inviteEmail.trim();
+                      if (email && !eventForm.invitees.some(inv => inv.email === email)) {
+                        setEventForm({
+                          ...eventForm, 
+                          invitees: [...eventForm.invitees, { email, type: 'external' }],
+                          inviteEmail: ''
+                        });
+                      }
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button 
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const email = (eventForm.inviteEmail || '').trim();
+                    if (email && !eventForm.invitees.some(inv => inv.email === email)) {
+                      setEventForm({
+                        ...eventForm, 
+                        invitees: [...eventForm.invitees, { email, type: 'external' }],
+                        inviteEmail: ''
+                      });
+                    }
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
+              
+              {/* Selected invitees badges */}
+              {eventForm.invitees.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {eventForm.invitees.map((inv, idx) => {
+                    const invEmail = typeof inv === 'string' ? inv : inv.email;
+                    const invName = typeof inv === 'string' 
+                      ? workspaceUsers.find(u => u.id === inv)?.name || invEmail
+                      : inv.name || invEmail;
+                    return (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary"
+                        className="flex items-center gap-1 px-2 py-1"
+                      >
+                        <span className="text-xs">{invName}</span>
+                        <X 
+                          className="w-3 h-3 cursor-pointer hover:text-red-500" 
+                          onClick={() => setEventForm({
+                            ...eventForm, 
+                            invitees: eventForm.invitees.filter((_, i) => i !== idx)
+                          })}
+                        />
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+              
+              {/* Team members list */}
+              {workspaceUsers.length > 0 && (
+                <div className="mt-3">
+                  <Label className="text-xs text-gray-500">Team Members</Label>
+                  <div className="mt-1 space-y-1 max-h-32 overflow-y-auto border rounded-lg p-2">
+                    {workspaceUsers.map(u => {
+                      const isSelected = eventForm.invitees.some(
+                        inv => (typeof inv === 'string' ? inv === u.id : inv.id === u.id)
+                      );
+                      return (
+                        <label 
+                          key={u.id} 
+                          className={cn(
+                            "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors",
+                            isSelected 
+                              ? "bg-indigo-50 dark:bg-indigo-900/30" 
+                              : "hover:bg-gray-100 dark:hover:bg-slate-800"
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setEventForm({
+                                  ...eventForm, 
+                                  invitees: [...eventForm.invitees, { id: u.id, email: u.email, name: u.name, type: 'member' }]
+                                });
+                              } else {
+                                setEventForm({
+                                  ...eventForm, 
+                                  invitees: eventForm.invitees.filter(inv => 
+                                    typeof inv === 'string' ? inv !== u.id : inv.id !== u.id
+                                  )
+                                });
+                              }
+                            }}
+                            className="rounded text-indigo-600"
+                          />
+                          <Avatar className="h-7 w-7">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-600 text-xs">
+                              {u.name?.[0]?.toUpperCase() || u.email[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{u.name || 'No name'}</div>
+                            <div className="text-xs text-gray-500 truncate">{u.email}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {workspaceUsers.length === 0 && eventForm.invitees.length === 0 && (
+                <p className="mt-2 text-sm text-gray-500">
+                  Enter email addresses to invite participants
+                </p>
+              )}
             </div>
           </div>
           
