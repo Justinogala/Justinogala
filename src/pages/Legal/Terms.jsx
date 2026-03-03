@@ -115,7 +115,7 @@ The failure of Jiffix to exercise or enforce any right or provision of the Terms
 
 The Terms of Service constitutes the entire agreement between you and Jiffix and govern your use of the Service, superseding any prior agreements between you and Jiffix.
 
-Questions about the Terms of Service should be sent to legal@jiffix.com.`
+Questions about the Terms of Service should be sent to legal@jiffix.ca.`
   }
 ];
 
@@ -253,8 +253,8 @@ const Terms = () => {
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Questions?</h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">
                   If you have any questions about these Terms of Service, please contact us at{' '}
-                  <a href="mailto:legal@jiffix.com" className="text-indigo-600 dark:text-indigo-400 hover:underline">
-                    legal@jiffix.com
+                  <a href="mailto:legal@jiffix.ca" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                    legal@jiffix.ca
                   </a>
                 </p>
               </div>

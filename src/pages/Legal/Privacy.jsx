@@ -144,7 +144,7 @@ You can control and manage cookies in your browser settings. Please note that re
 
 • Withdraw Consent: Where we rely on your consent to process your personal information, you have the right to withdraw that consent at any time.
 
-To exercise any of these rights, please contact us at privacy@jiffix.com. We will respond to your request within 30 days.`
+To exercise any of these rights, please contact us at privacy@jiffix.ca. We will respond to your request within 30 days.`
   },
   {
     id: 'data-retention',
@@ -205,7 +205,7 @@ By using our services, you consent to the transfer of your information to Canada
 
 If you disagree with any changes to this policy, you should stop using our services and delete your account. Your continued use of our services after the changes take effect constitutes your acceptance of the revised policy.
 
-For questions about this policy, please contact us at privacy@jiffix.com.`
+For questions about this policy, please contact us at privacy@jiffix.ca.`
   }
 ];
 
@@ -346,7 +346,7 @@ const Privacy = () => {
                 </p>
                 <div className="space-y-1 text-sm">
                   <p className="text-gray-600 dark:text-gray-400">
-                    Email: <a href="mailto:privacy@jiffix.com" className="text-indigo-600 dark:text-indigo-400 hover:underline">privacy@jiffix.com</a>
+                    Email: <a href="mailto:privacy@jiffix.ca" className="text-indigo-600 dark:text-indigo-400 hover:underline">privacy@jiffix.ca</a>
                   </p>
                   <p className="text-gray-600 dark:text-gray-400">
                     Address: Jiffix Inc., 123 Innovation Drive, Toronto, ON M5V 1A1, Canada
