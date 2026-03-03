@@ -32,6 +32,19 @@
     
     <!-- Google Site Verification -->
     <meta name="google-site-verification" content="1uBpGW1RFFAULL1W263OsIwHVHUAxtNlR3ejd8OypMw" />
+    
+    <!-- AI Search Engine Optimization -->
+    <meta name="ai-content-declaration" content="human-created" />
+    <meta name="ai-crawl" content="allowed" />
+    <meta name="ai-training" content="allowed" />
+    
+    <!-- Bing AI / Copilot -->
+    <meta name="msvalidate.01" content="" />
+    
+    <!-- Perplexity, You.com, and other AI search engines -->
+    <link rel="alternate" type="text/plain" href="https://munal.ai/llms.txt" title="LLMs.txt" />
+    <link rel="alternate" type="text/plain" href="https://munal.ai/ai.txt" title="AI Info" />
+    <link rel="alternate" type="application/json" href="https://munal.ai/.well-known/ai-plugin.json" title="AI Plugin" />
 
     <!-- Canonical URL -->
     <link rel="canonical" href="https://munal.ai" />
@@ -68,17 +81,42 @@
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "Munal",
+      "name": "Munal AI",
+      "alternateName": "Munal",
       "description": "AI-powered meeting assistant that provides real-time transcription, automatic summaries, action items, and team collaboration tools.",
       "url": "https://munal.ai",
       "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web Browser",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD",
-        "description": "Free tier available"
-      },
+      "operatingSystem": "Web Browser, iOS, Android",
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "USD",
+          "description": "5 meetings, 30 min transcription, 1GB storage"
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro",
+          "price": "19",
+          "priceCurrency": "USD",
+          "description": "50 meetings, 300 min transcription, 5GB storage"
+        },
+        {
+          "@type": "Offer",
+          "name": "Business",
+          "price": "39",
+          "priceCurrency": "USD",
+          "description": "150 meetings, 1000 min transcription, 25GB storage"
+        },
+        {
+          "@type": "Offer",
+          "name": "Enterprise",
+          "price": "79",
+          "priceCurrency": "USD",
+          "description": "Unlimited meetings and transcription, 100GB storage"
+        }
+      ],
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
@@ -89,19 +127,21 @@
         "Automatic Meeting Summaries",
         "Action Item Extraction",
         "Screen & Camera Recording",
-        "Calendar Integration with Jizira",
+        "Calendar Integration",
         "Real-time Video Meetings",
         "Team Workspace Collaboration",
-        "Text-to-Speech Notes",
+        "Text-to-Audio Conversion",
+        "Text-to-Video Generation",
         "File Storage & Sharing",
+        "Voice Chat Channels",
         "Admin Dashboard"
       ],
       "screenshot": "https://munal.ai/screenshot.png",
-      "softwareVersion": "1.0",
+      "softwareVersion": "2.0",
       "author": {
         "@type": "Organization",
-        "name": "Munal",
-        "url": "https://munal.com"
+        "name": "Jiffix Inc.",
+        "url": "https://jiffix.ca"
       }
     }
     </script>
@@ -111,10 +151,11 @@
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      "name": "Munal",
+      "name": "Jiffix Inc.",
+      "legalName": "Jiffix Inc.",
       "url": "https://munal.ai",
       "logo": "https://munal.ai/logo.svg",
-      "description": "AI-powered meeting assistant platform",
+      "description": "AI-powered meeting assistant platform - A division of Jiffix Inc.",
       "sameAs": [
         "https://twitter.com/munal",
         "https://linkedin.com/company/munal"

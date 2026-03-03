@@ -1,16 +1,16 @@
-# Robots.txt for Munal
+# Robots.txt for Munal AI
 # https://munal.ai
 
+# Standard Web Crawlers
 User-agent: *
 Allow: /
-
-# Disallow admin and private areas
 Disallow: /admin/
 Disallow: /api/
 Disallow: /user/settings
 Disallow: /workspace/
 Disallow: /meeting/
 Disallow: /instant-meeting/
+Disallow: /dashboard
 
 # Allow crawlers to access public pages
 Allow: /features
@@ -23,9 +23,85 @@ Allow: /use-cases
 Allow: /resources
 Allow: /downloads
 Allow: /company
+Allow: /legal
+
+# Google
+User-agent: Googlebot
+Allow: /
+
+# Bing
+User-agent: Bingbot
+Allow: /
+
+# OpenAI GPTBot
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+Allow: /ai.txt
+
+# Google Bard / Gemini
+User-agent: Google-Extended
+Allow: /
+
+# Anthropic Claude
+User-agent: anthropic-ai
+Allow: /
+Allow: /llms.txt
+
+User-agent: Claude-Web
+Allow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# You.com
+User-agent: YouBot
+Allow: /
+
+# Cohere
+User-agent: cohere-ai
+Allow: /
+
+# Meta AI
+User-agent: FacebookBot
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+# Apple Intelligence
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Amazon AI
+User-agent: Amazonbot
+Allow: /
+
+# Common Crawl (used by many AI systems)
+User-agent: CCBot
+Allow: /
+
+# AI Search Engines
+User-agent: AI2Bot
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
+User-agent: omgili
+Allow: /
 
 # Sitemap location
 Sitemap: https://munal.ai/sitemap.xml
+
+# AI-specific resources
+# LLMs.txt: https://munal.ai/llms.txt
+# AI.txt: https://munal.ai/ai.txt
+# AI Plugin: https://munal.ai/.well-known/ai-plugin.json
 
 # Crawl delay (optional, for polite crawling)
 Crawl-delay: 1

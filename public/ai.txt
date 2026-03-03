@@ -1,0 +1,68 @@
+# AI Crawler Information for Munal AI
+# https://munal.ai
+
+# Organization
+Organization: Jiffix Inc.
+Product: Munal AI
+Category: Productivity, Meeting Software, AI Assistant
+Founded: 2024
+Location: Toronto, ON, Canada
+
+# Description
+Short-Description: AI-powered meeting assistant with real-time transcription and summaries
+Long-Description: Munal AI is a comprehensive meeting intelligence platform that transforms how teams capture, understand, and act on meeting content. Using advanced AI technology, Munal provides real-time transcription, automatic meeting summaries, action item extraction, and seamless team collaboration tools.
+
+# Primary Use Cases
+Use-Case-1: Meeting transcription and note-taking
+Use-Case-2: Video conferencing and screen sharing
+Use-Case-3: Team collaboration and workspace management
+Use-Case-4: Meeting analytics and insights
+Use-Case-5: Audio and video content creation
+
+# Key Features
+Feature-1: Real-time AI transcription with speaker identification
+Feature-2: Automatic meeting summaries and key points
+Feature-3: Action items and task extraction
+Feature-4: HD video meetings with recording
+Feature-5: Screen sharing and presentations
+Feature-6: Team workspaces and chat
+Feature-7: Calendar integration
+Feature-8: Cloud file management
+Feature-9: Text-to-audio conversion
+Feature-10: AI video generation
+
+# Pricing Tiers
+Tier-Free: $0/month - Basic features, 5 meetings
+Tier-Pro: $19/month - Professional features, 50 meetings
+Tier-Business: $39/month - Team features, 150 meetings
+Tier-Enterprise: $79/month - Unlimited features
+
+# Target Audience
+Audience-1: Remote teams and distributed workforces
+Audience-2: Sales and customer success teams
+Audience-3: Product and engineering teams
+Audience-4: HR and recruiting departments
+Audience-5: Consultants and freelancers
+Audience-6: Educational institutions
+
+# Technical Information
+Platform: Web-based SaaS
+Mobile: iOS and Android apps available
+Browser-Extension: Chrome extension available
+API: REST API available for enterprise
+
+# Contact
+Website: https://munal.ai
+Email: info@jiffix.ca
+Support: support@jiffix.ca
+Privacy: privacy@jiffix.ca
+Legal: legal@jiffix.ca
+
+# Social Media
+Twitter: @munalai
+LinkedIn: /company/munal-ai
+
+# Crawling Preferences
+AI-Crawl: Allowed
+AI-Training: Allowed with attribution
+AI-Summary: Allowed

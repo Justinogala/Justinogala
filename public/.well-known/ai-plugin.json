@@ -1,0 +1,54 @@
+{
+  "organization": {
+    "name": "Jiffix Inc.",
+    "product": "Munal AI",
+    "website": "https://munal.ai",
+    "description": "AI-powered meeting assistant with real-time transcription, summaries, and team collaboration",
+    "category": ["Productivity", "Meeting Software", "AI Assistant", "SaaS"],
+    "founded": 2024,
+    "location": {
+      "city": "Toronto",
+      "region": "Ontario",
+      "country": "Canada"
+    }
+  },
+  "ai_policy": {
+    "crawling": "allowed",
+    "training": "allowed_with_attribution",
+    "summarization": "allowed",
+    "indexing": "allowed"
+  },
+  "contact": {
+    "website": "https://munal.ai",
+    "email": "info@jiffix.ca",
+    "support": "support@jiffix.ca",
+    "privacy": "privacy@jiffix.ca"
+  },
+  "features": [
+    "Real-time AI transcription",
+    "Meeting summaries",
+    "Action item extraction",
+    "Video conferencing",
+    "Screen recording",
+    "Team workspaces",
+    "Calendar integration",
+    "Text-to-audio",
+    "Text-to-video",
+    "Cloud storage"
+  ],
+  "pricing": {
+    "currency": "USD",
+    "tiers": [
+      {"name": "Free", "price": 0, "billing": "monthly"},
+      {"name": "Pro", "price": 19, "billing": "monthly"},
+      {"name": "Business", "price": 39, "billing": "monthly"},
+      {"name": "Enterprise", "price": 79, "billing": "monthly"}
+    ]
+  },
+  "resources": {
+    "sitemap": "https://munal.ai/sitemap.xml",
+    "robots": "https://munal.ai/robots.txt",
+    "llms": "https://munal.ai/llms.txt",
+    "ai_info": "https://munal.ai/ai.txt"
+  }
+}
