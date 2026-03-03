@@ -348,9 +348,6 @@ const Privacy = () => {
                   <p className="text-gray-600 dark:text-gray-400">
                     Email: <a href="mailto:privacy@jiffix.ca" className="text-indigo-600 dark:text-indigo-400 hover:underline">privacy@jiffix.ca</a>
                   </p>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Address: Jiffix Inc., 123 Innovation Drive, Toronto, ON M5V 1A1, Canada
-                  </p>
                 </div>
               </div>
             </main>
