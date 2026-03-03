@@ -546,56 +546,56 @@ const InstantMeetingRoom = () => {
   // Start recording
   const startRecording = async () => {
     try {
-      // Create a canvas to combine all video streams
-      const canvas = document.createElement('canvas');
-      canvas.width = 1280;
-      canvas.height = 720;
-      const ctx = canvas.getContext('2d');
+      // Get the stream to record directly (more compatible than canvas capture)
+      let streamToRecord = localStream;
       
-      // Get the stream to record (local + screen if sharing)
-      const streamToRecord = isScreenSharing && screenStream ? screenStream : localStream;
+      if (isScreenSharing && screenStream) {
+        // If screen sharing, combine screen video with local audio
+        streamToRecord = new MediaStream();
+        screenStream.getVideoTracks().forEach(track => streamToRecord.addTrack(track));
+        localStream?.getAudioTracks().forEach(track => streamToRecord.addTrack(track));
+      }
       
-      if (!streamToRecord) {
-        toast({ variant: 'destructive', title: 'No stream to record' });
+      if (!streamToRecord || streamToRecord.getTracks().length === 0) {
+        toast({ variant: 'destructive', title: 'No stream to record', description: 'Please enable camera or screen share first.' });
         return;
       }
 
-      // Create a combined stream with canvas video + local audio
-      const canvasStream = canvas.captureStream(30);
-      const audioTracks = streamToRecord.getAudioTracks();
-      audioTracks.forEach(track => canvasStream.addTrack(track));
-
-      // Draw video frames to canvas
-      const videoElement = document.createElement('video');
-      videoElement.srcObject = streamToRecord;
-      videoElement.muted = true;
-      await videoElement.play();
-
-      const drawFrame = () => {
-        if (isRecording) {
-          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-          requestAnimationFrame(drawFrame);
-        }
-      };
-
-      // Initialize MediaRecorder
-      const chunks = [];
-      const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+      // Try codecs in order of compatibility (VP8 is most compatible)
+      const mimeTypes = [
+        'video/webm;codecs=vp8,opus',   // Most compatible
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=h264,opus',
+        'video/webm;codecs=vp8',
+        'video/webm',
+        'video/mp4;codecs=h264,aac',
+        'video/mp4'
+      ];
       
-      // Fallback to other codecs if vp9 not supported
-      let mimeType = 'video/webm;codecs=vp9,opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm;codecs=vp8,opus';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'video/webm';
+      let mimeType = '';
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type;
+          console.log('Recording with mimeType:', mimeType);
+          break;
         }
       }
+      
+      if (!mimeType) {
+        throw new Error('No supported video format found');
+      }
 
-      const recorder = new MediaRecorder(canvasStream, { mimeType });
+      const chunks = [];
+
+      const recorder = new MediaRecorder(streamToRecord, { 
+        mimeType,
+        videoBitsPerSecond: 2500000,
+        audioBitsPerSecond: 128000
+      });
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
+        if (e.data && e.data.size > 0) {
           chunks.push(e.data);
           setRecordedChunks(prev => [...prev, e.data]);
         }
@@ -603,16 +603,29 @@ const InstantMeetingRoom = () => {
 
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType });
+        console.log('Recording complete - size:', blob.size, 'type:', blob.type);
+        
+        if (blob.size < 1000) {
+          toast({ variant: 'destructive', title: 'Recording Error', description: 'Recording appears to be empty.' });
+          return;
+        }
+        
         setRecordedBlob(blob);
         setShowRecordingOptions(true);
         toast({ title: 'Recording Complete', description: 'Choose how to save your recording.' });
       };
 
-      recorder.start(1000); // Collect data every second
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        toast({ variant: 'destructive', title: 'Recording Error', description: 'An error occurred during recording.' });
+        setIsRecording(false);
+      };
+
+      // Start recording
+      recorder.start(1000);
       recordingStartRef.current = Date.now();
       setIsRecording(true);
       setRecordingDuration(0);
-      drawFrame();
       
       toast({ title: 'Recording Started', description: 'Your meeting is being recorded.' });
     } catch (err) {
@@ -644,10 +657,18 @@ const InstantMeetingRoom = () => {
   const downloadRecording = () => {
     if (!recordedBlob) return;
     
+    // Determine file extension from blob type
+    let extension = 'webm';
+    if (recordedBlob.type.includes('mp4')) {
+      extension = 'mp4';
+    } else if (recordedBlob.type.includes('webm')) {
+      extension = 'webm';
+    }
+    
     const url = URL.createObjectURL(recordedBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `meeting-${meetingId}-${new Date().toISOString().slice(0, 10)}.webm`;
+    a.download = `meeting-${meetingId}-${new Date().toISOString().slice(0, 10)}.${extension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -666,6 +687,17 @@ const InstantMeetingRoom = () => {
     setIsSavingToCloud(true);
     
     try {
+      // Determine file extension from blob type
+      let extension = 'webm';
+      let contentType = 'video/webm';
+      if (recordedBlob.type.includes('mp4')) {
+        extension = 'mp4';
+        contentType = 'video/mp4';
+      } else if (recordedBlob.type.includes('webm')) {
+        extension = 'webm';
+        contentType = 'video/webm';
+      }
+      
       // Convert blob to base64
       const reader = new FileReader();
       const base64Promise = new Promise((resolve, reject) => {
@@ -678,14 +710,14 @@ const InstantMeetingRoom = () => {
       reader.readAsDataURL(recordedBlob);
       const base64Data = await base64Promise;
       
-      const fileName = `meeting-${meetingId}-${new Date().toISOString().slice(0, 10)}.webm`;
+      const fileName = `meeting-${meetingId}-${new Date().toISOString().slice(0, 10)}.${extension}`;
       
       // Upload to backend
       const formData = new FormData();
       formData.append('user_id', user.id);
       formData.append('file_name', fileName);
       formData.append('file_data', base64Data);
-      formData.append('content_type', 'video/webm');
+      formData.append('content_type', contentType);
       formData.append('category', 'meeting-recordings');
       
       const response = await fetch(`${API_URL}/api/chat/files/upload`, {
