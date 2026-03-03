@@ -14,16 +14,18 @@ export const munalAIChatService = {
     console.log('Munal AI Chat - API URL:', apiUrl);
     
     try {
+      // Extract the last user message and build conversation history
+      const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+      const conversationHistory = messages.slice(0, -1).map(({ role, content }) => ({ role, content }));
+      
       const response = await fetch(`${apiUrl}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: messages.map(({ role, content }) => ({ role, content })),
-          model: 'gpt-4o',
-          max_tokens: 1000,
-          temperature: 0.7
+          message: lastUserMessage?.content || '',
+          conversation_history: conversationHistory
         })
       });
 
@@ -35,7 +37,7 @@ export const munalAIChatService = {
       const data = await response.json();
       
       if (!data.success || !data.response) {
-        throw new Error('Invalid response from AI service');
+        throw new Error(data.detail || 'Invalid response from AI service');
       }
 
       // Simulate streaming by sending response in chunks for better UX
@@ -56,7 +58,7 @@ export const munalAIChatService = {
 
     } catch (error) {
       console.error('Munal AI Chat Error:', error);
-      if (onError) onError(error.message);
+      if (onError) onError(error.message || 'Failed to get response');
     }
   },
 
@@ -67,16 +69,18 @@ export const munalAIChatService = {
     const apiUrl = API_URL || window.location.origin;
     
     try {
+      // Extract the last user message and build conversation history
+      const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+      const conversationHistory = messages.slice(0, -1).map(({ role, content }) => ({ role, content }));
+      
       const response = await fetch(`${apiUrl}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: messages.map(({ role, content }) => ({ role, content })),
-          model: 'gpt-4o',
-          max_tokens: 1000,
-          temperature: 0.7
+          message: lastUserMessage?.content || '',
+          conversation_history: conversationHistory
         })
       });
 
@@ -89,7 +93,7 @@ export const munalAIChatService = {
       return { success: true, response: data.response };
     } catch (error) {
       console.error('Munal AI Chat Error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Failed to get response' };
     }
   }
 };

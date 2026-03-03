@@ -160,28 +160,35 @@ async def ai_chat(request: AIChatRequest):
         if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
-        from emergentintegrations.llm.openai import chat
+        from emergentintegrations.llm.openai import LlmChat, UserMessage
+        import uuid
         
-        messages = []
+        # Build system message
+        system_message = request.system_prompt or "You are Munal AI, a helpful assistant for a meeting and collaboration platform. Be concise and helpful."
         
-        if request.system_prompt:
-            messages.append({"role": "system", "content": request.system_prompt})
-        else:
-            messages.append({
-                "role": "system",
-                "content": "You are a helpful AI assistant for a meeting and collaboration platform."
+        # Build initial messages from conversation history
+        initial_messages = []
+        for msg in request.conversation_history:
+            initial_messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
             })
         
-        for msg in request.conversation_history:
-            messages.append(msg)
-        
-        messages.append({"role": "user", "content": request.message})
-        
-        response = await chat(
+        # Initialize LlmChat
+        session_id = str(uuid.uuid4())
+        llm = LlmChat(
             api_key=api_key,
-            messages=messages,
-            model="gpt-4o"
+            session_id=session_id,
+            system_message=system_message,
+            initial_messages=initial_messages if initial_messages else None
         )
+        
+        # Use gpt-4o model
+        llm = llm.with_model("openai", "gpt-4o")
+        
+        # Send message
+        user_msg = UserMessage(text=request.message)
+        response = await llm.send_message(user_msg)
         
         return {
             "success": True,
@@ -194,42 +201,9 @@ async def ai_chat(request: AIChatRequest):
 
 @router.post("/ai/chat/stream")
 async def ai_chat_stream(request: AIChatRequest):
-    """Stream chat response from AI"""
-    try:
-        api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
-        if not api_key:
-            raise HTTPException(status_code=500, detail="AI service not configured")
-        
-        from emergentintegrations.llm.openai import chat_stream
-        
-        messages = []
-        
-        if request.system_prompt:
-            messages.append({"role": "system", "content": request.system_prompt})
-        else:
-            messages.append({
-                "role": "system",
-                "content": "You are a helpful AI assistant for a meeting and collaboration platform."
-            })
-        
-        for msg in request.conversation_history:
-            messages.append(msg)
-        
-        messages.append({"role": "user", "content": request.message})
-        
-        async def generate():
-            async for chunk in chat_stream(
-                api_key=api_key,
-                messages=messages,
-                model="gpt-4o"
-            ):
-                yield f"data: {chunk}\n\n"
-            yield "data: [DONE]\n\n"
-        
-        return StreamingResponse(generate(), media_type="text/event-stream")
-    except Exception as e:
-        logger.error(f"AI chat stream error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Stream chat response from AI - falls back to non-streaming"""
+    # For now, use non-streaming endpoint since the library doesn't expose stream directly
+    return await ai_chat(request)
 
 
 @router.post("/ai/transcribe")

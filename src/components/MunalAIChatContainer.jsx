@@ -74,15 +74,20 @@ const MunalAIChatContainer = () => {
         },
         (error) => {
           setIsTyping(false);
+          // Extract error message properly
+          const errorMessage = typeof error === 'string' 
+            ? error 
+            : error?.message || error?.detail || JSON.stringify(error) || "Connection failed.";
+          
           toast({ 
             title: "Error", 
-            description: error || "Failed to get response from Munal AI.",
+            description: errorMessage,
             variant: "destructive" 
           });
           // Add error message to chat
           setMessages(prev => [
             ...prev,
-            { role: 'assistant', content: `Sorry, I encountered an error: ${error || "Connection failed."}`, timestamp: new Date(), isError: true }
+            { role: 'assistant', content: `Sorry, I encountered an error: ${errorMessage}`, timestamp: new Date(), isError: true }
           ]);
         }
       );
