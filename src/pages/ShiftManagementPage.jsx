@@ -21,7 +21,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Filter,
   Download,
   RefreshCw,
   MoreHorizontal,
@@ -34,8 +33,9 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  BarChart3,
   List,
+  Settings,
+  GripVertical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,7 +64,9 @@ import {
   rejectSwapRequest,
   handleTimeOffRequest,
   downloadExport,
-  getUserHours,
+  getShiftPresets,
+  createShiftPreset,
+  deleteShiftPreset,
 } from '@/services/shiftService';
 import { getWorkspaceById, getMembers } from '@/services/workspaceService';
 
@@ -80,21 +82,24 @@ const SHIFT_COLORS = [
   { name: 'Orange', value: '#f97316' },
 ];
 
-// Preset shift times
-const SHIFT_PRESETS = [
-  { name: 'Morning', start: '06:00', end: '14:00', icon: '🌅', color: '#f59e0b' },
-  { name: 'Afternoon', start: '14:00', end: '22:00', icon: '☀️', color: '#3b82f6' },
-  { name: 'Evening', start: '22:00', end: '06:00', icon: '🌙', color: '#6366f1' },
+// Default preset shift times (fallback if no custom presets)
+const DEFAULT_PRESETS = [
+  { id: 'default-morning', name: 'Morning', start_time: '06:00', end_time: '14:00', icon: '🌅', color: '#f59e0b', is_default: true },
+  { id: 'default-afternoon', name: 'Afternoon', start_time: '14:00', end_time: '22:00', icon: '☀️', color: '#3b82f6', is_default: true },
+  { id: 'default-evening', name: 'Evening', start_time: '22:00', end_time: '06:00', icon: '🌙', color: '#6366f1', is_default: true },
 ];
 
+// Available icons for presets
+const PRESET_ICONS = ['🌅', '☀️', '🌙', '⏰', '🌞', '🌜', '🕐', '🕕', '🕘', '📅', '💼', '🏢'];
+
 // ShiftForm component - extracted to avoid nested component definition
-const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members }) => {
+const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members, presets }) => {
   // Handle preset selection
   const applyPreset = (preset) => {
     setFormData({
       ...formData,
-      start_time: preset.start,
-      end_time: preset.end,
+      start_time: preset.start_time,
+      end_time: preset.end_time,
       color: preset.color,
     });
   };
@@ -102,25 +107,25 @@ const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members }) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {/* Shift Type Presets */}
-      {!isEdit && (
+      {!isEdit && presets.length > 0 && (
         <div className="space-y-2">
           <Label>Quick Select Shift Type</Label>
           <div className="grid grid-cols-3 gap-2">
-            {SHIFT_PRESETS.map((preset) => (
+            {presets.map((preset) => (
               <button
-                key={preset.name}
+                key={preset.id || preset.name}
                 type="button"
                 onClick={() => applyPreset(preset)}
                 className={cn(
                   'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all hover:shadow-md',
-                  formData.start_time === preset.start && formData.end_time === preset.end
+                  formData.start_time === preset.start_time && formData.end_time === preset.end_time
                     ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
                     : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                 )}
               >
                 <span className="text-2xl">{preset.icon}</span>
                 <span className="font-medium text-sm">{preset.name}</span>
-                <span className="text-xs text-gray-500">{preset.start} - {preset.end}</span>
+                <span className="text-xs text-gray-500">{preset.start_time} - {preset.end_time}</span>
               </button>
             ))}
           </div>
@@ -139,7 +144,7 @@ const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members }) => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="assigned_to">Assign To (Workspace Member)</Label>
+          <Label htmlFor="assigned_to">Assign to members in a workspace</Label>
           <Select
             value={formData.assigned_to || 'unassigned'}
             onValueChange={(value) => setFormData({ ...formData, assigned_to: value === 'unassigned' ? '' : value })}
@@ -333,10 +338,19 @@ const ShiftManagementPage = () => {
   const [editingShift, setEditingShift] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingShift, setDeletingShift] = useState(null);
+  const [showPresetDialog, setShowPresetDialog] = useState(false);
 
   // Requests
   const [swapRequests, setSwapRequests] = useState([]);
   const [timeOffRequests, setTimeOffRequests] = useState([]);
+
+  // Presets
+  const [presets, setPresets] = useState(DEFAULT_PRESETS);
+  const [newPreset, setNewPreset] = useState({ name: '', start_time: '09:00', end_time: '17:00', color: '#6366f1', icon: '⏰' });
+
+  // Drag and drop state
+  const [draggedShift, setDraggedShift] = useState(null);
+  const [dragOverDate, setDragOverDate] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -399,6 +413,14 @@ const ShiftManagementPage = () => {
       // Fetch workspace members from API
       const workspaceMembers = await getMembers(workspaceId);
       setMembers(workspaceMembers || []);
+
+      // Fetch shift presets
+      try {
+        const presetsData = await getShiftPresets(workspaceId);
+        setPresets(presetsData.presets?.length > 0 ? presetsData.presets : DEFAULT_PRESETS);
+      } catch {
+        setPresets(DEFAULT_PRESETS);
+      }
 
     } catch (error) {
       console.error('Error fetching shift data:', error);
@@ -531,12 +553,118 @@ const ShiftManagementPage = () => {
     }
   };
 
-  // Handle export
-  const handleExport = async (format) => {
+  // ============== Drag and Drop Handlers ==============
+  
+  const handleDragStart = (e, shift) => {
+    setDraggedShift(shift);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', shift.id);
+    // Add visual feedback
+    e.target.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDraggedShift(null);
+    setDragOverDate(null);
+  };
+
+  const handleDragOver = (e, date) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverDate(format(date, 'yyyy-MM-dd'));
+  };
+
+  const handleDragLeave = () => {
+    setDragOverDate(null);
+  };
+
+  const handleDrop = async (e, targetDate) => {
+    e.preventDefault();
+    setDragOverDate(null);
+    
+    if (!draggedShift) return;
+    
+    const newDateStr = format(targetDate, 'yyyy-MM-dd');
+    
+    // Don't update if dropped on the same date
+    if (draggedShift.date === newDateStr) {
+      setDraggedShift(null);
+      return;
+    }
+
     try {
-      const monthStart = format === 'csv' ? format(startOfMonth(currentMonth), 'yyyy-MM-dd') : null;
-      const monthEnd = format === 'csv' ? format(endOfMonth(currentMonth), 'yyyy-MM-dd') : null;
-      await downloadExport(workspaceId, format, monthStart, monthEnd);
+      // Check if Alt key is held - duplicate instead of move
+      if (e.altKey) {
+        await duplicateShift(draggedShift.id, newDateStr);
+        toast({ title: 'Success', description: 'Shift duplicated to new date' });
+      } else {
+        await updateShift(draggedShift.id, { date: newDateStr });
+        toast({ title: 'Success', description: 'Shift moved to new date' });
+      }
+      fetchData();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to move shift',
+      });
+    }
+    
+    setDraggedShift(null);
+  };
+
+  // ============== Preset Management ==============
+
+  const handleCreatePreset = async () => {
+    if (!newPreset.name.trim()) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Preset name is required' });
+      return;
+    }
+
+    try {
+      await createShiftPreset({
+        workspace_id: workspaceId,
+        ...newPreset,
+      });
+      toast({ title: 'Success', description: 'Preset created successfully' });
+      setNewPreset({ name: '', start_time: '09:00', end_time: '17:00', color: '#6366f1', icon: '⏰' });
+      
+      // Refresh presets
+      const presetsData = await getShiftPresets(workspaceId);
+      setPresets(presetsData.presets?.length > 0 ? presetsData.presets : DEFAULT_PRESETS);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to create preset',
+      });
+    }
+  };
+
+  const handleDeletePreset = async (presetId) => {
+    try {
+      await deleteShiftPreset(presetId);
+      toast({ title: 'Success', description: 'Preset deleted' });
+      
+      // Refresh presets
+      const presetsData = await getShiftPresets(workspaceId);
+      setPresets(presetsData.presets?.length > 0 ? presetsData.presets : DEFAULT_PRESETS);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to delete preset',
+      });
+    }
+  };
+
+  // Handle export
+  const handleExport = async (exportFormat) => {
+    try {
+      const monthStartDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+      const monthEndDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
+      await downloadExport(workspaceId, exportFormat, monthStartDate, monthEndDate);
       toast({ title: 'Success', description: 'Export downloaded' });
     } catch (error) {
       toast({
@@ -653,6 +781,10 @@ const ShiftManagementPage = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button variant="outline" size="sm" onClick={() => setShowPresetDialog(true)} data-testid="manage-presets-btn">
+          <Settings className="h-4 w-4 mr-2" />
+          Presets
+        </Button>
         <Button onClick={() => setShowCreateDialog(true)} data-testid="create-shift-btn">
           <Plus className="h-4 w-4 mr-2" />
           Create Shift
@@ -685,28 +817,35 @@ const ShiftManagementPage = () => {
   const renderCalendarCells = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart);
-    const endDate = endOfWeek(monthEnd);
+    const calendarStart = startOfWeek(monthStart);
+    const calendarEnd = endOfWeek(monthEnd);
 
     const rows = [];
     let days = [];
-    let day = startDate;
+    let day = calendarStart;
 
-    while (day <= endDate) {
+    while (day <= calendarEnd) {
       for (let i = 0; i < 7; i++) {
         const cloneDay = day;
+        const dayStr = format(cloneDay, 'yyyy-MM-dd');
         const dayShifts = getShiftsForDate(cloneDay);
         const isToday = isSameDay(day, new Date());
         const isCurrentMonth = isSameMonth(day, monthStart);
+        const isDragOver = dragOverDate === dayStr;
 
         days.push(
           <div
             key={day.toString()}
             onClick={() => openCreateForDate(cloneDay)}
+            onDragOver={(e) => handleDragOver(e, cloneDay)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, cloneDay)}
             className={cn(
-              'min-h-[120px] border border-gray-100 dark:border-gray-800 p-2 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50',
+              'min-h-[120px] border border-gray-100 dark:border-gray-800 p-2 cursor-pointer transition-all',
               !isCurrentMonth && 'bg-gray-50/50 dark:bg-gray-900/50',
-              isToday && 'bg-indigo-50/50 dark:bg-indigo-950/20 ring-1 ring-inset ring-indigo-500'
+              isToday && 'bg-indigo-50/50 dark:bg-indigo-950/20 ring-1 ring-inset ring-indigo-500',
+              isDragOver && 'bg-indigo-100 dark:bg-indigo-900/40 ring-2 ring-indigo-500 ring-inset',
+              !isDragOver && 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
             )}
           >
             <div className="flex justify-between items-start mb-1">
@@ -731,8 +870,11 @@ const ShiftManagementPage = () => {
                   key={shift.id}
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, shift)}
+                  onDragEnd={handleDragEnd}
                   className={cn(
-                    'text-xs px-2 py-1 rounded truncate cursor-pointer hover:opacity-80',
+                    'text-xs px-2 py-1 rounded truncate cursor-grab active:cursor-grabbing hover:opacity-80 flex items-center gap-1',
                     shift.status === 'cancelled' && 'line-through opacity-50'
                   )}
                   style={{
@@ -745,9 +887,12 @@ const ShiftManagementPage = () => {
                   }}
                   data-testid={`shift-${shift.id}`}
                 >
-                  <div className="font-medium">{shift.start_time} - {shift.end_time}</div>
-                  <div className="text-gray-600 dark:text-gray-300 truncate">
-                    {shift.assigned_to_name || 'Unassigned'}
+                  <GripVertical className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                  <div className="flex-1 overflow-hidden">
+                    <div className="font-medium">{shift.start_time} - {shift.end_time}</div>
+                    <div className="text-gray-600 dark:text-gray-300 truncate">
+                      {shift.assigned_to_name || 'Unassigned'}
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -1116,27 +1261,27 @@ const ShiftManagementPage = () => {
 
       {/* Create Shift Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Shift</DialogTitle>
             <DialogDescription>
-              Schedule a new shift for your team
+              Schedule a new shift for your team. Drag shifts on the calendar to reschedule, or hold Alt while dragging to duplicate.
             </DialogDescription>
           </DialogHeader>
-          <ShiftForm onSubmit={handleCreateShift} isEdit={false} formData={formData} setFormData={setFormData} members={members} />
+          <ShiftForm onSubmit={handleCreateShift} isEdit={false} formData={formData} setFormData={setFormData} members={members} presets={presets} />
         </DialogContent>
       </Dialog>
 
       {/* Edit Shift Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Shift</DialogTitle>
             <DialogDescription>
               Update shift details
             </DialogDescription>
           </DialogHeader>
-          <ShiftForm onSubmit={handleUpdateShift} isEdit={true} formData={formData} setFormData={setFormData} members={members} />
+          <ShiftForm onSubmit={handleUpdateShift} isEdit={true} formData={formData} setFormData={setFormData} members={members} presets={presets} />
         </DialogContent>
       </Dialog>
 
@@ -1157,6 +1302,136 @@ const ShiftManagementPage = () => {
               Delete
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preset Management Dialog */}
+      <Dialog open={showPresetDialog} onOpenChange={setShowPresetDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Shift Presets</DialogTitle>
+            <DialogDescription>
+              Create custom shift presets for quick scheduling. These presets will appear in the Create Shift dialog.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Existing Presets */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Current Presets</Label>
+              <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
+                {presets.map((preset) => (
+                  <div
+                    key={preset.id || preset.name}
+                    className="flex items-center justify-between p-3 rounded-lg border"
+                    style={{ borderLeftColor: preset.color, borderLeftWidth: '4px' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{preset.icon}</span>
+                      <div>
+                        <div className="font-medium">{preset.name}</div>
+                        <div className="text-sm text-gray-500">{preset.start_time} - {preset.end_time}</div>
+                      </div>
+                    </div>
+                    {!preset.is_default && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeletePreset(preset.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {preset.is_default && (
+                      <Badge variant="secondary" className="text-xs">Default</Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Create New Preset */}
+            <div className="space-y-4 border-t pt-4">
+              <Label className="text-sm font-medium">Create New Preset</Label>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="preset-name">Name</Label>
+                  <Input
+                    id="preset-name"
+                    placeholder="e.g., Night Shift"
+                    value={newPreset.name}
+                    onChange={(e) => setNewPreset({ ...newPreset, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Icon</Label>
+                  <div className="flex gap-1 flex-wrap">
+                    {PRESET_ICONS.map((icon) => (
+                      <button
+                        key={icon}
+                        type="button"
+                        onClick={() => setNewPreset({ ...newPreset, icon })}
+                        className={cn(
+                          'w-8 h-8 rounded-lg border flex items-center justify-center text-lg transition-all',
+                          newPreset.icon === icon 
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        )}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="preset-start">Start Time</Label>
+                  <Input
+                    id="preset-start"
+                    type="time"
+                    value={newPreset.start_time}
+                    onChange={(e) => setNewPreset({ ...newPreset, start_time: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="preset-end">End Time</Label>
+                  <Input
+                    id="preset-end"
+                    type="time"
+                    value={newPreset.end_time}
+                    onChange={(e) => setNewPreset({ ...newPreset, end_time: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Color</Label>
+                  <div className="flex gap-1 flex-wrap">
+                    {SHIFT_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        type="button"
+                        onClick={() => setNewPreset({ ...newPreset, color: color.value })}
+                        className={cn(
+                          'w-6 h-6 rounded-full transition-all',
+                          newPreset.color === color.value && 'ring-2 ring-offset-2 ring-gray-400'
+                        )}
+                        style={{ backgroundColor: color.value }}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <Button onClick={handleCreatePreset} className="w-full" data-testid="create-preset-btn">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Preset
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

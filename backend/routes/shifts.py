@@ -78,7 +78,7 @@ def calculate_hours(start_time: str, end_time: str) -> float:
             end += timedelta(days=1)
         diff = end - start
         return diff.total_seconds() / 3600
-    except:
+    except Exception:
         return 0
 
 
@@ -585,9 +585,8 @@ async def approve_swap_request(request_id: str, background_tasks: BackgroundTask
             {"$set": {"status": "approved", "updated_at": datetime.now(timezone.utc).isoformat()}}
         )
         
-        # Notify both users
+        # Notify requester
         requester = await db.users.find_one({"id": swap["requester_id"]}, {"_id": 0, "name": 1, "email": 1})
-        target = await db.users.find_one({"id": swap["target_user_id"]}, {"_id": 0, "name": 1, "email": 1})
         
         if requester and requester.get("email"):
             background_tasks.add_task(
@@ -768,7 +767,7 @@ async def get_workspace_roles(workspace_id: str):
     """Get all unique roles used in workspace shifts"""
     try:
         pipeline = [
-            {"$match": {"workspace_id": workspace_id, "role": {"$ne": None, "$ne": ""}}},
+            {"$match": {"workspace_id": workspace_id, "role": {"$nin": [None, ""]}}},
             {"$group": {"_id": "$role"}},
             {"$sort": {"_id": 1}}
         ]
@@ -785,7 +784,7 @@ async def get_workspace_departments(workspace_id: str):
     """Get all unique departments used in workspace shifts"""
     try:
         pipeline = [
-            {"$match": {"workspace_id": workspace_id, "department": {"$ne": None, "$ne": ""}}},
+            {"$match": {"workspace_id": workspace_id, "department": {"$nin": [None, ""]}}},
             {"$group": {"_id": "$department"}},
             {"$sort": {"_id": 1}}
         ]
@@ -795,3 +794,111 @@ async def get_workspace_departments(workspace_id: str):
     except Exception as e:
         logger.error(f"Error fetching departments: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Custom Shift Presets ==============
+
+class ShiftPresetCreate(BaseModel):
+    workspace_id: str
+    name: str
+    start_time: str  # HH:MM
+    end_time: str  # HH:MM
+    color: str = "#6366f1"
+    icon: str = "⏰"
+
+
+@router.get("/presets/{workspace_id}")
+async def get_shift_presets(workspace_id: str):
+    """Get custom shift presets for a workspace"""
+    try:
+        presets = await db.shift_presets.find(
+            {"workspace_id": workspace_id},
+            {"_id": 0}
+        ).sort("name", 1).to_list(50)
+        
+        # If no custom presets, return default presets
+        if not presets:
+            presets = [
+                {"id": "default-morning", "name": "Morning", "start_time": "06:00", "end_time": "14:00", "color": "#f59e0b", "icon": "🌅", "is_default": True},
+                {"id": "default-afternoon", "name": "Afternoon", "start_time": "14:00", "end_time": "22:00", "color": "#3b82f6", "icon": "☀️", "is_default": True},
+                {"id": "default-evening", "name": "Evening", "start_time": "22:00", "end_time": "06:00", "color": "#6366f1", "icon": "🌙", "is_default": True},
+            ]
+        
+        return {"success": True, "presets": presets}
+    except Exception as e:
+        logger.error(f"Error fetching shift presets: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/presets")
+async def create_shift_preset(preset: ShiftPresetCreate):
+    """Create a custom shift preset"""
+    try:
+        preset_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        
+        preset_doc = {
+            "id": preset_id,
+            "workspace_id": preset.workspace_id,
+            "name": preset.name,
+            "start_time": preset.start_time,
+            "end_time": preset.end_time,
+            "color": preset.color,
+            "icon": preset.icon,
+            "is_default": False,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.shift_presets.insert_one(preset_doc)
+        preset_doc.pop("_id", None)
+        
+        return {"success": True, "preset": preset_doc}
+    except Exception as e:
+        logger.error(f"Error creating shift preset: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/presets/{preset_id}")
+async def update_shift_preset(preset_id: str, preset: ShiftPresetCreate):
+    """Update a custom shift preset"""
+    try:
+        existing = await db.shift_presets.find_one({"id": preset_id})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Preset not found")
+        
+        update_data = {
+            "name": preset.name,
+            "start_time": preset.start_time,
+            "end_time": preset.end_time,
+            "color": preset.color,
+            "icon": preset.icon,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.shift_presets.update_one({"id": preset_id}, {"$set": update_data})
+        
+        updated = await db.shift_presets.find_one({"id": preset_id}, {"_id": 0})
+        return {"success": True, "preset": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating shift preset: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/presets/{preset_id}")
+async def delete_shift_preset(preset_id: str):
+    """Delete a custom shift preset"""
+    try:
+        result = await db.shift_presets.delete_one({"id": preset_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Preset not found")
+        
+        return {"success": True, "message": "Preset deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting shift preset: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

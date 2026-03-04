@@ -222,6 +222,44 @@ export const getWorkspaceDepartments = async (workspaceId) => {
   return apiRequest(`/departments/${workspaceId}`);
 };
 
+// ============== Shift Presets ==============
+
+/**
+ * Get shift presets for a workspace
+ */
+export const getShiftPresets = async (workspaceId) => {
+  return apiRequest(`/presets/${workspaceId}`);
+};
+
+/**
+ * Create a custom shift preset
+ */
+export const createShiftPreset = async (presetData) => {
+  return apiRequest('/presets', {
+    method: 'POST',
+    body: JSON.stringify(presetData),
+  });
+};
+
+/**
+ * Update a shift preset
+ */
+export const updateShiftPreset = async (presetId, presetData) => {
+  return apiRequest(`/presets/${presetId}`, {
+    method: 'PUT',
+    body: JSON.stringify(presetData),
+  });
+};
+
+/**
+ * Delete a shift preset
+ */
+export const deleteShiftPreset = async (presetId) => {
+  return apiRequest(`/presets/${presetId}`, {
+    method: 'DELETE',
+  });
+};
+
 export default {
   createShift,
   getWorkspaceShifts,
@@ -242,4 +280,8 @@ export default {
   downloadExport,
   getWorkspaceRoles,
   getWorkspaceDepartments,
+  getShiftPresets,
+  createShiftPreset,
+  updateShiftPreset,
+  deleteShiftPreset,
 };
