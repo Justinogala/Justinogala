@@ -66,7 +66,7 @@ import {
   downloadExport,
   getUserHours,
 } from '@/services/shiftService';
-import { getWorkspaceById } from '@/services/workspaceService';
+import { getWorkspaceById, getMembers } from '@/services/workspaceService';
 
 // Color options for shifts
 const SHIFT_COLORS = [
@@ -80,103 +80,171 @@ const SHIFT_COLORS = [
   { name: 'Orange', value: '#f97316' },
 ];
 
+// Preset shift times
+const SHIFT_PRESETS = [
+  { name: 'Morning', start: '06:00', end: '14:00', icon: '🌅', color: '#f59e0b' },
+  { name: 'Afternoon', start: '14:00', end: '22:00', icon: '☀️', color: '#3b82f6' },
+  { name: 'Evening', start: '22:00', end: '06:00', icon: '🌙', color: '#6366f1' },
+];
+
 // ShiftForm component - extracted to avoid nested component definition
-const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members }) => (
-  <form onSubmit={onSubmit} className="space-y-4">
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="date">Date</Label>
-        <Input
-          id="date"
-          type="date"
-          value={formData.date}
-          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="assigned_to">Assign To</Label>
-        <Select
-          value={formData.assigned_to || 'unassigned'}
-          onValueChange={(value) => setFormData({ ...formData, assigned_to: value === 'unassigned' ? '' : value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select team member" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="unassigned">Unassigned</SelectItem>
-            {members.map((member) => (
-              <SelectItem key={member.id} value={member.id}>
-                {member.name || member.email}
-              </SelectItem>
+const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members }) => {
+  // Handle preset selection
+  const applyPreset = (preset) => {
+    setFormData({
+      ...formData,
+      start_time: preset.start,
+      end_time: preset.end,
+      color: preset.color,
+    });
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      {/* Shift Type Presets */}
+      {!isEdit && (
+        <div className="space-y-2">
+          <Label>Quick Select Shift Type</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {SHIFT_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className={cn(
+                  'flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all hover:shadow-md',
+                  formData.start_time === preset.start && formData.end_time === preset.end
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                )}
+              >
+                <span className="text-2xl">{preset.icon}</span>
+                <span className="font-medium text-sm">{preset.name}</span>
+                <span className="text-xs text-gray-500">{preset.start} - {preset.end}</span>
+              </button>
             ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
 
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="start_time">Start Time</Label>
-        <Input
-          id="start_time"
-          type="time"
-          value={formData.start_time}
-          onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="end_time">End Time</Label>
-        <Input
-          id="end_time"
-          type="time"
-          value={formData.end_time}
-          onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-          required
-        />
-      </div>
-    </div>
-
-    <div className="grid grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="role">Role</Label>
-        <Input
-          id="role"
-          placeholder="e.g., Cashier, Manager"
-          value={formData.role}
-          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="department">Department</Label>
-        <Input
-          id="department"
-          placeholder="e.g., Sales, Support"
-          value={formData.department}
-          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-        />
-      </div>
-    </div>
-
-    <div className="space-y-2">
-      <Label>Color</Label>
-      <div className="flex gap-2 flex-wrap">
-        {SHIFT_COLORS.map((color) => (
-          <button
-            key={color.value}
-            type="button"
-            onClick={() => setFormData({ ...formData, color: color.value })}
-            className={cn(
-              'w-8 h-8 rounded-full transition-all',
-              formData.color === color.value && 'ring-2 ring-offset-2 ring-gray-400'
-            )}
-            style={{ backgroundColor: color.value }}
-            title={color.name}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="date">Date</Label>
+          <Input
+            id="date"
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            required
           />
-        ))}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="assigned_to">Assign To (Workspace Member)</Label>
+          <Select
+            value={formData.assigned_to || 'unassigned'}
+            onValueChange={(value) => setFormData({ ...formData, assigned_to: value === 'unassigned' ? '' : value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select team member" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-gray-400" />
+                  <span>Unassigned</span>
+                </div>
+              </SelectItem>
+              {members.length > 0 ? (
+                members.map((member) => (
+                  <SelectItem key={member.user_id || member.id} value={member.user_id || member.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-medium">
+                        {(member.name || member.email || '?')[0].toUpperCase()}
+                      </div>
+                      <div className="flex flex-col">
+                        <span>{member.name || member.email}</span>
+                        {member.role && (
+                          <span className="text-xs text-gray-500">{member.role}</span>
+                        )}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-members" disabled>
+                  <span className="text-gray-400">No workspace members found</span>
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          {members.length === 0 && (
+            <p className="text-xs text-amber-600">Add members to your workspace to assign shifts</p>
+          )}
+        </div>
       </div>
-    </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="start_time">Start Time</Label>
+          <Input
+            id="start_time"
+            type="time"
+            value={formData.start_time}
+            onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="end_time">End Time</Label>
+          <Input
+            id="end_time"
+            type="time"
+            value={formData.end_time}
+            onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="role">Role</Label>
+          <Input
+            id="role"
+            placeholder="e.g., Cashier, Manager"
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="department">Department</Label>
+          <Input
+            id="department"
+            placeholder="e.g., Sales, Support"
+            value={formData.department}
+            onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Color</Label>
+        <div className="flex gap-2 flex-wrap">
+          {SHIFT_COLORS.map((color) => (
+            <button
+              key={color.value}
+              type="button"
+              onClick={() => setFormData({ ...formData, color: color.value })}
+              className={cn(
+                'w-8 h-8 rounded-full transition-all',
+                formData.color === color.value && 'ring-2 ring-offset-2 ring-gray-400'
+              )}
+              style={{ backgroundColor: color.value }}
+              title={color.name}
+            />
+          ))}
+        </div>
+      </div>
 
     <div className="space-y-2">
       <Label htmlFor="notes">Notes</Label>
@@ -239,7 +307,8 @@ const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members }) => (
       </Button>
     </DialogFooter>
   </form>
-);
+  );
+};
 
 const ShiftManagementPage = () => {
   const { workspaceId } = useParams();
@@ -327,12 +396,9 @@ const ShiftManagementPage = () => {
       const timeOffData = await getTimeOffRequests(workspaceId);
       setTimeOffRequests(timeOffData.requests || []);
 
-      // Get workspace members (simplified - from users object)
-      const memberList = Object.entries(shiftsResponse.users || {}).map(([id, data]) => ({
-        id,
-        ...data,
-      }));
-      setMembers(memberList);
+      // Fetch workspace members from API
+      const workspaceMembers = await getMembers(workspaceId);
+      setMembers(workspaceMembers || []);
 
     } catch (error) {
       console.error('Error fetching shift data:', error);

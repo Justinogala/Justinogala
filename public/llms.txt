@@ -3,7 +3,6 @@
 - [- Shared EchoNote AI](/sharedmeeting): No description available
 - [| Munal](/sharedrecording): No description available
 - [| Munal](/transcriptiondetail): No description available
-- [| Munal AI](/groupmeetingroom): No description available
 - [| Munal AI](/meetingroom): No description available
 - [| Settings](/workspacedetail): No description available
 - [| Support - Munal](/usersupportticketdetail): No description available
@@ -49,6 +48,7 @@
 - [Reset Password - Munal](/passwordreset): No description available
 - [Settings - Munal](/settings): Manage your account settings and preferences.
 - [Settings - Munal](/usersettings): Manage your account settings, notifications, and privacy.
+- [Shift Management |](/shiftmanagement): No description available
 - [Sign Up - Munal AI](/signup): Create your Munal AI account to start automating your meeting notes.
 - [Support Tickets | Admin Portal](/adminsupporttickets): No description available
 - [Support Tickets | Munal](/usersupporttickets): No description available
