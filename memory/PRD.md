@@ -1037,6 +1037,27 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [ ] SendGrid email integration for shift notifications (requires SENDGRID_API_KEY)
 - [ ] Google/Outlook Calendar sync for shifts
 
+### Message Settings Feature (Mar 4, 2026) - COMPLETE ✅
+- [x] **Frontend UI** (`/app/src/pages/MessageSettingsPage.jsx`):
+  - 7-tab settings interface with sidebar navigation
+  - **Account Tab**: Email Notifications toggle, Notification Sound toggle, Auto-Reply with message field
+  - **Signature Tab**: Signature textarea with live preview
+  - **Email Alias Tab**: Display name/alias input
+  - **Filters Tab**: Create/Edit/Delete message filters with conditions (field, operator, value) and actions (move to folder, mark read, star, delete)
+  - **AI Personalization Tab**: AI toggle, Writing Tone dropdown (Professional/Casual/Friendly/Formal), Auto-Categorize toggle, Smart Replies toggle
+  - **Contacts Tab**: Add/Edit/Delete contacts with name, email, nickname, notes, group
+  - **Assistant Tab**: AI Assistant toggle, Auto-Draft Replies, Summarize Threads, Suggest Actions, Writing Style dropdown
+- [x] **Backend API** (`/app/backend/routes/messages.py`):
+  - `GET /api/messages/settings/{user_id}` - Get message settings (with defaults)
+  - `PUT /api/messages/settings/{user_id}` - Update message settings
+  - `GET/POST/PUT/DELETE /api/messages/filters/{user_id}` - Full CRUD for filters
+  - `GET/POST/PUT/DELETE /api/messages/contacts/{user_id}` - Full CRUD for contacts
+  - `GET/PUT /api/messages/assistant/{user_id}` - Assistant settings
+- [x] **Navigation**: Settings button added to Messages page sidebar
+- [x] **Route**: `/messages/settings` added to App.jsx
+- [x] **MongoDB Collections**: message_settings, message_filters, message_contacts, message_assistant_settings
+- [x] **Testing**: Backend 88% (15/17), Frontend 100% - all tabs verified working
+
 ### Future
 - [ ] Annual billing discount implementation
 - [ ] Team billing for workspaces
