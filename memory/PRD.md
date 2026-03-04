@@ -865,11 +865,15 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ### Admin Internal Messages Monitoring (Mar 4, 2026)
 - [x] **Backend API** (`/app/backend/routes/admin.py`):
-  - `GET /api/admin/internal-messages` - Get all internal messages with filtering (status: all/unread/read/drafts/junk/trash)
+  - `GET /api/admin/internal-messages` - Get all internal messages with filtering
   - `GET /api/admin/internal-messages/{message_id}` - Get message detail with thread
-  - `DELETE /api/admin/internal-messages/{message_id}` - Admin delete (soft or permanent)
-- [x] **Admin Messages Page** - Updated to use real MongoDB data instead of localStorage mock
-- [x] **Service Layer** - `adminMessageService.js` now connects to real API endpoints
+  - `POST /api/admin/internal-messages/{message_id}/reply` - Admin reply to message
+  - `DELETE /api/admin/internal-messages/{message_id}` - Admin delete
+  - `GET /api/admin/internal-messages/export/csv` - Export messages as CSV
+  - `GET /api/admin/internal-messages/export/json` - Export messages as JSON
+- [x] **Admin Messages Page** - Real MongoDB data, Export button, Reply functionality
+- [x] **Admin Reply Feature** - Admin can reply to any user message
+- [x] **Compliance Export** - CSV and JSON export with date filtering
 
 ### Legacy Code Cleanup (Mar 4, 2026)
 - [x] **Removed GroupMeetingRoomPage.jsx** (~72KB) - Legacy meeting room component

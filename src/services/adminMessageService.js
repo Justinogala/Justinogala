@@ -146,11 +146,74 @@ export const adminMessageService = {
     }
   },
 
-  // Reply to message - admin would need to be a user to reply
+  // Reply to message as admin
   replyToMessage: async (messageId, content) => {
-    // Admin reply functionality would need special handling
-    console.log('Admin reply not implemented:', messageId, content);
-    return true;
+    try {
+      const response = await fetch(`${API_URL}/api/admin/internal-messages/${messageId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error sending admin reply:', error);
+      throw error;
+    }
+  },
+
+  // Export messages as CSV
+  exportCSV: async (startDate = null, endDate = null, status = 'all') => {
+    try {
+      let url = `${API_URL}/api/admin/internal-messages/export/csv?status=${status}`;
+      if (startDate) url += `&start_date=${startDate}`;
+      if (endDate) url += `&end_date=${endDate}`;
+      
+      const response = await fetch(url);
+      const blob = await response.blob();
+      
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `messages_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      return true;
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      throw error;
+    }
+  },
+
+  // Export messages as JSON
+  exportJSON: async (startDate = null, endDate = null, status = 'all') => {
+    try {
+      let url = `${API_URL}/api/admin/internal-messages/export/json?status=${status}`;
+      if (startDate) url += `&start_date=${startDate}`;
+      if (endDate) url += `&end_date=${endDate}`;
+      
+      const response = await fetch(url);
+      const blob = await response.blob();
+      
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `messages_export_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      return true;
+    } catch (error) {
+      console.error('Error exporting JSON:', error);
+      throw error;
+    }
   }
 };
 

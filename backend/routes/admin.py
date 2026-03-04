@@ -1132,3 +1132,225 @@ async def admin_delete_internal_message(message_id: str, permanent: bool = False
     except Exception as e:
         logger.error(f"Error deleting message: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+class AdminReplyRequest(BaseModel):
+    content: str
+
+
+@router.post("/internal-messages/{message_id}/reply")
+async def admin_reply_to_message(message_id: str, request: AdminReplyRequest):
+    """Admin reply to an internal message"""
+    try:
+        # Get the original message
+        original = await db.user_messages.find_one({"id": message_id}, {"_id": 0})
+        if not original:
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        # Get admin user info
+        admin = await db.users.find_one({"role": "admin"}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        if not admin:
+            admin = {"id": "admin", "name": "Admin", "email": "admin@munal.com"}
+        
+        # Determine recipient (the original sender)
+        recipient_id = original["sender_id"]
+        recipient = await db.users.find_one({"id": recipient_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        
+        reply_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        
+        reply = {
+            "id": reply_id,
+            "thread_id": original.get("thread_id", message_id),
+            "parent_id": message_id,
+            "sender_id": admin.get("id"),
+            "sender_name": f"Admin ({admin.get('name', 'Support')})",
+            "recipient_id": recipient_id,
+            "recipient_name": recipient.get("name") if recipient else original.get("sender_name", "Unknown"),
+            "subject": f"Re: {original['subject']}",
+            "content": request.content,
+            "is_read": False,
+            "is_starred": False,
+            "is_draft": False,
+            "is_junk": False,
+            "in_trash": False,
+            "is_admin_reply": True,
+            "deleted_by_sender": False,
+            "deleted_by_recipient": False,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.user_messages.insert_one(reply)
+        reply.pop("_id", None)
+        
+        return {"success": True, "message": reply}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending admin reply: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/internal-messages/export/csv")
+async def export_messages_csv(
+    start_date: str = None, 
+    end_date: str = None,
+    status: str = "all"
+):
+    """Export internal messages as CSV for compliance"""
+    try:
+        import csv
+        import io
+        
+        query = {"is_draft": {"$ne": True}}
+        
+        if start_date:
+            query["created_at"] = {"$gte": start_date}
+        if end_date:
+            if "created_at" in query:
+                query["created_at"]["$lte"] = end_date
+            else:
+                query["created_at"] = {"$lte": end_date}
+        
+        if status == "unread":
+            query["is_read"] = False
+        elif status == "read":
+            query["is_read"] = True
+        elif status == "junk":
+            query["is_junk"] = True
+        elif status == "trash":
+            query["in_trash"] = True
+        
+        messages = await db.user_messages.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+        
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Header row
+        writer.writerow([
+            "Message ID",
+            "Thread ID",
+            "Sender Name",
+            "Sender ID",
+            "Recipient Name", 
+            "Recipient ID",
+            "Subject",
+            "Content",
+            "Status",
+            "Is Starred",
+            "Is Junk",
+            "In Trash",
+            "Has Attachments",
+            "Created At",
+            "Updated At"
+        ])
+        
+        # Data rows
+        for msg in messages:
+            status_str = "Trash" if msg.get("in_trash") else ("Junk" if msg.get("is_junk") else ("Read" if msg.get("is_read") else "Unread"))
+            writer.writerow([
+                msg.get("id", ""),
+                msg.get("thread_id", ""),
+                msg.get("sender_name", ""),
+                msg.get("sender_id", ""),
+                msg.get("recipient_name", ""),
+                msg.get("recipient_id", ""),
+                msg.get("subject", ""),
+                msg.get("content", "").replace("\n", " "),
+                status_str,
+                "Yes" if msg.get("is_starred") else "No",
+                "Yes" if msg.get("is_junk") else "No",
+                "Yes" if msg.get("in_trash") else "No",
+                "Yes" if msg.get("attachments") else "No",
+                msg.get("created_at", ""),
+                msg.get("updated_at", "")
+            ])
+        
+        csv_content = output.getvalue()
+        output.close()
+        
+        from fastapi.responses import Response
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=messages_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error exporting messages: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/internal-messages/export/json")
+async def export_messages_json(
+    start_date: str = None,
+    end_date: str = None, 
+    status: str = "all"
+):
+    """Export internal messages as JSON for compliance"""
+    try:
+        query = {"is_draft": {"$ne": True}}
+        
+        if start_date:
+            query["created_at"] = {"$gte": start_date}
+        if end_date:
+            if "created_at" in query:
+                query["created_at"]["$lte"] = end_date
+            else:
+                query["created_at"] = {"$lte": end_date}
+        
+        if status == "unread":
+            query["is_read"] = False
+        elif status == "read":
+            query["is_read"] = True
+        elif status == "junk":
+            query["is_junk"] = True
+        elif status == "trash":
+            query["in_trash"] = True
+        
+        messages = await db.user_messages.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+        
+        # Get all user details
+        user_ids = set()
+        for msg in messages:
+            user_ids.add(msg.get("sender_id"))
+            if msg.get("recipient_id"):
+                user_ids.add(msg.get("recipient_id"))
+        
+        users = {}
+        for uid in user_ids:
+            if uid:
+                user = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+                if user:
+                    users[uid] = user
+        
+        export_data = {
+            "export_date": datetime.now(timezone.utc).isoformat(),
+            "total_messages": len(messages),
+            "filters": {
+                "start_date": start_date,
+                "end_date": end_date,
+                "status": status
+            },
+            "users": users,
+            "messages": messages
+        }
+        
+        import json
+        json_content = json.dumps(export_data, indent=2, default=str)
+        
+        from fastapi.responses import Response
+        return Response(
+            content=json_content,
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f"attachment; filename=messages_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error exporting messages: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

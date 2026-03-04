@@ -113,6 +113,28 @@ export const useAdminMessages = () => {
     "Failed to send reply"
   );
 
+  const exportCSV = async (startDate, endDate, status) => {
+    try {
+      await adminMessageService.exportCSV(startDate, endDate, status);
+      toast({ title: "Success", description: "Messages exported to CSV" });
+      return true;
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to export messages", variant: "destructive" });
+      return false;
+    }
+  };
+
+  const exportJSON = async (startDate, endDate, status) => {
+    try {
+      await adminMessageService.exportJSON(startDate, endDate, status);
+      toast({ title: "Success", description: "Messages exported to JSON" });
+      return true;
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to export messages", variant: "destructive" });
+      return false;
+    }
+  };
+
   return {
     messages,
     loading,
@@ -128,7 +150,9 @@ export const useAdminMessages = () => {
       archiveMessage,
       deleteMessage,
       toggleFlag,
-      replyToMessage
+      replyToMessage,
+      exportCSV,
+      exportJSON
     }
   };
 };

@@ -15,7 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Inbox,
-  Globe
+  Globe,
+  Download,
+  FileText,
+  FileJson
 } from 'lucide-react';
 
 import { useAdminMessages } from '@/hooks/useAdminMessages';
@@ -108,10 +111,30 @@ const AdminMessagesPage = () => {
             Monitor all internal email messages between users.
           </p>
         </div>
-        <Button variant="outline" onClick={refresh} disabled={loading} className="gap-2">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => actions.exportCSV(null, null, filters.status)}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => actions.exportJSON(null, null, filters.status)}>
+                <FileJson className="w-4 h-4 mr-2" />
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="outline" onClick={refresh} disabled={loading} className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
