@@ -1208,6 +1208,39 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - Category filter: workspace, chat_moderation, shift_management
 - [x] **Files Modified**:
   - `/app/src/pages/admin/AdminAuditLogsPage.jsx` - Real-time polling UI
+
+### Role-Based Privileges System (Mar 4, 2026) - COMPLETE ✅
+- [x] **Backend: Permissions Model**:
+  - Added `UserPermissions` model with 9 categories (dashboard, users, workspaces, chat_moderation, shifts, billing, settings, support, messages)
+  - Added `DEFAULT_PERMISSIONS` dict with preset permissions for Admin, Manager, User roles
+  - Updated `UserCreate` model to include optional `permissions` field
+  - Updated user creation endpoint to store permissions in database
+  - Added `/api/users/permissions/defaults` and `/api/users/permissions/{role}` endpoints
+  - Files: `/app/backend/models.py`, `/app/backend/routes/users.py`
+- [x] **Frontend: Add User Modal**:
+  - Shows "Admin Privileges" section when Admin or Manager role is selected
+  - Collapsible permission categories with individual toggle switches
+  - "Select All" / "Deselect All" buttons for bulk toggling
+  - Per-category "All" / "None" quick toggle buttons
+  - Badge showing enabled/total count (e.g., "2/2", "4/4")
+  - File: `/app/src/components/admin/modals/AddUserModal.jsx`
+- [x] **Frontend: Edit User Modal**:
+  - Same permissions UI as Add User modal
+  - Pre-populates with existing user permissions
+  - Updates permissions when role changes
+  - File: `/app/src/components/EditUserModal.jsx`
+- [x] **Permission Categories**:
+  - Dashboard: View, View Analytics
+  - User Management: View, Create, Edit, Delete
+  - Workspace Management: View, Manage, Suspend, Delete
+  - Chat Moderation: View, Flag, Delete, Export
+  - Shift Management: View, Manage, Override, Export
+  - Billing: View, Manage, Refunds
+  - Settings: View, Modify, Security
+  - Support: View, Respond
+  - Messages: View, Send, Broadcast
+- [x] **Dependencies Added**: @radix-ui/react-collapsible, /app/src/components/ui/collapsible.jsx
+
   - `/app/backend/routes/admin_workspaces.py` - Dual logging
   - `/app/backend/routes/admin_chat_moderation.py` - Dual logging
   - `/app/backend/routes/admin_shifts.py` - Dual logging + helper function

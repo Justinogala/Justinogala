@@ -66,6 +66,54 @@ class ChatFileUploadJSON(BaseModel):
 
 # ============== User Models ==============
 
+# Default permissions by role
+DEFAULT_PERMISSIONS = {
+    "Admin": {
+        "dashboard": {"view": True, "analytics": True},
+        "users": {"view": True, "create": True, "edit": True, "delete": True},
+        "workspaces": {"view": True, "manage": True, "suspend": True, "delete": True},
+        "chat_moderation": {"view": True, "flag": True, "delete": True, "export": True},
+        "shifts": {"view": True, "manage": True, "override": True, "export": True},
+        "billing": {"view": True, "manage": True, "refunds": True},
+        "settings": {"view": True, "modify": True, "security": True},
+        "support": {"view": True, "respond": True},
+        "messages": {"view": True, "send": True, "broadcast": True}
+    },
+    "Manager": {
+        "dashboard": {"view": True, "analytics": True},
+        "users": {"view": True, "create": False, "edit": False, "delete": False},
+        "workspaces": {"view": True, "manage": True, "suspend": False, "delete": False},
+        "chat_moderation": {"view": True, "flag": True, "delete": False, "export": False},
+        "shifts": {"view": True, "manage": True, "override": False, "export": True},
+        "billing": {"view": True, "manage": False, "refunds": False},
+        "settings": {"view": True, "modify": False, "security": False},
+        "support": {"view": True, "respond": True},
+        "messages": {"view": True, "send": True, "broadcast": False}
+    },
+    "User": {
+        "dashboard": {"view": False, "analytics": False},
+        "users": {"view": False, "create": False, "edit": False, "delete": False},
+        "workspaces": {"view": False, "manage": False, "suspend": False, "delete": False},
+        "chat_moderation": {"view": False, "flag": False, "delete": False, "export": False},
+        "shifts": {"view": False, "manage": False, "override": False, "export": False},
+        "billing": {"view": False, "manage": False, "refunds": False},
+        "settings": {"view": False, "modify": False, "security": False},
+        "support": {"view": False, "respond": False},
+        "messages": {"view": False, "send": False, "broadcast": False}
+    }
+}
+
+class UserPermissions(BaseModel):
+    dashboard: Dict[str, bool] = {"view": False, "analytics": False}
+    users: Dict[str, bool] = {"view": False, "create": False, "edit": False, "delete": False}
+    workspaces: Dict[str, bool] = {"view": False, "manage": False, "suspend": False, "delete": False}
+    chat_moderation: Dict[str, bool] = {"view": False, "flag": False, "delete": False, "export": False}
+    shifts: Dict[str, bool] = {"view": False, "manage": False, "override": False, "export": False}
+    billing: Dict[str, bool] = {"view": False, "manage": False, "refunds": False}
+    settings: Dict[str, bool] = {"view": False, "modify": False, "security": False}
+    support: Dict[str, bool] = {"view": False, "respond": False}
+    messages: Dict[str, bool] = {"view": False, "send": False, "broadcast": False}
+
 class UserCreate(BaseModel):
     email: str
     password: str
@@ -73,6 +121,7 @@ class UserCreate(BaseModel):
     role: str = "User"
     status: str = "Active"
     plan: str = "Free"
+    permissions: Optional[Dict] = None  # If not provided, defaults based on role
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None

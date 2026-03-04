@@ -7,9 +7,30 @@ from typing import List, Optional
 import uuid
 
 from config import db, logger
-from models import UserCreate, UserUpdate
+from models import UserCreate, UserUpdate, DEFAULT_PERMISSIONS
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+
+@router.get("/permissions/defaults")
+async def get_default_permissions():
+    """Get default permissions for each role"""
+    return {
+        "success": True,
+        "permissions": DEFAULT_PERMISSIONS
+    }
+
+@router.get("/permissions/{role}")
+async def get_role_permissions(role: str):
+    """Get default permissions for a specific role"""
+    if role not in DEFAULT_PERMISSIONS:
+        raise HTTPException(status_code=404, detail=f"Role '{role}' not found")
+    return {
+        "success": True,
+        "role": role,
+        "permissions": DEFAULT_PERMISSIONS[role]
+    }
 
 
 @router.get("")
@@ -114,6 +135,9 @@ async def create_user(user: UserCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
     
+    # Get default permissions for role if not provided
+    permissions = user.permissions if user.permissions else DEFAULT_PERMISSIONS.get(user.role, DEFAULT_PERMISSIONS["User"])
+    
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
@@ -123,6 +147,7 @@ async def create_user(user: UserCreate):
         "role": user.role,
         "status": user.status,
         "plan": user.plan,
+        "permissions": permissions,
         "avatar": None,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc)
