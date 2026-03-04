@@ -1,46 +1,60 @@
-# Munal AI - AI-Powered Meeting Assistant
-> Transform your meetings with AI technology
-
-## About Munal
-Munal is an AI-powered meeting assistant platform developed by Jiffix Inc. It provides real-time transcription, automatic summaries, action items extraction, and team collaboration tools.
-
-## Core Features
-- **AI Transcription**: Real-time speech-to-text with speaker identification
-- **Meeting Summaries**: Automatic AI-generated meeting summaries and key points
-- **Action Items**: Intelligent extraction of tasks and follow-ups
-- **Video Meetings**: HD video conferencing with screen sharing
-- **Screen Recording**: Record meetings and presentations
-- **Calendar Integration**: Sync with your calendar for scheduled meetings
-- **Team Workspaces**: Collaborate with team members in shared workspaces
-- **Text-to-Audio**: Convert notes to audio for accessibility
-- **Text-to-Video**: AI-powered video generation from text
-- **File Management**: Secure cloud storage for meeting files
-
-## Use Cases
-- Sales Teams: Record sales calls, track commitments, follow up effectively
-- Customer Success: Document customer interactions and feedback
-- Product Teams: Capture product discussions and decisions
-- Engineering Teams: Record technical discussions and architecture decisions
-- HR & Recruiting: Interview transcription and candidate evaluation
-
-## Pricing
-- **Free**: $0/month - 5 meetings, 30 min transcription, 1GB storage
-- **Pro**: $19/month - 50 meetings, 300 min transcription, 5GB storage
-- **Business**: $39/month - 150 meetings, 1000 min transcription, 25GB storage
-- **Enterprise**: $79/month - Unlimited meetings and transcription, 100GB storage
-
-## Company Information
-- **Company**: Jiffix Inc.
-- **Product**: Munal AI
-- **Website**: https://munal.ai
-- **Support**: support@jiffix.ca
-- **Privacy**: privacy@jiffix.ca
-- **Location**: Toronto, ON, Canada
-
-## API & Integrations
-Munal offers API access for enterprise customers to integrate meeting intelligence into their workflows.
-
-## Contact
-- Website: https://munal.ai
-- Email: info@jiffix.ca
-- Support: support@jiffix.ca
+## Pages
+- [- EchoNote AI](/meetingdetail): No description available
+- [- Shared EchoNote AI](/sharedmeeting): No description available
+- [| Munal](/sharedrecording): No description available
+- [| Munal](/transcriptiondetail): No description available
+- [| Munal AI](/groupmeetingroom): No description available
+- [| Munal AI](/meetingroom): No description available
+- [| Settings](/workspacedetail): No description available
+- [| Support - Munal](/usersupportticketdetail): No description available
+- [404: Page Not Found - Munal](/notfound): No description available
+- [Active Meeting | Munal AI](/meetingcall): Secure high-quality video conferencing session.
+- [Admin Login | Munal](/adminlogin): Secure admin portal login
+- [AI Summarization - Munal](/summarization): Generate concise summaries, action items, and key points from transcripts.
+- [Analytics Dashboard - Munal](/analyticsdashboard): No description available
+- [API Configuration | Munal](/apikeyconfiguration): No description available
+- [Billing & Subscription - Munal](/billingdashboard): No description available
+- [Calendar - Munal](/meetingcalendar): No description available
+- [Calendar | Munal AI](/calendar): No description available
+- [Chat | Munal AI](/workspacechat): No description available
+- [Checkout - Munal](/checkout): No description available
+- [Contact Us - Munal AI](/contactform): Get in touch with the Munal AI team for support, sales, or general inquiries.
+- [Create Account - EchoNote AI](/createaccount): No description available
+- [Edit:  | Munal](/transcriptions): No description available
+- [Features | Munal - Powerful Tools for Modern Teams](/features): No description available
+- [File Management - Munal](/filemanagement): Manage your audio, video, and documents.
+- [Forgot Password | Munal AI](/forgotpassword): No description available
+- [History | Munal](/transcriptionhistory): No description available
+- [Integrations - Munal](/integrationsettings): No description available
+- [Join Meeting | Munal](/instantmeetingroom): No description available
+- [Join Meeting | Munal AI](/groupmeetingroom): No description available
+- [Login - Munal AI](/login): Log in to your Munal AI account for meeting intelligence.
+- [Manage Transcriptions | Munal](/transcriptionmanagement): No description available
+- [Meetings | Munal AI](/meetings): Manage your video conferences, schedule meetings, and view history.
+- [Messages - Admin | Munal AI](/adminmessages): No description available
+- [Messages | Munal](/chatmessages): No description available
+- [Munal - Collaborate, Transcribe, and Succeed Together](/landing): No description available
+- [Munal - Transform Your Meetings](/home): No description available
+- [My Meetings - Munal](/meetinglist): No description available
+- [My Profile - Munal](/userprofile): No description available
+- [New Transcription - Munal](/transcription): No description available
+- [New Transcription | Munal](/newtranscription): No description available
+- [OTP Login - Munal](/otplogin): No description available
+- [Plans & Pricing - Munal](/payment): Choose the perfect plan for your meeting transcription and AI summary needs.
+- [Pricing - Munal](/pricing): Choose the perfect Munal plan for your meeting transcription needs. Start free or upgrade for advanced features.
+- [Profile Settings - Munal](/profile): Manage your account settings, profile information, and subscription plan.
+- [Quick Record | Munal](/quickrecord): No description available
+- [Recent Chats | Munal](/recentchats): No description available
+- [Reports - Munal](/reportmanagement): No description available
+- [Reset Password - Munal](/passwordreset): No description available
+- [Settings - Munal](/settings): Manage your account settings and preferences.
+- [Settings - Munal](/usersettings): Manage your account settings, notifications, and privacy.
+- [Sign Up - Munal AI](/signup): Create your Munal AI account to start automating your meeting notes.
+- [Support Tickets | Admin Portal](/adminsupporttickets): No description available
+- [Support Tickets | Munal](/usersupporttickets): No description available
+- [Text to Video | Munal AI](/texttovideo): No description available
+- [Update Password - Munal](/passwordupdate): No description available
+- [Video Conferencing | Munal](/videoconferencing): No description available
+- [Voice Chat - Munal](/voicechat): Real-time voice transcription and recording.
+- [Voice Chat History | Munal](/voicechathistory): No description available
+- [Workspaces | Munal](/workspaces): No description available

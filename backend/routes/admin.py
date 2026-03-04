@@ -911,3 +911,83 @@ async def test_video_api_key():
     except Exception as e:
         logger.error(f"Error testing video API key: {e}")
         return {"success": False, "error": str(e)}
+
+
+
+# ============== Admin Chat Messages ==============
+
+@router.get("/chat/messages/{user_id}")
+async def get_user_messages(user_id: str, limit: int = 100):
+    """Get all chat messages for a specific user (as sender or receiver)"""
+    try:
+        messages = await db.chat_messages.find(
+            {
+                "$or": [
+                    {"sender_id": user_id},
+                    {"receiver_id": user_id}
+                ]
+            },
+            {"_id": 0}
+        ).sort("created_at", -1).limit(limit).to_list(limit)
+        
+        # Get unique partner IDs
+        partner_ids = set()
+        for msg in messages:
+            if msg["sender_id"] == user_id:
+                partner_ids.add(msg["receiver_id"])
+            else:
+                partner_ids.add(msg["sender_id"])
+        
+        # Get partner details
+        partners = {}
+        for partner_id in partner_ids:
+            partner = await db.users.find_one({"id": partner_id}, {"_id": 0, "id": 1, "name": 1, "email": 1, "avatar": 1})
+            if partner:
+                partners[partner_id] = partner
+        
+        return {
+            "success": True,
+            "messages": messages,
+            "partners": partners,
+            "total": len(messages)
+        }
+    except Exception as e:
+        logger.error(f"Error fetching user messages: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/chat/all-messages")
+async def get_all_messages(limit: int = 200, skip: int = 0):
+    """Get all chat messages across the platform (for admin monitoring)"""
+    try:
+        messages = await db.chat_messages.find(
+            {},
+            {"_id": 0}
+        ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.chat_messages.count_documents({})
+        
+        # Get all user IDs involved
+        user_ids = set()
+        for msg in messages:
+            user_ids.add(msg["sender_id"])
+            user_ids.add(msg["receiver_id"])
+        
+        # Get user details
+        users = {}
+        for uid in user_ids:
+            user = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "name": 1, "email": 1, "avatar": 1})
+            if user:
+                users[uid] = user
+        
+        return {
+            "success": True,
+            "messages": messages,
+            "users": users,
+            "total": total,
+            "limit": limit,
+            "skip": skip
+        }
+    except Exception as e:
+        logger.error(f"Error fetching all messages: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
