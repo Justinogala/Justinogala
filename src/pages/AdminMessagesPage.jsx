@@ -102,10 +102,10 @@ const AdminMessagesPage = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
             <Inbox className="w-8 h-8 text-violet-600" />
-            Messages
+            Internal Messages
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Manage user inquiries and support tickets.
+            Monitor all internal email messages between users.
           </p>
         </div>
         <Button variant="outline" onClick={refresh} disabled={loading} className="gap-2">

@@ -991,3 +991,144 @@ async def get_all_messages(limit: int = 200, skip: int = 0):
     except Exception as e:
         logger.error(f"Error fetching all messages: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== Admin Internal Email Messages ==============
+
+@router.get("/internal-messages")
+async def get_all_internal_messages(limit: int = 50, skip: int = 0, status: str = "all"):
+    """Get all internal email messages for admin monitoring"""
+    try:
+        query = {}
+        if status == "unread":
+            query["is_read"] = False
+        elif status == "read":
+            query["is_read"] = True
+        elif status == "drafts":
+            query["is_draft"] = True
+        elif status == "junk":
+            query["is_junk"] = True
+        elif status == "trash":
+            query["in_trash"] = True
+        
+        # Exclude drafts from main view unless specifically requested
+        if status != "drafts":
+            query["is_draft"] = {"$ne": True}
+        
+        messages = await db.user_messages.find(
+            query,
+            {"_id": 0}
+        ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.user_messages.count_documents(query)
+        
+        # Get all user IDs involved
+        user_ids = set()
+        for msg in messages:
+            user_ids.add(msg.get("sender_id"))
+            if msg.get("recipient_id"):
+                user_ids.add(msg.get("recipient_id"))
+        
+        # Get user details
+        users = {}
+        for uid in user_ids:
+            if uid:
+                user = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "name": 1, "email": 1, "avatar": 1})
+                if user:
+                    users[uid] = user
+        
+        # Get counts for different statuses
+        counts = {
+            "total": await db.user_messages.count_documents({"is_draft": {"$ne": True}}),
+            "unread": await db.user_messages.count_documents({"is_read": False, "is_draft": {"$ne": True}}),
+            "drafts": await db.user_messages.count_documents({"is_draft": True}),
+            "junk": await db.user_messages.count_documents({"is_junk": True}),
+            "trash": await db.user_messages.count_documents({"in_trash": True})
+        }
+        
+        return {
+            "success": True,
+            "messages": messages,
+            "users": users,
+            "total": total,
+            "counts": counts,
+            "limit": limit,
+            "skip": skip
+        }
+    except Exception as e:
+        logger.error(f"Error fetching internal messages: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/internal-messages/{message_id}")
+async def get_internal_message_detail(message_id: str):
+    """Get detailed view of an internal message including thread"""
+    try:
+        message = await db.user_messages.find_one({"id": message_id}, {"_id": 0})
+        if not message:
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        # Get thread if exists
+        thread_id = message.get("thread_id", message_id)
+        thread = await db.user_messages.find(
+            {"$or": [{"id": thread_id}, {"thread_id": thread_id}]},
+            {"_id": 0}
+        ).sort("created_at", 1).to_list(100)
+        
+        # Get participants
+        user_ids = set()
+        for msg in thread:
+            user_ids.add(msg.get("sender_id"))
+            if msg.get("recipient_id"):
+                user_ids.add(msg.get("recipient_id"))
+        
+        users = {}
+        for uid in user_ids:
+            if uid:
+                user = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "name": 1, "email": 1, "avatar": 1})
+                if user:
+                    users[uid] = user
+        
+        # Get attachments if any
+        attachments = []
+        for msg in thread:
+            if msg.get("attachments"):
+                attachments.extend(msg.get("attachments"))
+        
+        return {
+            "success": True,
+            "message": message,
+            "thread": thread,
+            "users": users,
+            "attachments": attachments
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching message detail: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/internal-messages/{message_id}")
+async def admin_delete_internal_message(message_id: str, permanent: bool = False):
+    """Admin delete an internal message"""
+    try:
+        if permanent:
+            result = await db.user_messages.delete_one({"id": message_id})
+            if result.deleted_count == 0:
+                raise HTTPException(status_code=404, detail="Message not found")
+            return {"success": True, "permanently_deleted": True}
+        else:
+            result = await db.user_messages.update_one(
+                {"id": message_id},
+                {"$set": {"in_trash": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            if result.matched_count == 0:
+                raise HTTPException(status_code=404, detail="Message not found")
+            return {"success": True, "moved_to_trash": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
