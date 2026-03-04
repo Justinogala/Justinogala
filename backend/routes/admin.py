@@ -1354,3 +1354,407 @@ async def export_messages_json(
     except Exception as e:
         logger.error(f"Error exporting messages: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== Scheduled Export & Broadcast ==============
+
+class ScheduledExportCreate(BaseModel):
+    name: str
+    frequency: str  # daily, weekly, monthly
+    format: str  # csv, json
+    status_filter: str = "all"
+    email_recipients: List[str]
+    enabled: bool = True
+
+
+class BroadcastMessageCreate(BaseModel):
+    subject: str
+    content: str
+    send_email: bool = True
+
+
+@router.get("/scheduled-exports")
+async def get_scheduled_exports():
+    """Get all scheduled export configurations"""
+    try:
+        exports = await db.scheduled_exports.find({}, {"_id": 0}).to_list(100)
+        return {"success": True, "exports": exports}
+    except Exception as e:
+        logger.error(f"Error fetching scheduled exports: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/scheduled-exports")
+async def create_scheduled_export(request: ScheduledExportCreate):
+    """Create a new scheduled export configuration"""
+    try:
+        export_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Calculate next run time based on frequency
+        next_run = datetime.now(timezone.utc)
+        if request.frequency == "daily":
+            next_run += timedelta(days=1)
+        elif request.frequency == "weekly":
+            next_run += timedelta(weeks=1)
+        elif request.frequency == "monthly":
+            next_run += timedelta(days=30)
+        
+        export_config = {
+            "id": export_id,
+            "name": request.name,
+            "frequency": request.frequency,
+            "format": request.format,
+            "status_filter": request.status_filter,
+            "email_recipients": request.email_recipients,
+            "enabled": request.enabled,
+            "last_run": None,
+            "next_run": next_run.isoformat(),
+            "run_count": 0,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.scheduled_exports.insert_one(export_config)
+        export_config.pop("_id", None)
+        
+        return {"success": True, "export": export_config}
+    except Exception as e:
+        logger.error(f"Error creating scheduled export: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/scheduled-exports/{export_id}")
+async def update_scheduled_export(export_id: str, request: ScheduledExportCreate):
+    """Update a scheduled export configuration"""
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        
+        result = await db.scheduled_exports.update_one(
+            {"id": export_id},
+            {"$set": {
+                "name": request.name,
+                "frequency": request.frequency,
+                "format": request.format,
+                "status_filter": request.status_filter,
+                "email_recipients": request.email_recipients,
+                "enabled": request.enabled,
+                "updated_at": now
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Scheduled export not found")
+        
+        export = await db.scheduled_exports.find_one({"id": export_id}, {"_id": 0})
+        return {"success": True, "export": export}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating scheduled export: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/scheduled-exports/{export_id}")
+async def delete_scheduled_export(export_id: str):
+    """Delete a scheduled export configuration"""
+    try:
+        result = await db.scheduled_exports.delete_one({"id": export_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Scheduled export not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting scheduled export: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/scheduled-exports/{export_id}/run")
+async def run_scheduled_export_now(export_id: str):
+    """Manually trigger a scheduled export"""
+    try:
+        export = await db.scheduled_exports.find_one({"id": export_id}, {"_id": 0})
+        if not export:
+            raise HTTPException(status_code=404, detail="Scheduled export not found")
+        
+        # Get messages based on filter
+        query = {"is_draft": {"$ne": True}}
+        if export["status_filter"] == "unread":
+            query["is_read"] = False
+        elif export["status_filter"] == "read":
+            query["is_read"] = True
+        
+        messages = await db.user_messages.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+        
+        # Generate export content
+        if export["format"] == "csv":
+            import csv
+            import io
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["Message ID", "Sender", "Recipient", "Subject", "Content", "Status", "Created At"])
+            for msg in messages:
+                status = "Read" if msg.get("is_read") else "Unread"
+                writer.writerow([
+                    msg.get("id", ""),
+                    msg.get("sender_name", ""),
+                    msg.get("recipient_name", ""),
+                    msg.get("subject", ""),
+                    msg.get("content", "").replace("\n", " ")[:500],
+                    status,
+                    msg.get("created_at", "")
+                ])
+            export_content = output.getvalue()
+            content_type = "text/csv"
+            file_ext = "csv"
+        else:
+            import json
+            export_content = json.dumps({"messages": messages, "export_date": datetime.now(timezone.utc).isoformat()}, default=str)
+            content_type = "application/json"
+            file_ext = "json"
+        
+        # Send email to recipients
+        if export["email_recipients"] and SENDER_EMAIL:
+            for recipient in export["email_recipients"]:
+                try:
+                    params = {
+                        "from": SENDER_EMAIL,
+                        "to": [recipient],
+                        "subject": f"Scheduled Export: {export['name']} - {datetime.now(timezone.utc).strftime('%Y-%m-%d')}",
+                        "html": f"""
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h2>Scheduled Message Export</h2>
+                            <p>Your scheduled export <strong>{export['name']}</strong> has been generated.</p>
+                            <p>Total messages: {len(messages)}</p>
+                            <p>Export format: {export['format'].upper()}</p>
+                            <p>Generated at: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+                            <hr>
+                            <p style="color: #666; font-size: 12px;">This is an automated compliance report from Munal AI.</p>
+                        </div>
+                        """,
+                        "attachments": [{
+                            "filename": f"messages_export_{datetime.now(timezone.utc).strftime('%Y%m%d')}.{file_ext}",
+                            "content": export_content
+                        }]
+                    }
+                    await asyncio.to_thread(resend.Emails.send, params)
+                except Exception as email_error:
+                    logger.error(f"Failed to send export email to {recipient}: {email_error}")
+        
+        # Update last run time
+        now = datetime.now(timezone.utc)
+        next_run = now
+        if export["frequency"] == "daily":
+            next_run += timedelta(days=1)
+        elif export["frequency"] == "weekly":
+            next_run += timedelta(weeks=1)
+        elif export["frequency"] == "monthly":
+            next_run += timedelta(days=30)
+        
+        await db.scheduled_exports.update_one(
+            {"id": export_id},
+            {"$set": {
+                "last_run": now.isoformat(),
+                "next_run": next_run.isoformat(),
+                "run_count": export.get("run_count", 0) + 1
+            }}
+        )
+        
+        return {
+            "success": True,
+            "messages_exported": len(messages),
+            "recipients_notified": len(export["email_recipients"])
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error running scheduled export: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Admin Broadcast Messages ==============
+
+@router.get("/broadcasts")
+async def get_broadcasts(limit: int = 50, skip: int = 0):
+    """Get all broadcast messages sent by admin"""
+    try:
+        broadcasts = await db.admin_broadcasts.find(
+            {},
+            {"_id": 0}
+        ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+        
+        total = await db.admin_broadcasts.count_documents({})
+        
+        return {
+            "success": True,
+            "broadcasts": broadcasts,
+            "total": total
+        }
+    except Exception as e:
+        logger.error(f"Error fetching broadcasts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/broadcasts")
+async def create_broadcast(request: BroadcastMessageCreate):
+    """Send a broadcast message to all users"""
+    try:
+        broadcast_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        
+        # Get all active users
+        users = await db.users.find(
+            {"status": {"$ne": "disabled"}, "id": {"$exists": True, "$ne": None}},
+            {"_id": 0, "id": 1, "name": 1, "email": 1}
+        ).to_list(10000)
+        
+        # Filter out users without valid IDs
+        users = [u for u in users if u.get("id")]
+        
+        if not users:
+            raise HTTPException(status_code=400, detail="No active users found")
+        
+        # Get admin info
+        admin = await db.users.find_one({"role": "admin"}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        if not admin:
+            admin = {"id": "admin", "name": "Admin", "email": "admin@munal.com"}
+        
+        # Create individual messages for each user
+        messages_created = 0
+        emails_sent = 0
+        
+        for user in users:
+            # Skip if no valid user id
+            if not user.get("id"):
+                continue
+                
+            # Create internal message
+            message_id = str(uuid.uuid4())
+            message = {
+                "id": message_id,
+                "thread_id": message_id,
+                "broadcast_id": broadcast_id,
+                "sender_id": admin.get("id") or "admin",
+                "sender_name": "Munal Admin",
+                "recipient_id": user["id"],
+                "recipient_name": user.get("name") or user.get("email", "User"),
+                "subject": request.subject,
+                "content": request.content,
+                "is_read": False,
+                "is_starred": False,
+                "is_draft": False,
+                "is_junk": False,
+                "in_trash": False,
+                "is_broadcast": True,
+                "deleted_by_sender": False,
+                "deleted_by_recipient": False,
+                "created_at": now,
+                "updated_at": now
+            }
+            
+            await db.user_messages.insert_one(message)
+            messages_created += 1
+            
+            # Send email notification if requested
+            if request.send_email and SENDER_EMAIL and user.get("email"):
+                try:
+                    params = {
+                        "from": SENDER_EMAIL,
+                        "to": [user["email"]],
+                        "subject": f"[Munal] {request.subject}",
+                        "html": f"""
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                                <h1 style="color: white; margin: 0;">Munal AI</h1>
+                            </div>
+                            <div style="padding: 30px; background: #f9fafb;">
+                                <h2 style="color: #1f2937;">{request.subject}</h2>
+                                <div style="color: #4b5563; line-height: 1.6;">
+                                    {request.content.replace(chr(10), '<br>')}
+                                </div>
+                                <a href="https://munal.ai/messages" style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">View in App</a>
+                            </div>
+                            <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 12px;">
+                                <p>© 2026 Munal AI. All rights reserved.</p>
+                            </div>
+                        </div>
+                        """
+                    }
+                    await asyncio.to_thread(resend.Emails.send, params)
+                    emails_sent += 1
+                except Exception as email_error:
+                    logger.error(f"Failed to send broadcast email to {user['email']}: {email_error}")
+        
+        # Save broadcast record
+        broadcast = {
+            "id": broadcast_id,
+            "subject": request.subject,
+            "content": request.content,
+            "send_email": request.send_email,
+            "recipients_count": len(users),
+            "messages_created": messages_created,
+            "emails_sent": emails_sent,
+            "created_at": now,
+            "created_by": admin.get("id")
+        }
+        
+        await db.admin_broadcasts.insert_one(broadcast)
+        broadcast.pop("_id", None)
+        
+        return {
+            "success": True,
+            "broadcast": broadcast
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating broadcast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/broadcasts/{broadcast_id}")
+async def get_broadcast_detail(broadcast_id: str):
+    """Get broadcast details including delivery stats"""
+    try:
+        broadcast = await db.admin_broadcasts.find_one({"id": broadcast_id}, {"_id": 0})
+        if not broadcast:
+            raise HTTPException(status_code=404, detail="Broadcast not found")
+        
+        # Get read stats for this broadcast
+        total_messages = await db.user_messages.count_documents({"broadcast_id": broadcast_id})
+        read_messages = await db.user_messages.count_documents({"broadcast_id": broadcast_id, "is_read": True})
+        
+        broadcast["delivery_stats"] = {
+            "total_delivered": total_messages,
+            "total_read": read_messages,
+            "read_rate": round((read_messages / total_messages * 100) if total_messages > 0 else 0, 1)
+        }
+        
+        return {"success": True, "broadcast": broadcast}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching broadcast detail: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/broadcasts/{broadcast_id}")
+async def delete_broadcast(broadcast_id: str):
+    """Delete a broadcast and all associated messages"""
+    try:
+        # Delete all messages from this broadcast
+        await db.user_messages.delete_many({"broadcast_id": broadcast_id})
+        
+        # Delete broadcast record
+        result = await db.admin_broadcasts.delete_one({"id": broadcast_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Broadcast not found")
+        
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting broadcast: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

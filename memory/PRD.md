@@ -863,6 +863,26 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ## Prioritized Backlog
 
+### Scheduled Exports & Admin Broadcasts (Mar 4, 2026)
+- [x] **Scheduled Message Exports** (`/app/backend/routes/admin.py`):
+  - `GET /api/admin/scheduled-exports` - List all scheduled exports
+  - `POST /api/admin/scheduled-exports` - Create new schedule
+  - `PUT /api/admin/scheduled-exports/{id}` - Update schedule
+  - `DELETE /api/admin/scheduled-exports/{id}` - Delete schedule
+  - `POST /api/admin/scheduled-exports/{id}/run` - Run export now
+  - Supports: daily/weekly/monthly frequency, CSV/JSON format, email delivery
+- [x] **Admin Broadcast Messages**:
+  - `GET /api/admin/broadcasts` - List all broadcasts
+  - `POST /api/admin/broadcasts` - Send broadcast to all users
+  - `GET /api/admin/broadcasts/{id}` - Get broadcast with delivery stats
+  - `DELETE /api/admin/broadcasts/{id}` - Delete broadcast and messages
+  - Creates individual messages for each user + optional email notification
+- [x] **Admin UI** (`/app/src/pages/admin/AdminBroadcastsPage.jsx`):
+  - Two-tab interface: Broadcasts / Scheduled Exports
+  - New Broadcast modal with subject, content, email toggle
+  - Scheduled Export modal with frequency, format, recipients configuration
+  - Run Now button for manual export triggers
+
 ### Admin Internal Messages Monitoring (Mar 4, 2026)
 - [x] **Backend API** (`/app/backend/routes/admin.py`):
   - `GET /api/admin/internal-messages` - Get all internal messages with filtering

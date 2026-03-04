@@ -185,6 +185,7 @@ const AdminSystemHealthPage = lazy(() => import('@/pages/AdminSystemHealthPage')
 const AdminTicketsPage = lazy(() => import('@/pages/AdminTicketsPage'));
 const AdminSupportTicketsPage = lazy(() => import('@/pages/AdminSupportTicketsPage'));
 const AdminMessagesPage = lazy(() => import('@/pages/AdminMessagesPage'));
+const AdminBroadcastsPage = lazy(() => import('@/pages/admin/AdminBroadcastsPage'));
 const AdminBillingPage = lazy(() => import('@/pages/admin/AdminBillingPage'));
 const AdminUserManagementPage = lazy(() => import('@/pages/admin/AdminUserManagementPage'));
 const AdminPaymentGatewaysPage = lazy(() => import('@/pages/admin/AdminPaymentGatewaysPage'));
@@ -460,6 +461,7 @@ function App() {
                                 <Route path="tickets" element={<AdminTicketsPage />} />
                                 <Route path="support-tickets" element={<AdminSupportTicketsPage />} />
                                 <Route path="messages" element={<AdminMessagesPage />} />
+                                <Route path="broadcasts" element={<AdminBroadcastsPage />} />
                                 <Route path="api-settings" element={<AdminAPISettingsPage />} />
                                 <Route path="integrations" element={<AdminIntegrationsPage />} />
                                 <Route path="payment-gateways" element={<AdminPaymentGatewaysPage />} />

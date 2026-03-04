@@ -96,6 +96,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500' },
     { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-emerald-500 to-green-500' },
     { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-pink-500 to-rose-500' },
+    { icon: MessageSquare, label: 'Broadcasts', path: '/admin/broadcasts', gradient: 'from-violet-500 to-purple-500' },
   ];
 
   const paymentSubLinks = [
