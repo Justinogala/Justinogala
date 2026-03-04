@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { 
   Loader2, Send, Search, Inbox, SendHorizontal, Star, 
   Trash2, Reply, Plus, Mail, ArrowLeft, RefreshCw,
-  FileEdit, AlertCircle, RotateCcw, Trash, MoreHorizontal
+  FileEdit, AlertCircle, RotateCcw, Trash, MoreHorizontal,
+  Paperclip, X, FileText, Image, File, Download
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -49,6 +50,11 @@ const MessagesPage = () => {
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  
+  // Attachment state
+  const [attachments, setAttachments] = useState([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const fileInputRef = useRef(null);
   
   // Reply state
   const [replyContent, setReplyContent] = useState('');
@@ -151,6 +157,7 @@ const MessagesPage = () => {
       setComposeRecipient(message.recipient_id ? { id: message.recipient_id, name: message.recipient_name } : null);
       setComposeSubject(message.subject || '');
       setComposeContent(message.content || '');
+      setAttachments(message.attachments || []);
       setShowCompose(true);
       return;
     }
@@ -179,6 +186,74 @@ const MessagesPage = () => {
     setComposeContent('');
     setUserSearchQuery('');
     setUserSearchResults([]);
+    setAttachments([]);
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    setUploadingAttachment(true);
+    try {
+      for (const file of files) {
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({ title: 'Error', description: `${file.name} is too large. Maximum size is 10MB`, variant: 'destructive' });
+          continue;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('user_id', user.id);
+        
+        const response = await fetch(`${API_URL}/api/messages/attachments/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          setAttachments(prev => [...prev, data.attachment]);
+        } else {
+          toast({ title: 'Error', description: `Failed to upload ${file.name}`, variant: 'destructive' });
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast({ title: 'Error', description: 'Failed to upload files', variant: 'destructive' });
+    } finally {
+      setUploadingAttachment(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Remove attachment
+  const removeAttachment = async (attachmentId) => {
+    try {
+      await fetch(`${API_URL}/api/messages/attachments/${attachmentId}?user_id=${user.id}`, {
+        method: 'DELETE'
+      });
+      setAttachments(prev => prev.filter(a => a.id !== attachmentId));
+    } catch (error) {
+      console.error('Error removing attachment:', error);
+    }
+  };
+
+  // Get file icon based on type
+  const getFileIcon = (contentType) => {
+    if (contentType?.startsWith('image/')) return Image;
+    if (contentType?.includes('pdf') || contentType?.includes('document')) return FileText;
+    return File;
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   // Send new message
@@ -191,7 +266,18 @@ const MessagesPage = () => {
     try {
       let response;
       if (editingDraft) {
-        // Send draft
+        // Send draft - first update with attachments
+        await fetch(`${API_URL}/api/messages/draft/${user.id}?draft_id=${editingDraft.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient_id: composeRecipient.id,
+            subject: composeSubject,
+            content: composeContent,
+            attachments: attachments.map(a => ({ id: a.id, filename: a.filename, size: a.size, content_type: a.content_type }))
+          })
+        });
+        // Then send
         response = await fetch(`${API_URL}/api/messages/draft/${editingDraft.id}/send/${user.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
@@ -204,7 +290,8 @@ const MessagesPage = () => {
           body: JSON.stringify({
             recipient_id: composeRecipient.id,
             subject: composeSubject,
-            content: composeContent
+            content: composeContent,
+            attachments: attachments.map(a => ({ id: a.id, filename: a.filename, size: a.size, content_type: a.content_type }))
           })
         });
       }
@@ -239,7 +326,8 @@ const MessagesPage = () => {
         body: JSON.stringify({
           recipient_id: composeRecipient?.id || null,
           subject: composeSubject,
-          content: composeContent
+          content: composeContent,
+          attachments: attachments.map(a => ({ id: a.id, filename: a.filename, size: a.size, content_type: a.content_type }))
         })
       });
       const data = await response.json();
@@ -496,6 +584,36 @@ const MessagesPage = () => {
                                 {msg.sender_name} • {format(new Date(msg.created_at), 'MMM d, h:mm a')}
                               </p>
                               <p className="whitespace-pre-wrap">{msg.content}</p>
+                              
+                              {/* Attachments in thread */}
+                              {msg.attachments && msg.attachments.length > 0 && (
+                                <div className={cn("mt-3 space-y-2", isMe ? "border-t border-indigo-500/30 pt-3" : "border-t pt-3")}>
+                                  <p className={cn("text-xs font-medium", isMe ? "text-indigo-200" : "text-muted-foreground")}>
+                                    Attachments ({msg.attachments.length})
+                                  </p>
+                                  {msg.attachments.map((att) => {
+                                    const FileIcon = getFileIcon(att.content_type);
+                                    return (
+                                      <a
+                                        key={att.id}
+                                        href={`${API_URL}/api/messages/attachments/${att.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={cn(
+                                          "flex items-center gap-2 p-2 rounded transition-colors",
+                                          isMe 
+                                            ? "bg-indigo-500/30 hover:bg-indigo-500/40" 
+                                            : "bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600"
+                                        )}
+                                      >
+                                        <FileIcon className={cn("w-4 h-4", isMe ? "text-white" : "text-indigo-500")} />
+                                        <span className={cn("text-sm flex-1 truncate", isMe && "text-white")}>{att.filename}</span>
+                                        <Download className={cn("w-4 h-4", isMe ? "text-white" : "text-gray-500")} />
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -775,6 +893,71 @@ const MessagesPage = () => {
                   className="min-h-[150px]"
                   data-testid="compose-content-input"
                 />
+              </div>
+              
+              {/* Attachments */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium">Attachments:</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      multiple
+                      accept="*/*"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAttachment}
+                      data-testid="attach-file-btn"
+                    >
+                      {uploadingAttachment ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Paperclip className="w-4 h-4 mr-2" />
+                      )}
+                      Attach File
+                    </Button>
+                  </div>
+                </div>
+                
+                {attachments.length > 0 && (
+                  <div className="space-y-2 mt-2 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                    {attachments.map((attachment) => {
+                      const FileIcon = getFileIcon(attachment.content_type);
+                      return (
+                        <div 
+                          key={attachment.id} 
+                          className="flex items-center gap-3 p-2 bg-white dark:bg-slate-700 rounded border"
+                        >
+                          <FileIcon className="w-5 h-5 text-indigo-500 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{attachment.filename}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600"
+                            onClick={() => removeAttachment(attachment.id)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {attachments.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No attachments. Max 10MB per file.</p>
+                )}
               </div>
             </div>
             

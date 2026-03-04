@@ -2,7 +2,8 @@
 Internal Messaging System Routes
 Email-like messaging between users on the platform
 """
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -10,23 +11,37 @@ import uuid
 import logging
 import asyncio
 import resend
+import base64
+import io
 
 from config import db, SENDER_EMAIL
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 logger = logging.getLogger(__name__)
+
+# GridFS bucket for message attachments
+fs_attachments = None
+
+async def get_attachments_bucket():
+    global fs_attachments
+    if fs_attachments is None:
+        fs_attachments = AsyncIOMotorGridFSBucket(db.delegate, bucket_name="message_attachments")
+    return fs_attachments
 
 
 class SendMessageRequest(BaseModel):
     recipient_id: str
     subject: str
     content: str
+    attachments: Optional[List[dict]] = None
 
 
 class DraftMessageRequest(BaseModel):
     recipient_id: Optional[str] = None
     subject: Optional[str] = ""
     content: Optional[str] = ""
+    attachments: Optional[List[dict]] = None
 
 
 class ReplyMessageRequest(BaseModel):
@@ -365,6 +380,7 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
             "recipient_name": recipient.get("name") or recipient.get("email", "Unknown"),
             "subject": request.subject,
             "content": request.content,
+            "attachments": request.attachments or [],
             "is_read": False,
             "is_starred": False,
             "is_draft": False,
@@ -428,6 +444,7 @@ async def save_draft(sender_id: str, request: DraftMessageRequest, draft_id: Opt
                     "recipient_name": recipient_name,
                     "subject": request.subject or "",
                     "content": request.content or "",
+                    "attachments": request.attachments or [],
                     "updated_at": now
                 }}
             )
@@ -449,6 +466,7 @@ async def save_draft(sender_id: str, request: DraftMessageRequest, draft_id: Opt
                 "recipient_name": recipient_name,
                 "subject": request.subject or "",
                 "content": request.content or "",
+                "attachments": request.attachments or [],
                 "is_read": False,
                 "is_starred": False,
                 "is_draft": True,
@@ -827,4 +845,129 @@ async def get_unread_count(user_id: str):
         return {"success": True, "count": count}
     except Exception as e:
         logger.error(f"Error getting unread count: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== Attachment Endpoints ==============
+
+@router.post("/attachments/upload")
+async def upload_attachment(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """Upload a file attachment for a message"""
+    try:
+        # Read file content
+        contents = await file.read()
+        
+        # Validate file size (10MB limit for attachments)
+        if len(contents) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
+        
+        # Generate attachment ID
+        attachment_id = str(uuid.uuid4())
+        
+        # Store in GridFS
+        fs = await get_attachments_bucket()
+        grid_id = await fs.upload_from_stream(
+            file.filename,
+            contents,
+            metadata={
+                "attachment_id": attachment_id,
+                "user_id": user_id,
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "size": len(contents),
+                "uploaded_at": datetime.now(timezone.utc).isoformat()
+            }
+        )
+        
+        # Store attachment reference in database
+        attachment = {
+            "id": attachment_id,
+            "grid_id": str(grid_id),
+            "user_id": user_id,
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "size": len(contents),
+            "uploaded_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.message_attachments.insert_one(attachment)
+        attachment.pop("_id", None)
+        
+        return {"success": True, "attachment": attachment}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading attachment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/attachments/{attachment_id}")
+async def get_attachment(attachment_id: str):
+    """Download an attachment"""
+    try:
+        # Get attachment metadata
+        attachment = await db.message_attachments.find_one({"id": attachment_id}, {"_id": 0})
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+        
+        # Get file from GridFS
+        from bson import ObjectId
+        fs = await get_attachments_bucket()
+        grid_id = ObjectId(attachment["grid_id"])
+        
+        # Stream the file
+        grid_out = await fs.open_download_stream(grid_id)
+        
+        async def file_stream():
+            while True:
+                chunk = await grid_out.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+        
+        return StreamingResponse(
+            file_stream(),
+            media_type=attachment.get("content_type", "application/octet-stream"),
+            headers={
+                "Content-Disposition": f'attachment; filename="{attachment["filename"]}"',
+                "Content-Length": str(attachment.get("size", 0))
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting attachment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/attachments/{attachment_id}")
+async def delete_attachment(attachment_id: str, user_id: str):
+    """Delete an attachment"""
+    try:
+        # Get attachment
+        attachment = await db.message_attachments.find_one({"id": attachment_id})
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+        
+        # Verify ownership
+        if attachment["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this attachment")
+        
+        # Delete from GridFS
+        from bson import ObjectId
+        fs = await get_attachments_bucket()
+        await fs.delete(ObjectId(attachment["grid_id"]))
+        
+        # Delete metadata
+        await db.message_attachments.delete_one({"id": attachment_id})
+        
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting attachment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
