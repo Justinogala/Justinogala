@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
-  Activity, BarChart3, Lock, Cloud, Video
+  Activity, BarChart3, Lock, Cloud, Video, Building2, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -94,8 +94,11 @@ const AdminSidebar = ({ onClose, isMobile }) => {
 
   const managementLinks = [
     { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500' },
-    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-emerald-500 to-green-500' },
-    { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-pink-500 to-rose-500' },
+    { icon: Building2, label: 'Workspaces', path: '/admin/workspaces', gradient: 'from-indigo-500 to-violet-500' },
+    { icon: MessageSquare, label: 'Chat Moderation', path: '/admin/chat-moderation', gradient: 'from-emerald-500 to-green-500' },
+    { icon: Clock, label: 'Shifts', path: '/admin/shifts', gradient: 'from-orange-500 to-amber-500' },
+    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-pink-500 to-rose-500' },
+    { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-rose-500 to-red-500' },
     { icon: MessageSquare, label: 'Broadcasts', path: '/admin/broadcasts', gradient: 'from-violet-500 to-purple-500' },
   ];
 

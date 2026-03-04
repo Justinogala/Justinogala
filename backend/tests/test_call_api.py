@@ -7,7 +7,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://workforce-hub-295.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://munal-oversight.preview.emergentagent.com')
 
 class TestCallAPI:
     """Tests for Call initiation, acceptance, rejection, and ending"""

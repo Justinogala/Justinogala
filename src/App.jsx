@@ -209,6 +209,10 @@ const AdminSecurityPolicies = lazy(() => import('@/pages/admin/AdminSecurityPoli
 const AdminMeetingAnalytics = lazy(() => import('@/pages/admin/AdminMeetingAnalytics'));
 const AdminCloudStoragePage = lazy(() => import('@/pages/admin/AdminCloudStoragePage'));
 const AdminVideoHistoryPage = lazy(() => import('@/pages/admin/AdminVideoHistoryPage'));
+const AdminShiftsPage = lazy(() => import('@/pages/admin/AdminShiftsPage'));
+const AdminWorkspaceDetailPage = lazy(() => import('@/pages/admin/AdminWorkspaceDetailPage'));
+const AdminWorkspacesPage = lazy(() => import('@/pages/admin/AdminWorkspacesPage'));
+const AdminChatModerationPage = lazy(() => import('@/pages/admin/AdminChatModerationPage'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 
@@ -458,7 +462,10 @@ function App() {
                                 <Route path="analytics" element={<AdminAnalytics />} /> 
                                 <Route path="reports" element={<AdminReports />} /> 
                                 <Route path="billing" element={<AdminBillingPage />} />
-                                <Route path="workspaces" element={<AdminWorkspace />} />
+                                <Route path="workspaces" element={<AdminWorkspacesPage />} />
+                                <Route path="workspaces/:id" element={<AdminWorkspaceDetailPage />} />
+                                <Route path="chat-moderation" element={<AdminChatModerationPage />} />
+                                <Route path="shifts" element={<AdminShiftsPage />} />
                                 <Route path="profile" element={<AdminProfile />} />
                                 <Route path="content" element={<AdminContent />} />
                                 <Route path="health" element={<AdminSystemHealthPage />} />
