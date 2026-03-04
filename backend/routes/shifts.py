@@ -67,6 +67,14 @@ class TimeOffRequest(BaseModel):
     type: str = "vacation"  # vacation, sick, personal, other
 
 
+class ClockAction(BaseModel):
+    shift_id: str
+    user_id: str
+    action: str  # "in" or "out"
+    location: Optional[str] = None
+    notes: Optional[str] = None
+
+
 # ============== Helper Functions ==============
 
 def calculate_hours(start_time: str, end_time: str) -> float:
@@ -793,6 +801,303 @@ async def get_workspace_departments(workspace_id: str):
         return {"success": True, "departments": [d["_id"] for d in departments]}
     except Exception as e:
         logger.error(f"Error fetching departments: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Clock In/Out Time Tracking ==============
+
+@router.post("/clock")
+async def clock_in_out(clock_data: ClockAction):
+    """Clock in or out of a shift"""
+    try:
+        # Get the shift
+        shift = await db.shifts.find_one({"id": clock_data.shift_id}, {"_id": 0})
+        if not shift:
+            raise HTTPException(status_code=404, detail="Shift not found")
+        
+        # Verify user is assigned to this shift
+        if shift.get("assigned_to") != clock_data.user_id:
+            raise HTTPException(status_code=403, detail="You are not assigned to this shift")
+        
+        now = datetime.now(timezone.utc)
+        
+        if clock_data.action == "in":
+            # Check if already clocked in
+            existing = await db.time_entries.find_one({
+                "shift_id": clock_data.shift_id,
+                "user_id": clock_data.user_id,
+                "clock_out": None
+            })
+            
+            if existing:
+                raise HTTPException(status_code=400, detail="Already clocked in to this shift")
+            
+            # Create time entry
+            entry_id = str(uuid.uuid4())
+            time_entry = {
+                "id": entry_id,
+                "shift_id": clock_data.shift_id,
+                "workspace_id": shift.get("workspace_id"),
+                "user_id": clock_data.user_id,
+                "clock_in": now.isoformat(),
+                "clock_out": None,
+                "clock_in_location": clock_data.location,
+                "clock_in_notes": clock_data.notes,
+                "duration_minutes": 0,
+                "status": "active",
+                "created_at": now.isoformat()
+            }
+            
+            await db.time_entries.insert_one(time_entry)
+            
+            # Update shift status
+            await db.shifts.update_one(
+                {"id": clock_data.shift_id},
+                {"$set": {"clock_status": "clocked_in", "current_entry_id": entry_id}}
+            )
+            
+            time_entry.pop("_id", None)
+            return {
+                "success": True,
+                "action": "clock_in",
+                "entry": time_entry,
+                "message": "Clocked in successfully"
+            }
+        
+        elif clock_data.action == "out":
+            # Find active time entry
+            entry = await db.time_entries.find_one({
+                "shift_id": clock_data.shift_id,
+                "user_id": clock_data.user_id,
+                "clock_out": None
+            })
+            
+            if not entry:
+                raise HTTPException(status_code=400, detail="Not clocked in to this shift")
+            
+            # Calculate duration
+            clock_in_time = datetime.fromisoformat(entry["clock_in"].replace('Z', '+00:00'))
+            duration = (now - clock_in_time).total_seconds() / 60  # minutes
+            
+            # Update time entry
+            await db.time_entries.update_one(
+                {"id": entry["id"]},
+                {"$set": {
+                    "clock_out": now.isoformat(),
+                    "clock_out_location": clock_data.location,
+                    "clock_out_notes": clock_data.notes,
+                    "duration_minutes": round(duration, 2),
+                    "status": "completed"
+                }}
+            )
+            
+            # Update shift status
+            await db.shifts.update_one(
+                {"id": clock_data.shift_id},
+                {"$set": {"clock_status": "clocked_out", "current_entry_id": None}}
+            )
+            
+            return {
+                "success": True,
+                "action": "clock_out",
+                "duration_minutes": round(duration, 2),
+                "duration_hours": round(duration / 60, 2),
+                "message": f"Clocked out successfully. Worked {round(duration / 60, 2)} hours"
+            }
+        
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action. Use 'in' or 'out'")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Clock in/out error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/clock/status/{shift_id}/{user_id}")
+async def get_clock_status(shift_id: str, user_id: str):
+    """Get current clock status for a shift"""
+    try:
+        # Check for active time entry
+        active_entry = await db.time_entries.find_one({
+            "shift_id": shift_id,
+            "user_id": user_id,
+            "clock_out": None
+        }, {"_id": 0})
+        
+        if active_entry:
+            # Calculate current duration
+            clock_in_time = datetime.fromisoformat(active_entry["clock_in"].replace('Z', '+00:00'))
+            now = datetime.now(timezone.utc)
+            current_duration = (now - clock_in_time).total_seconds() / 60
+            
+            return {
+                "success": True,
+                "clocked_in": True,
+                "entry": active_entry,
+                "current_duration_minutes": round(current_duration, 2),
+                "current_duration_hours": round(current_duration / 60, 2)
+            }
+        
+        return {
+            "success": True,
+            "clocked_in": False,
+            "entry": None
+        }
+    except Exception as e:
+        logger.error(f"Get clock status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/time-entries/{shift_id}")
+async def get_shift_time_entries(shift_id: str):
+    """Get all time entries for a shift"""
+    try:
+        entries = await db.time_entries.find(
+            {"shift_id": shift_id},
+            {"_id": 0}
+        ).sort("clock_in", -1).to_list(100)
+        
+        total_minutes = sum(e.get("duration_minutes", 0) for e in entries if e.get("status") == "completed")
+        
+        return {
+            "success": True,
+            "entries": entries,
+            "total_minutes": round(total_minutes, 2),
+            "total_hours": round(total_minutes / 60, 2)
+        }
+    except Exception as e:
+        logger.error(f"Get time entries error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/time-entries/user/{workspace_id}/{user_id}")
+async def get_user_time_entries(workspace_id: str, user_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None):
+    """Get all time entries for a user in a workspace"""
+    try:
+        query = {
+            "workspace_id": workspace_id,
+            "user_id": user_id
+        }
+        
+        if start_date:
+            query["clock_in"] = {"$gte": start_date}
+        if end_date:
+            if "clock_in" in query:
+                query["clock_in"]["$lte"] = end_date + "T23:59:59"
+            else:
+                query["clock_in"] = {"$lte": end_date + "T23:59:59"}
+        
+        entries = await db.time_entries.find(query, {"_id": 0}).sort("clock_in", -1).to_list(500)
+        
+        # Calculate totals
+        total_minutes = sum(e.get("duration_minutes", 0) for e in entries if e.get("status") == "completed")
+        
+        # Group by date
+        by_date = {}
+        for entry in entries:
+            if entry.get("clock_in"):
+                date = entry["clock_in"][:10]
+                if date not in by_date:
+                    by_date[date] = {"entries": [], "total_minutes": 0}
+                by_date[date]["entries"].append(entry)
+                if entry.get("status") == "completed":
+                    by_date[date]["total_minutes"] += entry.get("duration_minutes", 0)
+        
+        return {
+            "success": True,
+            "entries": entries,
+            "total_minutes": round(total_minutes, 2),
+            "total_hours": round(total_minutes / 60, 2),
+            "by_date": by_date,
+            "entry_count": len(entries)
+        }
+    except Exception as e:
+        logger.error(f"Get user time entries error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/timesheet/{workspace_id}")
+async def get_workspace_timesheet(workspace_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None):
+    """Get timesheet summary for all users in a workspace"""
+    try:
+        # Default to current week if no dates provided
+        if not start_date:
+            today = datetime.now(timezone.utc)
+            start_of_week = today - timedelta(days=today.weekday())
+            start_date = start_of_week.strftime("%Y-%m-%d")
+        if not end_date:
+            end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        
+        # Get all time entries for the period
+        entries = await db.time_entries.find({
+            "workspace_id": workspace_id,
+            "clock_in": {"$gte": start_date, "$lte": end_date + "T23:59:59"},
+            "status": "completed"
+        }, {"_id": 0}).to_list(1000)
+        
+        # Group by user
+        by_user = {}
+        for entry in entries:
+            user_id = entry.get("user_id")
+            if user_id not in by_user:
+                by_user[user_id] = {
+                    "user_id": user_id,
+                    "total_minutes": 0,
+                    "entry_count": 0,
+                    "entries": []
+                }
+            by_user[user_id]["total_minutes"] += entry.get("duration_minutes", 0)
+            by_user[user_id]["entry_count"] += 1
+            by_user[user_id]["entries"].append(entry)
+        
+        # Enrich with user data
+        for user_id in by_user:
+            user = await db.users.find_one({"id": user_id}, {"_id": 0, "name": 1, "email": 1})
+            if user:
+                by_user[user_id]["user_name"] = user.get("name", user.get("email", "Unknown"))
+                by_user[user_id]["user_email"] = user.get("email")
+            by_user[user_id]["total_hours"] = round(by_user[user_id]["total_minutes"] / 60, 2)
+        
+        # Calculate totals
+        total_minutes = sum(u["total_minutes"] for u in by_user.values())
+        
+        return {
+            "success": True,
+            "period": {"start": start_date, "end": end_date},
+            "users": list(by_user.values()),
+            "total_minutes": round(total_minutes, 2),
+            "total_hours": round(total_minutes / 60, 2),
+            "user_count": len(by_user)
+        }
+    except Exception as e:
+        logger.error(f"Get timesheet error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/time-entries/{entry_id}")
+async def delete_time_entry(entry_id: str, user_id: str):
+    """Delete a time entry (admin only or own entry)"""
+    try:
+        entry = await db.time_entries.find_one({"id": entry_id})
+        if not entry:
+            raise HTTPException(status_code=404, detail="Time entry not found")
+        
+        # Only allow deletion of own entries or if admin
+        if entry.get("user_id") != user_id:
+            # Check if user is admin of workspace
+            workspace = await db.workspaces.find_one({"id": entry.get("workspace_id")})
+            if not workspace or workspace.get("owner_id") != user_id:
+                raise HTTPException(status_code=403, detail="Not authorized to delete this entry")
+        
+        await db.time_entries.delete_one({"id": entry_id})
+        
+        return {"success": True, "message": "Time entry deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete time entry error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

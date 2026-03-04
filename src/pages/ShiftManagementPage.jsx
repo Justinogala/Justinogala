@@ -36,6 +36,10 @@ import {
   List,
   Settings,
   GripVertical,
+  Play,
+  Square,
+  Timer,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -67,6 +71,9 @@ import {
   getShiftPresets,
   createShiftPreset,
   deleteShiftPreset,
+  clockInOut,
+  getClockStatus,
+  getWorkspaceTimesheet,
 } from '@/services/shiftService';
 import { getWorkspaceById, getMembers } from '@/services/workspaceService';
 
@@ -352,6 +359,10 @@ const ShiftManagementPage = () => {
   const [draggedShift, setDraggedShift] = useState(null);
   const [dragOverDate, setDragOverDate] = useState(null);
 
+  // Timesheet state
+  const [timesheet, setTimesheet] = useState(null);
+  const [clockingShiftId, setClockingShiftId] = useState(null);
+
   // Form state
   const [formData, setFormData] = useState({
     date: '',
@@ -420,6 +431,14 @@ const ShiftManagementPage = () => {
         setPresets(presetsData.presets?.length > 0 ? presetsData.presets : DEFAULT_PRESETS);
       } catch {
         setPresets(DEFAULT_PRESETS);
+      }
+
+      // Fetch timesheet data
+      try {
+        const timesheetData = await getWorkspaceTimesheet(workspaceId);
+        setTimesheet(timesheetData);
+      } catch {
+        setTimesheet(null);
       }
 
     } catch (error) {
@@ -673,6 +692,47 @@ const ShiftManagementPage = () => {
         description: 'Failed to export shifts',
       });
     }
+  };
+
+  // ============== Clock In/Out Handlers ==============
+
+  const handleClockInOut = async (shift, action) => {
+    if (!user?.id) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please log in' });
+      return;
+    }
+
+    try {
+      setClockingShiftId(shift.id);
+      const result = await clockInOut(shift.id, user.id, action);
+      
+      toast({
+        title: 'Success',
+        description: result.message,
+      });
+
+      // Refresh data
+      fetchData();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || `Failed to clock ${action}`,
+      });
+    } finally {
+      setClockingShiftId(null);
+    }
+  };
+
+  // Check if current user is assigned to shift
+  const isMyShift = (shift) => {
+    return shift.assigned_to === user?.id;
+  };
+
+  // Check if shift is happening today
+  const isShiftToday = (shift) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return shift.date === today;
   };
 
   // Reset form
@@ -963,6 +1023,47 @@ const ShiftManagementPage = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Clock In/Out buttons for assigned user on today's shifts */}
+                    {isMyShift(shift) && isShiftToday(shift) && (
+                      shift.clock_status === 'clocked_in' ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleClockInOut(shift, 'out')}
+                          disabled={clockingShiftId === shift.id}
+                          data-testid={`clock-out-${shift.id}`}
+                        >
+                          {clockingShiftId === shift.id ? (
+                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Square className="h-4 w-4 mr-1" />
+                          )}
+                          Clock Out
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => handleClockInOut(shift, 'in')}
+                          disabled={clockingShiftId === shift.id}
+                          data-testid={`clock-in-${shift.id}`}
+                        >
+                          {clockingShiftId === shift.id ? (
+                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Play className="h-4 w-4 mr-1" />
+                          )}
+                          Clock In
+                        </Button>
+                      )
+                    )}
+                    {shift.clock_status === 'clocked_in' && (
+                      <Badge className="bg-emerald-100 text-emerald-700">
+                        <Timer className="h-3 w-3 mr-1" />
+                        Active
+                      </Badge>
+                    )}
                     <Badge
                       variant={shift.status === 'scheduled' ? 'default' : 'secondary'}
                       className={shift.status === 'cancelled' ? 'bg-red-100 text-red-700' : ''}
@@ -1226,6 +1327,10 @@ const ShiftManagementPage = () => {
               <Calendar className="h-4 w-4" />
               Shifts
             </TabsTrigger>
+            <TabsTrigger value="timesheet" className="flex items-center gap-2">
+              <Timer className="h-4 w-4" />
+              Timesheet
+            </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               Requests
@@ -1248,6 +1353,74 @@ const ShiftManagementPage = () => {
                   </>
                 ) : (
                   renderListView()
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="timesheet">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileSpreadsheet className="h-5 w-5" />
+                      Time Tracking
+                    </CardTitle>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {timesheet?.period?.start} - {timesheet?.period?.end}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">{timesheet?.total_hours || 0}h</p>
+                    <p className="text-sm text-gray-500">Total hours this week</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!timesheet?.users?.length ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <Timer className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No time entries recorded yet</p>
+                    <p className="text-sm">Clock in/out buttons appear on today&apos;s shifts</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {timesheet.users.map((userData) => (
+                      <div 
+                        key={userData.user_id}
+                        className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-medium">
+                              {(userData.user_name || '?')[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium">{userData.user_name}</p>
+                              <p className="text-sm text-gray-500">{userData.user_email}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-indigo-600">{userData.total_hours}h</p>
+                            <p className="text-xs text-gray-500">{userData.entry_count} entries</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {userData.entries?.slice(0, 5).map((entry) => (
+                            <Badge key={entry.id} variant="secondary" className="text-xs">
+                              {entry.clock_in?.slice(5, 10)} • {Math.round(entry.duration_minutes)}min
+                            </Badge>
+                          ))}
+                          {userData.entries?.length > 5 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{userData.entries.length - 5} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

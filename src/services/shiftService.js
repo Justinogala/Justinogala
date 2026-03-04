@@ -260,6 +260,69 @@ export const deleteShiftPreset = async (presetId) => {
   });
 };
 
+// ============== Clock In/Out ==============
+
+/**
+ * Clock in or out of a shift
+ */
+export const clockInOut = async (shiftId, userId, action, location = null, notes = null) => {
+  return apiRequest('/clock', {
+    method: 'POST',
+    body: JSON.stringify({
+      shift_id: shiftId,
+      user_id: userId,
+      action, // "in" or "out"
+      location,
+      notes,
+    }),
+  });
+};
+
+/**
+ * Get clock status for a shift
+ */
+export const getClockStatus = async (shiftId, userId) => {
+  return apiRequest(`/clock/status/${shiftId}/${userId}`);
+};
+
+/**
+ * Get time entries for a shift
+ */
+export const getShiftTimeEntries = async (shiftId) => {
+  return apiRequest(`/time-entries/${shiftId}`);
+};
+
+/**
+ * Get time entries for a user in a workspace
+ */
+export const getUserTimeEntries = async (workspaceId, userId, startDate = null, endDate = null) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+  const query = params.toString();
+  return apiRequest(`/time-entries/user/${workspaceId}/${userId}${query ? `?${query}` : ''}`);
+};
+
+/**
+ * Get workspace timesheet
+ */
+export const getWorkspaceTimesheet = async (workspaceId, startDate = null, endDate = null) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+  const query = params.toString();
+  return apiRequest(`/timesheet/${workspaceId}${query ? `?${query}` : ''}`);
+};
+
+/**
+ * Delete a time entry
+ */
+export const deleteTimeEntry = async (entryId, userId) => {
+  return apiRequest(`/time-entries/${entryId}?user_id=${userId}`, {
+    method: 'DELETE',
+  });
+};
+
 export default {
   createShift,
   getWorkspaceShifts,
@@ -284,4 +347,10 @@ export default {
   createShiftPreset,
   updateShiftPreset,
   deleteShiftPreset,
+  clockInOut,
+  getClockStatus,
+  getShiftTimeEntries,
+  getUserTimeEntries,
+  getWorkspaceTimesheet,
+  deleteTimeEntry,
 };
