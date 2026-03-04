@@ -863,6 +863,13 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ## Prioritized Backlog
 
+### Legacy Code Cleanup (Mar 4, 2026)
+- [x] **Removed GroupMeetingRoomPage.jsx** (~72KB) - Legacy meeting room component
+- [x] **Removed useGroupWebRTC.js** (~15KB) - Hook only used by legacy component
+- [x] **Cleaned up App.jsx** - Removed unused import
+- [x] **Total**: ~87KB of dead code removed
+- [x] **Verified**: Meetings functionality still works with InstantMeetingRoom.jsx
+
 ### Internal Messaging System (Mar 4, 2026)
 - [x] **Backend API Endpoints** (`/app/backend/routes/messages.py`):
   - `GET /api/messages/inbox/{user_id}` - Get user's inbox messages
