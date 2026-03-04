@@ -863,6 +863,25 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 
 ## Prioritized Backlog
 
+### Internal Messaging System (Mar 4, 2026)
+- [x] **Backend API Endpoints** (`/app/backend/routes/messages.py`):
+  - `GET /api/messages/inbox/{user_id}` - Get user's inbox messages
+  - `GET /api/messages/sent/{user_id}` - Get sent messages
+  - `GET /api/messages/thread/{message_id}` - Get message thread
+  - `POST /api/messages/send/{sender_id}` - Send new message
+  - `POST /api/messages/reply/{message_id}/{sender_id}` - Reply to message
+  - `PUT /api/messages/read/{message_id}` - Mark as read
+  - `PUT /api/messages/star/{message_id}` - Toggle star
+  - `DELETE /api/messages/{message_id}/{user_id}` - Delete message
+  - `GET /api/messages/users/search` - Search users to message
+  - `GET /api/messages/unread-count/{user_id}` - Get unread count
+- [x] **Frontend UI** (`/app/src/pages/MessagesPage.jsx`):
+  - Email-like inbox/sent views
+  - Compose modal with user search
+  - Message thread view with replies
+  - Star, delete, mark as read functionality
+  - Unread count badge in sidebar
+
 ### SEO Fixes (Mar 3, 2026)
 - [x] **Meta Description Optimization**:
   - Reduced from 247 characters to 133 characters (optimal range: 120-160)

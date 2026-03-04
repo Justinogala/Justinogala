@@ -83,6 +83,7 @@ from routes.payments import router as payments_router, webhook_router
 from routes.ai import router as ai_router
 from routes.meeting_room import router as meeting_room_router
 from routes.admin import router as admin_router
+from routes.messages import router as messages_router
 
 
 # ============== Include All Routers ==============
@@ -95,6 +96,7 @@ api_router.include_router(users_router)
 
 # Chat & messaging
 api_router.include_router(chat_router)
+api_router.include_router(messages_router)
 
 # Video calls
 api_router.include_router(calls_router)
