@@ -971,3 +971,331 @@ async def delete_attachment(attachment_id: str, user_id: str):
     except Exception as e:
         logger.error(f"Error deleting attachment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Message Settings ==============
+
+class MessageSettingsUpdate(BaseModel):
+    signature: Optional[str] = None
+    email_alias: Optional[str] = None
+    auto_reply_enabled: Optional[bool] = None
+    auto_reply_message: Optional[str] = None
+    ai_personalization_enabled: Optional[bool] = None
+    ai_tone: Optional[str] = None  # professional, casual, friendly
+    ai_auto_categorize: Optional[bool] = None
+    ai_smart_replies: Optional[bool] = None
+    notifications_enabled: Optional[bool] = None
+    notification_sound: Optional[bool] = None
+
+
+class MessageFilterCreate(BaseModel):
+    name: str
+    conditions: dict  # { field: "from" | "subject" | "content", operator: "contains" | "equals", value: str }
+    action: str  # "move_to_folder" | "mark_as_read" | "delete" | "star"
+    action_value: Optional[str] = None  # folder name if action is move_to_folder
+
+
+class ContactCreate(BaseModel):
+    name: str
+    email: str
+    nickname: Optional[str] = None
+    notes: Optional[str] = None
+    group: Optional[str] = None
+
+
+class AssistantSettingsUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    auto_draft_replies: Optional[bool] = None
+    summarize_threads: Optional[bool] = None
+    suggest_actions: Optional[bool] = None
+    writing_style: Optional[str] = None
+
+
+@router.get("/settings/{user_id}")
+async def get_message_settings(user_id: str):
+    """Get user's message settings"""
+    try:
+        settings = await db.message_settings.find_one({"user_id": user_id}, {"_id": 0})
+        
+        if not settings:
+            # Return default settings
+            settings = {
+                "user_id": user_id,
+                "signature": "",
+                "email_alias": "",
+                "auto_reply_enabled": False,
+                "auto_reply_message": "",
+                "ai_personalization_enabled": True,
+                "ai_tone": "professional",
+                "ai_auto_categorize": True,
+                "ai_smart_replies": True,
+                "notifications_enabled": True,
+                "notification_sound": True,
+                "assistant_enabled": True,
+                "assistant_auto_draft": False,
+                "assistant_summarize": True,
+                "assistant_suggest_actions": True,
+                "assistant_writing_style": "match_my_style"
+            }
+        
+        return {"success": True, "settings": settings}
+    except Exception as e:
+        logger.error(f"Error fetching message settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/settings/{user_id}")
+async def update_message_settings(user_id: str, settings: MessageSettingsUpdate):
+    """Update user's message settings"""
+    try:
+        update_data = {k: v for k, v in settings.model_dump().items() if v is not None}
+        update_data["user_id"] = user_id
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        await db.message_settings.update_one(
+            {"user_id": user_id},
+            {"$set": update_data},
+            upsert=True
+        )
+        
+        updated = await db.message_settings.find_one({"user_id": user_id}, {"_id": 0})
+        return {"success": True, "settings": updated}
+    except Exception as e:
+        logger.error(f"Error updating message settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Filters ==============
+
+@router.get("/filters/{user_id}")
+async def get_message_filters(user_id: str):
+    """Get user's message filters"""
+    try:
+        filters = await db.message_filters.find(
+            {"user_id": user_id},
+            {"_id": 0}
+        ).sort("created_at", 1).to_list(50)
+        
+        return {"success": True, "filters": filters}
+    except Exception as e:
+        logger.error(f"Error fetching filters: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/filters/{user_id}")
+async def create_message_filter(user_id: str, filter_data: MessageFilterCreate):
+    """Create a new message filter"""
+    try:
+        filter_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        
+        filter_doc = {
+            "id": filter_id,
+            "user_id": user_id,
+            "name": filter_data.name,
+            "conditions": filter_data.conditions,
+            "action": filter_data.action,
+            "action_value": filter_data.action_value,
+            "enabled": True,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.message_filters.insert_one(filter_doc)
+        filter_doc.pop("_id", None)
+        
+        return {"success": True, "filter": filter_doc}
+    except Exception as e:
+        logger.error(f"Error creating filter: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/filters/{filter_id}")
+async def update_message_filter(filter_id: str, filter_data: MessageFilterCreate):
+    """Update a message filter"""
+    try:
+        update_data = {
+            "name": filter_data.name,
+            "conditions": filter_data.conditions,
+            "action": filter_data.action,
+            "action_value": filter_data.action_value,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        result = await db.message_filters.update_one(
+            {"id": filter_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Filter not found")
+        
+        updated = await db.message_filters.find_one({"id": filter_id}, {"_id": 0})
+        return {"success": True, "filter": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating filter: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/filters/{filter_id}")
+async def delete_message_filter(filter_id: str):
+    """Delete a message filter"""
+    try:
+        result = await db.message_filters.delete_one({"id": filter_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Filter not found")
+        
+        return {"success": True, "message": "Filter deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting filter: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Contacts ==============
+
+@router.get("/contacts/{user_id}")
+async def get_contacts(user_id: str, group: Optional[str] = None):
+    """Get user's contacts"""
+    try:
+        query = {"user_id": user_id}
+        if group:
+            query["group"] = group
+        
+        contacts = await db.message_contacts.find(query, {"_id": 0}).sort("name", 1).to_list(500)
+        
+        # Get unique groups
+        groups = await db.message_contacts.distinct("group", {"user_id": user_id, "group": {"$ne": None}})
+        
+        return {"success": True, "contacts": contacts, "groups": groups}
+    except Exception as e:
+        logger.error(f"Error fetching contacts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/contacts/{user_id}")
+async def create_contact(user_id: str, contact: ContactCreate):
+    """Create a new contact"""
+    try:
+        contact_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        
+        contact_doc = {
+            "id": contact_id,
+            "user_id": user_id,
+            "name": contact.name,
+            "email": contact.email,
+            "nickname": contact.nickname,
+            "notes": contact.notes,
+            "group": contact.group,
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.message_contacts.insert_one(contact_doc)
+        contact_doc.pop("_id", None)
+        
+        return {"success": True, "contact": contact_doc}
+    except Exception as e:
+        logger.error(f"Error creating contact: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/contacts/{contact_id}")
+async def update_contact(contact_id: str, contact: ContactCreate):
+    """Update a contact"""
+    try:
+        update_data = {
+            "name": contact.name,
+            "email": contact.email,
+            "nickname": contact.nickname,
+            "notes": contact.notes,
+            "group": contact.group,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        result = await db.message_contacts.update_one(
+            {"id": contact_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Contact not found")
+        
+        updated = await db.message_contacts.find_one({"id": contact_id}, {"_id": 0})
+        return {"success": True, "contact": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating contact: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/contacts/{contact_id}")
+async def delete_contact(contact_id: str):
+    """Delete a contact"""
+    try:
+        result = await db.message_contacts.delete_one({"id": contact_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Contact not found")
+        
+        return {"success": True, "message": "Contact deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting contact: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Assistant Settings ==============
+
+@router.get("/assistant/{user_id}")
+async def get_assistant_settings(user_id: str):
+    """Get AI assistant settings"""
+    try:
+        settings = await db.message_assistant_settings.find_one({"user_id": user_id}, {"_id": 0})
+        
+        if not settings:
+            settings = {
+                "user_id": user_id,
+                "enabled": True,
+                "auto_draft_replies": False,
+                "summarize_threads": True,
+                "suggest_actions": True,
+                "writing_style": "match_my_style",
+                "learned_phrases": [],
+                "preferred_greetings": ["Hi", "Hello", "Hey"],
+                "preferred_closings": ["Best regards", "Thanks", "Cheers"]
+            }
+        
+        return {"success": True, "settings": settings}
+    except Exception as e:
+        logger.error(f"Error fetching assistant settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/assistant/{user_id}")
+async def update_assistant_settings(user_id: str, settings: AssistantSettingsUpdate):
+    """Update AI assistant settings"""
+    try:
+        update_data = {k: v for k, v in settings.model_dump().items() if v is not None}
+        update_data["user_id"] = user_id
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        await db.message_assistant_settings.update_one(
+            {"user_id": user_id},
+            {"$set": update_data},
+            upsert=True
+        )
+        
+        updated = await db.message_assistant_settings.find_one({"user_id": user_id}, {"_id": 0})
+        return {"success": True, "settings": updated}
+    except Exception as e:
+        logger.error(f"Error updating assistant settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

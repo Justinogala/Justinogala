@@ -94,6 +94,7 @@ const RecentChatsPage = lazy(() => import('@/pages/RecentChatsPage'));
 const QuickRecordPage = lazy(() => import('@/pages/QuickRecordPage'));
 const TextToAudioPage = lazy(() => import('@/pages/user/TextToAudioPage'));
 const TextToVideoPage = lazy(() => import('@/pages/TextToVideoPage'));
+const MessageSettingsPage = lazy(() => import('@/pages/MessageSettingsPage'));
 
 // Video & Meetings
 const AdvancedVideoCallInterface = lazy(() => import('@/components/video/AdvancedVideoCallInterface'));
@@ -389,6 +390,7 @@ function App() {
                                 <Route path="/support-tickets" element={<UserSupportTicketsPage />} />
                                 <Route path="/support-tickets/:ticketId" element={<UserSupportTicketDetailPage />} />
                                 <Route path="/messages" element={<MessagesPage />} />
+                                <Route path="/messages/settings" element={<MessageSettingsPage />} />
                                 <Route path="/chat-messages" element={<ChatMessagesPage />} />
                                 <Route path="/recent-chats" element={<RecentChatsPage />} />
                                 

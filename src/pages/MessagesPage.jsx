@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import {
   Loader2, Send, Search, Inbox, SendHorizontal, Star, 
   Trash2, Reply, Plus, Mail, ArrowLeft, RefreshCw,
   FileEdit, AlertCircle, RotateCcw, Trash, MoreHorizontal,
-  Paperclip, X, FileText, Image, File, Download
+  Paperclip, X, FileText, Image, File, Download, Settings
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEN
 const MessagesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inbox');
   const [messages, setMessages] = useState([]);
   const [selectedMessage, setSelectedMessage] = useState(null);
@@ -616,6 +618,18 @@ const MessagesPage = () => {
                 </button>
               ))}
             </nav>
+            
+            {/* Settings Link */}
+            <div className="p-2 border-t">
+              <button
+                onClick={() => navigate('/messages/settings')}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-gray-400"
+                data-testid="message-settings-btn"
+              >
+                <Settings className="w-5 h-5" />
+                <span>Settings</span>
+              </button>
+            </div>
           </Card>
 
           {/* Main Content */}
