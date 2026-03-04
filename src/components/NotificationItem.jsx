@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { 
@@ -9,22 +9,24 @@ import {
   AlertTriangle, 
   X, 
   CheckCircle2, 
-  Circle
+  Circle,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const NotificationItem = ({ notification, onMarkRead, onDelete }) => {
   const navigate = useNavigate();
+  const [showActions, setShowActions] = useState(false);
 
   const getIcon = () => {
     switch (notification.type) {
-      case 'transcription': return <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
-      case 'billing': return <CreditCard className="w-4 h-4 text-orange-600 dark:text-orange-400" />;
-      case 'system': return <AlertCircle className="w-4 h-4 text-gray-600 dark:text-gray-400" />;
-      case 'account': return <User className="w-4 h-4 text-purple-600 dark:text-purple-400" />;
-      case 'plan_limit': return <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />;
-      default: return <AlertCircle className="w-4 h-4 text-gray-600" />;
+      case 'transcription': return <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
+      case 'billing': return <CreditCard className="w-5 h-5 text-orange-600 dark:text-orange-400" />;
+      case 'system': return <AlertCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />;
+      case 'account': return <User className="w-5 h-5 text-purple-600 dark:text-purple-400" />;
+      case 'plan_limit': return <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />;
+      default: return <AlertCircle className="w-5 h-5 text-gray-600" />;
     }
   };
 
@@ -53,52 +55,79 @@ const NotificationItem = ({ notification, onMarkRead, onDelete }) => {
     action();
   };
 
+  // Touch-friendly: long press to show actions on mobile
+  const handleTouchStart = () => {
+    const timer = setTimeout(() => setShowActions(true), 500);
+    return () => clearTimeout(timer);
+  };
+
   return (
     <div 
       onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={() => {}}
       className={cn(
-        "group relative flex items-start gap-3 p-4 cursor-pointer notification-item border-b border-gray-100 dark:border-gray-800 last:border-0",
-        !notification.read ? "bg-indigo-50/40 dark:bg-indigo-950/10" : "bg-white dark:bg-slate-900"
+        "group relative flex items-start gap-3 p-4 cursor-pointer transition-colors active:bg-gray-50 dark:active:bg-slate-800",
+        !notification.read ? "bg-indigo-50/50 dark:bg-indigo-950/20" : "bg-white dark:bg-slate-900"
       )}
+      data-testid={`notification-item-${notification.id}`}
     >
-      {!notification.read && <div className="notification-unread-indicator bg-indigo-500" />}
+      {/* Unread indicator */}
+      {!notification.read && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-r" />
+      )}
       
-      <div className={cn("mt-1 p-2 rounded-full shrink-0", getBgColor())}>
+      {/* Icon */}
+      <div className={cn("mt-0.5 p-2.5 rounded-full shrink-0", getBgColor())}>
         {getIcon()}
       </div>
 
-      <div className="flex-1 min-w-0 space-y-1">
-        <p className={cn("text-sm font-medium leading-none", !notification.read ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400")}>
+      {/* Content */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <p className={cn(
+          "text-sm font-medium leading-tight",
+          !notification.read ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400"
+        )}>
           {notification.title}
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
           {notification.message}
         </p>
-        <p className="text-[10px] text-gray-400">
+        <p className="text-xs text-gray-400 dark:text-gray-500">
           {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
         </p>
       </div>
 
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Action buttons - Always visible on mobile, hover on desktop */}
+      <div className={cn(
+        "flex flex-col gap-1 shrink-0 transition-opacity",
+        "md:opacity-0 md:group-hover:opacity-100",
+        showActions && "opacity-100"
+      )}>
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-6 w-6 text-gray-400 hover:text-indigo-600"
+          className="h-9 w-9 text-gray-400 hover:text-indigo-600 active:bg-indigo-50"
           onClick={(e) => handleAction(e, () => onMarkRead(notification.id))}
           title={notification.read ? "Mark unread" : "Mark read"}
         >
-          {notification.read ? <Circle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
+          {notification.read ? <Circle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
         </Button>
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-6 w-6 text-gray-400 hover:text-red-600"
+          className="h-9 w-9 text-gray-400 hover:text-red-600 active:bg-red-50"
           onClick={(e) => handleAction(e, () => onDelete(notification.id))}
           title="Delete"
         >
-          <X className="w-3 h-3" />
+          <X className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Arrow indicator if there's an action URL */}
+      {notification.actionUrl && (
+        <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-600 shrink-0 self-center hidden md:block" />
+      )}
     </div>
   );
 };

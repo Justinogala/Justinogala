@@ -55,3 +55,44 @@
   border-radius: 4px 0 0 4px;
   background-color: #3b82f6; /* Default Blue */
 }
+
+/* Mobile Safe Area */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile Touch Feedback */
+@media (max-width: 768px) {
+  .notification-item:active {
+    transform: scale(0.98);
+    background-color: rgba(99, 102, 241, 0.1);
+  }
+  
+  .dark .notification-item:active {
+    background-color: rgba(99, 102, 241, 0.2);
+  }
+}
+
+/* Smooth scrolling for notification list */
+.overscroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Bell icon slow pulse animation */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}

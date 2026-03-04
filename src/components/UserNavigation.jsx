@@ -10,7 +10,6 @@ import {
   HelpCircle, 
   LogOut, 
   User, 
-  Bell,
   Menu,
   X,
   MessageSquare,
@@ -21,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import NotificationBell from '@/components/NotificationBell';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DropdownMenu,
@@ -112,10 +112,7 @@ const UserNavigation = () => {
 
             <ThemeSwitcher />
             
-            <Button variant="ghost" size="icon" className="relative text-gray-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse ring-2 ring-red-500/20"></span>
-            </Button>
+            <NotificationBell />
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
 
