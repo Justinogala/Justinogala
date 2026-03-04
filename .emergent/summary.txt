@@ -1,199 +1,167 @@
 <analysis>**original_problem_statement**:
-The user's goal is to build a full-stack AI-powered application called Munal/EchoNote AI. The scope includes a modern chat interface, screen/camera recording, AI-driven analysis, Stripe payments, a comprehensive admin panel, and a full-featured calendar.
+The user's goal is to build a full-stack AI-powered application called Munal/EchoNote AI. The initial scope included a modern chat interface, screen/camera recording, AI-driven analysis, Stripe payments, a comprehensive admin panel, and a full-featured calendar.
 
-Recent user requests from this session include:
-- Enhancing the video meeting room with recording capabilities (local download and cloud save) and labeled action buttons.
-- Adding automatic transcription for cloud-saved meeting recordings using Whisper, including support for large files via .
-- Creating a transcript viewer in the File Manager with search and clickable timestamps.
-- Reworking the Text-to-Video feature to use a persistent, admin-configured OpenAI API key instead of the platform's key, to resolve billing limit issues.
-- Fixing several critical frontend bugs on the admin portal that were causing pages to crash.
-- A request to integrate Stripe for subscription payments.
-- A request to update the application's pricing pages with a detailed list of features for each of the four subscription tiers.
+The most recent user request is to build a comprehensive Shift Management feature. This feature should be a dedicated sidebar menu item within the workspace dashboard, allowing workspace owners/admins to create and manage employee work schedules.
+
+**PRODUCT REQUIREMENTS for Shift Management**:
+- **Sidebar Integration**: Add a 'Shifts' or 'Shift Management' menu item in the main sidebar, specific to each workspace.
+- **Admin Capabilities**: Create, assign, edit, delete, duplicate, and view shifts (calendar/list). Approve shift changes, set recurring shifts, view total hours per user, and export shift data (CSV/PDF).
+- **Member/User Capabilities**: View assigned shifts and total hours. Request shift swaps and time off. Receive notifications for shift updates.
+- **UI/UX**: Clean calendar interface (monthly/weekly), color-coded shifts, dashboard summary, and responsive design.
+- **Role-Based Access Control**: Admin (full control), Manager (shift management), Member (view-only + requests).
+- **Notifications & Integrations**: Email and in-app notifications for shift updates. Optional integration with Google/Outlook Calendar.
+- **Technical**: Data must be multi-tenant (workspace-isolated), secure, and scalable, aligning with the existing UI design.
 
 **User's preferred language**: English
 
 **what currently exists?**
 The application is a full-stack project with a Vite/React frontend and a modular FastAPI backend using MongoDB.
-- **Core AI & Media**:
-    - **Text-to-Video**: Fully functional using OpenAI's Sora 2, powered by a direct OpenAI API key managed in a new admin settings page.
-    - **Transcription**: Automatic transcription for cloud-saved meeting recordings is implemented, leveraging the existing Whisper integration. It supports large files by extracting audio with  first.
-    - **Meeting Room**: The  component now includes a recording feature (local download & cloud save) and clearly labeled control buttons.
-- **User-Facing Features**:
-    - **File Manager**: Now includes a transcript viewer UI that allows users to read and search through their meeting transcripts.
-    - **Pricing Pages**: The 4-tier pricing model is displayed, but the feature lists are awaiting a final update based on the user's latest message.
-- **Admin Panel**:
-    - Now includes a dedicated Video API Settings page to manage the Sora 2 API key and a Stripe Settings page to manage Stripe keys and product price IDs.
-    - The admin login and API settings pages, which were previously crashing, have been stabilized.
-- **Stripe Integration**:
-    - Backend routes for creating checkout sessions and handling webhooks are in place.
-    - Frontend admin UI for configuration is complete. The user-facing checkout flow is partially implemented but not yet fully connected.
+- **Payments**: A fully functional 4-tier Stripe subscription system is in place with webhook handling and an admin management page.
+- **Admin Panel**: Features robust management pages for subscription plans, user monitoring, and a newly implemented internal messaging system monitor.
+- **Internal Messaging System**: A complete, backend-powered internal email-like system has been implemented. Users can send messages with attachments (including drag-and-drop) to other users. The system includes Inbox, Sent, Drafts, Junk, and Trash folders. Admins can monitor all messages, reply to them, export them for compliance, create broadcast messages for all users, and schedule automated compliance report exports.
+- **SEO & Analytics**: The site has been optimized for SEO (H1 tags, meta descriptions, image alts), includes a sitemap,  for AI crawlers, and has Microsoft Clarity integrated for user behavior analytics.
+- **Codebase Health**: Legacy code for a deprecated meeting room () has been successfully removed, reducing technical debt.
 
 **Last working item**:
-The agent was in the process of implementing Stripe integration. After creating the necessary backend routes and admin UI, the user provided a detailed list of features for each of the four pricing plans. The agent's last action was to acknowledge this new requirement, which now needs to be implemented.
+The agent received and acknowledged a large feature request to build a Shift Management system. It was in the initial planning/understanding phase.
 
-- **Last item agent was working**: Updating the pricing plans to match the detailed feature list provided by the user, as a prerequisite to completing the Stripe checkout integration.
-- **Status**: IN PROGRESS
+- **Last item agent was working**: Planning the implementation of the Shift Management feature as requested by the user.
+- **Status**: NOT STARTED
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: both
-    - **Backend**: The agent will need to update the plan details, likely in the database via an admin endpoint or a script. This can be verified with a  command to the endpoint that fetches plan data.
-    - **Frontend**: The agent must use the  to verify that both the landing page's pricing section and the dedicated  page correctly display the new, detailed feature lists for all four plans.
+- **Which testing method agent to use?**: This is a large feature. The agent should plan to use the  for both frontend and backend after completing major milestones of the implementation.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Text-to-Video Transcription (User Confusion)** (Priority: P1)
-    - **Description**: In chat message #492, the user stated The text-to-video isnt transcribing, which seems to conflate two separate features. The agent correctly identified that the actual issue was a billing limit error with the Text-to-Video *generation* service.
-    - **Attempted fixes**: The agent fixed the video generation issue by switching to a direct OpenAI key.
-    - **Next debug checklist**: This is not a technical bug but a point of clarification. The next agent should be aware that the user might refer to transcription when they mean generation in the context of Text-to-Video. No code changes are needed unless the user reports a new problem.
-    - **Why fix this issue and what will be achieved with the fix?**: Prevents confusion and wasted effort debugging the wrong feature.
-    - **Status**: RESOLVED (but good to be aware of).
-    - **Is recurring issue?**: N
-    - **Should Test frontend/backend/both after fix?**: NA
+- There are no pending bugs or issues. The focus is on new feature development.
 
 **In progress Task List**:
-- **Task 1: Update All Pricing Plans with Detailed Features (Priority: P0 - HIGHEST)**
-    - **Where to resume**: The user provided a complete feature list for the Free, Pro, Business, and Enterprise plans in message #565. The agent needs to update the application's database to reflect these details. This will likely involve using or modifying an admin endpoint.
-    - **What will be achieved with this?**: The application's public-facing pricing information will be accurate and match the user's business requirements, setting the stage for the Stripe integration.
-    - **Status**: NOT STARTED
-    - **Should Test frontend/backend/both after fix?**: Frontend
-- **Task 2: Complete Stripe Integration (Priority: P1)**
-    - **Where to resume**: After updating the pricing plan features, the agent needs to connect the Subscribe buttons on  to the  endpoint. The agent must also ensure the Stripe webhook handler () is fully implemented to update a user's subscription status in the database after a successful payment.
-    - **What will be achieved with this?**: A complete, end-to-end subscription workflow, allowing the application to accept payments.
-    - **Status**: IN PROGRESS
-    - **Should Test frontend/backend/both after fix?**: Both
-    - **Blocked on something**: Task 1: Update All Pricing Plans with Detailed Features.
+- **Task 1: Implement Shift Management Feature (Priority: P0 - HIGHEST)**
+  - **Description**: Build a comprehensive shift management system as per the detailed product requirements provided by the user. This is a large, multi-faceted feature.
+  - **Where to resume**: The task has not been started. The next agent must begin by planning the implementation. A recommended approach would be:
+      1.  **Backend First**: Design and create the necessary MongoDB collections (e.g., , ) and the core API endpoints for CRUD operations on shifts.
+      2.  **Sidebar Integration**: Add the Shifts menu item to the workspace sidebar.
+      3.  **Core UI**: Build the main page component with a calendar view to display shifts.
+      4.  **Iterate**: Add features incrementally (e.g., creating shifts, assigning users, handling requests).
+  - **What will be achieved with this?**: Munal.ai will be enhanced with workforce management capabilities, moving it closer to an all-in-one productivity platform.
+  - **Status**: NOT STARTED
+  - **Should Test frontend/backend/both after fix?**: Both
+  - **Blocked on something**: No
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - **(P1) End-to-End Test Cloud Storage Migration**: A carry-over task from a previous session. The UI and backend worker are complete, but the full flow (upload, configure, migrate, verify) has not been tested.
+    - **(P1) End-to-End Test Cloud Storage Migration**: This task from a previous session is still pending. The UI and backend components are complete, but a full workflow test (upload, configure, migrate, and verify) is needed.
 - **Future Tasks**:
-    - **Refactor Legacy Meeting Room**: The old  and its associated hooks () are technical debt now that the new  is confirmed to work. They should be formally deprecated and removed.
+    - **(P2) Refactor **: This page is now partially redundant as Price ID management has moved to . It could be simplified or deprecated.
 
 **Completed work in this session**
-- **Meeting Room Enhancements (DONE)**: Implemented a recording feature with local download and cloud save options, and added clear text labels to all in-meeting control buttons.
-- **Automatic Transcription for Recordings (DONE)**: Integrated Whisper to automatically transcribe meeting recordings saved to the cloud. The backend now handles large files by extracting audio with .
-- **Transcript Viewer UI (DONE)**: Created a new UI in the File Manager to display, search, and navigate transcripts with clickable timestamps.
-- **Text-to-Video API Rework (DONE)**: Re-engineered the feature to use an admin-configured, direct OpenAI API key, fixing a key persistence bug and bypassing platform billing limits.
-- **Admin Panel Stability Fixes (DONE)**: Resolved two critical frontend crashes on the Admin Login and API Settings pages by adding robust null-checking and default values in React Contexts.
-- **Stripe Integration Scaffolding (DONE)**: Built the backend API endpoints and frontend admin UI for managing Stripe integration, paving the way for the full implementation.
+- **Internal Messaging System (DONE)**:
+    - Implemented a complete user-to-user messaging system with a dedicated page, replacing a localStorage mock.
+    - Added support for drafts, junk mail, and a recycle bin.
+    - Implemented file attachments with drag-and-drop support, using GridFS on the backend.
+- **Admin Messaging Controls (DONE)**:
+    - Upgraded the admin panel to monitor, reply to, and export real user messages.
+    - Added an admin broadcast feature to send messages to all users.
+    - Implemented scheduled message exports for compliance.
+- **SEO & Analytics (DONE)**:
+    - Fixed 3 core SEO issues: missing H1 tags, long meta descriptions, and missing image alt attributes.
+    - Set a custom Open Graph (OG) image for social sharing.
+    - Integrated Microsoft Clarity for analytics.
+- **Code Refactoring & Cleanup (DONE)**:
+    - Removed the legacy  and its associated  hook, cleaning up dead code.
+- **Content Update (DONE)**:
+    - Removed the physical address from the Privacy Policy page as requested.
 
 **Earlier issues found/mentioned but not fixed**
-- The **End-to-End Test for Cloud Storage Migration** remains pending from the initial handoff summary.
+- **End-to-End Test for Cloud Storage Migration**: This was carried over from a previous fork and was not addressed in this session. It remains an upcoming task.
 
 **Known issue recurrence from previous fork**
-- **Issue recurrence in previous fork**: Camera fails to start.
-- **Recurrence count**: HIGH
-- **Status**: **RESOLVED**. This was confirmed fixed in the previous session and no new issues arose.
+- None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Frontend**: React, Vite, Tailwind CSS, Shadcn/UI, React Context API
-- **Backend**: FastAPI, Motor (async MongoDB), Pydantic
-- **Payments**: Stripe (Checkout Sessions, Webhooks)
-- **Database**: MongoDB (with GridFS for large file storage)
-- **AI/ML**: OpenAI Sora 2 (via direct ), OpenAI Whisper
-- **Tooling**:  for audio extraction from video files
+- **Internal Messaging**: Full CRUD system with MongoDB. States managed with folders (inbox, sent, drafts, junk, trash).
+- **File Attachments**: Uses **GridFS** via  for storing and retrieving file attachments in MongoDB.
+- **Background Tasks (Scheduling)**: Uses  for handling scheduled message exports.
+- **Broadcasts**: Implemented a fan-out pattern to create individual messages for all users from a single admin broadcast request.
+- **React UI**: Heavy use of custom hooks (, ), state management (, ), and Shadcn UI components for modals, forms, and layout.
+- **Code Cleanup**: Identification and removal of dead code ().
 
 **key DB schema**
-- **settings**:  (Now stores , , and ).
-- **transcripts**:  (NEW collection to store Whisper transcription results).
-- **plans**:  (The  array needs to be updated with the detailed list from the user).
+- **user_messages**: 
+- **broadcasts**: 
+- **scheduled_exports**: 
+- **fs.files / fs.chunks**: Standard GridFS collections for storing file attachments.
 
 **changes in tech stack**
-- The backend now uses the official usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
-              [-o ORGANIZATION] [-t {openai,azure}]
-              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
-              [--azure-ad-token AZURE_AD_TOKEN] [-V]
-              {api,tools,migrate,grit} ...
-
-positional arguments:
-  {api,tools,migrate,grit}
-    api                 Direct API calls
-    tools               Client side tools for convenience
-
-options:
-  -h, --help            show this help message and exit
-  -v, --verbose         Set verbosity.
-  -b API_BASE, --api-base API_BASE
-                        What API base url to use.
-  -k API_KEY, --api-key API_KEY
-                        What API key to use.
-  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
-                        What proxy to use.
-  -o ORGANIZATION, --organization ORGANIZATION
-                        Which organization to run as (will use your default
-                        organization if not specified)
-  -t {openai,azure}, --api-type {openai,azure}
-                        The backend API to call, must be `openai` or `azure`
-  --api-version API_VERSION
-                        The Azure API version, e.g.
-                        'https://learn.microsoft.com/en-us/azure/ai-
-                        services/openai/reference#rest-api-versioning'
-  --azure-endpoint AZURE_ENDPOINT
-                        The Azure endpoint, e.g.
-                        'https://endpoint.openai.azure.com'
-  --azure-ad-token AZURE_AD_TOKEN
-                        A token from Azure Active Directory,
-                        https://www.microsoft.com/en-
-                        us/security/business/identity-access/microsoft-entra-
-                        id
-  -V, --version         show program's version number and exit and  Python libraries.
-- The Text-to-Video feature was refactored to use direct HTTP  to the OpenAI API instead of the  library to support a direct API key.
+-  was introduced for handling scheduled background tasks on the backend.
+-  was added to handle file uploads in FastAPI.
 
 **All files of reference**
-- **Stripe Integration**: , , 
-- **Transcription & Viewer**: , , 
-- **Meeting Room Recording**: 
-- **Admin Panel**: , , , 
+- **Shift Management (NEW TASK)**: Files for this do not exist yet. The agent will need to create them, likely starting with , , and a new sidebar entry in .
+- **Internal Messaging**:
+    - 
+    - 
+    - 
+- **Admin Messaging Controls**:
+    - 
+    - 
+    - 
+    - 
 
 **Areas that need refactoring**:
-- ****: Now that  has been enhanced and is stable, the old meeting room component and its related hooks are technical debt and should be scheduled for removal to simplify the codebase.
+- ****: This page is still partially redundant. Its functionality for managing Price IDs has been moved to . Consider simplifying it to only manage the API key and webhook secret, or deprecating it completely.
 
 **key api endpoints**
-- **Stripe**:
-    - : Creates a Stripe checkout session.
-    - : Handles incoming Stripe webhooks for payment events.
-    - , : Manage Stripe API keys and Price IDs.
-- **Video Generation**:
-    - , : Manages the admin-configured OpenAI key for Sora 2.
-- **Transcription**:
-    - : Triggers transcription for a file stored in GridFS.
-    - : Retrieves the transcript for a given file.
+- **Internal Messaging**:
+    - : Get messages for a user's specific folder.
+    - : Send a new message.
+    - : Save a message as a draft.
+    - : Move messages between folders.
+    - : Upload an attachment.
+    - : Download an attachment.
+- **Admin - Messaging & Broadcasts**:
+    - : Get all internal user messages.
+    - : Reply to a user's message as an admin.
+    - : Export messages as CSV.
+    - : Create a new broadcast message for all users.
+    - : Get all past broadcasts.
+    - : Create a new scheduled export job.
 
 **Critical Info for New Agent**
-- **Update Pricing Plans First**: The user's highest priority is to see their detailed feature list on the pricing pages. This must be done **before** completing the Stripe checkout flow. The plan data is likely stored in the database and fetched by the frontend.
-- **Stripe Integration Is In Progress**: The backend routes and admin UI are built, but the crucial pieces are missing: wiring up the frontend Subscribe buttons and implementing the webhook handler to grant user entitlements after payment.
-- **Text-to-Video Uses Direct OpenAI Key**: The implementation was successfully switched from the platform key to a direct OpenAI API key managed by the admin. The agent should not attempt to revert this logic. The cause of failure was an OpenAI billing limit, not a code bug.
-- **Admin Panel Stability**: Recent fixes involved adding default values and null-checks in React contexts () and components () to prevent crashes from unexpectedly structured data. If new admin pages are built, they should follow this robust pattern.
+- **PRIORITY 1 is Shift Management**: The user has provided detailed requirements for a large new feature. This is the top priority. Plan the implementation carefully, breaking it into smaller, testable steps. Start with the backend data models and APIs.
+- **Internal Messaging is Complex**: The messaging system is now a core feature with its own data models, file storage via GridFS, and admin oversight. Be aware of its architecture if any related bugs or features arise.
+- **Trust API over Local Scripts**: A previous handoff noted that local scripts sometimes fail to see DB data, while the live API works correctly. Always trust the running application's API as the source of truth for database state.
+- **Scheduled Tasks**: The backend now uses  for running background jobs. The scheduler is started within the FastAPI  event handler in .
 
 **documents and test reports created in this job**
--  was updated multiple times throughout the session.
+- None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. User provided a detailed breakdown of features for all 4 pricing plans. **Status: IN PROGRESS**.
-9.  User confirmed they want the agent to implement Stripe now with placeholder price IDs. **Status: IN PROGRESS**.
-8.  User asked for the best process to connect the app to Stripe. **Status: ADDRESSED**.
-7.  User reported text-to-video isnt transcribing, which was a billing limit error on video *generation*. **Status: RESOLVED**.
-6.  User reported that the Admin API settings page was unreachable. **Status: RESOLVED**.
-5.  User reported a crash on the admin login page. **Status: RESOLVED**.
-4.  User reported that the saved video API key was not persisting on refresh. **Status: RESOLVED**.
-3.  User provided an OpenAI API key for testing. **Status: ADDRESSED**.
-2.  User requested that the video API key be managed by an admin, not by individual users. **Status: COMPLETED**.
-1.  User reported that text-to-video was not working. **Status: RESOLVED**.
+- 10. User requested to build a comprehensive Shift Management feature. **Status: NOT STARTED**.
+- 9. User asked to add admin reply and message export features. **Status: COMPLETED**.
+- 8. User asked to connect the admin control center to monitor the new internal email system. **Status: COMPLETED**.
+- 7. User confirmed to proceed with the cleanup of the legacy meeting room page. **Status: COMPLETED**.
+- 6. User asked about the plan for removing the legacy . **Status: COMPLETED**.
+- 5. User asked to add drag-and-drop and all-file-type support for attachments. **Status: COMPLETED**.
+- 4. User asked to add an attach doc button to the new message dialog. **Status: COMPLETED**.
+- 3. User requested to enhance the messaging system with drafts, junk, recycle bin, and email notifications. **Status: COMPLETED**.
+- 2. User clarified that Messages should be a full, internal email-like messaging system, not the AI chat. **Status: COMPLETED**.
+- 1. User asked to add a Messages sidebar menu and connect it to an admin monitoring page. **Status: COMPLETED**.
 
 **Project Health Check:**
 - **Broken**: None.
-- **Mocked**: The Stripe integration relies on placeholder s that the user will need to configure in the admin panel. The checkout flow itself is not yet functional.
+- **Mocked**: None.
 
 **3rd Party Integrations**
-- **OpenAI GPT-4o / Sora 2 / Whisper / TTS**: Core AI features. All now use a direct, admin-configured OpenAI key. The Emergent LLM Key is no longer used for video generation.
-- **Stripe**: **(IN PROGRESS)** Payment processing. Requires a User API Key and Price IDs, configurable in the admin panel.
-- **Resend**: Email delivery.
-- **Jizira**: External meeting service.
+- **OpenAI**: Used for the AI chat feature.
+- **Stripe**: Fully integrated for subscription payments.
+- **Microsoft Clarity**: Integrated for user analytics.
+- **APScheduler**: Used on the backend for scheduled tasks.
 
 **Testing status**
-- **Testing agent used after significant changes**: NO
+- **Testing agent used after significant changes**: NO. The agent self-tested recent features using  and  tools.
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: None.
 - **Known regressions**: None.
@@ -203,4 +171,4 @@ options:
 - **User**: Register any new user via the signup page.
 
 **What agent forgot to execute**
-- The end-to-end test for the **Cloud Storage Migration** feature, which was pending from the previous fork, was not addressed in this session.</analysis>
+- The end-to-end test for the **Cloud Storage Migration** feature, pending from a previous fork, was not addressed.</analysis>

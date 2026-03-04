@@ -73,6 +73,7 @@ const MeetingDetailPage = lazy(() => import('@/pages/MeetingDetailPage'));
 const SharedMeetingPage = lazy(() => import('@/pages/SharedMeetingPage'));
 const SharedRecordingPage = lazy(() => import('@/pages/SharedRecordingPage'));
 const WorkspaceDetailPage = lazy(() => import('@/pages/WorkspaceDetailPage'));
+const ShiftManagementPage = lazy(() => import('@/pages/ShiftManagementPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
 
 // AI Pages
@@ -366,6 +367,7 @@ function App() {
                                 <Route path="/workspace/chat" element={<WorkspaceChatPage />} />
                                 <Route path="/workspace/video-conferencing" element={<VideoConferencingPage />} /> 
                                 <Route path="/workspace/:workspaceId/manage" element={<WorkspaceDetailPage />} />
+                                <Route path="/workspace/:workspaceId/shifts" element={<ShiftManagementPage />} />
                                 <Route path="/workspace/:id" element={<WorkspaceDetailPage />} /> 
                                 <Route path="/calendar" element={<CalendarPage />} />
                                 <Route path="/meet/:meetingId" element={<InstantMeetingRoom />} />

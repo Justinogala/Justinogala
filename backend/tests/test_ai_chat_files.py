@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://note-stream-3.preview.emergentagent.com"
+    BASE_URL = "https://schedule-hub-170.preview.emergentagent.com"
 
 
 class TestHealthCheck:

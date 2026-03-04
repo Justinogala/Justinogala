@@ -4,7 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { 
   Settings, Users, HardDrive, BarChart2, Trash2, 
-  Save, AlertTriangle, ArrowLeft, Archive, Activity 
+  Save, AlertTriangle, ArrowLeft, Archive, Activity,
+  Clock, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,6 +98,10 @@ const WorkspaceDetailPage = () => {
               </div>
             </div>
             <div className="flex gap-2">
+              <Button onClick={() => navigate(`/workspace/${workspaceId}/shifts`)} variant="outline" className="h-10" data-testid="shifts-btn">
+                <Clock className="w-4 h-4 mr-2" />
+                Shifts
+              </Button>
               <Button onClick={() => navigate('/workspace/chat')} variant="outline" className="h-10">
                 Open Chat
               </Button>
@@ -117,7 +122,7 @@ const WorkspaceDetailPage = () => {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 animate-in fade-in-50">
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                  <Card className="glass-panel">
                    <CardContent className="pt-6">
                      <div className="flex items-center justify-between mb-4">
@@ -143,6 +148,20 @@ const WorkspaceDetailPage = () => {
                         <span className="text-2xl font-bold">98%</span>
                      </div>
                      <p className="text-sm text-gray-500">System Health</p>
+                   </CardContent>
+                 </Card>
+                 <Card 
+                   className="glass-panel cursor-pointer hover:shadow-md transition-shadow" 
+                   onClick={() => navigate(`/workspace/${workspaceId}/shifts`)}
+                   data-testid="shifts-overview-card"
+                 >
+                   <CardContent className="pt-6">
+                     <div className="flex items-center justify-between mb-4">
+                        <Clock className="w-5 h-5 text-indigo-500" />
+                        <Calendar className="w-5 h-5 text-indigo-400" />
+                     </div>
+                     <p className="text-sm font-medium text-gray-900 dark:text-white">Shift Management</p>
+                     <p className="text-xs text-gray-500 mt-1">Schedule & manage team shifts</p>
                    </CardContent>
                  </Card>
                </div>
