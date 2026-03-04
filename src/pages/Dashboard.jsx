@@ -11,14 +11,13 @@ import {
   HardDrive, 
   Plus, 
   Upload, 
-  UserPlus, 
   ArrowUpRight,
-  MoreVertical,
   Calendar
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import StorageUsageChart from '@/components/shared/StorageUsageChart';
+import UsageDashboard from '@/components/UsageDashboard';
 
 const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
   <Card className="hover:shadow-md transition-shadow">
@@ -115,6 +114,9 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Usage & Limits Dashboard */}
+      <UsageDashboard />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Chart/Activity Area */}

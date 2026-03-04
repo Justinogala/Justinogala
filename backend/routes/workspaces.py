@@ -66,6 +66,19 @@ async def get_workspaces(user_id: str = None):
 async def create_workspace(workspace: WorkspaceCreate):
     """Create a new workspace"""
     try:
+        # Check entitlements
+        from routes.entitlements import check_entitlement, record_usage
+        check = await check_entitlement(workspace.owner_id, "workspaces", 1)
+        if not check.allowed:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "WORKSPACE_LIMIT_REACHED",
+                    "message": check.message,
+                    "upgrade_url": "/pricing"
+                }
+            )
+        
         workspace_id = str(uuid.uuid4())
         
         workspace_doc = {

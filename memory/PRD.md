@@ -967,14 +967,18 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - `GET /api/shifts/export/{workspace_id}` - Export CSV/JSON
   - `GET /api/shifts/roles/{workspace_id}` - List unique roles
   - `GET /api/shifts/departments/{workspace_id}` - List unique departments
+  - `GET/POST/PUT/DELETE /api/shifts/presets` - Custom shift presets management
 - [x] **Frontend Service** (`/app/src/services/shiftService.js`):
   - Full API client for all shift operations
   - VITE_API_URL/REACT_APP_BACKEND_URL support
 - [x] **Shift Management Page** (`/app/src/pages/ShiftManagementPage.jsx`):
   - Calendar view (monthly) with day cells showing shifts
   - List view alternative with shift cards
+  - **Drag-and-drop scheduling**: Drag shifts to move, Alt+Drag to duplicate
   - Summary cards: Today's Shifts, Week Total Hours, Active Team, Pending Requests
   - Create Shift dialog with: Date, Time, Assign To, Role, Department, Color, Notes
+  - **Preset shift types**: Morning, Afternoon, Evening (customizable)
+  - **Custom presets management**: Admins can create/delete custom presets
   - Recurring shift support (daily/weekly patterns)
   - Edit and Delete shift functionality
   - Requests tab for swap/time-off approvals
@@ -984,21 +988,42 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - "Shifts" button added to WorkspaceDetailPage header
   - "Shift Management" card in workspace overview
   - Route: `/workspace/:workspaceId/shifts`
-- [x] **Role-Based Structure** (Shift Admin, Shift Manager, Shift Member):
-  - Shift Admin: Full control
-  - Shift Manager: Shift management
-  - Shift Member: View only + requests
-- [x] **Notifications** (In-app + Email ready):
-  - In-app notifications on shift assignment/update
-  - Email notification support via SendGrid (requires SENDGRID_API_KEY)
+- [x] **Role-Based Structure** (Shift Admin, Shift Manager, Shift Member)
+- [x] **Notifications** (In-app + Email ready)
 - [x] **Testing**: 18/18 backend tests passed, 100% frontend UI verified
-- [x] **Files Created/Modified**:
-  - NEW: `/app/backend/routes/shifts.py`
-  - NEW: `/app/src/pages/ShiftManagementPage.jsx`
-  - NEW: `/app/src/services/shiftService.js`
-  - Modified: `/app/backend/server.py` - Added shifts router
-  - Modified: `/app/src/App.jsx` - Added shift management route
-  - Modified: `/app/src/pages/WorkspaceDetailPage.jsx` - Added Shifts button and card
+
+### User Subscription Entitlements (Mar 4, 2026) - COMPLETE ✅
+- [x] **Backend Entitlements Service** (`/app/backend/routes/entitlements.py`):
+  - Plan limits configuration (Free, Pro, Business, Enterprise)
+  - Usage tracking in MongoDB `usage_records` collection
+  - Entitlement checking with percentage-based warnings
+  - API Endpoints:
+    - `GET /api/entitlements/check/{feature}` - Check if user can use feature
+    - `GET /api/entitlements/usage/{user_id}` - Get all usage data
+    - `POST /api/entitlements/record` - Record feature usage
+    - `GET /api/entitlements/limits/{plan_id}` - Get plan limits
+    - `GET /api/entitlements/summary/{user_id}` - Quick usage summary for UI
+- [x] **Frontend Service** (`/app/src/services/entitlementsService.js`):
+  - `checkEntitlement()`, `recordUsage()`, `getUsageSummary()`
+  - Helper functions for formatting and status colors
+- [x] **Usage Dashboard Component** (`/app/src/components/UsageDashboard.jsx`):
+  - Visual display of usage across all features
+  - Progress bars with color-coded status (green/amber/red)
+  - "Approaching Limits" warning badge
+  - Upgrade button linking to pricing page
+  - Compact mode for sidebar integration
+- [x] **useEntitlements Hook** (`/app/src/hooks/useEntitlements.js`):
+  - Easy-to-use hook for checking/recording usage
+  - Convenience methods: `canStartMeeting()`, `canSendAIMessage()`, etc.
+- [x] **Enforcement Integration**:
+  - AI Chat (`/api/ai/chat`) - Checks and records usage
+  - Workspace creation (`/api/workspaces`) - Checks workspace limit
+- [x] **Dashboard Integration**: Usage panel added to UserDashboard
+- [x] **Plan Limits**:
+  - **Free**: 5 meetings, 30 min transcription, 1GB storage, 50 AI messages, 1 workspace
+  - **Pro**: 50 meetings, 300 min transcription, 5GB storage, 500 AI messages, 3 workspaces
+  - **Business**: 150 meetings, 1000 min transcription, 25GB storage, 2000 AI messages, 10 workspaces
+  - **Enterprise**: Unlimited (most features)
 
 ### P1 (High)
 - [ ] User subscription entitlements enforcement (limit meetings, transcription based on plan)

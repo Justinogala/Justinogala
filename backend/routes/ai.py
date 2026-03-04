@@ -37,6 +37,7 @@ class AIChatRequest(BaseModel):
     message: str
     conversation_history: List[dict] = []
     system_prompt: Optional[str] = None
+    user_id: Optional[str] = None  # For entitlement checking
 
 
 # ============== Routes ==============
@@ -156,6 +157,20 @@ async def generate_tts_base64(request: TTSRequest):
 async def ai_chat(request: AIChatRequest):
     """Chat with AI assistant"""
     try:
+        # Check entitlements if user_id provided
+        if request.user_id:
+            from routes.entitlements import check_entitlement, record_usage
+            check = await check_entitlement(request.user_id, "ai_chat", 1)
+            if not check.allowed:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "code": "AI_CHAT_LIMIT_REACHED",
+                        "message": check.message,
+                        "upgrade_url": "/pricing"
+                    }
+                )
+        
         api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
         if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
@@ -190,10 +205,16 @@ async def ai_chat(request: AIChatRequest):
         user_msg = UserMessage(text=request.message)
         response = await llm.send_message(user_msg)
         
+        # Record usage after successful response
+        if request.user_id:
+            await record_usage(request.user_id, "ai_chat", 1, {"message_length": len(request.message)})
+        
         return {
             "success": True,
             "response": response
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"AI chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

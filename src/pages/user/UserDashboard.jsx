@@ -18,6 +18,7 @@ import MeetingListSection from '@/components/user/MeetingListSection';
 import APIStatus from '@/components/APIStatus';
 import UserPaymentDashboardWidget from '@/components/user/UserPaymentDashboardWidget';
 import TranscriptionWidget from '@/components/TranscriptionWidget';
+import UsageDashboard from '@/components/UsageDashboard';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -182,6 +183,11 @@ const UserDashboard = () => {
               ))}
             </div>
           </div>
+        </motion.div>
+
+        {/* Usage & Limits */}
+        <motion.div variants={item}>
+          <UsageDashboard />
         </motion.div>
 
         {/* Main Content Grid */}
