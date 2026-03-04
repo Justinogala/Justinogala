@@ -867,20 +867,31 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] **Backend API Endpoints** (`/app/backend/routes/messages.py`):
   - `GET /api/messages/inbox/{user_id}` - Get user's inbox messages
   - `GET /api/messages/sent/{user_id}` - Get sent messages
+  - `GET /api/messages/drafts/{user_id}` - Get draft messages
+  - `GET /api/messages/junk/{user_id}` - Get junk/spam messages
+  - `GET /api/messages/trash/{user_id}` - Get trashed messages
   - `GET /api/messages/thread/{message_id}` - Get message thread
-  - `POST /api/messages/send/{sender_id}` - Send new message
+  - `POST /api/messages/send/{sender_id}` - Send new message (with email notification)
+  - `POST /api/messages/draft/{sender_id}` - Save/update draft
+  - `POST /api/messages/draft/{draft_id}/send/{sender_id}` - Send draft
   - `POST /api/messages/reply/{message_id}/{sender_id}` - Reply to message
   - `PUT /api/messages/read/{message_id}` - Mark as read
   - `PUT /api/messages/star/{message_id}` - Toggle star
-  - `DELETE /api/messages/{message_id}/{user_id}` - Delete message
+  - `PUT /api/messages/junk/{message_id}` - Toggle junk status
+  - `PUT /api/messages/trash/{message_id}` - Move to trash
+  - `PUT /api/messages/restore/{message_id}` - Restore from trash
+  - `DELETE /api/messages/{message_id}/{user_id}` - Permanently delete
+  - `DELETE /api/messages/trash/empty/{user_id}` - Empty trash
   - `GET /api/messages/users/search` - Search users to message
-  - `GET /api/messages/unread-count/{user_id}` - Get unread count
+  - `GET /api/messages/counts/{user_id}` - Get all folder counts
 - [x] **Frontend UI** (`/app/src/pages/MessagesPage.jsx`):
-  - Email-like inbox/sent views
-  - Compose modal with user search
+  - 5 folder tabs: Inbox, Sent, Drafts, Junk, Trash
+  - Compose modal with user search and "Save Draft" button
   - Message thread view with replies
-  - Star, delete, mark as read functionality
-  - Unread count badge in sidebar
+  - Star, mark as junk, move to trash actions
+  - Restore from trash, empty trash functionality
+  - Email notifications via Resend for new messages
+  - Unread count badges on folders
 
 ### SEO Fixes (Mar 3, 2026)
 - [x] **Meta Description Optimization**:

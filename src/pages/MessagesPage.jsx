@@ -10,9 +10,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { 
-  Loader2, Send, Search, User, Inbox, SendHorizontal, Star, 
-  Trash2, Reply, Plus, Mail, MailOpen, ArrowLeft, RefreshCw
+  Loader2, Send, Search, Inbox, SendHorizontal, Star, 
+  Trash2, Reply, Plus, Mail, ArrowLeft, RefreshCw,
+  FileEdit, AlertCircle, RotateCcw, Trash, MoreHorizontal
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import PageTransition from '@/components/PageTransition';
@@ -28,11 +35,12 @@ const MessagesPage = () => {
   const [thread, setThread] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [counts, setCounts] = useState({ inbox_unread: 0, drafts: 0, junk: 0, trash: 0 });
   const [users, setUsers] = useState({});
   
   // Compose modal state
   const [showCompose, setShowCompose] = useState(false);
+  const [editingDraft, setEditingDraft] = useState(null);
   const [composeRecipient, setComposeRecipient] = useState(null);
   const [composeSubject, setComposeSubject] = useState('');
   const [composeContent, setComposeContent] = useState('');
@@ -40,49 +48,54 @@ const MessagesPage = () => {
   const [userSearchResults, setUserSearchResults] = useState([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   
   // Reply state
   const [replyContent, setReplyContent] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
 
-  // Fetch inbox messages
-  const fetchInbox = useCallback(async () => {
+  // Fetch message counts
+  const fetchCounts = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const response = await fetch(`${API_URL}/api/messages/counts/${user.id}`);
+      const data = await response.json();
+      if (data.success) {
+        setCounts(data.counts);
+      }
+    } catch (error) {
+      console.error('Error fetching counts:', error);
+    }
+  }, [user?.id]);
+
+  // Fetch messages based on active tab
+  const fetchMessages = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/messages/inbox/${user.id}`);
+      let endpoint = '';
+      switch (activeTab) {
+        case 'inbox': endpoint = 'inbox'; break;
+        case 'sent': endpoint = 'sent'; break;
+        case 'drafts': endpoint = 'drafts'; break;
+        case 'junk': endpoint = 'junk'; break;
+        case 'trash': endpoint = 'trash'; break;
+        default: endpoint = 'inbox';
+      }
+      
+      const response = await fetch(`${API_URL}/api/messages/${endpoint}/${user.id}`);
       const data = await response.json();
       if (data.success) {
         setMessages(data.messages);
-        setUsers(data.senders || {});
-        setUnreadCount(data.unread_count || 0);
+        setUsers(data.senders || data.recipients || data.users || {});
       }
     } catch (error) {
-      console.error('Error fetching inbox:', error);
+      console.error('Error fetching messages:', error);
       toast({ title: 'Error', description: 'Failed to load messages', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
-
-  // Fetch sent messages
-  const fetchSent = useCallback(async () => {
-    if (!user?.id) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/messages/sent/${user.id}`);
-      const data = await response.json();
-      if (data.success) {
-        setMessages(data.messages);
-        setUsers(data.recipients || {});
-      }
-    } catch (error) {
-      console.error('Error fetching sent messages:', error);
-      toast({ title: 'Error', description: 'Failed to load sent messages', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
+  }, [user?.id, activeTab, toast]);
 
   // Fetch message thread
   const fetchThread = useCallback(async (messageId) => {
@@ -119,12 +132,9 @@ const MessagesPage = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (activeTab === 'inbox') {
-      fetchInbox();
-    } else if (activeTab === 'sent') {
-      fetchSent();
-    }
-  }, [activeTab, fetchInbox, fetchSent]);
+    fetchMessages();
+    fetchCounts();
+  }, [activeTab, fetchMessages, fetchCounts]);
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -135,6 +145,16 @@ const MessagesPage = () => {
 
   // Open message
   const openMessage = async (message) => {
+    if (message.is_draft) {
+      // Open draft for editing
+      setEditingDraft(message);
+      setComposeRecipient(message.recipient_id ? { id: message.recipient_id, name: message.recipient_name } : null);
+      setComposeSubject(message.subject || '');
+      setComposeContent(message.content || '');
+      setShowCompose(true);
+      return;
+    }
+    
     setSelectedMessage(message);
     await fetchThread(message.id);
     
@@ -143,11 +163,22 @@ const MessagesPage = () => {
       try {
         await fetch(`${API_URL}/api/messages/read/${message.id}`, { method: 'PUT' });
         setMessages(prev => prev.map(m => m.id === message.id ? { ...m, is_read: true } : m));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        fetchCounts();
       } catch (error) {
         console.error('Error marking as read:', error);
       }
     }
+  };
+
+  // Reset compose form
+  const resetCompose = () => {
+    setShowCompose(false);
+    setEditingDraft(null);
+    setComposeRecipient(null);
+    setComposeSubject('');
+    setComposeContent('');
+    setUserSearchQuery('');
+    setUserSearchResults([]);
   };
 
   // Send new message
@@ -158,24 +189,31 @@ const MessagesPage = () => {
     }
     setSendingMessage(true);
     try {
-      const response = await fetch(`${API_URL}/api/messages/send/${user.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient_id: composeRecipient.id,
-          subject: composeSubject,
-          content: composeContent
-        })
-      });
+      let response;
+      if (editingDraft) {
+        // Send draft
+        response = await fetch(`${API_URL}/api/messages/draft/${editingDraft.id}/send/${user.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        // Send new message
+        response = await fetch(`${API_URL}/api/messages/send/${user.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient_id: composeRecipient.id,
+            subject: composeSubject,
+            content: composeContent
+          })
+        });
+      }
       const data = await response.json();
       if (data.success) {
         toast({ title: 'Success', description: 'Message sent!' });
-        setShowCompose(false);
-        setComposeRecipient(null);
-        setComposeSubject('');
-        setComposeContent('');
-        setUserSearchQuery('');
-        if (activeTab === 'sent') fetchSent();
+        resetCompose();
+        fetchMessages();
+        fetchCounts();
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to send message', variant: 'destructive' });
       }
@@ -184,6 +222,40 @@ const MessagesPage = () => {
       toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  // Save as draft
+  const handleSaveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      const url = editingDraft 
+        ? `${API_URL}/api/messages/draft/${user.id}?draft_id=${editingDraft.id}`
+        : `${API_URL}/api/messages/draft/${user.id}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipient_id: composeRecipient?.id || null,
+          subject: composeSubject,
+          content: composeContent
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: 'Success', description: 'Draft saved!' });
+        resetCompose();
+        if (activeTab === 'drafts') fetchMessages();
+        fetchCounts();
+      } else {
+        toast({ title: 'Error', description: data.error || 'Failed to save draft', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({ title: 'Error', description: 'Failed to save draft', variant: 'destructive' });
+    } finally {
+      setSavingDraft(false);
     }
   };
 
@@ -227,24 +299,93 @@ const MessagesPage = () => {
     }
   };
 
-  // Delete message
-  const deleteMessage = async (messageId, e) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this message?')) return;
+  // Move to junk
+  const moveToJunk = async (messageId, e) => {
+    e?.stopPropagation();
     try {
-      const response = await fetch(`${API_URL}/api/messages/${messageId}/${user.id}`, { method: 'DELETE' });
+      const response = await fetch(`${API_URL}/api/messages/junk/${messageId}`, { method: 'PUT' });
       const data = await response.json();
       if (data.success) {
-        toast({ title: 'Success', description: 'Message deleted' });
-        setMessages(prev => prev.filter(m => m.id !== messageId));
+        toast({ title: 'Success', description: data.is_junk ? 'Moved to junk' : 'Removed from junk' });
+        fetchMessages();
+        fetchCounts();
+      }
+    } catch (error) {
+      console.error('Error moving to junk:', error);
+      toast({ title: 'Error', description: 'Failed to move to junk', variant: 'destructive' });
+    }
+  };
+
+  // Move to trash
+  const moveToTrash = async (messageId, e) => {
+    e?.stopPropagation();
+    try {
+      const response = await fetch(`${API_URL}/api/messages/trash/${messageId}`, { method: 'PUT' });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: 'Success', description: 'Moved to trash' });
+        fetchMessages();
+        fetchCounts();
         if (selectedMessage?.id === messageId) {
           setSelectedMessage(null);
           setThread([]);
         }
       }
     } catch (error) {
+      console.error('Error moving to trash:', error);
+      toast({ title: 'Error', description: 'Failed to move to trash', variant: 'destructive' });
+    }
+  };
+
+  // Restore from trash
+  const restoreFromTrash = async (messageId, e) => {
+    e?.stopPropagation();
+    try {
+      const response = await fetch(`${API_URL}/api/messages/restore/${messageId}`, { method: 'PUT' });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: 'Success', description: 'Message restored' });
+        fetchMessages();
+        fetchCounts();
+      }
+    } catch (error) {
+      console.error('Error restoring message:', error);
+      toast({ title: 'Error', description: 'Failed to restore message', variant: 'destructive' });
+    }
+  };
+
+  // Permanently delete
+  const permanentlyDelete = async (messageId, e) => {
+    e?.stopPropagation();
+    if (!confirm('Are you sure you want to permanently delete this message?')) return;
+    try {
+      const response = await fetch(`${API_URL}/api/messages/${messageId}/${user.id}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: 'Success', description: 'Message deleted permanently' });
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+        fetchCounts();
+      }
+    } catch (error) {
       console.error('Error deleting message:', error);
       toast({ title: 'Error', description: 'Failed to delete message', variant: 'destructive' });
+    }
+  };
+
+  // Empty trash
+  const emptyTrash = async () => {
+    if (!confirm('Are you sure you want to permanently delete all messages in trash?')) return;
+    try {
+      const response = await fetch(`${API_URL}/api/messages/trash/empty/${user.id}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        toast({ title: 'Success', description: `Deleted ${data.deleted_count} messages` });
+        fetchMessages();
+        fetchCounts();
+      }
+    } catch (error) {
+      console.error('Error emptying trash:', error);
+      toast({ title: 'Error', description: 'Failed to empty trash', variant: 'destructive' });
     }
   };
 
@@ -264,6 +405,14 @@ const MessagesPage = () => {
     );
   });
 
+  const tabs = [
+    { id: 'inbox', label: 'Inbox', icon: Inbox, count: counts.inbox_unread },
+    { id: 'sent', label: 'Sent', icon: SendHorizontal },
+    { id: 'drafts', label: 'Drafts', icon: FileEdit, count: counts.drafts },
+    { id: 'junk', label: 'Junk', icon: AlertCircle, count: counts.junk },
+    { id: 'trash', label: 'Trash', icon: Trash, count: counts.trash },
+  ];
+
   return (
     <PageTransition>
       <div className="container mx-auto px-4 py-6 h-[calc(100vh-5rem)]">
@@ -272,7 +421,7 @@ const MessagesPage = () => {
           <Card className="w-64 flex-shrink-0 flex flex-col bg-white dark:bg-slate-900">
             <div className="p-4">
               <Button 
-                onClick={() => setShowCompose(true)} 
+                onClick={() => { resetCompose(); setShowCompose(true); }} 
                 className="w-full bg-indigo-600 hover:bg-indigo-700"
                 data-testid="compose-message-btn"
               >
@@ -281,39 +430,28 @@ const MessagesPage = () => {
               </Button>
             </div>
             
-            <nav className="flex-1 px-2">
-              <button
-                onClick={() => { setActiveTab('inbox'); setSelectedMessage(null); }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors",
-                  activeTab === 'inbox' 
-                    ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" 
-                    : "hover:bg-gray-100 dark:hover:bg-slate-800"
-                )}
-                data-testid="inbox-tab"
-              >
-                <Inbox className="w-5 h-5" />
-                <span className="flex-1">Inbox</span>
-                {unreadCount > 0 && (
-                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </button>
-              
-              <button
-                onClick={() => { setActiveTab('sent'); setSelectedMessage(null); }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors mt-1",
-                  activeTab === 'sent' 
-                    ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" 
-                    : "hover:bg-gray-100 dark:hover:bg-slate-800"
-                )}
-                data-testid="sent-tab"
-              >
-                <SendHorizontal className="w-5 h-5" />
-                <span>Sent</span>
-              </button>
+            <nav className="flex-1 px-2 space-y-1">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => { setActiveTab(tab.id); setSelectedMessage(null); }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors",
+                    activeTab === tab.id 
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" 
+                      : "hover:bg-gray-100 dark:hover:bg-slate-800"
+                  )}
+                  data-testid={`${tab.id}-tab`}
+                >
+                  <tab.icon className="w-5 h-5" />
+                  <span className="flex-1">{tab.label}</span>
+                  {tab.count > 0 && (
+                    <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
+                      {tab.count}
+                    </Badge>
+                  )}
+                </button>
+              ))}
             </nav>
           </Card>
 
@@ -405,9 +543,14 @@ const MessagesPage = () => {
                         data-testid="search-messages-input"
                       />
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => activeTab === 'inbox' ? fetchInbox() : fetchSent()}>
+                    <Button variant="ghost" size="icon" onClick={fetchMessages}>
                       <RefreshCw className="w-4 h-4" />
                     </Button>
+                    {activeTab === 'trash' && messages.length > 0 && (
+                      <Button variant="destructive" size="sm" onClick={emptyTrash}>
+                        Empty Trash
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
@@ -419,14 +562,18 @@ const MessagesPage = () => {
                   ) : filteredMessages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                       <Mail className="w-12 h-12 mb-2 opacity-50" />
-                      <p>No messages yet</p>
+                      <p>No messages in {activeTab}</p>
                     </div>
                   ) : (
                     <div className="divide-y">
                       {filteredMessages.map((msg) => {
-                        const otherUserId = activeTab === 'inbox' ? msg.sender_id : msg.recipient_id;
+                        const otherUserId = activeTab === 'sent' || activeTab === 'drafts' 
+                          ? msg.recipient_id 
+                          : msg.sender_id;
                         const otherUser = users[otherUserId];
-                        const displayName = activeTab === 'inbox' ? msg.sender_name : msg.recipient_name;
+                        const displayName = activeTab === 'sent' || activeTab === 'drafts'
+                          ? (msg.recipient_name || 'No recipient')
+                          : msg.sender_name;
                         
                         return (
                           <div
@@ -450,15 +597,18 @@ const MessagesPage = () => {
                                 <span className={cn("font-medium", !msg.is_read && activeTab === 'inbox' && "font-semibold")}>
                                   {displayName}
                                 </span>
+                                {msg.is_draft && (
+                                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">Draft</Badge>
+                                )}
                                 {!msg.is_read && activeTab === 'inbox' && (
                                   <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">New</Badge>
                                 )}
                               </div>
                               <p className={cn("text-sm truncate", !msg.is_read && activeTab === 'inbox' ? "font-medium text-gray-900 dark:text-white" : "text-muted-foreground")}>
-                                {msg.subject}
+                                {msg.subject || '(No subject)'}
                               </p>
                               <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                {msg.content?.slice(0, 80)}...
+                                {msg.content?.slice(0, 80)}{msg.content?.length > 80 ? '...' : ''}
                               </p>
                             </div>
                             
@@ -466,22 +616,64 @@ const MessagesPage = () => {
                               <span className="text-xs text-muted-foreground">
                                 {format(new Date(msg.created_at), 'MMM d')}
                               </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => toggleStar(msg.id, e)}
-                              >
-                                <Star className={cn("w-4 h-4", msg.is_starred && "fill-yellow-400 text-yellow-400")} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-red-500 hover:text-red-600"
-                                onClick={(e) => deleteMessage(msg.id, e)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                              
+                              {activeTab !== 'trash' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => toggleStar(msg.id, e)}
+                                >
+                                  <Star className={cn("w-4 h-4", msg.is_starred && "fill-yellow-400 text-yellow-400")} />
+                                </Button>
+                              )}
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {activeTab === 'trash' ? (
+                                    <>
+                                      <DropdownMenuItem onClick={(e) => restoreFromTrash(msg.id, e)}>
+                                        <RotateCcw className="w-4 h-4 mr-2" />
+                                        Restore
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={(e) => permanentlyDelete(msg.id, e)}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete Permanently
+                                      </DropdownMenuItem>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {activeTab === 'inbox' && (
+                                        <DropdownMenuItem onClick={(e) => moveToJunk(msg.id, e)}>
+                                          <AlertCircle className="w-4 h-4 mr-2" />
+                                          {msg.is_junk ? 'Not Junk' : 'Mark as Junk'}
+                                        </DropdownMenuItem>
+                                      )}
+                                      {activeTab === 'junk' && (
+                                        <DropdownMenuItem onClick={(e) => moveToJunk(msg.id, e)}>
+                                          <Inbox className="w-4 h-4 mr-2" />
+                                          Move to Inbox
+                                        </DropdownMenuItem>
+                                      )}
+                                      <DropdownMenuItem 
+                                        onClick={(e) => moveToTrash(msg.id, e)}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Move to Trash
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         );
@@ -495,10 +687,10 @@ const MessagesPage = () => {
         </div>
 
         {/* Compose Modal */}
-        <Dialog open={showCompose} onOpenChange={setShowCompose}>
+        <Dialog open={showCompose} onOpenChange={(open) => !open && resetCompose()}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>New Message</DialogTitle>
+              <DialogTitle>{editingDraft ? 'Edit Draft' : 'New Message'}</DialogTitle>
             </DialogHeader>
             
             <div className="space-y-4 py-4">
@@ -508,14 +700,13 @@ const MessagesPage = () => {
                 {composeRecipient ? (
                   <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-slate-800 rounded-lg">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={composeRecipient.avatar} />
                       <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
                         {getInitials(composeRecipient.name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <p className="font-medium text-sm">{composeRecipient.name || composeRecipient.email}</p>
-                      <p className="text-xs text-muted-foreground">{composeRecipient.email}</p>
+                      {composeRecipient.email && <p className="text-xs text-muted-foreground">{composeRecipient.email}</p>}
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => setComposeRecipient(null)}>
                       Change
@@ -587,8 +778,17 @@ const MessagesPage = () => {
               </div>
             </div>
             
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCompose(false)}>Cancel</Button>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={resetCompose}>Cancel</Button>
+              <Button 
+                variant="secondary"
+                onClick={handleSaveDraft} 
+                disabled={savingDraft}
+                data-testid="save-draft-btn"
+              >
+                {savingDraft ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileEdit className="w-4 h-4 mr-2" />}
+                Save Draft
+              </Button>
               <Button 
                 onClick={handleSendMessage} 
                 disabled={!composeRecipient || !composeSubject.trim() || !composeContent.trim() || sendingMessage}
