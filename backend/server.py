@@ -86,6 +86,9 @@ from routes.admin import router as admin_router
 from routes.messages import router as messages_router
 from routes.shifts import router as shifts_router
 from routes.entitlements import router as entitlements_router
+from routes.usage_alerts import router as usage_alerts_router
+from routes.team_billing import router as team_billing_router
+from routes.shift_reminders import router as shift_reminders_router
 
 
 # ============== Include All Routers ==============
@@ -131,6 +134,15 @@ api_router.include_router(shifts_router)
 
 # Entitlements & Usage
 api_router.include_router(entitlements_router)
+
+# Usage Alerts
+api_router.include_router(usage_alerts_router)
+
+# Team Billing
+api_router.include_router(team_billing_router)
+
+# Shift Reminders
+api_router.include_router(shift_reminders_router)
 
 
 # ============== Include Main Router ==============

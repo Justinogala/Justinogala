@@ -1116,4 +1116,35 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [ ] Team billing for workspaces
 - [ ] Usage alerts when approaching limits
 
+### Billing & Subscription Features (Mar 4, 2026) - COMPLETE ✅
+- [x] **Annual Billing Discount Banner** (`/app/src/pages/user/UserPlansPage.jsx`):
+  - Green gradient banner "Save 17% with annual billing"
+  - "Switch to Annual" button when monthly is selected
+  - Per-plan annual savings displayed (e.g., "Save $XX/year")
+  - Enhanced billing toggle with animated "Save 17%" badge
+- [x] **Team Billing for Workspaces** (`/app/backend/routes/team_billing.py`):
+  - Three team plans: Team Starter ($8/seat), Team Professional ($15/seat), Team Enterprise ($25/seat)
+  - Per-seat pricing with annual discount
+  - Workspace billing integration via `TeamBillingCard` component
+  - Backend API: GET /api/team-billing/plans, POST /api/team-billing/checkout
+  - Stripe checkout session creation for team subscriptions
+- [x] **Usage Alerts System** (`/app/backend/routes/usage_alerts.py`):
+  - Automatic alerts at 80%, 90%, and 100% usage thresholds
+  - Creates in-app notifications + database alerts
+  - Per-feature tracking (AI chat, meetings, storage, workspaces)
+  - Alert preferences API for email/push/SMS notifications
+  - UsageAlertsWidget component for dashboard display
+- [x] **Shift Reminders** (`/app/backend/routes/shift_reminders.py`):
+  - Configurable reminder times (5, 15, 30, 60 min, 1 day before)
+  - Multi-channel notifications (push, email, SMS)
+  - ShiftReminderSettings component for user preferences
+  - Auto-scheduling reminders when shifts are created
+  - Backend API: GET/PUT /api/shift-reminders/user/{id}/preferences
+
+### Refactored Shift Management Components
+- [x] **ShiftSummaryCards.jsx** - Extracted summary stats cards
+- [x] **ShiftListView.jsx** - Extracted list view component with clock-in/out
+- [x] **ShiftPresetsDialog.jsx** - Extracted preset management dialog
+- [x] **ShiftReminderSettings.jsx** - New reminder preferences component
+
 

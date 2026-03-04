@@ -274,12 +274,37 @@ const UserPlansPage = () => {
 
         {/* Plans Tab */}
         <TabsContent value="plans" className="space-y-6">
+          {/* Annual Discount Banner */}
+          {!isAnnual && (
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-full">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-semibold">Save 17% with annual billing</p>
+                  <p className="text-sm text-green-100">Get 2 months free when you pay yearly</p>
+                </div>
+              </div>
+              <Button 
+                variant="secondary" 
+                className="bg-white text-green-700 hover:bg-green-50"
+                onClick={() => setIsAnnual(true)}
+              >
+                Switch to Annual
+              </Button>
+            </div>
+          )}
+
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <Label className={!isAnnual ? "font-semibold" : "text-gray-500"}>Monthly</Label>
-            <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
-            <Label className={isAnnual ? "font-semibold" : "text-gray-500"}>
-              Annual <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Save 17%</Badge>
+          <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl">
+            <Label className={!isAnnual ? "font-semibold text-gray-900 dark:text-white" : "text-gray-500"}>Monthly</Label>
+            <Switch checked={isAnnual} onCheckedChange={setIsAnnual} className="data-[state=checked]:bg-green-600" />
+            <Label className={isAnnual ? "font-semibold text-gray-900 dark:text-white" : "text-gray-500"}>
+              Annual 
+              <Badge className="ml-2 bg-green-600 text-white animate-pulse">
+                Save 17%
+              </Badge>
             </Label>
           </div>
 
@@ -288,6 +313,10 @@ const UserPlansPage = () => {
             {plans.map((plan) => {
               const planIsCurrent = isCurrent(plan.name);
               const price = isAnnual ? plan.price_annual : plan.price_monthly;
+              const monthlyEquivalent = isAnnual ? Math.round(price / 12) : price;
+              const monthlySavings = isAnnual && plan.price_monthly > 0 
+                ? Math.round(plan.price_monthly * 12 - price) 
+                : 0;
               const Icon = getIcon(plan.name);
               
               return (
@@ -317,13 +346,18 @@ const UserPlansPage = () => {
                   <CardContent className="text-center">
                     <div className="mb-6">
                       <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                        ${isAnnual ? Math.round(price / 12) : price}
+                        ${monthlyEquivalent}
                       </span>
                       <span className="text-gray-500">/month</span>
                       {isAnnual && price > 0 && (
-                        <p className="text-sm text-green-600 mt-1">
-                          Billed ${price}/year
-                        </p>
+                        <>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Billed ${price}/year
+                          </p>
+                          <Badge className="mt-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                            Save ${monthlySavings}/year
+                          </Badge>
+                        </>
                       )}
                     </div>
                     
