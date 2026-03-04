@@ -14,7 +14,7 @@ import {
   Loader2, Send, Search, Inbox, SendHorizontal, Star, 
   Trash2, Reply, Plus, Mail, ArrowLeft, RefreshCw,
   FileEdit, AlertCircle, RotateCcw, Trash, MoreHorizontal,
-  Paperclip, X, FileText, Image, File, Download, Settings
+  Paperclip, X, FileText, Image, File, Download, Settings, Menu
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -570,6 +570,9 @@ const MessagesPage = () => {
     );
   });
 
+  // Mobile sidebar visibility state
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
   const tabs = [
     { id: 'inbox', label: 'Inbox', icon: Inbox, count: counts.inbox_unread },
     { id: 'sent', label: 'Sent', icon: SendHorizontal },
@@ -580,10 +583,95 @@ const MessagesPage = () => {
 
   return (
     <PageTransition>
-      <div className="container mx-auto px-4 py-6 h-[calc(100vh-5rem)]">
-        <div className="flex gap-4 h-full">
-          {/* Sidebar */}
-          <Card className="w-64 flex-shrink-0 flex flex-col bg-white dark:bg-slate-900">
+      <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex flex-col md:container md:mx-auto md:px-4 md:py-6">
+        
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b bg-white dark:bg-slate-900">
+          <button 
+            onClick={() => setShowMobileSidebar(true)}
+            className="p-2 -ml-2 text-gray-600 dark:text-gray-400"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <h1 className="font-semibold text-lg capitalize">{activeTab}</h1>
+          <Button 
+            size="icon"
+            onClick={() => { resetCompose(); setShowCompose(true); }}
+            className="bg-indigo-600 hover:bg-indigo-700 h-10 w-10"
+            data-testid="mobile-compose-btn"
+          >
+            <Plus className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <div className="flex-1 flex gap-4 overflow-hidden">
+          {/* Mobile Sidebar Overlay */}
+          {showMobileSidebar && (
+            <div 
+              className="fixed inset-0 z-50 md:hidden"
+              onClick={() => setShowMobileSidebar(false)}
+            >
+              <div className="absolute inset-0 bg-black/50" />
+              <div 
+                className="absolute left-0 top-0 bottom-0 w-72 bg-white dark:bg-slate-900 shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-4 border-b flex items-center justify-between">
+                  <h2 className="font-semibold">Messages</h2>
+                  <Button variant="ghost" size="icon" onClick={() => setShowMobileSidebar(false)}>
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+                <div className="p-4">
+                  <Button 
+                    onClick={() => { resetCompose(); setShowCompose(true); setShowMobileSidebar(false); }} 
+                    className="w-full bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Compose
+                  </Button>
+                </div>
+                <nav className="flex-1 px-2 space-y-1">
+                  {tabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => { 
+                        setActiveTab(tab.id); 
+                        setSelectedMessage(null); 
+                        setShowMobileSidebar(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                        activeTab === tab.id 
+                          ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" 
+                          : "hover:bg-gray-100 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      <tab.icon className="w-5 h-5" />
+                      <span className="flex-1">{tab.label}</span>
+                      {tab.count > 0 && (
+                        <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
+                          {tab.count}
+                        </Badge>
+                      )}
+                    </button>
+                  ))}
+                </nav>
+                <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white dark:bg-slate-900">
+                  <button
+                    onClick={() => { navigate('/messages/settings'); setShowMobileSidebar(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-gray-400"
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span>Settings</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Sidebar */}
+          <Card className="hidden md:flex w-64 flex-shrink-0 flex-col bg-white dark:bg-slate-900">
             <div className="p-4">
               <Button 
                 onClick={() => { resetCompose(); setShowCompose(true); }} 
@@ -633,38 +721,43 @@ const MessagesPage = () => {
           </Card>
 
           {/* Main Content */}
-          <Card className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900">
+          <Card className={cn(
+            "flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900",
+            "md:rounded-lg",
+            // On mobile with selected message, show full screen
+            selectedMessage ? "fixed inset-0 z-40 md:relative md:inset-auto" : ""
+          )}>
             {selectedMessage ? (
               /* Message Thread View */
               <>
-                <div className="p-4 border-b flex items-center gap-3">
-                  <Button variant="ghost" size="icon" onClick={() => { setSelectedMessage(null); setThread([]); }}>
+                <div className="p-3 md:p-4 border-b flex items-center gap-3 safe-area-top">
+                  <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => { setSelectedMessage(null); setThread([]); }}>
                     <ArrowLeft className="w-5 h-5" />
                   </Button>
-                  <div className="flex-1">
-                    <h2 className="font-semibold text-lg">{selectedMessage.subject}</h2>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-base md:text-lg truncate">{selectedMessage.subject}</h2>
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       {thread.length} message{thread.length !== 1 ? 's' : ''} in this conversation
                     </p>
                   </div>
                 </div>
                 
-                <ScrollArea className="flex-1 p-4">
+                <ScrollArea className="flex-1 p-3 md:p-4">
                   <div className="space-y-4">
                     {thread.map((msg) => {
                       const isMe = msg.sender_id === user?.id;
                       const sender = users[msg.sender_id];
                       return (
-                        <div key={msg.id} className={cn("flex gap-3", isMe && "flex-row-reverse")}>
-                          <Avatar className="w-10 h-10 flex-shrink-0">
+                        <div key={msg.id} className={cn("flex gap-2 md:gap-3", isMe && "flex-row-reverse")}>
+                          <Avatar className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0">
                             <AvatarImage src={sender?.avatar} />
-                            <AvatarFallback className="bg-indigo-100 text-indigo-700">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-700 text-xs md:text-sm">
                               {getInitials(sender?.name || msg.sender_name)}
                             </AvatarFallback>
                           </Avatar>
-                          <div className={cn("flex-1 max-w-[70%]", isMe && "text-right")}>
+                          <div className={cn("flex-1 max-w-[85%] md:max-w-[70%]", isMe && "text-right")}>
                             <div className={cn(
-                              "rounded-lg p-4",
+                              "rounded-xl md:rounded-lg p-3 md:p-4",
                               isMe 
                                 ? "bg-indigo-600 text-white" 
                                 : "bg-gray-100 dark:bg-slate-800"
@@ -672,7 +765,7 @@ const MessagesPage = () => {
                               <p className={cn("text-xs mb-2", isMe ? "text-indigo-200" : "text-muted-foreground")}>
                                 {msg.sender_name} • {format(new Date(msg.created_at), 'MMM d, h:mm a')}
                               </p>
-                              <p className="whitespace-pre-wrap">{msg.content}</p>
+                              <p className="whitespace-pre-wrap text-sm md:text-base">{msg.content}</p>
                               
                               {/* Attachments in thread */}
                               {msg.attachments && msg.attachments.length > 0 && (
@@ -718,7 +811,7 @@ const MessagesPage = () => {
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
                       placeholder="Write your reply..."
-                      className="flex-1 min-h-[80px] resize-none"
+                      className="flex-1 min-h-[60px] md:min-h-[80px] resize-none text-base"
                       data-testid="reply-input"
                     />
                   </div>
@@ -726,10 +819,12 @@ const MessagesPage = () => {
                     <Button 
                       onClick={handleSendReply} 
                       disabled={!replyContent.trim() || sendingReply}
+                      className="h-10 md:h-9"
                       data-testid="send-reply-btn"
                     >
-                      {sendingReply ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Reply className="w-4 h-4 mr-2" />}
-                      Send Reply
+                      {sendingReply ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                      <span className="hidden sm:inline">Send Reply</span>
+                      <span className="sm:hidden">Send</span>
                     </Button>
                   </div>
                 </div>
@@ -737,7 +832,8 @@ const MessagesPage = () => {
             ) : (
               /* Message List View */
               <>
-                <div className="p-4 border-b flex items-center justify-between gap-4">
+                {/* Desktop header with search */}
+                <div className="hidden md:flex p-4 border-b items-center justify-between gap-4">
                   <h2 className="font-semibold text-lg capitalize">{activeTab}</h2>
                   <div className="flex items-center gap-2">
                     <div className="relative">
@@ -761,6 +857,19 @@ const MessagesPage = () => {
                   </div>
                 </div>
                 
+                {/* Mobile search bar */}
+                <div className="md:hidden p-3 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search messages..."
+                      className="pl-9 w-full h-10"
+                    />
+                  </div>
+                </div>
+                
                 <ScrollArea className="flex-1">
                   {loading ? (
                     <div className="flex justify-center items-center h-40">
@@ -775,6 +884,7 @@ const MessagesPage = () => {
                     <div className="divide-y">
                       {filteredMessages.map((msg) => {
                         const otherUserId = activeTab === 'sent' || activeTab === 'drafts' 
+
                           ? msg.recipient_id 
                           : msg.sender_id;
                         const otherUser = users[otherUserId];
@@ -787,22 +897,30 @@ const MessagesPage = () => {
                             key={msg.id}
                             onClick={() => openMessage(msg)}
                             className={cn(
-                              "flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors",
+                              "flex items-center gap-3 p-3 md:p-4 cursor-pointer",
+                              "hover:bg-gray-50 dark:hover:bg-slate-800/50 active:bg-gray-100 dark:active:bg-slate-800",
+                              "transition-colors",
                               !msg.is_read && activeTab === 'inbox' && "bg-indigo-50/50 dark:bg-indigo-900/10"
                             )}
                             data-testid={`message-item-${msg.id}`}
                           >
-                            <Avatar className="w-10 h-10 flex-shrink-0">
+                            <Avatar className="w-10 h-10 md:w-11 md:h-11 flex-shrink-0">
                               <AvatarImage src={otherUser?.avatar} />
-                              <AvatarFallback className="bg-indigo-100 text-indigo-700">
+                              <AvatarFallback className="bg-indigo-100 text-indigo-700 text-sm">
                                 {getInitials(displayName)}
                               </AvatarFallback>
                             </Avatar>
                             
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={cn("font-medium", !msg.is_read && activeTab === 'inbox' && "font-semibold")}>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={cn(
+                                  "font-medium text-sm md:text-base truncate max-w-[150px] md:max-w-none",
+                                  !msg.is_read && activeTab === 'inbox' && "font-semibold"
+                                )}>
                                   {displayName}
+                                </span>
+                                <span className="text-xs text-muted-foreground md:hidden">
+                                  {format(new Date(msg.created_at), 'MMM d')}
                                 </span>
                                 {msg.is_draft && (
                                   <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-xs">Draft</Badge>
@@ -811,15 +929,21 @@ const MessagesPage = () => {
                                   <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">New</Badge>
                                 )}
                               </div>
-                              <p className={cn("text-sm truncate", !msg.is_read && activeTab === 'inbox' ? "font-medium text-gray-900 dark:text-white" : "text-muted-foreground")}>
+                              <p className={cn(
+                                "text-sm truncate",
+                                !msg.is_read && activeTab === 'inbox' 
+                                  ? "font-medium text-gray-900 dark:text-white" 
+                                  : "text-muted-foreground"
+                              )}>
                                 {msg.subject || '(No subject)'}
                               </p>
-                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              <p className="text-xs text-muted-foreground truncate mt-0.5 hidden md:block">
                                 {msg.content?.slice(0, 80)}{msg.content?.length > 80 ? '...' : ''}
                               </p>
                             </div>
                             
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Desktop actions */}
+                            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
                               <span className="text-xs text-muted-foreground">
                                 {format(new Date(msg.created_at), 'MMM d')}
                               </span>
@@ -848,32 +972,29 @@ const MessagesPage = () => {
                                         <RotateCcw className="w-4 h-4 mr-2" />
                                         Restore
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                        onClick={(e) => permanentlyDelete(msg.id, e)}
-                                        className="text-red-600"
-                                      >
+                                      <DropdownMenuItem onClick={(e) => permanentlyDelete(msg.id, e)} className="text-red-600">
                                         <Trash2 className="w-4 h-4 mr-2" />
                                         Delete Permanently
                                       </DropdownMenuItem>
                                     </>
+                                  ) : activeTab === 'junk' ? (
+                                    <>
+                                      <DropdownMenuItem onClick={(e) => moveToJunk(msg.id, e)}>
+                                        <Inbox className="w-4 h-4 mr-2" />
+                                        Not Junk (Move to Inbox)
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={(e) => moveToTrash(msg.id, e)} className="text-red-600">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </>
                                   ) : (
                                     <>
-                                      {activeTab === 'inbox' && (
-                                        <DropdownMenuItem onClick={(e) => moveToJunk(msg.id, e)}>
-                                          <AlertCircle className="w-4 h-4 mr-2" />
-                                          {msg.is_junk ? 'Not Junk' : 'Mark as Junk'}
-                                        </DropdownMenuItem>
-                                      )}
-                                      {activeTab === 'junk' && (
-                                        <DropdownMenuItem onClick={(e) => moveToJunk(msg.id, e)}>
-                                          <Inbox className="w-4 h-4 mr-2" />
-                                          Move to Inbox
-                                        </DropdownMenuItem>
-                                      )}
-                                      <DropdownMenuItem 
-                                        onClick={(e) => moveToTrash(msg.id, e)}
-                                        className="text-red-600"
-                                      >
+                                      <DropdownMenuItem onClick={(e) => moveToJunk(msg.id, e)}>
+                                        <AlertCircle className="w-4 h-4 mr-2" />
+                                        Mark as Junk
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={(e) => moveToTrash(msg.id, e)} className="text-red-600">
                                         <Trash2 className="w-4 h-4 mr-2" />
                                         Move to Trash
                                       </DropdownMenuItem>
@@ -881,6 +1002,13 @@ const MessagesPage = () => {
                                   )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
+                            </div>
+
+                            {/* Mobile star and chevron */}
+                            <div className="md:hidden flex items-center gap-1">
+                              {activeTab !== 'trash' && msg.is_starred && (
+                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              )}
                             </div>
                           </div>
                         );
@@ -896,7 +1024,7 @@ const MessagesPage = () => {
         {/* Compose Modal */}
         <Dialog open={showCompose} onOpenChange={(open) => !open && resetCompose()}>
           <DialogContent 
-            className="sm:max-w-[600px]"
+            className="sm:max-w-[600px] max-h-[90vh] md:max-h-[85vh] overflow-y-auto"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -915,7 +1043,7 @@ const MessagesPage = () => {
               <DialogTitle>{editingDraft ? 'Edit Draft' : 'New Message'}</DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-2 md:py-4">
               {/* Recipient Search */}
               <div>
                 <label className="text-sm font-medium mb-1.5 block">To:</label>
@@ -926,11 +1054,11 @@ const MessagesPage = () => {
                         {getInitials(composeRecipient.name)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{composeRecipient.name || composeRecipient.email}</p>
-                      {composeRecipient.email && <p className="text-xs text-muted-foreground">{composeRecipient.email}</p>}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{composeRecipient.name || composeRecipient.email}</p>
+                      {composeRecipient.email && <p className="text-xs text-muted-foreground truncate">{composeRecipient.email}</p>}
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setComposeRecipient(null)}>
+                    <Button variant="ghost" size="sm" className="h-8 shrink-0" onClick={() => setComposeRecipient(null)}>
                       Change
                     </Button>
                   </div>
@@ -939,7 +1067,8 @@ const MessagesPage = () => {
                     <Input
                       value={userSearchQuery}
                       onChange={(e) => setUserSearchQuery(e.target.value)}
-                      placeholder="Search users by name or email..."
+                      placeholder="Search users..."
+                      className="h-11 md:h-10"
                       data-testid="recipient-search-input"
                     />
                     {searchingUsers && (

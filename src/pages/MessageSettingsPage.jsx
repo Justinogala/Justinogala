@@ -291,27 +291,51 @@ const MessageSettingsPage = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gray-50/50 dark:bg-slate-950 p-6" data-testid="message-settings-page">
-        <div className="max-w-5xl mx-auto">
+      <div className="min-h-screen bg-gray-50/50 dark:bg-slate-950" data-testid="message-settings-page">
+        <div className="max-w-5xl mx-auto px-4 py-4 md:p-6">
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-4 md:mb-6">
             <Button
               variant="ghost"
               onClick={() => navigate('/messages')}
-              className="mb-2 -ml-2"
+              className="mb-2 -ml-2 h-10"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back to Messages
             </Button>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
               Message Settings
             </h1>
-            <p className="text-gray-500">Customize your messaging experience</p>
+            <p className="text-sm md:text-base text-gray-500">Customize your messaging experience</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar Navigation */}
-            <Card className="lg:col-span-1 h-fit">
+          {/* Mobile Tabs - Horizontal Scroll */}
+          <div className="md:hidden mb-4 -mx-4 px-4">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {settingsTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+                      activeTab === tab.id
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
+            {/* Desktop Sidebar Navigation */}
+            <Card className="hidden md:block lg:col-span-1 h-fit">
               <CardContent className="p-2">
                 <nav className="space-y-1">
                   {settingsTabs.map((tab) => {
