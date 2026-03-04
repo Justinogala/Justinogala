@@ -934,7 +934,7 @@ const ShiftManagementPage = () => {
                   onDragStart={(e) => handleDragStart(e, shift)}
                   onDragEnd={handleDragEnd}
                   className={cn(
-                    'text-xs px-2 py-1 rounded truncate cursor-grab active:cursor-grabbing hover:opacity-80 flex items-center gap-1',
+                    'text-xs px-2 py-1 rounded truncate cursor-grab active:cursor-grabbing hover:opacity-80 flex items-center gap-1 group',
                     shift.status === 'cancelled' && 'line-through opacity-50'
                   )}
                   style={{
@@ -949,11 +949,42 @@ const ShiftManagementPage = () => {
                 >
                   <GripVertical className="h-3 w-3 text-gray-400 flex-shrink-0" />
                   <div className="flex-1 overflow-hidden">
-                    <div className="font-medium">{shift.start_time} - {shift.end_time}</div>
+                    <div className="font-medium flex items-center gap-1">
+                      {shift.start_time} - {shift.end_time}
+                      {shift.clock_status === 'clocked_in' && (
+                        <Timer className="h-3 w-3 text-emerald-600" />
+                      )}
+                    </div>
                     <div className="text-gray-600 dark:text-gray-300 truncate">
                       {shift.assigned_to_name || 'Unassigned'}
                     </div>
                   </div>
+                  {/* Clock In/Out button for today's shifts assigned to current user */}
+                  {isMyShift(shift) && isShiftToday(shift) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClockInOut(shift, shift.clock_status === 'clocked_in' ? 'out' : 'in');
+                      }}
+                      disabled={clockingShiftId === shift.id}
+                      className={cn(
+                        'p-1 rounded transition-colors flex-shrink-0',
+                        shift.clock_status === 'clocked_in'
+                          ? 'bg-red-100 hover:bg-red-200 text-red-600'
+                          : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-600'
+                      )}
+                      data-testid={shift.clock_status === 'clocked_in' ? `cal-clock-out-${shift.id}` : `cal-clock-in-${shift.id}`}
+                      title={shift.clock_status === 'clocked_in' ? 'Clock Out' : 'Clock In'}
+                    >
+                      {clockingShiftId === shift.id ? (
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                      ) : shift.clock_status === 'clocked_in' ? (
+                        <Square className="h-3 w-3" />
+                      ) : (
+                        <Play className="h-3 w-3" />
+                      )}
+                    </button>
+                  )}
                 </motion.div>
               ))}
               {dayShifts.length > 3 && (
