@@ -8,24 +8,61 @@ export const MAX_FILE_SIZES = {
 };
 
 export const ALLOWED_TYPES = {
-  AUDIO: ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/ogg', 'audio/mp3'],
-  VIDEO: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/avi'],
+  AUDIO: [
+    'audio/mpeg', 
+    'audio/wav', 
+    'audio/x-wav',
+    'audio/x-m4a', 
+    'audio/mp4',
+    'audio/ogg', 
+    'audio/mp3',
+    'audio/webm',
+    'audio/aac',
+    'audio/flac',
+    'audio/x-flac',
+    'audio/aiff',
+    'audio/x-aiff'
+  ],
+  VIDEO: [
+    'video/mp4', 
+    'video/quicktime', 
+    'video/x-msvideo', 
+    'video/x-matroska', 
+    'video/avi',
+    'video/webm',
+    'video/x-ms-wmv',
+    'video/x-flv',
+    'video/3gpp',
+    'video/3gpp2',
+    'video/ogg',
+    'video/mpeg'
+  ],
   DOCUMENT: [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
     'text/plain',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    'text/markdown',
+    'text/csv',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'application/rtf',
+    'application/json',
+    'text/html',
+    'text/xml'
   ],
   AVATAR: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  IMAGE: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
+  IMAGE: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg', 'image/svg+xml', 'image/bmp', 'image/tiff']
 };
 
 export const ALLOWED_EXTENSIONS = {
-  AUDIO: ['.mp3', '.wav', '.m4a', '.ogg'],
-  VIDEO: ['.mp4', '.mov', '.avi', '.mkv'],
-  DOCUMENT: ['.pdf', '.docx', '.txt', '.pptx'],
+  AUDIO: ['.mp3', '.wav', '.m4a', '.ogg', '.webm', '.aac', '.flac', '.aiff', '.wma'],
+  VIDEO: ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.wmv', '.flv', '.3gp', '.mpeg', '.mpg', '.ogv'],
+  DOCUMENT: ['.pdf', '.docx', '.doc', '.txt', '.md', '.csv', '.pptx', '.ppt', '.xlsx', '.xls', '.rtf', '.json', '.html', '.xml'],
   AVATAR: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
-  IMAGE: ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+  IMAGE: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif']
 };
 
 export const validateFileSize = (file, type) => {

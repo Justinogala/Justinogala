@@ -40,11 +40,18 @@ const FileUpload = ({
   const processFiles = useCallback((incomingFiles) => {
     const newFiles = Array.from(incomingFiles).map(file => {
       const validation = validateFile(file, fileType);
+      // Ensure error is always a string
+      let errorMessage = null;
+      if (!validation.valid && validation.error) {
+        errorMessage = typeof validation.error === 'string' 
+          ? validation.error 
+          : (validation.error.message || JSON.stringify(validation.error));
+      }
       return {
         file,
         id: Math.random().toString(36).substr(2, 9),
         status: validation.valid ? 'pending' : 'error',
-        error: validation.error,
+        error: errorMessage,
         progress: 0
       };
     });
@@ -154,10 +161,10 @@ const FileUpload = ({
               {isDragging ? "Drop files here" : "Click to upload or drag and drop"}
             </h3>
             <p className="text-sm text-text-secondary">
-              {fileType === 'audio' && "MP3, WAV, M4A, OGG (Max 500MB)"}
-              {fileType === 'video' && "MP4, MOV, AVI, MKV (Max 2GB)"}
-              {fileType === 'document' && "PDF, DOCX, TXT, PPTX (Max 100MB)"}
-              {fileType === 'avatar' && "JPG, PNG, GIF (Max 10MB)"}
+              {fileType === 'audio' && "MP3, WAV, M4A, OGG, WebM, AAC, FLAC (Max 500MB)"}
+              {fileType === 'video' && "MP4, MOV, AVI, MKV, WebM, WMV, FLV (Max 2GB)"}
+              {fileType === 'document' && "PDF, DOCX, DOC, TXT, PPTX, XLSX, CSV, MD (Max 100MB)"}
+              {fileType === 'avatar' && "JPG, PNG, GIF, WebP (Max 10MB)"}
             </p>
           </div>
         </div>
@@ -206,10 +213,10 @@ const FileUpload = ({
                     </div>
                   )}
                   
-                  {fileWrapper.status === 'error' && (
+                  {fileWrapper.status === 'error' && fileWrapper.error && (
                     <p className="text-xs text-red-500 flex items-center mt-1">
                       <AlertCircle className="w-3 h-3 mr-1" />
-                      {fileWrapper.error}
+                      {typeof fileWrapper.error === 'string' ? fileWrapper.error : 'Invalid file'}
                     </p>
                   )}
                   
