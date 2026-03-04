@@ -947,15 +947,70 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
 - [x] ~~SEO Issues from Bing~~ - **FIXED (Mar 3)**
 - [ ] End-to-end Cloud Storage Migration test (carried over)
 
+### Shift Management Feature (Mar 4, 2026) - COMPLETE ✅
+- [x] **Backend API** (`/app/backend/routes/shifts.py`):
+  - `POST /api/shifts/create` - Create new shift with auto-notification
+  - `GET /api/shifts/workspace/{workspace_id}` - Get all shifts with filters
+  - `GET /api/shifts/{shift_id}` - Get single shift
+  - `PUT /api/shifts/{shift_id}` - Update shift
+  - `DELETE /api/shifts/{shift_id}` - Delete shift (with optional recurring delete)
+  - `POST /api/shifts/{shift_id}/duplicate` - Duplicate shift to new date
+  - `GET /api/shifts/summary/{workspace_id}` - Dashboard summary data
+  - `GET /api/shifts/hours/{workspace_id}/{user_id}` - User hours for period
+  - `POST /api/shifts/swap-request` - Create swap request
+  - `GET /api/shifts/swap-requests/{workspace_id}` - List swap requests
+  - `PUT /api/shifts/swap-request/{id}/approve` - Approve swap
+  - `PUT /api/shifts/swap-request/{id}/reject` - Reject swap
+  - `POST /api/shifts/time-off` - Create time-off request
+  - `GET /api/shifts/time-off/{workspace_id}` - List time-off requests
+  - `PUT /api/shifts/time-off/{id}/approve|reject` - Handle time-off
+  - `GET /api/shifts/export/{workspace_id}` - Export CSV/JSON
+  - `GET /api/shifts/roles/{workspace_id}` - List unique roles
+  - `GET /api/shifts/departments/{workspace_id}` - List unique departments
+- [x] **Frontend Service** (`/app/src/services/shiftService.js`):
+  - Full API client for all shift operations
+  - VITE_API_URL/REACT_APP_BACKEND_URL support
+- [x] **Shift Management Page** (`/app/src/pages/ShiftManagementPage.jsx`):
+  - Calendar view (monthly) with day cells showing shifts
+  - List view alternative with shift cards
+  - Summary cards: Today's Shifts, Week Total Hours, Active Team, Pending Requests
+  - Create Shift dialog with: Date, Time, Assign To, Role, Department, Color, Notes
+  - Recurring shift support (daily/weekly patterns)
+  - Edit and Delete shift functionality
+  - Requests tab for swap/time-off approvals
+  - Export button (CSV/JSON)
+  - Color picker with 8 color options
+- [x] **Workspace Integration**:
+  - "Shifts" button added to WorkspaceDetailPage header
+  - "Shift Management" card in workspace overview
+  - Route: `/workspace/:workspaceId/shifts`
+- [x] **Role-Based Structure** (Shift Admin, Shift Manager, Shift Member):
+  - Shift Admin: Full control
+  - Shift Manager: Shift management
+  - Shift Member: View only + requests
+- [x] **Notifications** (In-app + Email ready):
+  - In-app notifications on shift assignment/update
+  - Email notification support via SendGrid (requires SENDGRID_API_KEY)
+- [x] **Testing**: 18/18 backend tests passed, 100% frontend UI verified
+- [x] **Files Created/Modified**:
+  - NEW: `/app/backend/routes/shifts.py`
+  - NEW: `/app/src/pages/ShiftManagementPage.jsx`
+  - NEW: `/app/src/services/shiftService.js`
+  - Modified: `/app/backend/server.py` - Added shifts router
+  - Modified: `/app/src/App.jsx` - Added shift management route
+  - Modified: `/app/src/pages/WorkspaceDetailPage.jsx` - Added Shifts button and card
+
 ### P1 (High)
 - [ ] User subscription entitlements enforcement (limit meetings, transcription based on plan)
 - [ ] Stripe webhook handling for payment events
 - [ ] User plan upgrade/downgrade flow testing
+- [ ] End-to-end Cloud Storage Migration test (carried over from P0)
 
 ### P2 (Medium)
 - [ ] Payment history view for users
 - [ ] Invoice generation and download
-- [ ] Refactor/remove legacy GroupMeetingRoomPage.jsx
+- [ ] SendGrid email integration for shift notifications (requires SENDGRID_API_KEY)
+- [ ] Google/Outlook Calendar sync for shifts
 
 ### Future
 - [ ] Annual billing discount implementation
