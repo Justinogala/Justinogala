@@ -26,6 +26,38 @@ class BulkShiftAction(BaseModel):
     reason: Optional[str] = None
 
 
+# ============== Helper Functions ==============
+
+async def log_shift_admin_action(action: str, shift_id: str, admin_id: str, details: Dict = None):
+    """Log admin shift actions to both collections for audit trail"""
+    log_entry = {
+        "id": str(uuid.uuid4()),
+        "action": action,
+        "shift_id": shift_id,
+        "admin_id": admin_id,
+        "details": details or {},
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    # Log to shift-specific collection
+    await db.admin_shift_logs.insert_one(log_entry)
+    
+    # Also log to central audit_logs for real-time monitoring
+    audit_entry = {
+        "action": f"shift_{action}",
+        "category": "shift_management",
+        "admin_id": admin_id,
+        "admin_email": admin_id,
+        "details": {
+            "shift_id": shift_id,
+            **(details or {})
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.audit_logs.insert_one(audit_entry)
+    
+    return log_entry
+
+
 # ============== API Routes ==============
 
 @router.get("/stats")
@@ -394,14 +426,12 @@ async def perform_shift_action(shift_id: str, action: ShiftAction, admin_id: str
             await db.shifts.delete_one({"id": shift_id})
             
             # Log the deletion
-            await db.admin_shift_logs.insert_one({
-                "id": str(uuid.uuid4()),
-                "action": "delete",
-                "shift_id": shift_id,
-                "admin_id": admin_id,
-                "details": {"reason": action.reason, "shift_data": {k: v for k, v in shift.items() if k != "_id"}},
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            })
+            await log_shift_admin_action(
+                "delete",
+                shift_id,
+                admin_id,
+                {"reason": action.reason, "shift_data": {k: v for k, v in shift.items() if k != "_id"}}
+            )
             
             return {"success": True, "message": "Shift deleted"}
             
@@ -411,17 +441,15 @@ async def perform_shift_action(shift_id: str, action: ShiftAction, admin_id: str
         await db.shifts.update_one({"id": shift_id}, {"$set": update_data})
         
         # Log the action
-        await db.admin_shift_logs.insert_one({
-            "id": str(uuid.uuid4()),
-            "action": action.action,
-            "shift_id": shift_id,
-            "admin_id": admin_id,
-            "details": {
+        await log_shift_admin_action(
+            action.action,
+            shift_id,
+            admin_id,
+            {
                 "reason": action.reason,
                 "new_assignee_id": action.new_assignee_id
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+            }
+        )
         
         return {"success": True, "message": message}
     except HTTPException:

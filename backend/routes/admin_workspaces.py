@@ -27,7 +27,7 @@ class WorkspaceNote(BaseModel):
 # ============== Helper Functions ==============
 
 async def log_admin_action(action: str, workspace_id: str, admin_id: str, details: Dict = None):
-    """Log admin actions on workspaces for audit trail"""
+    """Log admin actions on workspaces for audit trail - logs to both collections"""
     log_entry = {
         "id": str(uuid.uuid4()),
         "action": action,
@@ -36,7 +36,23 @@ async def log_admin_action(action: str, workspace_id: str, admin_id: str, detail
         "details": details or {},
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+    # Log to workspace-specific collection
     await db.admin_workspace_logs.insert_one(log_entry)
+    
+    # Also log to central audit_logs for real-time monitoring
+    audit_entry = {
+        "action": f"workspace_{action}",
+        "category": "workspace",
+        "admin_id": admin_id,
+        "admin_email": admin_id,
+        "details": {
+            "workspace_id": workspace_id,
+            **(details or {})
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.audit_logs.insert_one(audit_entry)
+    
     return log_entry
 
 

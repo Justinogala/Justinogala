@@ -1188,5 +1188,30 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - File: `/app/src/components/AdminSidebar.jsx`
 - [x] **Testing**: Backend 100% (19/19 tests), Frontend 100% verified
 
+### Real-Time Audit Log (Mar 4, 2026) - COMPLETE ✅
+- [x] **Centralized Audit Logging**:
+  - All admin actions (workspace, chat, shift) now log to central `audit_logs` collection
+  - Updated `admin_workspaces.py`, `admin_chat_moderation.py`, `admin_shifts.py` with dual logging
+  - New categories: workspace, chat_moderation, shift_management
+- [x] **Real-Time UI Updates** (`/admin/audit-logs`):
+  - Auto-refresh with configurable intervals (3s, 5s, 10s, 30s, 1min)
+  - Live indicator with green pulsing dot
+  - Pause/Resume toggle for auto-refresh
+  - "New activity" badge with count notification
+  - Last updated timestamp display
+- [x] **Enhanced Action Types**:
+  - Workspace: suspend, unsuspend, delete, archive, transfer_ownership, member_removed
+  - Chat: flag, unflag, delete, bulk_action
+  - Shift: cancel, delete, reassign
+- [x] **New Filter Options**:
+  - Action filter: workspace_suspend, chat_flag, shift_cancel, etc.
+  - Category filter: workspace, chat_moderation, shift_management
+- [x] **Files Modified**:
+  - `/app/src/pages/admin/AdminAuditLogsPage.jsx` - Real-time polling UI
+  - `/app/backend/routes/admin_workspaces.py` - Dual logging
+  - `/app/backend/routes/admin_chat_moderation.py` - Dual logging
+  - `/app/backend/routes/admin_shifts.py` - Dual logging + helper function
+
+
 
 

@@ -28,7 +28,7 @@ class BulkMessageAction(BaseModel):
 # ============== Helper Functions ==============
 
 async def log_moderation_action(action: str, message_id: str, admin_id: str, details: Dict = None):
-    """Log moderation actions for audit trail"""
+    """Log moderation actions for audit trail - logs to both collections"""
     log_entry = {
         "id": str(uuid.uuid4()),
         "action": action,
@@ -37,7 +37,23 @@ async def log_moderation_action(action: str, message_id: str, admin_id: str, det
         "details": details or {},
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+    # Log to moderation-specific collection
     await db.chat_moderation_logs.insert_one(log_entry)
+    
+    # Also log to central audit_logs for real-time monitoring
+    audit_entry = {
+        "action": f"chat_{action}",
+        "category": "chat_moderation",
+        "admin_id": admin_id,
+        "admin_email": admin_id,
+        "details": {
+            "message_id": message_id,
+            **(details or {})
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.audit_logs.insert_one(audit_entry)
+    
     return log_entry
 
 

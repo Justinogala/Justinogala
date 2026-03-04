@@ -34,6 +34,22 @@ const ACTION_CONFIG = {
   smtp_test: { icon: Mail, color: 'text-purple-500', bg: 'bg-purple-500/10', label: 'SMTP Test' },
   user_login: { icon: User, color: 'text-green-500', bg: 'bg-green-500/10', label: 'User Login' },
   user_logout: { icon: User, color: 'text-gray-500', bg: 'bg-gray-500/10', label: 'User Logout' },
+  // Workspace actions
+  workspace_suspend: { icon: Shield, color: 'text-orange-500', bg: 'bg-orange-500/10', label: 'Workspace Suspended' },
+  workspace_unsuspend: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', label: 'Workspace Unsuspended' },
+  workspace_delete: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Workspace Deleted' },
+  workspace_archive: { icon: Database, color: 'text-gray-500', bg: 'bg-gray-500/10', label: 'Workspace Archived' },
+  workspace_transfer_ownership: { icon: User, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Ownership Transferred' },
+  workspace_member_removed: { icon: User, color: 'text-orange-500', bg: 'bg-orange-500/10', label: 'Member Removed' },
+  // Chat moderation actions
+  chat_flag: { icon: AlertCircle, color: 'text-yellow-500', bg: 'bg-yellow-500/10', label: 'Message Flagged' },
+  chat_unflag: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', label: 'Message Unflagged' },
+  chat_delete: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Message Deleted' },
+  chat_bulk_action: { icon: Activity, color: 'text-purple-500', bg: 'bg-purple-500/10', label: 'Bulk Moderation' },
+  // Shift actions
+  shift_cancel: { icon: XCircle, color: 'text-orange-500', bg: 'bg-orange-500/10', label: 'Shift Cancelled' },
+  shift_delete: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Shift Deleted' },
+  shift_reassign: { icon: User, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Shift Reassigned' },
   default: { icon: Activity, color: 'text-gray-500', bg: 'bg-gray-500/10', label: 'Activity' }
 };
 
@@ -43,6 +59,9 @@ const CATEGORY_COLORS = {
   general: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
   notifications: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
   system: 'bg-slate-100 text-slate-700 dark:bg-slate-700/30 dark:text-slate-300',
+  workspace: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+  chat_moderation: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+  shift_management: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
   all: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
 };
 
@@ -58,9 +77,13 @@ const AdminAuditLogsPage = () => {
   const [actionFilter, setActionFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(5); // seconds
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [newLogsCount, setNewLogsCount] = useState(0);
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
+  const fetchLogs = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await getAuditLogs({
         action: actionFilter || undefined,
@@ -68,14 +91,30 @@ const AdminAuditLogsPage = () => {
         limit,
         offset: page * limit
       });
+      
+      // Check for new logs
+      if (logs.length > 0 && data.logs?.length > 0) {
+        const newLogs = data.logs.filter(
+          newLog => !logs.find(oldLog => oldLog.timestamp === newLog.timestamp && oldLog.action === newLog.action)
+        );
+        if (newLogs.length > 0 && silent) {
+          setNewLogsCount(prev => prev + newLogs.length);
+          toast({
+            title: "New Activity",
+            description: `${newLogs.length} new audit log${newLogs.length > 1 ? 's' : ''} detected`,
+          });
+        }
+      }
+      
       setLogs(data.logs || []);
       setTotal(data.total || 0);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error loading audit logs:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [actionFilter, categoryFilter, limit, page]);
+  }, [actionFilter, categoryFilter, limit, page, logs, toast]);
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -86,13 +125,33 @@ const AdminAuditLogsPage = () => {
     }
   }, []);
 
+  // Initial fetch
   useEffect(() => {
     fetchLogs();
-  }, [fetchLogs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionFilter, categoryFilter, limit, page]);
 
   useEffect(() => {
     fetchSummary();
   }, [fetchSummary]);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      fetchLogs(true); // silent refresh
+      fetchSummary();
+    }, refreshInterval * 1000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, fetchLogs, fetchSummary]);
+
+  const handleManualRefresh = () => {
+    setNewLogsCount(0);
+    fetchLogs();
+    fetchSummary();
+  };
 
   const handleExport = async (format) => {
     setExporting(true);
@@ -154,9 +213,65 @@ const AdminAuditLogsPage = () => {
           <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
             Audit Logs
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Track all administrative actions and changes</p>
+          <p className="text-gray-400 text-sm mt-1">
+            Track all administrative actions and changes
+            {lastUpdated && (
+              <span className="ml-2 text-xs">
+                (Last updated: {formatTimestamp(lastUpdated)})
+              </span>
+            )}
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          {/* Real-time indicator */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              autoRefresh ? "bg-green-500 animate-pulse" : "bg-gray-500"
+            )} />
+            <span className="text-xs text-gray-400">
+              {autoRefresh ? 'Live' : 'Paused'}
+            </span>
+            <button 
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              {autoRefresh ? 'Pause' : 'Resume'}
+            </button>
+          </div>
+          
+          {/* Refresh interval selector */}
+          {autoRefresh && (
+            <Select 
+              value={refreshInterval.toString()} 
+              onValueChange={(v) => setRefreshInterval(parseInt(v))}
+            >
+              <SelectTrigger className="w-[100px] h-8 text-xs border-gray-700">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">3 sec</SelectItem>
+                <SelectItem value="5">5 sec</SelectItem>
+                <SelectItem value="10">10 sec</SelectItem>
+                <SelectItem value="30">30 sec</SelectItem>
+                <SelectItem value="60">1 min</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* New logs badge */}
+          {newLogsCount > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleManualRefresh}
+              className="border-green-600 text-green-500 hover:bg-green-900/20"
+            >
+              <Activity className="w-3 h-3 mr-1 animate-pulse" />
+              {newLogsCount} new
+            </Button>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -181,10 +296,10 @@ const AdminAuditLogsPage = () => {
           </DropdownMenu>
           <Button 
             variant="outline" 
-            onClick={() => { fetchLogs(); fetchSummary(); }}
+            onClick={handleManualRefresh}
             className="border-gray-700"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
             Refresh
           </Button>
         </div>
@@ -243,6 +358,12 @@ const AdminAuditLogsPage = () => {
                 <SelectItem value="settings_delete">Settings Delete</SelectItem>
                 <SelectItem value="settings_reset">Settings Reset</SelectItem>
                 <SelectItem value="smtp_test">SMTP Test</SelectItem>
+                <SelectItem value="workspace_suspend">Workspace Suspend</SelectItem>
+                <SelectItem value="workspace_delete">Workspace Delete</SelectItem>
+                <SelectItem value="chat_flag">Message Flagged</SelectItem>
+                <SelectItem value="chat_delete">Message Deleted</SelectItem>
+                <SelectItem value="shift_cancel">Shift Cancelled</SelectItem>
+                <SelectItem value="shift_delete">Shift Deleted</SelectItem>
               </SelectContent>
             </Select>
             <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v === 'all' ? '' : v)}>
@@ -256,6 +377,9 @@ const AdminAuditLogsPage = () => {
                 <SelectItem value="general">General</SelectItem>
                 <SelectItem value="notifications">Notifications</SelectItem>
                 <SelectItem value="system">System</SelectItem>
+                <SelectItem value="workspace">Workspace</SelectItem>
+                <SelectItem value="chat_moderation">Chat Moderation</SelectItem>
+                <SelectItem value="shift_management">Shift Management</SelectItem>
               </SelectContent>
             </Select>
           </div>
