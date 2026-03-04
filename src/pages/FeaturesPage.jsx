@@ -3,7 +3,8 @@ import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { 
   Mic, Video, Search, MessageSquare, Users, FileText, 
-  BarChart, Calendar, Radio, LayoutGrid, Zap, CheckCircle2, ArrowRight
+  BarChart, Calendar, Radio, LayoutGrid, Zap, CheckCircle2, ArrowRight,
+  Clock, Building2, Shield, Bell, CreditCard, ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,82 +14,82 @@ import Footer from '@/components/Footer';
 
 const features = [
   {
-    icon: LayoutGrid,
-    title: "Project Overview",
-    desc: "Get a comprehensive view of all your projects and tasks in one place.",
-    benefits: ["Centralized dashboard", "Real-time updates", "Progress tracking"],
+    icon: Clock,
+    title: "Shift Management",
+    desc: "Create, assign, and manage shifts across your entire organization with drag-and-drop scheduling.",
+    benefits: ["Visual calendar view", "Clock-in/out tracking", "Timesheet reports"],
     color: "text-blue-500",
     bg: "bg-blue-50 dark:bg-blue-900/10"
   },
   {
-    icon: Calendar,
-    title: "Meetings",
-    desc: "Schedule, join, and manage meetings seamlessly with integrated calendar tools.",
-    benefits: ["One-click scheduling", "Google Calendar sync", "Automated reminders"],
+    icon: Building2,
+    title: "Workspaces",
+    desc: "Organize teams into dedicated workspaces with their own members, channels, and resources.",
+    benefits: ["Team isolation", "Custom settings", "Member management"],
     color: "text-purple-500",
     bg: "bg-purple-50 dark:bg-purple-900/10"
   },
   {
-    icon: FileText,
-    title: "Transcriptions",
-    desc: "Convert your meeting audio into accurate text automatically with AI.",
-    benefits: ["99% accuracy", "Speaker identification", "Multi-language support"],
+    icon: MessageSquare,
+    title: "Team Messaging",
+    desc: "Real-time messaging within workspaces for seamless team communication and file sharing.",
+    benefits: ["Direct messages", "Group channels", "File attachments"],
     color: "text-green-500",
     bg: "bg-green-50 dark:bg-green-900/10"
   },
   {
-    icon: Video,
-    title: "Video Conferencing",
-    desc: "Host high-quality video calls with screen sharing and recording capabilities.",
-    benefits: ["HD video & audio", "Screen sharing", "Recording included"],
+    icon: Calendar,
+    title: "Smart Calendar",
+    desc: "Unified calendar for meetings, shifts, and events with AI-powered scheduling suggestions.",
+    benefits: ["Multi-view calendar", "Meeting scheduling", "Shift integration"],
     color: "text-pink-500",
     bg: "bg-pink-50 dark:bg-pink-900/10"
   },
   {
-    icon: Search,
-    title: "Smart Search",
-    desc: "Find any keyword, topic, or speaker across your entire meeting history.",
-    benefits: ["Full-text search", "Advanced filters", "Context highlighting"],
+    icon: FileText,
+    title: "AI Transcriptions",
+    desc: "Convert meeting audio into searchable text with speaker identification and smart summaries.",
+    benefits: ["99% accuracy", "Action item extraction", "Searchable archive"],
     color: "text-indigo-500",
     bg: "bg-indigo-50 dark:bg-indigo-900/10"
   },
   {
-    icon: MessageSquare,
-    title: "Chat & Messaging",
-    desc: "Collaborate with your team in real-time through secure messaging channels.",
-    benefits: ["Direct messages", "Group channels", "File sharing"],
+    icon: Shield,
+    title: "Admin Portal",
+    desc: "Comprehensive admin dashboard with user management, audit logs, and moderation tools.",
+    benefits: ["Role-based permissions", "Real-time audit logs", "Chat moderation"],
     color: "text-orange-500",
     bg: "bg-orange-50 dark:bg-orange-900/10"
   },
   {
     icon: Users,
-    title: "Teams",
-    desc: "Organize your workspace by departments, projects, or client groups.",
-    benefits: ["Role-based access", "Team workspaces", "Member management"],
+    title: "User Management",
+    desc: "Create and manage users with granular permission controls and subscription management.",
+    benefits: ["Custom roles", "Permission toggles", "Bulk operations"],
     color: "text-cyan-500",
     bg: "bg-cyan-50 dark:bg-cyan-900/10"
   },
   {
-    icon: FileText,
-    title: "File Management",
-    desc: "Store, organize, and share documents securely within your workspace.",
-    benefits: ["Cloud storage", "Version control", "Secure sharing"],
+    icon: BarChart,
+    title: "Analytics & Reports",
+    desc: "Deep insights into workforce productivity, shift coverage, and team engagement metrics.",
+    benefits: ["Usage reports", "Shift analytics", "Export capabilities"],
     color: "text-teal-500",
     bg: "bg-teal-50 dark:bg-teal-900/10"
   },
   {
-    icon: BarChart,
-    title: "Analytics",
-    desc: "Gain insights into meeting productivity, attendance, and team engagement.",
-    benefits: ["Usage reports", "Productivity metrics", "Trend analysis"],
+    icon: Bell,
+    title: "Notifications",
+    desc: "Smart notification system for shift reminders, messages, and important updates.",
+    benefits: ["Push notifications", "Email alerts", "Custom preferences"],
     color: "text-red-500",
     bg: "bg-red-50 dark:bg-red-900/10"
   },
   {
-    icon: Mic,
-    title: "Voice Chat",
-    desc: "Quick voice communication channels for spontaneous team huddles.",
-    benefits: ["Drop-in audio", "Push-to-talk", "Low latency"],
+    icon: CreditCard,
+    title: "Billing & Subscriptions",
+    desc: "Flexible billing with team plans, annual discounts, and usage-based alerts.",
+    benefits: ["Multiple tiers", "Team billing", "Usage tracking"],
     color: "text-yellow-500",
     bg: "bg-yellow-50 dark:bg-yellow-900/10"
   }
@@ -99,7 +100,7 @@ const FeaturesPage = () => {
     <PageTransition>
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col">
         <Helmet>
-          <title>Features | Munal - Powerful Tools for Modern Teams</title>
+          <title>Features | Munal - AI-Powered Workforce Platform</title>
         </Helmet>
         
         <Header />
@@ -116,11 +117,10 @@ const FeaturesPage = () => {
                 transition={{ duration: 0.6 }}
               >
                 <h1 className="text-4xl md:text-6xl font-bold font-heading mb-6 bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-purple-600 dark:from-violet-400 dark:to-purple-400">
-                  Powerful Features for Modern Teams
+                  Powerful Features for Growing Teams
                 </h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8 leading-relaxed">
-                  Everything you need to streamline your meetings, capture insights, and collaborate effectively.
-                  All in one unified platform.
+                  From shift scheduling to AI-powered meeting insights, everything you need to manage your workforce and boost team collaboration in one unified platform.
                 </p>
                 <Button size="lg" className="bg-violet-600 hover:bg-violet-700 text-white rounded-full px-8 shadow-lg shadow-violet-500/25">
                   Start Free Trial
@@ -178,9 +178,9 @@ const FeaturesPage = () => {
           {/* CTA Section */}
           <section className="py-24 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800">
             <div className="container mx-auto px-6 text-center">
-              <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Ready to boost your productivity?</h2>
+              <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Ready to transform your workforce management?</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
-                Join thousands of teams using Munal to make their meetings more productive and actionable.
+                Join organizations using Munal to streamline shifts, improve collaboration, and gain actionable insights.
               </p>
               <div className="flex justify-center gap-4">
                 <Button size="lg" className="bg-violet-600 hover:bg-violet-700">Get Started Now</Button>

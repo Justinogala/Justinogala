@@ -4,58 +4,59 @@ import { Link } from 'react-router-dom';
 import { 
   Clock, Users, Zap, Lock, Award, Smile, 
   Calendar, FileText, Video, Search, MessageSquare, 
-  Mic, Folder, BarChart, ArrowRight 
+  Mic, Folder, BarChart, ArrowRight, Building2, Shield,
+  ClipboardList, Bell, CreditCard
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 const benefits = [
   {
-    icon: Calendar,
-    title: "Meetings",
-    desc: "Schedule and manage meetings effortlessly.",
+    icon: Clock,
+    title: "Shift Management",
+    desc: "Schedule shifts, track time, and manage clock-in/out across teams.",
     link: "/features/meetings"
   },
   {
-    icon: FileText,
-    title: "Transcriptions",
-    desc: "AI-powered audio-to-text with 99% accuracy.",
-    link: "/features/transcriptions"
-  },
-  {
-    icon: Video,
-    title: "Video Conferencing",
-    desc: "Crystal clear HD video calls for teams.",
-    link: "/features/video-conferencing"
-  },
-  {
-    icon: Search,
-    title: "Smart Search",
-    desc: "Find anything spoken or written instantly.",
-    link: "/features/search"
+    icon: Building2,
+    title: "Workspaces",
+    desc: "Create team workspaces for organized collaboration and projects.",
+    link: "/features/teams"
   },
   {
     icon: MessageSquare,
-    title: "Chat & Messaging",
-    desc: "Seamless team communication channels.",
+    title: "Team Messaging",
+    desc: "Real-time chat and internal messaging within workspaces.",
     link: "/features/chat-messaging"
   },
   {
-    icon: Mic,
-    title: "Voice Chat",
-    desc: "Drop-in audio for quick team syncs.",
-    link: "/features/voice-chat"
+    icon: Calendar,
+    title: "Smart Calendar",
+    desc: "Schedule meetings, shifts, and events with AI assistance.",
+    link: "/features/calendar-integration"
   },
   {
-    icon: Folder,
-    title: "File Management",
-    desc: "Secure cloud storage for your docs.",
-    link: "/features/file-management"
+    icon: FileText,
+    title: "AI Transcriptions",
+    desc: "AI-powered audio-to-text with smart meeting summaries.",
+    link: "/features/transcriptions"
+  },
+  {
+    icon: Shield,
+    title: "Admin Portal",
+    desc: "Full control with role-based permissions and audit logs.",
+    link: "/features/analytics"
   },
   {
     icon: BarChart,
-    title: "Analytics",
-    desc: "Deep insights into team productivity.",
+    title: "Analytics & Reports",
+    desc: "Deep insights into workforce productivity and trends.",
     link: "/features/analytics"
+  },
+  {
+    icon: CreditCard,
+    title: "Billing & Plans",
+    desc: "Flexible subscriptions with team billing and usage tracking.",
+    link: "/pricing"
   }
 ];
 
@@ -65,10 +66,10 @@ const BenefitsSection = () => {
       <div className="container mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-bold font-heading mb-4 text-gray-900 dark:text-white">
-            Powerful Features
+            Everything Your Team Needs
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Everything your team needs to collaborate, capture, and create.
+            From shift scheduling to AI-powered insights, manage your entire workforce in one platform.
           </p>
         </div>
 

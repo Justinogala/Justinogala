@@ -22,7 +22,7 @@ const LandingPage = () => {
     <PageTransition>
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col overflow-x-hidden">
         <Helmet>
-          <title>Munal - Collaborate, Transcribe, and Succeed Together</title>
+          <title>Munal - AI-Powered Workforce & Collaboration Platform</title>
         </Helmet>
         
         <Header />
@@ -48,12 +48,12 @@ const LandingPage = () => {
                 className="max-w-4xl mx-auto"
               >
                 <h1 className="text-5xl md:text-7xl font-bold font-heading mb-6 text-white leading-tight tracking-tight">
-                  Collaborate, Transcribe, <br className="hidden md:block" />
-                  and <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-purple-400">Succeed Together</span>
+                  Manage, Collaborate, <br className="hidden md:block" />
+                  and <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-purple-400">Scale Your Team</span>
                 </h1>
                 
                 <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-                  The all-in-one platform for modern teams to capture meetings, generate insights, and drive action items automatically.
+                  The AI-powered workforce platform that combines intelligent meeting assistance, shift scheduling, time tracking, and team collaboration in one seamless experience.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -75,7 +75,7 @@ const LandingPage = () => {
                 </div>
                 
                 <div className="mt-12 text-sm text-gray-400 font-medium">
-                  Trusted by innovative teams worldwide
+                  Trusted by teams managing shifts, meetings, and collaboration worldwide
                 </div>
               </motion.div>
             </div>

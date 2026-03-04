@@ -6,7 +6,8 @@ import { motion } from 'framer-motion';
 import { 
   Mic, Video, Search, MessageSquare, Users, FileText, 
   BarChart, Calendar, LayoutGrid, Zap, ArrowRight, Volume2,
-  Briefcase, HardDrive, Shield, Bot, CloudCog, Smartphone, Film
+  Briefcase, HardDrive, Shield, Bot, CloudCog, Smartphone, Film,
+  Clock, Bell, CreditCard, Building2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
@@ -14,34 +15,35 @@ import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 
 const featuresList = [
-  // Core Features
-  { icon: Calendar, title: "Smart Calendar", desc: "Full-featured calendar with event management, recurring events, and meeting scheduling. Integrates with Jizira video conferencing.", link: "/features/calendar-integration", color: "text-indigo-500", bg: "bg-indigo-100 dark:bg-indigo-900/20" },
-  { icon: Video, title: "Instant Meetings", desc: "One-click instant video meetings with real-time WebRTC. Share meeting links, screen share, and collaborate face-to-face.", link: "/features/video-conferencing", color: "text-pink-500", bg: "bg-pink-100 dark:bg-pink-900/20" },
-  { icon: Mic, title: "Quick Record", desc: "Record audio and video with AI-powered transcription. Capture meetings, voice notes, and important conversations.", link: "/features/transcriptions", color: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-900/20" },
-  { icon: FileText, title: "AI Transcriptions", desc: "Automatic speech-to-text with speaker identification. Export to multiple formats with timestamped accuracy.", link: "/features/transcriptions", color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/20" },
-  
-  // AI Generation
-  { icon: Volume2, title: "Text to Audio", desc: "Convert text to natural-sounding speech. Create audio content, voiceovers, and accessible materials with AI.", link: "/features/voice-chat", color: "text-violet-500", bg: "bg-violet-100 dark:bg-violet-900/20" },
-  { icon: Film, title: "Text to Video", desc: "Generate stunning AI videos from text descriptions using Sora 2. Create clips from 4 to 60 seconds with extended multi-clip stitching.", link: "/text-to-video", color: "text-fuchsia-500", bg: "bg-fuchsia-100 dark:bg-fuchsia-900/20", badge: "NEW" },
+  // Workforce Management
+  { icon: Clock, title: "Shift Management", desc: "Schedule shifts, track clock-in/out, and manage timesheets across your entire workforce with visual calendar views.", link: "/features/meetings", color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/20" },
+  { icon: Building2, title: "Workspaces", desc: "Create team workspaces for organized collaboration. Each workspace has its own members, channels, and resources.", link: "/features/teams", color: "text-indigo-500", bg: "bg-indigo-100 dark:bg-indigo-900/20" },
+  { icon: Users, title: "Team Management", desc: "Invite members, assign roles, and control access with granular permissions. Built for teams of all sizes.", link: "/features/teams", color: "text-cyan-500", bg: "bg-cyan-100 dark:bg-cyan-900/20" },
   
   // Communication
-  { icon: MessageSquare, title: "Team Chat", desc: "Real-time messaging with workspace members. File sharing, emoji reactions, and threaded conversations.", link: "/features/chat-messaging", color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/20" },
-  { icon: Mic, title: "Voice Chat", desc: "Drop-in audio channels for quick team syncs. Crystal clear voice communication without video overhead.", link: "/features/voice-chat", color: "text-teal-500", bg: "bg-teal-100 dark:bg-teal-900/20" },
-
-  // Collaboration
-  { icon: Briefcase, title: "Workspaces", desc: "Organize teams with dedicated workspaces. Manage members, roles, and permissions for seamless collaboration.", link: "/features/teams", color: "text-cyan-500", bg: "bg-cyan-100 dark:bg-cyan-900/20" },
-  { icon: Users, title: "Team Management", desc: "Invite members, assign roles, and control access. Built for teams of all sizes from startups to enterprises.", link: "/features/teams", color: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-900/20" },
-  { icon: HardDrive, title: "File Management", desc: "Secure cloud storage for all your documents. Upload, organize, and share files with your team.", link: "/features/file-management", color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-900/20" },
-
-  // AI & Analytics
+  { icon: MessageSquare, title: "Team Messaging", desc: "Real-time messaging within workspaces. File sharing, reactions, and threaded conversations for seamless communication.", link: "/features/chat-messaging", color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/20" },
+  { icon: Bell, title: "Smart Notifications", desc: "Push notifications for shift reminders, messages, and important updates. Customize your notification preferences.", link: "/features/meetings", color: "text-orange-500", bg: "bg-orange-100 dark:bg-orange-900/20" },
+  
+  // Calendar & Meetings
+  { icon: Calendar, title: "Smart Calendar", desc: "Unified calendar for meetings, shifts, and events. AI-powered scheduling suggestions and conflict detection.", link: "/features/calendar-integration", color: "text-purple-500", bg: "bg-purple-100 dark:bg-purple-900/20" },
+  { icon: Video, title: "Video Meetings", desc: "One-click instant video meetings with WebRTC. Screen sharing, recording, and real-time collaboration.", link: "/features/video-conferencing", color: "text-pink-500", bg: "bg-pink-100 dark:bg-pink-900/20" },
+  
+  // AI Features
+  { icon: FileText, title: "AI Transcriptions", desc: "Automatic speech-to-text with speaker identification. Smart meeting summaries and action item extraction.", link: "/features/transcriptions", color: "text-violet-500", bg: "bg-violet-100 dark:bg-violet-900/20" },
   { icon: Bot, title: "AI Assistant", desc: "Chat with AI about your meetings and content. Get summaries, action items, and intelligent insights.", link: "/features/analytics", color: "text-emerald-500", bg: "bg-emerald-100 dark:bg-emerald-900/20" },
-  { icon: Search, title: "Smart Search", desc: "Find anything across your meetings, transcriptions, and files. Full-text search with advanced filters.", link: "/features/search", color: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-900/20" },
-  { icon: BarChart, title: "Analytics Dashboard", desc: "Track productivity, meeting trends, and team engagement. Data-driven insights to optimize your workflow.", link: "/features/analytics", color: "text-red-500", bg: "bg-red-100 dark:bg-red-900/20" },
-
-  // Admin & Enterprise
-  { icon: Shield, title: "Admin Panel", desc: "Comprehensive admin controls for user management, security settings, and system monitoring.", link: "/features/teams", color: "text-rose-500", bg: "bg-rose-100 dark:bg-rose-900/20" },
-  { icon: CloudCog, title: "Cloud Storage Config", desc: "Configure cloud storage providers (AWS S3, Google Cloud, Cloudflare R2) and migrate data seamlessly.", link: "/features/file-management", color: "text-sky-500", bg: "bg-sky-100 dark:bg-sky-900/20" },
-  { icon: Smartphone, title: "Mobile Responsive", desc: "Access all features on any device. Optimized for desktop, tablet, and mobile experiences.", link: "/features/meetings", color: "text-lime-500", bg: "bg-lime-100 dark:bg-lime-900/20" },
+  { icon: Film, title: "Text to Video", desc: "Generate stunning AI videos from text descriptions using Sora 2. Create clips from 4 to 60 seconds.", link: "/text-to-video", color: "text-fuchsia-500", bg: "bg-fuchsia-100 dark:bg-fuchsia-900/20", badge: "NEW" },
+  
+  // Admin & Analytics
+  { icon: Shield, title: "Admin Portal", desc: "Comprehensive admin dashboard with user management, chat moderation, audit logs, and role-based permissions.", link: "/features/analytics", color: "text-rose-500", bg: "bg-rose-100 dark:bg-rose-900/20" },
+  { icon: BarChart, title: "Analytics & Reports", desc: "Deep insights into workforce productivity, shift coverage, and team engagement. Export reports and track trends.", link: "/features/analytics", color: "text-red-500", bg: "bg-red-100 dark:bg-red-900/20" },
+  
+  // Billing & Storage
+  { icon: CreditCard, title: "Billing & Subscriptions", desc: "Flexible plans with team billing, annual discounts, and usage-based alerts. Stripe-powered payments.", link: "/pricing", color: "text-teal-500", bg: "bg-teal-100 dark:bg-teal-900/20" },
+  { icon: HardDrive, title: "File Management", desc: "Secure cloud storage for documents and files. Upload, organize, and share with your team.", link: "/features/file-management", color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-900/20" },
+  
+  // Search & Mobile
+  { icon: Search, title: "Smart Search", desc: "Find anything across meetings, transcriptions, and files. Full-text search with advanced filters.", link: "/features/search", color: "text-amber-500", bg: "bg-amber-100 dark:bg-amber-900/20" },
+  { icon: Smartphone, title: "Mobile Responsive", desc: "Access all features on any device. Fully optimized for desktop, tablet, and mobile experiences.", link: "/features/meetings", color: "text-lime-500", bg: "bg-lime-100 dark:bg-lime-900/20" },
 ];
 
 const FeatureOverviewPage = () => {
@@ -66,10 +68,10 @@ const FeatureOverviewPage = () => {
                 transition={{ duration: 0.6 }}
               >
                 <h1 className="text-4xl md:text-6xl font-bold font-heading mb-6 text-gray-900 dark:text-white">
-                  All Features at a Glance
+                  Everything Your Team Needs
                 </h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                  Discover the comprehensive toolkit built to empower modern teams to achieve more together.
+                  From shift scheduling to AI-powered insights, discover the comprehensive toolkit built to manage your workforce and boost collaboration.
                 </p>
               </motion.div>
             </div>
