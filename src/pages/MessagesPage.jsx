@@ -243,9 +243,26 @@ const MessagesPage = () => {
   };
 
   // Get file icon based on type
-  const getFileIcon = (contentType) => {
+  const getFileIcon = (contentType, filename) => {
+    // Check by content type first
     if (contentType?.startsWith('image/')) return Image;
-    if (contentType?.includes('pdf') || contentType?.includes('document')) return FileText;
+    if (contentType?.includes('pdf')) return FileText;
+    if (contentType?.includes('word') || contentType?.includes('document')) return FileText;
+    if (contentType?.includes('spreadsheet') || contentType?.includes('excel')) return FileText;
+    if (contentType?.includes('presentation') || contentType?.includes('powerpoint')) return FileText;
+    if (contentType?.includes('json') || contentType?.includes('javascript') || contentType?.includes('text/')) return FileText;
+    
+    // Check by file extension as fallback
+    if (filename) {
+      const ext = filename.split('.').pop()?.toLowerCase();
+      const textExts = ['txt', 'md', 'json', 'xml', 'csv', 'js', 'ts', 'jsx', 'tsx', 'py', 'html', 'css', 'yaml', 'yml'];
+      const docExts = ['doc', 'docx', 'pdf', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp'];
+      const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+      
+      if (imageExts.includes(ext)) return Image;
+      if (textExts.includes(ext) || docExts.includes(ext)) return FileText;
+    }
+    
     return File;
   };
 
@@ -254,6 +271,64 @@ const MessagesPage = () => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Handle drag events
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    
+    setUploadingAttachment(true);
+    try {
+      for (const file of files) {
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({ title: 'Error', description: `${file.name} is too large. Maximum size is 10MB`, variant: 'destructive' });
+          continue;
+        }
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('user_id', user.id);
+        
+        const response = await fetch(`${API_URL}/api/messages/attachments/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          setAttachments(prev => [...prev, data.attachment]);
+          toast({ title: 'Success', description: `${file.name} attached` });
+        } else {
+          toast({ title: 'Error', description: `Failed to upload ${file.name}`, variant: 'destructive' });
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast({ title: 'Error', description: 'Failed to upload files', variant: 'destructive' });
+    } finally {
+      setUploadingAttachment(false);
+    }
   };
 
   // Send new message
@@ -592,7 +667,7 @@ const MessagesPage = () => {
                                     Attachments ({msg.attachments.length})
                                   </p>
                                   {msg.attachments.map((att) => {
-                                    const FileIcon = getFileIcon(att.content_type);
+                                    const FileIcon = getFileIcon(att.content_type, att.filename);
                                     return (
                                       <a
                                         key={att.id}
@@ -806,7 +881,22 @@ const MessagesPage = () => {
 
         {/* Compose Modal */}
         <Dialog open={showCompose} onOpenChange={(open) => !open && resetCompose()}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent 
+            className="sm:max-w-[600px]"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {/* Drag overlay */}
+            {isDragging && (
+              <div className="absolute inset-0 z-50 bg-indigo-500/20 border-2 border-dashed border-indigo-500 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <Paperclip className="w-12 h-12 mx-auto text-indigo-500 mb-2" />
+                  <p className="text-lg font-medium text-indigo-700 dark:text-indigo-300">Drop files to attach</p>
+                </div>
+              </div>
+            )}
+            
             <DialogHeader>
               <DialogTitle>{editingDraft ? 'Edit Draft' : 'New Message'}</DialogTitle>
             </DialogHeader>
@@ -929,7 +1019,7 @@ const MessagesPage = () => {
                 {attachments.length > 0 && (
                   <div className="space-y-2 mt-2 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                     {attachments.map((attachment) => {
-                      const FileIcon = getFileIcon(attachment.content_type);
+                      const FileIcon = getFileIcon(attachment.content_type, attachment.filename);
                       return (
                         <div 
                           key={attachment.id} 
@@ -956,7 +1046,18 @@ const MessagesPage = () => {
                 )}
                 
                 {attachments.length === 0 && (
-                  <p className="text-xs text-muted-foreground">No attachments. Max 10MB per file.</p>
+                  <div 
+                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-400 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Drag & drop files here or click to browse
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Supports all file types (images, docs, JSON, txt, etc.) • Max 10MB per file
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
