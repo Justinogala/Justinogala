@@ -6,14 +6,20 @@ import AdminSidebar from '@/components/AdminSidebar';
 import AdminHeader from '@/components/AdminHeader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PermissionProvider } from '@/contexts/PermissionContext';
-import { useAuth } from '@/context/AuthContext';
+import { useAdminAuth } from '@/context/AdminAuthContext';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const { adminUser } = useAdminAuth();
+  
+  // Map admin user to have correct role for permissions
+  const userWithPermissions = adminUser ? {
+    ...adminUser,
+    role: adminUser.role === 'super_admin' ? 'Admin' : adminUser.role || 'Admin'
+  } : null;
 
   return (
-    <PermissionProvider user={user}>
+    <PermissionProvider user={userWithPermissions}>
       <Helmet>
         <title>Admin Portal - Munal</title>
         <meta name="robots" content="noindex" />
