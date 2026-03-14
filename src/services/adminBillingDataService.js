@@ -1,64 +1,47 @@
 
-import { initializeMockData } from '@/utils/dataInitialization';
-
-const INVOICES_KEY = 'munal_invoices';
-const PAYMENTS_KEY = 'munal_payments';
-const PAYMENT_METHODS_KEY = 'munal_payment_methods';
-const USERS_KEY = 'munal_users';
-
-// Ensure data exists
-initializeMockData();
-
-const getLocal = (key) => JSON.parse(localStorage.getItem(key) || '[]');
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
+const getApiUrl = () => API_URL || window.location.origin;
 
 export const adminBillingDataService = {
   getAllUsers: async () => {
-    return getLocal(USERS_KEY);
+    const apiUrl = getApiUrl();
+    const response = await fetch(`${apiUrl}/api/users`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : (data.users || []);
   },
 
   getUserById: async (id) => {
-    const users = getLocal(USERS_KEY);
-    return users.find(u => u.id === id);
+    const apiUrl = getApiUrl();
+    const response = await fetch(`${apiUrl}/api/users/${id}`);
+    if (!response.ok) return null;
+    return await response.json();
   },
 
   getAllInvoices: async () => {
-    return getLocal(INVOICES_KEY);
+    return [];
   },
 
   getInvoicesByUserId: async (userId) => {
-    const invoices = getLocal(INVOICES_KEY);
-    return invoices.filter(inv => inv.userId === userId);
+    return [];
   },
 
   getPaymentsByUserId: async (userId) => {
-    const payments = getLocal(PAYMENTS_KEY);
-    return payments.filter(p => p.userId === userId);
+    return [];
   },
 
   getPaymentMethods: async (userId) => {
-    const methods = getLocal(PAYMENT_METHODS_KEY);
-    return userId ? methods.filter(m => m.userId === userId) : methods;
+    return [];
   },
 
   getBillingStats: async () => {
-    const invoices = getLocal(INVOICES_KEY);
-    const users = getLocal(USERS_KEY);
-    
-    const totalRevenue = invoices
-      .filter(i => i.status === 'paid')
-      .reduce((sum, i) => sum + i.amount, 0);
-      
-    const pendingAmount = invoices
-      .filter(i => i.status === 'pending')
-      .reduce((sum, i) => sum + i.amount, 0);
-
-    const activeSubscriptions = users.filter(u => u.role !== 'free' && u.status === 'active').length;
-
+    const users = await adminBillingDataService.getAllUsers();
+    const activeSubscriptions = users.filter(u => u.plan === 'Pro' || u.plan === 'Enterprise').length;
     return {
-      totalRevenue,
-      pendingAmount,
+      totalRevenue: 0,
+      pendingAmount: 0,
       activeSubscriptions,
-      totalInvoices: invoices.length
+      totalInvoices: 0
     };
   }
 };

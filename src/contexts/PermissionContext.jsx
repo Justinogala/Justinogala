@@ -44,7 +44,9 @@ export const PermissionProvider = ({ children, user }) => {
   // Get user permissions or defaults based on role
   const permissions = useMemo(() => {
     if (!user) return DEFAULT_PERMISSIONS.User;
-    return user.permissions || DEFAULT_PERMISSIONS[user.role] || DEFAULT_PERMISSIONS.User;
+    // Check if user has custom permissions (non-empty object)
+    const hasCustomPerms = user.permissions && Object.keys(user.permissions).length > 0;
+    return hasCustomPerms ? user.permissions : (DEFAULT_PERMISSIONS[user.role] || DEFAULT_PERMISSIONS.User);
   }, [user]);
 
   const value = useMemo(() => ({

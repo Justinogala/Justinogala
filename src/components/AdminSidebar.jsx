@@ -7,7 +7,7 @@ import {
   Activity, BarChart3, Lock, Cloud, Video, Building2, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/AuthContext';
+import { useAdminAuth } from '@/context/AdminAuthContext';
 import { usePermissions } from '@/contexts/PermissionContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -79,7 +79,7 @@ const SubNavItem = ({ link, onClose }) => (
 );
 
 const AdminSidebar = ({ onClose, isMobile }) => {
-  const { adminLogout, user } = useAuth();
+  const { logout, adminUser } = useAdminAuth();
   const { permissions } = usePermissions();
   const navigate = useNavigate();
   const [paymentsOpen, setPaymentsOpen] = useState(false);
@@ -351,9 +351,9 @@ const AdminSidebar = ({ onClose, isMobile }) => {
         <div className={cn("flex items-center gap-3", collapsed ? "justify-center flex-col" : "")}>
           <div className="relative">
             <Avatar className="h-10 w-10 ring-2 ring-indigo-500/30 shadow-lg">
-              <AvatarImage src={user?.avatar} />
+              <AvatarImage src={adminUser?.avatar} />
               <AvatarFallback className="bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 text-white font-bold text-sm">
-                AD
+                {(adminUser?.name || adminUser?.username || 'AD').substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
@@ -363,14 +363,14 @@ const AdminSidebar = ({ onClose, isMobile }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                  Admin
+                  {adminUser?.name || adminUser?.username || 'Admin'}
                 </p>
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white bg-gradient-to-r from-indigo-500 to-violet-500">
-                  Super
+                  {adminUser?.role || 'Admin'}
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                admin@munal.com
+                {adminUser?.email || 'admin@munal.com'}
               </p>
             </div>
           )}
@@ -380,7 +380,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
               variant="ghost" 
               size="icon" 
               className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              onClick={adminLogout}
+              onClick={logout}
               title="Logout"
             >
               <LogOut className="w-4 h-4" />

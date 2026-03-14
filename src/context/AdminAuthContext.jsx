@@ -3,11 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AdminAuthContext = createContext(null);
 
-// Hardcoded credentials for the task
-const ADMIN_CREDENTIALS = {
-  email: 'admin@munal.com',
-  password: 'Admin@123456'
-};
+const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
+const getApiUrl = () => API_URL || window.location.origin;
 
 const STORAGE_KEYS = {
   TOKEN: 'admin_token',
@@ -21,7 +18,6 @@ export const AdminAuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Check for existing session on mount
     const initAuth = () => {
       try {
         const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
@@ -33,7 +29,6 @@ export const AdminAuthProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Admin Auth Restoration Error:', err);
-        // Clear potentially corrupted data
         localStorage.removeItem(STORAGE_KEYS.TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER);
       } finally {
@@ -47,30 +42,51 @@ export const AdminAuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     setError(null);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
-      if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-        const user = {
-          id: 'admin-1',
-          email: email,
-          username: 'Admin',
-          role: 'super_admin'
-        };
-        const token = 'mock-admin-token-' + Date.now();
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-        // Persist session
-        localStorage.setItem(STORAGE_KEYS.TOKEN, token);
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-
-        setAdminUser(user);
-        setIsAuthenticated(true);
-        return { success: true };
-      } else {
-        throw new Error('Invalid email or password');
+      let data;
+      try {
+        const text = await response.text();
+        data = JSON.parse(text);
+      } catch {
+        throw new Error('Unable to connect to the server. Please try again later.');
       }
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Invalid email or password');
+      }
+
+      const dbUser = data.user;
+      const role = (dbUser.role || '').toLowerCase();
+      
+      if (role !== 'admin' && role !== 'super_admin' && role !== 'manager') {
+        throw new Error('Access denied. Admin privileges required.');
+      }
+
+      const user = {
+        id: dbUser.id,
+        email: dbUser.email,
+        username: dbUser.name || dbUser.full_name || 'Admin',
+        name: dbUser.name || dbUser.full_name || 'Admin',
+        role: dbUser.role,
+        permissions: dbUser.permissions || {},
+        plan: dbUser.plan,
+        avatar: dbUser.avatar
+      };
+
+      localStorage.setItem(STORAGE_KEYS.TOKEN, data.token);
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+
+      setAdminUser(user);
+      setIsAuthenticated(true);
+      return { success: true };
     } catch (err) {
       setError(err.message);
       return { success: false, error: err.message };
@@ -80,22 +96,11 @@ export const AdminAuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    setLoading(true);
-    try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-      setAdminUser(null);
-      setIsAuthenticated(false);
-      return { success: true };
-    } catch (err) {
-      console.error('Logout error', err);
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    setAdminUser(null);
+    setIsAuthenticated(false);
+    return { success: true };
   };
 
   const clearError = () => setError(null);

@@ -4,12 +4,8 @@ import { userDataSyncService } from '@/services/userDataSyncService';
 
 const AuthContext = createContext(null);
 
-const USERS_KEY = 'munal_users';
 const SESSIONS_KEY = 'munal_sessions';
 const AUTH_KEY = 'munal_auth';
-
-// Helper to simulate API delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const AuthProvider = ({ children }) => {
   // Regular User State
@@ -223,19 +219,19 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (updates) => {
     try {
       setLoading(true);
-      const usersJson = localStorage.getItem(USERS_KEY);
-      let users = usersJson ? JSON.parse(usersJson) : [];
-      const userIndex = users.findIndex(u => u.id === user.id);
-      if (userIndex === -1) throw new Error("User not found");
+      const response = await fetch(`${API_URL}/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
       
-      const updatedUser = { ...users[userIndex], ...updates };
-      users[userIndex] = updatedUser;
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      const data = await safeParseJSON(response);
+      if (!response.ok) throw new Error(data.detail || 'Failed to update profile');
       
-      // Notify sync service
+      const updatedUser = data.user || data;
       userDataSyncService.notifyChange('update', user.id, updatedUser);
-      
-      setUser(updatedUser);
+      setUser(prev => ({ ...prev, ...updatedUser }));
+      localStorage.setItem(AUTH_KEY, JSON.stringify({ ...user, ...updatedUser }));
       return { success: true, user: updatedUser };
     } catch (err) {
       return { success: false, error: err.message };
@@ -247,19 +243,17 @@ export const AuthProvider = ({ children }) => {
   const updatePassword = async (newPassword) => {
     try {
       setLoading(true);
-      await delay(500);
       if (!user) throw new Error("No user logged in");
       
-      const usersJson = localStorage.getItem(USERS_KEY);
-      let users = usersJson ? JSON.parse(usersJson) : [];
-      const userIndex = users.findIndex(u => u.id === user.id);
+      const response = await fetch(`${API_URL}/api/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword })
+      });
       
-      if (userIndex !== -1) {
-        users[userIndex].password = newPassword;
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-        return { success: true };
-      }
-      return { success: false, error: "User not found" };
+      const data = await safeParseJSON(response);
+      if (!response.ok) throw new Error(data.detail || 'Failed to update password');
+      return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
     } finally {
