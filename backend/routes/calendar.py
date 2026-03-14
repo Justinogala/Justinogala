@@ -103,8 +103,13 @@ async def create_calendar_event(event: CalendarEventCreate):
         # Build attendees from invitees list
         attendees = event.attendees or []
         if event.invitees:
+            users = await db.users.find(
+                {"id": {"$in": event.invitees}},
+                {"_id": 0, "id": 1, "name": 1, "email": 1}
+            ).to_list(len(event.invitees))
+            users_dict = {u["id"]: u for u in users}
             for user_id in event.invitees:
-                user = await db.users.find_one({"id": user_id}, {"_id": 0, "name": 1, "email": 1})
+                user = users_dict.get(user_id)
                 if user:
                     attendees.append({
                         "user_id": user_id,
