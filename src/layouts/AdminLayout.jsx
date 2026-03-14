@@ -5,12 +5,15 @@ import { Helmet } from 'react-helmet';
 import AdminSidebar from '@/components/AdminSidebar';
 import AdminHeader from '@/components/AdminHeader';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PermissionProvider } from '@/contexts/PermissionContext';
+import { useAuth } from '@/context/AuthContext';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
-    <>
+    <PermissionProvider user={user}>
       <Helmet>
         <title>Admin Portal - Munal</title>
         <meta name="robots" content="noindex" />
@@ -50,7 +53,7 @@ const AdminLayout = () => {
           </main>
         </div>
       </div>
-    </>
+    </PermissionProvider>
   );
 };
 

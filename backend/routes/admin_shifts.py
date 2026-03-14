@@ -2,11 +2,12 @@
 Admin Shift Management Routes
 Provides admin oversight and control over shifts across all workspaces
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
 from config import db, logger
+from middleware.permissions import require_permission, require_any_permission
 import uuid
 
 router = APIRouter(prefix="/admin/shifts", tags=["Admin Shifts"])
@@ -61,7 +62,9 @@ async def log_shift_admin_action(action: str, shift_id: str, admin_id: str, deta
 # ============== API Routes ==============
 
 @router.get("/stats")
-async def get_shift_stats():
+async def get_shift_stats(
+    current_user: dict = Depends(require_permission("shifts", "view"))
+):
     """Get overall shift statistics across all workspaces"""
     try:
         now = datetime.now(timezone.utc)

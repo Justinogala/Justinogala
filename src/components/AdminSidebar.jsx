@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/contexts/PermissionContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -79,6 +80,7 @@ const SubNavItem = ({ link, onClose }) => (
 
 const AdminSidebar = ({ onClose, isMobile }) => {
   const { adminLogout, user } = useAuth();
+  const { permissions } = usePermissions();
   const navigate = useNavigate();
   const [paymentsOpen, setPaymentsOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -88,19 +90,38 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     if (!isMobile) setCollapsed(!collapsed);
   };
 
+  // Helper to check if user has a specific permission
+  const hasPermission = (category, action) => {
+    return permissions?.[category]?.[action] || false;
+  };
+
   const primaryLinks = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard', gradient: 'from-violet-500 to-indigo-500' },
+    { 
+      icon: LayoutDashboard, 
+      label: 'Dashboard', 
+      path: '/admin/dashboard', 
+      gradient: 'from-violet-500 to-indigo-500',
+      permission: ['dashboard', 'view']
+    },
   ];
 
-  const managementLinks = [
-    { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500' },
-    { icon: Building2, label: 'Workspaces', path: '/admin/workspaces', gradient: 'from-indigo-500 to-violet-500' },
-    { icon: MessageSquare, label: 'Chat Moderation', path: '/admin/chat-moderation', gradient: 'from-emerald-500 to-green-500' },
-    { icon: Clock, label: 'Shifts', path: '/admin/shifts', gradient: 'from-orange-500 to-amber-500' },
-    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-pink-500 to-rose-500' },
-    { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-rose-500 to-red-500' },
-    { icon: MessageSquare, label: 'Broadcasts', path: '/admin/broadcasts', gradient: 'from-violet-500 to-purple-500' },
+  // Management links with permissions
+  const allManagementLinks = [
+    { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500', permission: ['users', 'view'] },
+    { icon: Building2, label: 'Workspaces', path: '/admin/workspaces', gradient: 'from-indigo-500 to-violet-500', permission: ['workspaces', 'view'] },
+    { icon: MessageSquare, label: 'Chat Moderation', path: '/admin/chat-moderation', gradient: 'from-emerald-500 to-green-500', permission: ['chat_moderation', 'view'] },
+    { icon: Clock, label: 'Shifts', path: '/admin/shifts', gradient: 'from-orange-500 to-amber-500', permission: ['shifts', 'view'] },
+    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-pink-500 to-rose-500', permission: ['support', 'view'] },
+    { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-rose-500 to-red-500', permission: ['messages', 'view'] },
+    { icon: MessageSquare, label: 'Broadcasts', path: '/admin/broadcasts', gradient: 'from-violet-500 to-purple-500', permission: ['messages', 'broadcast'] },
   ];
+
+  // Filter management links based on permissions
+  const managementLinks = allManagementLinks.filter(link => {
+    if (!link.permission) return true;
+    const [category, action] = link.permission;
+    return hasPermission(category, action);
+  });
 
   const paymentSubLinks = [
     { icon: Gateway, label: 'Payment Gateways', path: '/admin/payment-gateways' },
@@ -110,20 +131,31 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: Receipt, label: 'Transactions', path: '/admin/transactions' },
   ];
 
-  const configLinks = [
-    { icon: Activity, label: 'Monitoring', path: '/admin/monitoring', gradient: 'from-green-500 to-emerald-500' },
-    { icon: Lock, label: 'Security Policies', path: '/admin/security-policies', gradient: 'from-red-500 to-rose-500' },
-    { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500' },
-    { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500' },
-    { icon: Video, label: 'Video Settings', path: '/admin/video-settings', gradient: 'from-fuchsia-500 to-pink-500' },
-    { icon: CreditCard, label: 'Stripe Settings', path: '/admin/stripe-settings', gradient: 'from-green-500 to-emerald-500' },
-    { icon: Video, label: 'Video History', path: '/admin/video-history', gradient: 'from-purple-500 to-fuchsia-500' },
-    { icon: Key, label: 'API Settings', path: '/admin/api-settings', gradient: 'from-amber-500 to-orange-500' },
-    { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500' },
-    { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500' },
-    { icon: FileText, label: 'Audit Logs', path: '/admin/audit-logs', gradient: 'from-rose-500 to-pink-500' },
-    { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500' },
+  // Config links with permissions
+  const allConfigLinks = [
+    { icon: Activity, label: 'Monitoring', path: '/admin/monitoring', gradient: 'from-green-500 to-emerald-500', permission: ['settings', 'view'] },
+    { icon: Lock, label: 'Security Policies', path: '/admin/security-policies', gradient: 'from-red-500 to-rose-500', permission: ['settings', 'security'] },
+    { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500', permission: ['dashboard', 'analytics'] },
+    { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500', permission: ['settings', 'modify'] },
+    { icon: Video, label: 'Video Settings', path: '/admin/video-settings', gradient: 'from-fuchsia-500 to-pink-500', permission: ['settings', 'modify'] },
+    { icon: CreditCard, label: 'Stripe Settings', path: '/admin/stripe-settings', gradient: 'from-green-500 to-emerald-500', permission: ['billing', 'manage'] },
+    { icon: Video, label: 'Video History', path: '/admin/video-history', gradient: 'from-purple-500 to-fuchsia-500', permission: ['settings', 'view'] },
+    { icon: Key, label: 'API Settings', path: '/admin/api-settings', gradient: 'from-amber-500 to-orange-500', permission: ['settings', 'modify'] },
+    { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500', permission: ['settings', 'modify'] },
+    { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500', permission: ['settings', 'modify'] },
+    { icon: FileText, label: 'Audit Logs', path: '/admin/audit-logs', gradient: 'from-rose-500 to-pink-500', permission: ['settings', 'view'] },
+    { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500', permission: ['settings', 'view'] },
   ];
+
+  // Filter config links based on permissions
+  const configLinks = allConfigLinks.filter(link => {
+    if (!link.permission) return true;
+    const [category, action] = link.permission;
+    return hasPermission(category, action);
+  });
+
+  // Check if user can see billing section
+  const canSeeBilling = hasPermission('billing', 'view');
 
   return (
     <motion.div 
@@ -228,7 +260,8 @@ const AdminSidebar = ({ onClose, isMobile }) => {
           ))}
         </div>
 
-        {/* Payments Section */}
+        {/* Payments Section - Only show if user has billing view permission */}
+        {canSeeBilling && (
         <div className="space-y-1">
           {!collapsed && (
             <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Billing</p>
@@ -289,8 +322,10 @@ const AdminSidebar = ({ onClose, isMobile }) => {
             )}
           </AnimatePresence>
         </div>
+        )}
 
-        {/* Configuration */}
+        {/* Configuration - Only show if user has any config permissions */}
+        {configLinks.length > 0 && (
         <div className="space-y-1">
           {!collapsed && (
             <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Configuration</p>
@@ -308,6 +343,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
             />
           ))}
         </div>
+        )}
       </div>
 
       {/* Admin Profile Footer */}

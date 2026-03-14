@@ -2,11 +2,12 @@
 Admin Chat Moderation Routes
 Provides admin oversight and moderation capabilities for workspace chats
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
 from config import db, logger
+from middleware.permissions import require_permission, require_any_permission
 import uuid
 
 router = APIRouter(prefix="/admin/chat-moderation", tags=["Admin Chat Moderation"])
@@ -60,7 +61,9 @@ async def log_moderation_action(action: str, message_id: str, admin_id: str, det
 # ============== API Routes ==============
 
 @router.get("/stats")
-async def get_moderation_stats():
+async def get_moderation_stats(
+    current_user: dict = Depends(require_permission("chat_moderation", "view"))
+):
     """Get chat moderation statistics"""
     try:
         # Total messages

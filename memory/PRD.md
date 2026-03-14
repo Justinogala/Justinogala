@@ -1230,6 +1230,41 @@ User uploaded a Vite + React application (Munal/EchoNote AI) that needed to be e
   - Updates permissions when role changes
   - File: `/app/src/components/EditUserModal.jsx`
 - [x] **Permission Categories**:
+
+### Permission Enforcement System (Mar 14, 2026) - COMPLETE ✅
+**Backend Permission Middleware** (`/app/backend/middleware/permissions.py`):
+- [x] `require_permission(category, action)` - FastAPI dependency for single permission check
+- [x] `require_any_permission(category, actions)` - Check if user has any of the specified permissions
+- [x] `require_role(roles)` - Check if user has one of the specified roles
+- [x] `get_user_with_permissions()` - Load user with permissions from JWT token
+- [x] `is_admin_or_has_permission()` - Admin-aware permission checking
+- [x] `Permissions` class with constants for all permission types
+
+**Protected Admin Routes**:
+- [x] `/api/admin/workspaces/*` - Requires `workspaces.view`, `workspaces.manage`, etc.
+- [x] `/api/admin/shifts/*` - Requires `shifts.view`
+- [x] `/api/admin/chat-moderation/*` - Requires `chat_moderation.view`
+
+**Frontend Permission System**:
+- [x] `PermissionContext.jsx` - React context for permissions
+- [x] `usePermissions()` - Hook to access permission context
+- [x] `useHasPermission(category, action)` - Hook to check specific permission
+- [x] `RequirePermission` component - Conditional rendering based on permissions
+- [x] `RequireRole` component - Conditional rendering based on roles
+- [x] `PermissionRoute.jsx` - Protected route components with access denied page
+
+**Admin Sidebar Permission Filtering**:
+- [x] Management links filtered by permissions (Users, Workspaces, Chat Moderation, Shifts, etc.)
+- [x] Configuration links filtered by permissions (Settings, Billing, Security, etc.)
+- [x] Billing section hidden if no `billing.view` permission
+- [x] AdminLayout wrapped with `PermissionProvider`
+
+**Testing Results**:
+- ✅ Unauthenticated requests return "Authentication required" (401)
+- ✅ User without permission returns "Permission denied" (403)
+- ✅ User with permission can access protected routes
+- ✅ Admin sidebar correctly filters items based on user permissions
+
   - Dashboard: View, View Analytics
   - User Management: View, Create, Edit, Delete
   - Workspace Management: View, Manage, Suspend, Delete

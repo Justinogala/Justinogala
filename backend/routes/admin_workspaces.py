@@ -2,11 +2,12 @@
 Admin Workspace Management Routes
 Provides admin oversight and control over all workspaces
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime, timezone
 from config import db, logger
+from middleware.permissions import require_permission, require_any_permission, Permissions
 import uuid
 
 router = APIRouter(prefix="/admin/workspaces", tags=["Admin Workspaces"])
@@ -65,7 +66,8 @@ async def get_all_workspaces(
     search: Optional[str] = None,
     status: Optional[str] = None,  # active, suspended, archived
     sort_by: str = "created_at",
-    sort_order: str = "desc"
+    sort_order: str = "desc",
+    current_user: dict = Depends(require_permission("workspaces", "view"))
 ):
     """Get all workspaces with pagination and filters"""
     try:
@@ -137,7 +139,9 @@ async def get_all_workspaces(
 
 
 @router.get("/stats")
-async def get_workspace_stats():
+async def get_workspace_stats(
+    current_user: dict = Depends(require_permission("workspaces", "view"))
+):
     """Get overall workspace statistics"""
     try:
         total_workspaces = await db.workspaces.count_documents({})
@@ -184,7 +188,10 @@ async def get_workspace_stats():
 
 
 @router.get("/{workspace_id}")
-async def get_workspace_details(workspace_id: str):
+async def get_workspace_details(
+    workspace_id: str,
+    current_user: dict = Depends(require_permission("workspaces", "view"))
+):
     """Get detailed information about a specific workspace"""
     try:
         workspace = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0})
@@ -264,9 +271,25 @@ async def get_workspace_details(workspace_id: str):
 
 
 @router.post("/{workspace_id}/action")
-async def perform_workspace_action(workspace_id: str, action: WorkspaceAction, admin_id: str = "admin"):
+async def perform_workspace_action(
+    workspace_id: str, 
+    action: WorkspaceAction,
+    current_user: dict = Depends(require_permission("workspaces", "manage"))
+):
     """Perform administrative action on a workspace"""
     try:
+        # Check specific permission based on action
+        if action.action in ["suspend", "unsuspend"]:
+            if not current_user.get("permissions", {}).get("workspaces", {}).get("suspend", False):
+                if current_user.get("role") != "Admin":
+                    raise HTTPException(status_code=403, detail="Permission denied: requires workspaces.suspend")
+        elif action.action == "delete":
+            if not current_user.get("permissions", {}).get("workspaces", {}).get("delete", False):
+                if current_user.get("role") != "Admin":
+                    raise HTTPException(status_code=403, detail="Permission denied: requires workspaces.delete")
+        
+        admin_id = current_user.get("email", current_user.get("id", "admin"))
+        
         workspace = await db.workspaces.find_one({"id": workspace_id})
         if not workspace:
             raise HTTPException(status_code=404, detail="Workspace not found")
