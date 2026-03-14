@@ -20,7 +20,7 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - Screen/camera recording & transcription
 - Shift management, Workspace management
 - Internal messaging system
-- File Manager with GridFS storage
+- File Manager with GridFS storage + file download
 - 4-tier Stripe subscription system
 - Admin Portal with RBAC (granular permissions)
 - Real-time audit logging
@@ -38,14 +38,14 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 ## Key API Endpoints
 - `POST /api/auth/login` - User/Admin login
 - `POST /api/auth/register` - User signup (immediate, no verification)
-- `POST /api/auth/forgot-password` - Password reset via email
+- `GET /api/chat/files/{file_id}` - Download file from GridFS
+- `POST /api/chat/files/upload` - Upload file to GridFS
 - `GET /api/health` - Health check
 
 ## Recent Changes (March 14, 2026)
+- **File download**: Wired up download buttons in FileList component to actually download files via `fileService.downloadFile` + blob URL trigger
 - **Removed email verification on signup** — users go straight to dashboard
 - Login auto-verifies any previously unverified users
-- Marked all existing unverified users as verified in DB
-- Verify-email endpoints still exist but are no longer required in the flow
 
 ## Backlog
 - **P2**: End-to-End test cloud storage migration

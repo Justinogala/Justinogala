@@ -70,6 +70,26 @@ const FileManagementPage = () => {
     }
   };
 
+  const handleDownload = async (file) => {
+    try {
+      const result = await fileService.downloadFile(file.id);
+      if (result.success) {
+        const url = URL.createObjectURL(result.data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        toast({ variant: "destructive", title: "Error", description: "Download failed" });
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Could not download file" });
+    }
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-bg-secondary flex flex-col">
@@ -120,6 +140,7 @@ const FileManagementPage = () => {
               onDetails={setSelectedDetailFile}
               onDelete={handleDelete}
               onViewTranscript={setTranscriptFile}
+              onDownload={handleDownload}
             />
           </motion.div>
         </main>

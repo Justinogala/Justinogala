@@ -22,7 +22,7 @@ const FileIcon = ({ type, bucket }) => {
   return <FileText className="w-5 h-5 text-emerald-500" />;
 };
 
-const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript }) => {
+const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript, onDownload }) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
 
@@ -125,7 +125,7 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript }) =
                           <FileType className="w-4 h-4 text-indigo-400" />
                         </Button>
                       )}
-                      <Button size="icon" variant="ghost" className="h-8 w-8">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" data-testid={`download-btn-${file.id}`} onClick={() => onDownload && onDownload(file)}>
                         <Download className="w-4 h-4 text-gray-400" />
                       </Button>
                     </div>
@@ -148,7 +148,7 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript }) =
                             <FileType className="w-4 h-4 mr-2 text-indigo-400" /> View Transcript
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem className="md:hidden">
+                        <DropdownMenuItem className="md:hidden" onClick={() => onDownload && onDownload(file)}>
                           <Download className="w-4 h-4 mr-2" /> Download
                         </DropdownMenuItem>
                         <DropdownMenuItem 
