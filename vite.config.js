@@ -268,9 +268,15 @@ export default defineConfig({
 		allowedHosts: true,
 		proxy: {
 			'/api': {
-				target: 'http://localhost:8001',
+				target: 'http://127.0.0.1:8001',
 				changeOrigin: true,
 				secure: false,
+				ws: true,
+				configure: (proxy) => {
+					proxy.on('error', (err) => {
+						console.log('[proxy] Error:', err.message);
+					});
+				},
 			},
 		},
 	},
