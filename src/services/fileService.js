@@ -34,48 +34,59 @@ export const fileService = {
       // Start progress
       if (onProgress) onProgress(30);
 
-      // Upload to backend
+      // Upload to backend using FormData (backend expects Form fields)
+      const formData = new FormData();
+      formData.append('user_id', userId);
+      formData.append('file_name', file.name);
+      formData.append('file_data', base64);
+      formData.append('content_type', file.type);
+      formData.append('category', bucket);
+
       const response = await fetch(`${apiUrl}/api/chat/files/upload`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          file_name: file.name,
-          file_data: base64,
-          content_type: file.type,
-          category: bucket
-        })
+        body: formData
       });
 
       if (onProgress) onProgress(70);
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Upload failed');
+        let errorMessage = 'Upload failed';
+        try {
+          const errorData = await response.json();
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (Array.isArray(errorData.detail)) {
+            errorMessage = errorData.detail.map(d => d.msg || d.message || 'Validation error').join(', ');
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          errorMessage = `Upload failed (status ${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      const fileId = data.file?.id || data.file_id;
       
       if (onProgress) onProgress(100);
 
       return { 
         success: true, 
         data: {
-          id: data.file_id,
+          id: fileId,
           name: file.name,
           size: file.size,
           type: file.type,
           bucket,
           path: `${path}/${file.name}`,
           uploadedAt: new Date().toISOString(),
-          url: `${apiUrl}/api/chat/files/${data.file_id}`
+          url: `${apiUrl}/api/chat/files/${fileId}`
         }
       };
     } catch (error) {
       console.error('Upload error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Upload failed' };
     }
   },
 
@@ -173,11 +184,11 @@ export const fileService = {
       // Transform files to match expected format
       const files = (data.files || []).map(file => ({
         id: file.id,
-        name: file.filename,
-        size: file.file_size,
+        name: file.file_name || file.filename,
+        size: file.size || file.file_size,
         type: file.content_type,
         category: file.category,
-        uploadedAt: file.created_at,
+        uploadedAt: file.uploaded_at || file.created_at,
         url: `${apiUrl}/api/chat/files/${file.id}`
       }));
 

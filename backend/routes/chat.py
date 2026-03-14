@@ -242,7 +242,7 @@ async def upload_chat_file(
         
         await db.chat_files.insert_one(file_doc)
         
-        return {"success": True, "file": {k: v for k, v in file_doc.items() if k != "grid_id"}}
+        return {"success": True, "file": {k: v for k, v in file_doc.items() if k not in ("_id", "grid_id")}}
     except Exception as e:
         logger.error(f"Error uploading file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
