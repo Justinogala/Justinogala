@@ -1,9 +1,8 @@
+import { getApiUrl, API_URL } from '@/lib/api';
 /**
  * Shift Management Service
  * Handles all shift-related API operations
  */
-
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 // Helper function for API requests
 const apiRequest = async (endpoint, options = {}) => {

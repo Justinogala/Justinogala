@@ -26,7 +26,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import PageTransition from '@/components/PageTransition';
 
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const MessagesPage = () => {
   const { user } = useAuth();

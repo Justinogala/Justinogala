@@ -5,8 +5,7 @@ import { Mail, ArrowLeft, RefreshCw, CheckCircle2, ShieldCheck } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
-const getApiUrl = () => API_URL || window.location.origin;
+import { getApiUrl, API_URL } from '@/lib/api';
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate();

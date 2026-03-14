@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const AdminStripeSettingsPage = () => {
   const { toast } = useToast();

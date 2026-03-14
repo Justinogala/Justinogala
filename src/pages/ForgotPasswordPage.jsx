@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || window.location.origin;
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');

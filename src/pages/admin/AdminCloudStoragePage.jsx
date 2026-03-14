@@ -9,12 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
+import { getApiUrl, API_URL } from '@/lib/api';
+
 import { 
   Cloud, Server, Database, HardDrive, RefreshCw, CheckCircle, 
   XCircle, AlertTriangle, Upload, Settings, ArrowRight, Loader2
 } from 'lucide-react';
-
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const PROVIDER_ICONS = {
   gridfs: Database,

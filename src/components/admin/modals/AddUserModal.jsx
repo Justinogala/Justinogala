@@ -25,13 +25,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { validateUserForm } from '@/utils/userFormValidation';
+import { getApiUrl, API_URL } from '@/lib/api';
+
 import { 
   Loader2, Eye, EyeOff, ChevronDown, ChevronRight,
   LayoutDashboard, Users, Building2, MessageSquare, 
   Clock, CreditCard, Settings, LifeBuoy, Mail, Shield
 } from 'lucide-react';
-
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
 
 // Permission categories with their labels and icons
 const PERMISSION_CATEGORIES = {

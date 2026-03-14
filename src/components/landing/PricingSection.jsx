@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 // Fallback plans if API fails
 const fallbackPlans = [

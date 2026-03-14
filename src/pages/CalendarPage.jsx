@@ -30,7 +30,7 @@ import { useAuth } from '@/context/AuthContext';
 import PageTransition from '@/components/PageTransition';
 import { cn } from '@/lib/utils';
 
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const EVENT_COLORS = {
   blue: { bg: 'bg-blue-500', light: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500' },

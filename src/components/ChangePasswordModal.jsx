@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || window.location.origin;
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const ChangePasswordModal = ({ isOpen, onClose, email, tempPassword, onPasswordChanged }) => {
   const [newPassword, setNewPassword] = useState('');

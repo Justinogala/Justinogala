@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { getApiUrl, API_URL } from '@/lib/api';
+
 import {
   Table,
   TableBody,
@@ -34,8 +36,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const AdminVideoHistoryPage = () => {
   const { toast } = useToast();

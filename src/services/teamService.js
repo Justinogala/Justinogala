@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { activityLogService } from './activityLogService';
 import { memberService } from './memberService';
 
+import { getApiUrl, API_URL } from '@/lib/api';
+
 const TEAMS_KEY = 'munal_teams';
 
 const getTeams = () => {
@@ -119,7 +121,7 @@ export const teamService = {
    */
   fetchAllUsers: async (currentUserId) => {
     try {
-      const apiUrl = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || window.location.origin;
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/api/users`);
       
       if (response.ok) {

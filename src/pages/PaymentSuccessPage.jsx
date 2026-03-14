@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const PaymentSuccessPage = () => {
   const [searchParams] = useSearchParams();

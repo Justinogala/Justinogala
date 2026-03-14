@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { userDataSyncService } from '@/services/userDataSyncService';
 
+import { getApiUrl, API_URL } from '@/lib/api';
+
 const AuthContext = createContext(null);
 
 const SESSIONS_KEY = 'munal_sessions';
@@ -76,7 +78,7 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || window.location.origin;
+  
 
   // Safe JSON parser that handles non-JSON responses
   const safeParseJSON = async (response) => {

@@ -1,9 +1,7 @@
 
 import { userDataSyncService } from './userDataSyncService';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
-
-const getApiUrl = () => API_URL || window.location.origin;
+import { getApiUrl, API_URL } from '@/lib/api';
 
 export const adminUserDataService = {
   getAllUsers: async () => {

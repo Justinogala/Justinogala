@@ -13,6 +13,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Components
 import MeetingsList from './MeetingsList';
+import { getApiUrl, API_URL } from '@/lib/api';
+
 import { 
   Dialog, 
   DialogContent, 
@@ -21,8 +23,6 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
-
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const ModernMeetingsDashboard = ({ onJoinClick }) => {
   const navigate = useNavigate();

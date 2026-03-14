@@ -37,7 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import PageTransition from '@/components/PageTransition';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const AdminWorkspacesPage = () => {
   const navigate = useNavigate();

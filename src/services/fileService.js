@@ -1,11 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 /**
  * Get the API URL with fallback
  */
-const getApiUrl = () => API_URL || window.location.origin;
 
 /**
  * Service to handle file operations using backend GridFS storage.

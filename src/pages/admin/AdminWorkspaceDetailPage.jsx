@@ -39,7 +39,7 @@ import { useToast } from '@/components/ui/use-toast';
 import PageTransition from '@/components/PageTransition';
 import { format } from 'date-fns';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const AdminWorkspaceDetailPage = () => {
   const { id } = useParams();

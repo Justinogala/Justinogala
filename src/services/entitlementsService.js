@@ -1,9 +1,8 @@
+import { getApiUrl, API_URL } from '@/lib/api';
 /**
  * Entitlements Service
  * Handles subscription limits checking and usage tracking
  */
-
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 /**
  * Check if user can use a specific feature

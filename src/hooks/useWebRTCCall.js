@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { webrtcService } from '@/services/webrtcService';
 
-const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || window.location.origin;
+import { getApiUrl, API_URL as API_BASE } from '@/lib/api';
 
 export const useWebRTCCall = (userId, onIncomingCall) => {
   const [isCallConnected, setIsCallConnected] = useState(false);

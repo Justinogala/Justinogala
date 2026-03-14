@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from '@/lib/utils';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const TextToVideoPage = () => {
   const { toast } = useToast();

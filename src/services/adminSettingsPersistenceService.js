@@ -1,9 +1,8 @@
+import { getApiUrl, API_URL } from '@/lib/api';
 /**
  * Service to manage global admin settings persistence.
  * Uses MongoDB via Backend API for permanent data storage.
  */
-
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const SECTIONS = ['general', 'security', 'email', 'notifications', 'system'];
 

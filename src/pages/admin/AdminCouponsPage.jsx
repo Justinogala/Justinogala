@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const AdminCouponsPage = () => {
   const { toast } = useToast();

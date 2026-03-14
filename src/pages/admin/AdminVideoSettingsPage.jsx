@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Save, Trash2, Eye, EyeOff, Video, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || '';
+import { getApiUrl, API_URL } from '@/lib/api';
 
 const AdminVideoSettingsPage = () => {
   const { toast } = useToast();

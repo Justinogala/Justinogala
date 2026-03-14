@@ -1,10 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const AdminAuthContext = createContext(null);
+import { getApiUrl, API_URL } from '@/lib/api';
 
-const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || '';
-const getApiUrl = () => API_URL || window.location.origin;
+const AdminAuthContext = createContext(null);
 
 const STORAGE_KEYS = {
   TOKEN: 'admin_token',
