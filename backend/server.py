@@ -195,10 +195,12 @@ async def startup_event():
             admin = await db.users.find_one({"email": "admin@munal.com"})
             if not admin:
                 import uuid
+                import bcrypt
+                hashed_pw = bcrypt.hashpw("Admin@123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 admin_doc = {
                     "id": str(uuid.uuid4()),
                     "email": "admin@munal.com",
-                    "password": "Admin@123456",
+                    "password": hashed_pw,
                     "name": "Admin User",
                     "role": "Admin",
                     "status": "Active",
@@ -212,7 +214,18 @@ async def startup_event():
                 await db.users.insert_one(admin_doc)
                 logger.info("Admin user seeded: admin@munal.com")
             else:
-                logger.info("Admin user already exists")
+                # Auto-migrate admin plain-text password to bcrypt
+                stored_pw = admin.get("password", "")
+                if not (stored_pw.startswith('$2b$') or stored_pw.startswith('$2a$')):
+                    import bcrypt
+                    hashed_pw = bcrypt.hashpw(stored_pw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    await db.users.update_one(
+                        {"email": "admin@munal.com"},
+                        {"$set": {"password": hashed_pw}}
+                    )
+                    logger.info("Admin password migrated to bcrypt")
+                else:
+                    logger.info("Admin user already exists")
         except Exception as seed_err:
             logger.error(f"Admin seed error: {seed_err}")
             

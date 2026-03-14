@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
+import bcrypt
 
 from config import db, logger
 from models import UserCreate, UserUpdate, DEFAULT_PERMISSIONS
@@ -142,7 +143,7 @@ async def create_user(user: UserCreate):
     user_doc = {
         "id": user_id,
         "email": user.email.lower(),
-        "password": user.password,
+        "password": bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
         "name": user.name,
         "role": user.role,
         "status": user.status,

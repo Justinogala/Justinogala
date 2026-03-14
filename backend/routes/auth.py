@@ -11,6 +11,7 @@ import string
 import asyncio
 import resend
 import random
+import bcrypt
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, SENDER_EMAIL, logger
 from models import UserCreate, UserLogin, ForgotPasswordRequest, ResetPasswordRequest
@@ -20,6 +21,17 @@ security = HTTPBearer(auto_error=False)
 
 
 # ============== Helper Functions ==============
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, stored: str) -> bool:
+    """Verify password against stored hash. Handles both bcrypt and legacy plain-text."""
+    if stored.startswith('$2b$') or stored.startswith('$2a$'):
+        return bcrypt.checkpw(password.encode('utf-8'), stored.encode('utf-8'))
+    # Legacy plain-text comparison for un-migrated passwords
+    return password == stored
 
 def generate_temp_password(length=12):
     """Generate a random temporary password"""
@@ -190,7 +202,7 @@ async def register_user(user: UserCreate):
     user_doc = {
         "id": user_id,
         "email": user.email.lower(),
-        "password": user.password,
+        "password": hash_password(user.password),
         "name": user.name,
         "role": user.role,
         "status": user.status,
@@ -314,9 +326,17 @@ async def login_user(credentials: UserLogin):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    # Check password
-    if user["password"] != credentials.password:
+    # Check password (supports both bcrypt hashed and legacy plain-text)
+    if not verify_password(credentials.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Auto-migrate plain-text password to bcrypt on successful login
+    stored_pw = user["password"]
+    if not (stored_pw.startswith('$2b$') or stored_pw.startswith('$2a$')):
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"password": hash_password(credentials.password)}}
+        )
     
     # Check if account is suspended
     if user.get("status") == "Suspended":
@@ -371,12 +391,12 @@ async def forgot_password(request: ForgotPasswordRequest):
     # Generate temporary password
     temp_password = generate_temp_password()
     
-    # Update user with temp password
+    # Update user with temp password (hashed)
     await db.users.update_one(
         {"email": request.email.lower()},
         {
             "$set": {
-                "password": temp_password,
+                "password": hash_password(temp_password),
                 "requires_password_change": True,
                 "temp_password_expires": datetime.now(timezone.utc) + timedelta(hours=24)
             }
@@ -400,8 +420,8 @@ async def change_password(request: ResetPasswordRequest):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Verify temp password
-    if user.get("password") != request.temp_password:
+    # Verify temp password (supports both hashed and plain-text)
+    if not verify_password(request.temp_password, user.get("password", "")):
         raise HTTPException(status_code=401, detail="Invalid temporary password")
     
     # Check if temp password expired
@@ -409,12 +429,12 @@ async def change_password(request: ResetPasswordRequest):
         if datetime.now(timezone.utc) > user["temp_password_expires"]:
             raise HTTPException(status_code=401, detail="Temporary password has expired")
     
-    # Update password
+    # Update password (hashed)
     await db.users.update_one(
         {"email": request.email.lower()},
         {
             "$set": {
-                "password": request.new_password,
+                "password": hash_password(request.new_password),
                 "requires_password_change": False,
                 "updated_at": datetime.now(timezone.utc)
             },
