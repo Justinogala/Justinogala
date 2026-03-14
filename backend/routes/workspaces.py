@@ -180,9 +180,12 @@ async def get_workspace_members(workspace_id: str):
     try:
         members = await db.workspace_members.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(100)
         
-        # Enrich with user data
+        # Enrich with user data (batch fetch)
+        user_ids = [m["user_id"] for m in members]
+        users = await db.users.find({"id": {"$in": user_ids}}, {"_id": 0, "password": 0}).to_list(len(user_ids))
+        user_map = {u["id"]: u for u in users}
         for member in members:
-            user = await db.users.find_one({"id": member["user_id"]}, {"_id": 0, "password": 0})
+            user = user_map.get(member["user_id"])
             if user:
                 member["user"] = user
         

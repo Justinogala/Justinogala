@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "bash start-vite.sh",
-    "dev": "bash start-vite.sh",
+    "start": "node startup.cjs",
+    "dev": "node startup.cjs",
     "build": "cd /app && node node_modules/.bin/vite build"
   },
   "dependencies": {
