@@ -7,12 +7,13 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - **Frontend**: Vite + React, Tailwind CSS, Shadcn/UI
 - **Backend**: FastAPI (Python)
 - **Database**: MongoDB (Atlas) with GridFS for file storage
-- **Auth**: JWT-based
+- **Auth**: JWT-based (real MongoDB auth)
 - **Payments**: Stripe (4-tier subscription)
 - **AI**: OpenAI integration
 
 ## Core Features (Implemented)
-- User authentication (JWT)
+- User authentication (JWT against MongoDB)
+- Admin authentication (JWT against MongoDB, role-checked)
 - AI Chat with file attachments
 - Screen/camera recording & transcription
 - Shift management
@@ -24,13 +25,24 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - Real-time audit logging
 - Calendar, Meetings, Voice Chat
 
-## What's Been Completed
-- Full RBAC system (backend middleware + frontend context/hooks)
-- Real-time admin audit log with polling
-- Landing page content rework for workforce management
-- File upload bug fix (FormData, error handling, field mapping)
-- Orphaned workspace_members cleanup (2 records deleted)
-- Admin sidebar dynamic rendering based on permissions
+## Recent Critical Fixes (March 14, 2026)
+### Auth System Overhaul
+- **AuthContext**: Added `safeParseJSON` to handle non-JSON server responses gracefully
+- **AdminAuthContext**: Completely rewrote from hardcoded mock credentials to real MongoDB API auth via `/api/auth/login`
+- **PermissionContext**: Fixed empty permissions `{}` truthiness bug — now checks `Object.keys().length > 0`
+- **AdminSidebar**: Changed from `useAuth()` to `useAdminAuth()`, footer shows real admin data
+- **adminUserDataService**: Removed localStorage fallback — only fetches from `/api/users`
+- **adminBillingDataService**: Removed `initializeMockData()` — connected to real API
+
+### File Upload Bug Fix
+- Fixed `fileService.js`: Changed from JSON to FormData (backend expects Form params)
+- Fixed error extraction: Handles array/object/string `detail` from FastAPI 422 errors
+- Fixed field name mapping in `listFiles` (`file_name`/`size`/`uploaded_at`)
+- Fixed backend `_id` exclusion in upload response
+
+### Data Cleanup
+- Deleted 8 test/fake users from MongoDB (kept 11 real users)
+- Deleted 2 orphaned `workspace_members` records
 
 ## Key Credentials
 - **Admin**: admin@munal.com / Admin@123456
