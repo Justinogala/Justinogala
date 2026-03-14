@@ -1,3 +1,3 @@
 #!/bin/bash
 cd /app
-yarn dev
+node node_modules/.bin/vite --host :: --port 3000

@@ -1,1 +1,1 @@
-{"name":"frontend","version":"0.1.0","scripts":{"start":"cd /app && npx vite --host :: --port 3000","dev":"cd /app && npx vite --host :: --port 3000","build":"cd /app && npx vite build"}}
+{"name":"frontend","version":"0.1.0","scripts":{"start":"cd /app && node node_modules/.bin/vite --host :: --port 3000","dev":"cd /app && node node_modules/.bin/vite --host :: --port 3000","build":"cd /app && node node_modules/.bin/vite build"}}
