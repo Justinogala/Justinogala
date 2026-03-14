@@ -189,6 +189,32 @@ async def startup_event():
         except Exception as idx_err:
             # Index might already exist
             logger.info(f"TTL index status: {idx_err}")
+        
+        # Seed admin user if not exists
+        try:
+            admin = await db.users.find_one({"email": "admin@munal.com"})
+            if not admin:
+                import uuid
+                admin_doc = {
+                    "id": str(uuid.uuid4()),
+                    "email": "admin@munal.com",
+                    "password": "Admin@123456",
+                    "name": "Admin User",
+                    "role": "Admin",
+                    "status": "Active",
+                    "plan": "Enterprise",
+                    "avatar": None,
+                    "email_verified": True,
+                    "permissions": {},
+                    "created_at": datetime.now(timezone.utc),
+                    "updated_at": datetime.now(timezone.utc)
+                }
+                await db.users.insert_one(admin_doc)
+                logger.info("Admin user seeded: admin@munal.com")
+            else:
+                logger.info("Admin user already exists")
+        except Exception as seed_err:
+            logger.error(f"Admin seed error: {seed_err}")
             
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
