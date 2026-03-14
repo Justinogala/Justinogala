@@ -35,11 +35,8 @@ const SignupPage = () => {
       
       if (result.requires_verification) {
         toast({
-          title: result.email_sent ? "Verification code sent!" : "Verification required",
-          description: result.email_sent 
-            ? "Check your email for the 6-digit code." 
-            : "We couldn't send the email. Please use 'Resend code' on the next page.",
-          variant: result.email_sent ? "default" : "destructive",
+          title: "Verification required",
+          description: "Check your email for the verification code.",
         });
         navigate('/verify-email', { 
           state: { email: data.email, name: fullName, token: result.token } 

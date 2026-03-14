@@ -179,45 +179,13 @@ async def send_password_reset_email(email: str, temp_password: str, user_name: s
 
 @router.post("/register")
 async def register_user(user: UserCreate):
-    """Register a new user - sends verification email"""
+    """Register a new user - no email verification required"""
     # Check if email already exists
     existing = await db.users.find_one({"email": user.email.lower()})
     if existing:
-        # If user exists but not verified, allow re-registration
-        if not existing.get("email_verified", False):
-            code = generate_verification_code()
-            await db.users.update_one(
-                {"email": user.email.lower()},
-                {"$set": {
-                    "password": user.password,
-                    "name": user.name,
-                    "verification_code": code,
-                    "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15),
-                    "updated_at": datetime.now(timezone.utc)
-                }}
-            )
-            email_sent = False
-            try:
-                await send_verification_email(user.email.lower(), code, user.name)
-                email_sent = True
-            except Exception as e:
-                logger.error(f"Failed to send verification email on re-register: {e}")
-            
-            return {
-                "user": {
-                    "id": existing["id"],
-                    "email": user.email.lower(),
-                    "name": user.name,
-                    "email_verified": False
-                },
-                "token": create_jwt_token(existing["id"], user.email.lower(), "User"),
-                "requires_verification": True,
-                "email_sent": email_sent
-            }
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_id = str(uuid.uuid4())
-    code = generate_verification_code()
     
     user_doc = {
         "id": user_id,
@@ -228,22 +196,12 @@ async def register_user(user: UserCreate):
         "status": user.status,
         "plan": user.plan,
         "avatar": None,
-        "email_verified": False,
-        "verification_code": code,
-        "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "email_verified": True,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc)
     }
     
     await db.users.insert_one(user_doc)
-    
-    # Send verification email
-    email_sent = False
-    try:
-        await send_verification_email(user.email.lower(), code, user.name)
-        email_sent = True
-    except Exception as e:
-        logger.error(f"Failed to send verification email on register: {e}")
     
     # Generate JWT token
     token = create_jwt_token(user_id, user.email.lower(), user.role)
@@ -251,16 +209,12 @@ async def register_user(user: UserCreate):
     # Return user without password
     user_doc.pop("password")
     user_doc.pop("_id", None)
-    user_doc.pop("verification_code", None)
-    user_doc.pop("verification_expires", None)
     user_doc["created_at"] = user_doc["created_at"].isoformat()
     user_doc["updated_at"] = user_doc["updated_at"].isoformat()
     
     return {
         "user": user_doc,
-        "token": token,
-        "requires_verification": True,
-        "email_sent": email_sent
+        "token": token
     }
 
 @router.post("/verify-email")
@@ -368,34 +322,13 @@ async def login_user(credentials: UserLogin):
     if user.get("status") == "Suspended":
         raise HTTPException(status_code=403, detail="Account is suspended")
     
-    # Check if email is verified
+    # Auto-verify any previously unverified users on login
     if not user.get("email_verified", True):
-        # Send a new verification code
-        code = generate_verification_code()
         await db.users.update_one(
             {"email": credentials.email.lower()},
-            {"$set": {
-                "verification_code": code,
-                "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15)
-            }}
+            {"$set": {"email_verified": True},
+             "$unset": {"verification_code": "", "verification_expires": ""}}
         )
-        email_sent = False
-        try:
-            await send_verification_email(credentials.email.lower(), code, user.get("name", "User"))
-            email_sent = True
-        except Exception as e:
-            logger.error(f"Failed to send verification email on login: {e}")
-        
-        user.pop("password", None)
-        user.pop("verification_code", None)
-        user.pop("verification_expires", None)
-        token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
-        return {
-            "user": user,
-            "token": token,
-            "requires_verification": True,
-            "email_sent": email_sent
-        }
     
     # Check if using temporary password
     requires_password_change = user.get("requires_password_change", False)
