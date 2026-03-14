@@ -5,6 +5,7 @@ import inlineEditPlugin from './plugins/visual-editor/vite-plugin-react-inline-e
 import editModeDevPlugin from './plugins/visual-editor/vite-plugin-edit-mode.js';
 import iframeRouteRestorationPlugin from './plugins/vite-plugin-iframe-route-restoration.js';
 import selectionModePlugin from './plugins/selection-mode/vite-plugin-selection-mode.js';
+import viteHealthCheckPlugin from './plugins/vite-plugin-health-check.js';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -238,6 +239,7 @@ export default defineConfig({
 	envPrefix: ['VITE_', 'REACT_APP_'],
 	plugins: [
 		react(),
+		viteHealthCheckPlugin(),
 		...(isDev ? [inlineEditPlugin(), editModeDevPlugin(), iframeRouteRestorationPlugin(), selectionModePlugin()] : []),
 		addTransformIndexHtml
 	],
