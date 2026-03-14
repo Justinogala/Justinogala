@@ -38,7 +38,15 @@ const LoginPage = () => {
     try {
       const result = await login(data.email, data.password);
       
-      if (result.success) {
+      if (result.requires_verification) {
+        toast({
+          title: "Verification required",
+          description: "A verification code has been sent to your email.",
+        });
+        navigate('/verify-email', { 
+          state: { email: data.email, name: result.name, token: result.token } 
+        });
+      } else if (result.success) {
         // Check if user must change password
         if (result.user?.must_change_password) {
           setTempCredentials({ email: data.email, password: data.password });

@@ -1,5 +1,5 @@
 """
-Authentication routes - login, register, password reset.
+Authentication routes - login, register, password reset, email verification.
 """
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -10,6 +10,7 @@ import secrets
 import string
 import asyncio
 import resend
+import random
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, SENDER_EMAIL, logger
 from models import UserCreate, UserLogin, ForgotPasswordRequest, ResetPasswordRequest
@@ -24,6 +25,10 @@ def generate_temp_password(length=12):
     """Generate a random temporary password"""
     chars = string.ascii_letters + string.digits + "!@#$%"
     return ''.join(secrets.choice(chars) for _ in range(length))
+
+def generate_verification_code():
+    """Generate a 6-digit verification code"""
+    return str(random.randint(100000, 999999))
 
 def create_jwt_token(user_id: str, email: str, role: str = "User") -> str:
     """Create a JWT token for a user"""
@@ -71,6 +76,48 @@ async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(
         return user
     except Exception:
         return None
+
+async def send_verification_email(email: str, code: str, user_name: str):
+    """Send email verification code"""
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="text-align: center; padding: 30px 0 20px;">
+            <h1 style="color: #7c3aed; margin: 0; font-size: 28px;">Munal AI</h1>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Workforce Management Platform</p>
+        </div>
+        
+        <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-radius: 12px; padding: 32px; margin: 20px 0;">
+            <h2 style="color: #1f2937; margin-top: 0; font-size: 22px;">Verify your email</h2>
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">Hi {user_name},</p>
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">Welcome to Munal AI! Use the code below to verify your email address and activate your account:</p>
+            
+            <div style="background-color: #ffffff; border: 2px solid #7c3aed; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
+                <p style="font-size: 36px; font-weight: bold; color: #7c3aed; letter-spacing: 8px; margin: 0;">{code}</p>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 13px;">This code expires in <strong>15 minutes</strong>. If you didn't create a Munal AI account, you can safely ignore this email.</p>
+        </div>
+        
+        <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px;">&copy; 2026 Munal AI. All rights reserved.</p>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": "Verify your email - Munal AI",
+        "html": html_content
+    }
+    
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Verification email sent to {email}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
+        raise
 
 async def send_password_reset_email(email: str, temp_password: str, user_name: str):
     """Send password reset email with temporary password"""
@@ -120,13 +167,43 @@ async def send_password_reset_email(email: str, temp_password: str, user_name: s
 
 @router.post("/register")
 async def register_user(user: UserCreate):
-    """Register a new user"""
+    """Register a new user - sends verification email"""
     # Check if email already exists
     existing = await db.users.find_one({"email": user.email.lower()})
     if existing:
+        # If user exists but not verified, allow re-registration
+        if not existing.get("email_verified", False):
+            code = generate_verification_code()
+            await db.users.update_one(
+                {"email": user.email.lower()},
+                {"$set": {
+                    "password": user.password,
+                    "name": user.name,
+                    "verification_code": code,
+                    "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15),
+                    "updated_at": datetime.now(timezone.utc)
+                }}
+            )
+            try:
+                await send_verification_email(user.email.lower(), code, user.name)
+            except Exception as e:
+                logger.error(f"Failed to send verification email: {e}")
+            
+            return {
+                "user": {
+                    "id": existing["id"],
+                    "email": user.email.lower(),
+                    "name": user.name,
+                    "email_verified": False
+                },
+                "token": create_jwt_token(existing["id"], user.email.lower(), "User"),
+                "requires_verification": True
+            }
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_id = str(uuid.uuid4())
+    code = generate_verification_code()
+    
     user_doc = {
         "id": user_id,
         "email": user.email.lower(),
@@ -136,11 +213,20 @@ async def register_user(user: UserCreate):
         "status": user.status,
         "plan": user.plan,
         "avatar": None,
+        "email_verified": False,
+        "verification_code": code,
+        "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15),
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc)
     }
     
     await db.users.insert_one(user_doc)
+    
+    # Send verification email
+    try:
+        await send_verification_email(user.email.lower(), code, user.name)
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
     
     # Generate JWT token
     token = create_jwt_token(user_id, user.email.lower(), user.role)
@@ -148,13 +234,102 @@ async def register_user(user: UserCreate):
     # Return user without password
     user_doc.pop("password")
     user_doc.pop("_id", None)
+    user_doc.pop("verification_code", None)
+    user_doc.pop("verification_expires", None)
     user_doc["created_at"] = user_doc["created_at"].isoformat()
     user_doc["updated_at"] = user_doc["updated_at"].isoformat()
     
     return {
         "user": user_doc,
-        "token": token
+        "token": token,
+        "requires_verification": True
     }
+
+@router.post("/verify-email")
+async def verify_email(data: dict):
+    """Verify email with 6-digit code"""
+    email = data.get("email", "").lower()
+    code = data.get("code", "")
+    
+    if not email or not code:
+        raise HTTPException(status_code=400, detail="Email and verification code are required")
+    
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("email_verified"):
+        return {"verified": True, "message": "Email already verified"}
+    
+    stored_code = user.get("verification_code")
+    expires = user.get("verification_expires")
+    
+    if not stored_code:
+        raise HTTPException(status_code=400, detail="No verification code found. Please request a new one.")
+    
+    if expires:
+        # Handle both naive and aware datetimes
+        now = datetime.now(timezone.utc)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        if now > expires:
+            raise HTTPException(status_code=400, detail="Verification code has expired. Please request a new one.")
+    
+    if code != stored_code:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+    
+    # Mark as verified
+    await db.users.update_one(
+        {"email": email},
+        {
+            "$set": {"email_verified": True, "updated_at": datetime.now(timezone.utc)},
+            "$unset": {"verification_code": "", "verification_expires": ""}
+        }
+    )
+    
+    # Return token and user
+    token = create_jwt_token(user["id"], email, user.get("role", "User"))
+    user.pop("password", None)
+    user.pop("verification_code", None)
+    user.pop("verification_expires", None)
+    user["email_verified"] = True
+    if "created_at" in user and hasattr(user["created_at"], 'isoformat'):
+        user["created_at"] = user["created_at"].isoformat()
+    if "updated_at" in user and hasattr(user["updated_at"], 'isoformat'):
+        user["updated_at"] = user["updated_at"].isoformat()
+    
+    return {"verified": True, "user": user, "token": token}
+
+@router.post("/resend-verification")
+async def resend_verification(data: dict):
+    """Resend verification email"""
+    email = data.get("email", "").lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.get("email_verified"):
+        return {"message": "Email already verified"}
+    
+    code = generate_verification_code()
+    await db.users.update_one(
+        {"email": email},
+        {"$set": {
+            "verification_code": code,
+            "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15)
+        }}
+    )
+    
+    try:
+        await send_verification_email(email, code, user.get("name", "User"))
+    except Exception as e:
+        logger.error(f"Failed to resend verification email: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send verification email. Please try again.")
+    
+    return {"message": "Verification code sent"}
 
 @router.post("/login")
 async def login_user(credentials: UserLogin):
@@ -175,6 +350,32 @@ async def login_user(credentials: UserLogin):
     if user.get("status") == "Suspended":
         raise HTTPException(status_code=403, detail="Account is suspended")
     
+    # Check if email is verified
+    if not user.get("email_verified", True):
+        # Send a new verification code
+        code = generate_verification_code()
+        await db.users.update_one(
+            {"email": credentials.email.lower()},
+            {"$set": {
+                "verification_code": code,
+                "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15)
+            }}
+        )
+        try:
+            await send_verification_email(credentials.email.lower(), code, user.get("name", "User"))
+        except Exception:
+            pass
+        
+        user.pop("password", None)
+        user.pop("verification_code", None)
+        user.pop("verification_expires", None)
+        token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
+        return {
+            "user": user,
+            "token": token,
+            "requires_verification": True
+        }
+    
     # Check if using temporary password
     requires_password_change = user.get("requires_password_change", False)
     
@@ -189,6 +390,8 @@ async def login_user(credentials: UserLogin):
     
     # Return user without password
     user.pop("password", None)
+    user.pop("verification_code", None)
+    user.pop("verification_expires", None)
     if "created_at" in user and hasattr(user["created_at"], 'isoformat'):
         user["created_at"] = user["created_at"].isoformat()
     if "updated_at" in user and hasattr(user["updated_at"], 'isoformat'):

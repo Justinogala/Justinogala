@@ -46,6 +46,7 @@ import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+const VerifyEmailPage = lazy(() => import('@/pages/VerifyEmailPage'));
 import AdminLoginPage from '@/pages/AdminLoginPage';
 import AdminDashboard from '@/pages/AdminDashboard'; 
 
@@ -326,6 +327,7 @@ function App() {
                               <Route path="/login" element={<LoginPage />} />
                               <Route path="/login/otp" element={<OTPLoginPage />} />
                               <Route path="/signup" element={<SignupPage />} />
+                              <Route path="/verify-email" element={<VerifyEmailPage />} />
                               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                               <Route path="/password-reset" element={<PasswordResetPage />} />
                               <Route path="/pricing" element={<PricingPage />} />

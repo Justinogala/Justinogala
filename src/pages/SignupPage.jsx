@@ -33,7 +33,15 @@ const SignupPage = () => {
       const fullName = `${data.firstName} ${data.lastName}`.trim();
       const result = await signup(data.email, data.password, fullName);
       
-      if (result.success) {
+      if (result.requires_verification) {
+        toast({
+          title: "Verification code sent!",
+          description: "Check your email for the 6-digit code.",
+        });
+        navigate('/verify-email', { 
+          state: { email: data.email, name: fullName, token: result.token } 
+        });
+      } else if (result.success) {
         toast({
           title: "Account created!",
           description: "Welcome to Munal AI. Your intelligent workspace is ready.",

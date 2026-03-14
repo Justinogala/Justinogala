@@ -106,6 +106,17 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.detail || "Invalid email or password");
       }
 
+      // Check if email verification is needed
+      if (data.requires_verification) {
+        return { 
+          success: false, 
+          requires_verification: true, 
+          email: email,
+          name: data.user?.name || '',
+          token: data.token
+        };
+      }
+
       const foundUser = data.user;
       const session = { 
         userId: foundUser.id, 
@@ -144,9 +155,18 @@ export const AuthProvider = ({ children }) => {
       }
 
       const newUser = data.user;
-      
-      // Notify sync service
       userDataSyncService.notifyChange('create', newUser.id, newUser);
+
+      // Check if email verification is needed
+      if (data.requires_verification) {
+        return { 
+          success: true, 
+          requires_verification: true, 
+          email: email,
+          name: name,
+          token: data.token
+        };
+      }
 
       const session = { 
         userId: newUser.id, 
@@ -263,7 +283,9 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    setUser,
     isAuthenticated,
+    setIsAuthenticated,
     loading,
     error,
     login,
