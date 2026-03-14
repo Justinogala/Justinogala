@@ -82,6 +82,16 @@ export const AuthProvider = ({ children }) => {
 
   const API_URL = import.meta.env.REACT_APP_BACKEND_URL || import.meta.env.VITE_API_URL || window.location.origin;
 
+  // Safe JSON parser that handles non-JSON responses
+  const safeParseJSON = async (response) => {
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error('Unable to connect to the server. Please try again later.');
+    }
+  };
+
   // --- Regular User Functions ---
   const login = async (email, password) => {
     try {
@@ -94,7 +104,7 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password })
       });
 
-      const data = await response.json();
+      const data = await safeParseJSON(response);
 
       if (!response.ok) {
         throw new Error(data.detail || "Invalid email or password");
@@ -112,8 +122,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       return { success: true, user: foundUser };
     } catch (err) {
-      setError(err.message);
-      return { success: false, error: err.message };
+      const msg = err.message || 'Login failed. Please try again.';
+      setError(msg);
+      return { success: false, error: msg };
     } finally {
       setLoading(false);
     }
@@ -130,7 +141,7 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password, name })
       });
 
-      const data = await response.json();
+      const data = await safeParseJSON(response);
 
       if (!response.ok) {
         throw new Error(data.detail || "Registration failed");
@@ -143,7 +154,7 @@ export const AuthProvider = ({ children }) => {
 
       const session = { 
         userId: newUser.id, 
-        token: uuidv4(), 
+        token: data.token || uuidv4(), 
         createdAt: new Date().toISOString() 
       };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
@@ -152,8 +163,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       return { success: true, user: newUser };
     } catch (err) {
-      setError(err.message);
-      return { success: false, error: err.message };
+      const msg = err.message || 'Registration failed. Please try again.';
+      setError(msg);
+      return { success: false, error: msg };
     } finally {
       setLoading(false);
     }

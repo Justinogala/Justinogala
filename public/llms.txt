@@ -20,7 +20,7 @@
 - [Contact Us - Munal AI](/contactform): Get in touch with the Munal AI team for support, sales, or general inquiries.
 - [Create Account - EchoNote AI](/createaccount): No description available
 - [Edit:  | Munal](/transcriptions): No description available
-- [Features | Munal - Powerful Tools for Modern Teams](/features): No description available
+- [Features | Munal - AI-Powered Workforce Platform](/features): No description available
 - [File Management - Munal](/filemanagement): Manage your audio, video, and documents.
 - [Forgot Password | Munal AI](/forgotpassword): No description available
 - [History | Munal](/transcriptionhistory): No description available
@@ -32,7 +32,7 @@
 - [Meetings | Munal AI](/meetings): Manage your video conferences, schedule meetings, and view history.
 - [Messages - Admin | Munal AI](/adminmessages): No description available
 - [Messages | Munal](/chatmessages): No description available
-- [Munal - Collaborate, Transcribe, and Succeed Together](/landing): No description available
+- [Munal - AI-Powered Workforce & Collaboration Platform](/landing): No description available
 - [Munal - Transform Your Meetings](/home): No description available
 - [My Meetings - Munal](/meetinglist): No description available
 - [My Profile - Munal](/userprofile): No description available
