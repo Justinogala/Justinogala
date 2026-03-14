@@ -115,7 +115,8 @@ export const AuthProvider = ({ children }) => {
           requires_verification: true, 
           email: email,
           name: data.user?.name || '',
-          token: data.token
+          token: data.token,
+          email_sent: data.email_sent !== false
         };
       }
 
@@ -166,7 +167,8 @@ export const AuthProvider = ({ children }) => {
           requires_verification: true, 
           email: email,
           name: name,
-          token: data.token
+          token: data.token,
+          email_sent: data.email_sent !== false
         };
       }
 

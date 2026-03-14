@@ -77,8 +77,8 @@ async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(
     except Exception:
         return None
 
-async def send_verification_email(email: str, code: str, user_name: str):
-    """Send email verification code"""
+async def send_verification_email(email: str, code: str, user_name: str, max_retries: int = 3):
+    """Send email verification code with retry logic for rate limits"""
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <div style="text-align: center; padding: 30px 0 20px;">
@@ -111,13 +111,25 @@ async def send_verification_email(email: str, code: str, user_name: str):
         "html": html_content
     }
     
-    try:
-        result = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"Verification email sent to {email}")
-        return result
-    except Exception as e:
-        logger.error(f"Failed to send verification email: {e}")
-        raise
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            result = await asyncio.to_thread(resend.Emails.send, params)
+            logger.info(f"Verification email sent to {email} (attempt {attempt + 1})")
+            return result
+        except Exception as e:
+            last_error = e
+            error_msg = str(e).lower()
+            if "too many requests" in error_msg or "rate limit" in error_msg:
+                wait_time = 1.0 * (attempt + 1)
+                logger.warning(f"Resend rate limit hit for {email}, retrying in {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"Failed to send verification email to {email}: {e}")
+                raise
+    
+    logger.error(f"Failed to send verification email to {email} after {max_retries} retries: {last_error}")
+    raise last_error
 
 async def send_password_reset_email(email: str, temp_password: str, user_name: str):
     """Send password reset email with temporary password"""
@@ -184,10 +196,12 @@ async def register_user(user: UserCreate):
                     "updated_at": datetime.now(timezone.utc)
                 }}
             )
+            email_sent = False
             try:
                 await send_verification_email(user.email.lower(), code, user.name)
+                email_sent = True
             except Exception as e:
-                logger.error(f"Failed to send verification email: {e}")
+                logger.error(f"Failed to send verification email on re-register: {e}")
             
             return {
                 "user": {
@@ -197,7 +211,8 @@ async def register_user(user: UserCreate):
                     "email_verified": False
                 },
                 "token": create_jwt_token(existing["id"], user.email.lower(), "User"),
-                "requires_verification": True
+                "requires_verification": True,
+                "email_sent": email_sent
             }
         raise HTTPException(status_code=400, detail="Email already registered")
     
@@ -223,10 +238,12 @@ async def register_user(user: UserCreate):
     await db.users.insert_one(user_doc)
     
     # Send verification email
+    email_sent = False
     try:
         await send_verification_email(user.email.lower(), code, user.name)
+        email_sent = True
     except Exception as e:
-        logger.error(f"Failed to send verification email: {e}")
+        logger.error(f"Failed to send verification email on register: {e}")
     
     # Generate JWT token
     token = create_jwt_token(user_id, user.email.lower(), user.role)
@@ -242,7 +259,8 @@ async def register_user(user: UserCreate):
     return {
         "user": user_doc,
         "token": token,
-        "requires_verification": True
+        "requires_verification": True,
+        "email_sent": email_sent
     }
 
 @router.post("/verify-email")
@@ -361,10 +379,12 @@ async def login_user(credentials: UserLogin):
                 "verification_expires": datetime.now(timezone.utc) + timedelta(minutes=15)
             }}
         )
+        email_sent = False
         try:
             await send_verification_email(credentials.email.lower(), code, user.get("name", "User"))
-        except Exception:
-            pass
+            email_sent = True
+        except Exception as e:
+            logger.error(f"Failed to send verification email on login: {e}")
         
         user.pop("password", None)
         user.pop("verification_code", None)
@@ -373,7 +393,8 @@ async def login_user(credentials: UserLogin):
         return {
             "user": user,
             "token": token,
-            "requires_verification": True
+            "requires_verification": True,
+            "email_sent": email_sent
         }
     
     # Check if using temporary password

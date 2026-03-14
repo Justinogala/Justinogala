@@ -14,7 +14,7 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 
 ## Core Features (Implemented)
 - User authentication (JWT against MongoDB)
-- Email verification on signup (Resend) - 6-digit code, 15min expiry
+- Email verification on signup (Resend) - 6-digit code, 15min expiry, retry logic
 - Admin authentication (JWT against MongoDB, role-checked)
 - Admin user auto-seeding on startup
 - AI Chat with file attachments
@@ -41,23 +41,30 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - **Sender**: noreply@munal.ai
 
 ## Key API Endpoints
-- `POST /api/auth/login` - User/Admin login
-- `POST /api/auth/register` - User signup with email verification
+- `POST /api/auth/login` - User/Admin login (returns `email_sent` flag for unverified users)
+- `POST /api/auth/register` - User signup with email verification (returns `email_sent` flag)
 - `POST /api/auth/verify-email` - Verify email with 6-digit code
-- `POST /api/auth/resend-verification` - Resend verification code
+- `POST /api/auth/resend-verification` - Resend verification code (with retry)
 - `POST /api/auth/forgot-password` - Password reset
 - `GET /api/health` - Health check
 
+## Recent Changes (March 14, 2026)
+- Added retry logic (3 attempts with backoff) for Resend rate limits in `send_verification_email`
+- Backend now returns `email_sent: true/false` on register and login for unverified users
+- Frontend shows appropriate toast messages based on email delivery status
+- Fixed silent `except Exception: pass` in login flow for unverified users
+
 ## Validated (March 14, 2026)
-- Admin login flow (UI + API)
-- User signup flow with email verification redirect
-- Unverified user login redirects to verification
-- Admin dashboard shows real MongoDB data (no mock data)
-- Admin user seeding on startup
-- Health check endpoint
+- Admin login flow (UI + API) ✅
+- User signup flow with email verification redirect ✅
+- Email verification sending with retry logic ✅
+- Unverified user login redirects to verification ✅
+- Admin dashboard shows real MongoDB data ✅
+- Admin user seeding on startup ✅
 
 ## Backlog
 - **P2**: End-to-End test cloud storage migration
 - **P2**: Refactor AdminStripeSettingsPage.jsx (partially redundant)
 - **P2**: Clean up orphaned workspace_members data
 - **P3**: Consolidate AuthContext and AdminAuthContext for maintainability
+- **P3**: Add password hashing (bcrypt) for security
