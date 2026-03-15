@@ -32,6 +32,7 @@ class ShiftCreate(BaseModel):
     end_time: str  # HH:MM
     role: Optional[str] = None
     department: Optional[str] = None
+    employment_type: Optional[str] = None  # full-time, part-time, casual
     notes: Optional[str] = None
     is_recurring: bool = False
     recurrence_pattern: Optional[str] = None  # daily, weekly, custom
@@ -46,6 +47,7 @@ class ShiftUpdate(BaseModel):
     end_time: Optional[str] = None
     role: Optional[str] = None
     department: Optional[str] = None
+    employment_type: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None
     color: Optional[str] = None
@@ -146,6 +148,7 @@ async def create_shift(request: ShiftCreate, background_tasks: BackgroundTasks):
             "hours": calculate_hours(request.start_time, request.end_time),
             "role": request.role,
             "department": request.department,
+            "employment_type": request.employment_type,
             "notes": request.notes,
             "is_recurring": request.is_recurring,
             "recurrence_pattern": request.recurrence_pattern,

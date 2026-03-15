@@ -240,6 +240,34 @@ const ShiftForm = ({ onSubmit, isEdit, formData, setFormData, members, presets }
       </div>
 
       <div className="space-y-2">
+        <Label>Worker Type</Label>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { value: 'full-time', label: 'Full-time', icon: '🏢', desc: '35-40 hrs/wk' },
+            { value: 'part-time', label: 'Part-time', icon: '⏰', desc: '< 35 hrs/wk' },
+            { value: 'casual', label: 'Casual', icon: '📋', desc: 'As needed' },
+          ].map((type) => (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => setFormData({ ...formData, employment_type: type.value })}
+              className={cn(
+                'flex flex-col items-center gap-0.5 p-3 rounded-lg border-2 transition-all hover:shadow-md',
+                formData.employment_type === type.value
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              )}
+              data-testid={`employment-type-${type.value}`}
+            >
+              <span className="text-lg">{type.icon}</span>
+              <span className="font-medium text-sm">{type.label}</span>
+              <span className="text-[11px] text-gray-500">{type.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
         <Label>Color</Label>
         <div className="flex gap-2 flex-wrap">
           {SHIFT_COLORS.map((color) => (
@@ -371,6 +399,7 @@ const ShiftManagementPage = () => {
     assigned_to: '',
     role: '',
     department: '',
+    employment_type: '',
     notes: '',
     color: '#6366f1',
     is_recurring: false,
@@ -744,6 +773,7 @@ const ShiftManagementPage = () => {
       assigned_to: '',
       role: '',
       department: '',
+      employment_type: '',
       notes: '',
       color: '#6366f1',
       is_recurring: false,
@@ -762,6 +792,7 @@ const ShiftManagementPage = () => {
       assigned_to: shift.assigned_to || '',
       role: shift.role || '',
       department: shift.department || '',
+      employment_type: shift.employment_type || '',
       notes: shift.notes || '',
       color: shift.color || '#6366f1',
       is_recurring: shift.is_recurring || false,
