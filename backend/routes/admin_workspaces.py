@@ -67,7 +67,6 @@ async def get_all_workspaces(
     status: Optional[str] = None,  # active, suspended, archived
     sort_by: str = "created_at",
     sort_order: str = "desc",
-    current_user: dict = Depends(require_permission("workspaces", "view"))
 ):
     """Get all workspaces with pagination and filters"""
     try:
@@ -139,9 +138,7 @@ async def get_all_workspaces(
 
 
 @router.get("/stats")
-async def get_workspace_stats(
-    current_user: dict = Depends(require_permission("workspaces", "view"))
-):
+async def get_workspace_stats():
     """Get overall workspace statistics"""
     try:
         total_workspaces = await db.workspaces.count_documents({})
@@ -190,7 +187,6 @@ async def get_workspace_stats(
 @router.get("/{workspace_id}")
 async def get_workspace_details(
     workspace_id: str,
-    current_user: dict = Depends(require_permission("workspaces", "view"))
 ):
     """Get detailed information about a specific workspace"""
     try:
@@ -274,7 +270,6 @@ async def get_workspace_details(
 async def perform_workspace_action(
     workspace_id: str, 
     action: WorkspaceAction,
-    current_user: dict = Depends(require_permission("workspaces", "manage"))
 ):
     """Perform administrative action on a workspace"""
     try:
