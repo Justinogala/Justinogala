@@ -26,7 +26,7 @@ fs_attachments = None
 async def get_attachments_bucket():
     global fs_attachments
     if fs_attachments is None:
-        fs_attachments = AsyncIOMotorGridFSBucket(db.delegate, bucket_name="message_attachments")
+        fs_attachments = AsyncIOMotorGridFSBucket(db, bucket_name="message_attachments")
     return fs_attachments
 
 
@@ -713,6 +713,112 @@ async def restore_from_trash(message_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== Attachment Endpoints ==============
+# NOTE: These MUST be defined before /{message_id}/{user_id} catch-all routes
+
+@router.post("/attachments/upload")
+async def upload_attachment(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """Upload a file attachment for a message"""
+    try:
+        contents = await file.read()
+        if len(contents) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
+        
+        attachment_id = str(uuid.uuid4())
+        fs = await get_attachments_bucket()
+        grid_id = await fs.upload_from_stream(
+            file.filename,
+            contents,
+            metadata={
+                "attachment_id": attachment_id,
+                "user_id": user_id,
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "size": len(contents),
+                "uploaded_at": datetime.now(timezone.utc).isoformat()
+            }
+        )
+        
+        attachment = {
+            "id": attachment_id,
+            "grid_id": str(grid_id),
+            "user_id": user_id,
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "size": len(contents),
+            "uploaded_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.message_attachments.insert_one(attachment)
+        attachment.pop("_id", None)
+        return {"success": True, "attachment": attachment}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading attachment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/attachments/{attachment_id}")
+async def get_attachment(attachment_id: str):
+    """Download an attachment"""
+    try:
+        attachment = await db.message_attachments.find_one({"id": attachment_id}, {"_id": 0})
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+        
+        from bson import ObjectId
+        fs = await get_attachments_bucket()
+        grid_id = ObjectId(attachment["grid_id"])
+        grid_out = await fs.open_download_stream(grid_id)
+        
+        async def file_stream():
+            while True:
+                chunk = await grid_out.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+        
+        return StreamingResponse(
+            file_stream(),
+            media_type=attachment.get("content_type", "application/octet-stream"),
+            headers={
+                "Content-Disposition": f'attachment; filename="{attachment["filename"]}"',
+                "Content-Length": str(attachment.get("size", 0))
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting attachment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/attachments/{attachment_id}")
+async def delete_attachment(attachment_id: str, user_id: str):
+    """Delete an attachment"""
+    try:
+        attachment = await db.message_attachments.find_one({"id": attachment_id})
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+        if attachment["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this attachment")
+        
+        from bson import ObjectId
+        fs = await get_attachments_bucket()
+        await fs.delete(ObjectId(attachment["grid_id"]))
+        await db.message_attachments.delete_one({"id": attachment_id})
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting attachment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.delete("/{message_id}/{user_id}")
 async def delete_message(message_id: str, user_id: str):
     """Permanently delete a message"""
@@ -847,130 +953,6 @@ async def get_unread_count(user_id: str):
         logger.error(f"Error getting unread count: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
-# ============== Attachment Endpoints ==============
-
-@router.post("/attachments/upload")
-async def upload_attachment(
-    file: UploadFile = File(...),
-    user_id: str = Form(...)
-):
-    """Upload a file attachment for a message"""
-    try:
-        # Read file content
-        contents = await file.read()
-        
-        # Validate file size (10MB limit for attachments)
-        if len(contents) > 10 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
-        
-        # Generate attachment ID
-        attachment_id = str(uuid.uuid4())
-        
-        # Store in GridFS
-        fs = await get_attachments_bucket()
-        grid_id = await fs.upload_from_stream(
-            file.filename,
-            contents,
-            metadata={
-                "attachment_id": attachment_id,
-                "user_id": user_id,
-                "filename": file.filename,
-                "content_type": file.content_type,
-                "size": len(contents),
-                "uploaded_at": datetime.now(timezone.utc).isoformat()
-            }
-        )
-        
-        # Store attachment reference in database
-        attachment = {
-            "id": attachment_id,
-            "grid_id": str(grid_id),
-            "user_id": user_id,
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size": len(contents),
-            "uploaded_at": datetime.now(timezone.utc).isoformat()
-        }
-        
-        await db.message_attachments.insert_one(attachment)
-        attachment.pop("_id", None)
-        
-        return {"success": True, "attachment": attachment}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading attachment: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/attachments/{attachment_id}")
-async def get_attachment(attachment_id: str):
-    """Download an attachment"""
-    try:
-        # Get attachment metadata
-        attachment = await db.message_attachments.find_one({"id": attachment_id}, {"_id": 0})
-        if not attachment:
-            raise HTTPException(status_code=404, detail="Attachment not found")
-        
-        # Get file from GridFS
-        from bson import ObjectId
-        fs = await get_attachments_bucket()
-        grid_id = ObjectId(attachment["grid_id"])
-        
-        # Stream the file
-        grid_out = await fs.open_download_stream(grid_id)
-        
-        async def file_stream():
-            while True:
-                chunk = await grid_out.read(8192)
-                if not chunk:
-                    break
-                yield chunk
-        
-        return StreamingResponse(
-            file_stream(),
-            media_type=attachment.get("content_type", "application/octet-stream"),
-            headers={
-                "Content-Disposition": f'attachment; filename="{attachment["filename"]}"',
-                "Content-Length": str(attachment.get("size", 0))
-            }
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting attachment: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete("/attachments/{attachment_id}")
-async def delete_attachment(attachment_id: str, user_id: str):
-    """Delete an attachment"""
-    try:
-        # Get attachment
-        attachment = await db.message_attachments.find_one({"id": attachment_id})
-        if not attachment:
-            raise HTTPException(status_code=404, detail="Attachment not found")
-        
-        # Verify ownership
-        if attachment["user_id"] != user_id:
-            raise HTTPException(status_code=403, detail="Not authorized to delete this attachment")
-        
-        # Delete from GridFS
-        from bson import ObjectId
-        fs = await get_attachments_bucket()
-        await fs.delete(ObjectId(attachment["grid_id"]))
-        
-        # Delete metadata
-        await db.message_attachments.delete_one({"id": attachment_id})
-        
-        return {"success": True}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting attachment: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============== Message Settings ==============
