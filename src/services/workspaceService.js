@@ -4,7 +4,7 @@ import { getApiUrl, API_URL } from '@/lib/api';
 
 // --- Workspace CRUD ---
 
-export const createWorkspace = async (userId, name, description = '', plan = 'Free') => {
+export const createWorkspace = async (userId, name, description = '', plan = 'Free', color = '#6366f1', icon = null, inviteEmails = []) => {
   try {
     const response = await fetch(`${API_URL}/api/workspaces`, {
       method: 'POST',
@@ -13,7 +13,9 @@ export const createWorkspace = async (userId, name, description = '', plan = 'Fr
         name,
         description,
         plan,
-        owner_id: userId
+        owner_id: userId,
+        color,
+        icon
       })
     });
     
@@ -23,7 +25,29 @@ export const createWorkspace = async (userId, name, description = '', plan = 'Fr
     }
     
     const data = await response.json();
-    return data.workspace;
+    const workspace = data.workspace;
+    
+    // Invite members if any emails provided
+    if (inviteEmails.length > 0 && workspace?.id) {
+      for (const email of inviteEmails) {
+        try {
+          await fetch(`${API_URL}/api/workspaces/${workspace.id}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              workspace_id: workspace.id,
+              email: email.trim(),
+              role: 'member',
+              added_by: userId
+            })
+          });
+        } catch (e) {
+          console.warn(`Failed to invite ${email}:`, e);
+        }
+      }
+    }
+    
+    return workspace;
   } catch (error) {
     console.error('Error creating workspace:', error);
     throw error;

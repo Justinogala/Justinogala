@@ -19,6 +19,8 @@ class WorkspaceCreate(BaseModel):
     description: Optional[str] = None
     owner_id: str
     plan: str = "free"
+    color: Optional[str] = None
+    icon: Optional[str] = None
 
 class WorkspaceUpdate(BaseModel):
     name: Optional[str] = None
@@ -87,6 +89,8 @@ async def create_workspace(workspace: WorkspaceCreate):
             "description": workspace.description,
             "plan": workspace.plan,
             "owner_id": workspace.owner_id,
+            "color": workspace.color or "#6366f1",
+            "icon": workspace.icon or None,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "icon_url": None,
