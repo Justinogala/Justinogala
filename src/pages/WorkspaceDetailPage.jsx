@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 import { 
   Settings, Users, HardDrive, BarChart2, Trash2, 
   Save, AlertTriangle, ArrowLeft, Archive, Activity,
-  Clock, Calendar, CreditCard
+  Clock, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,6 @@ import { useAuth } from '@/context/AuthContext';
 import { getWorkspaceById, deleteWorkspace, updateWorkspace } from '@/services/workspaceService';
 import PageTransition from '@/components/PageTransition';
 import WorkspaceMemberManagement from '@/components/WorkspaceMemberManagement';
-import TeamBillingCard from '@/components/billing/TeamBillingCard';
 
 const WorkspaceDetailPage = () => {
   const { workspaceId } = useParams();
@@ -113,13 +112,12 @@ const WorkspaceDetailPage = () => {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="bg-white dark:bg-slate-900 p-1 rounded-xl border border-gray-200 dark:border-gray-800 h-auto flex-wrap">
-              {['overview', 'members', 'billing', 'settings', 'activity'].map(tab => (
+              {['overview', 'members', 'settings', 'activity'].map(tab => (
                  <TabsTrigger 
                    key={tab} 
                    value={tab}
                    className="capitalize px-6 py-2.5 rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 dark:data-[state=active]:bg-indigo-900/20 dark:data-[state=active]:text-indigo-300"
                  >
-                   {tab === 'billing' && <CreditCard className="w-4 h-4 mr-2" />}
                    {tab}
                  </TabsTrigger>
               ))}
@@ -175,30 +173,6 @@ const WorkspaceDetailPage = () => {
               <WorkspaceMemberManagement workspaceId={workspaceId} />
             </TabsContent>
 
-            <TabsContent value="billing" className="space-y-6 animate-in fade-in-50">
-              <TeamBillingCard 
-                workspaceId={workspaceId} 
-                ownerId={user?.id}
-                currentMemberCount={workspace?.members?.length || 1}
-              />
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart2 className="w-5 h-5" />
-                    Billing History
-                  </CardTitle>
-                  <CardDescription>View past invoices and payments</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No billing history yet</p>
-                    <p className="text-sm mt-1">Set up team billing to see invoices here</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
             <TabsContent value="settings" className="space-y-6 animate-in fade-in-50">
               <Card>
