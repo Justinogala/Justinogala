@@ -216,6 +216,7 @@ const AdminWorkspacesPage = lazy(() => import('@/pages/admin/AdminWorkspacesPage
 const AdminChatModerationPage = lazy(() => import('@/pages/admin/AdminChatModerationPage'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
+const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
 
 function App() {
   useEffect(() => {
@@ -353,6 +354,7 @@ function App() {
                                 <Route path="/quick-record" element={<QuickRecordPage />} />
                                 <Route path="/text-to-audio" element={<TextToAudioPage />} />
                                 <Route path="/text-to-video" element={<TextToVideoPage />} />
+                                <Route path="/reports" element={<ReportsPage />} />
                                 <Route path="/meetings" element={<MeetingsPage />} />
                                 <Route path="/meeting/:id" element={<MeetingDetailPage />} />
                                 <Route path="/meeting-calendar" element={<MeetingCalendarPage />} />
@@ -466,6 +468,7 @@ function App() {
                                 <Route path="billing" element={<AdminBillingPage />} />
                                 <Route path="workspaces" element={<AdminWorkspacesPage />} />
                                 <Route path="workspaces/:id" element={<AdminWorkspaceDetailPage />} />
+                                <Route path="reports" element={<ReportsPage />} />
                                 <Route path="chat-moderation" element={<AdminChatModerationPage />} />
                                 <Route path="shifts" element={<AdminShiftsPage />} />
                                 <Route path="profile" element={<AdminProfile />} />

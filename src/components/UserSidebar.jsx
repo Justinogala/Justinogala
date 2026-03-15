@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Mic, FileText, Briefcase, Settings, LogOut, ChevronLeft, 
   ChevronRight, User, HardDrive, CreditCard, DollarSign, MessageSquare,
   CircleDot, ExternalLink, ChevronDown, ChevronUp, Coins, Tag, Receipt, Volume2,
-  Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar, Video
+  Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar, Video,
+  FileWarning
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: MessageSquare, label: 'Chat', path: '/workspace/chat', gradient: 'from-pink-500 to-rose-500' },
     { icon: MessageSquare, label: 'Messages', path: '/messages', gradient: 'from-sky-500 to-blue-500' },
     { icon: HardDrive, label: 'Files', path: '/files', gradient: 'from-slate-500 to-gray-500' },
+    { icon: FileWarning, label: 'IR / SOR Reports', path: '/reports', badge: 'NEW', gradient: 'from-red-500 to-orange-500' },
   ];
 
   const paymentSubItems = [

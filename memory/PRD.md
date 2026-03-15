@@ -18,32 +18,38 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - AI Chat with file attachments
 - Internal messaging with file attachments (GridFS)
 - File Manager with downloads
-- Professional multi-step workspace creation (icon, color, plan cards, member invites)
+- **IR/SOR Incident Reporting System** (5-step form, role-based access, investigation workflow, audit trail, attachments)
+- Professional multi-step workspace creation
 - Screen/camera recording & transcription
-- Shift/Workspace management
+- Shift/Workspace management (with worker type: full-time, part-time, casual)
 - 4-tier Stripe subscription system
 - Admin Portal with RBAC
 - Calendar, Meetings, Voice Chat
 
-## Key Architecture Notes
-- Frontend source: `/app/src/`
-- Vite config: `/app/vite.config.js`
-- API URL: `window.location.origin` via `/app/src/lib/api.js`
-- Passwords: bcrypt hashed, auto-migration on login
-- Workspace model: now includes `color` and `icon` fields
+## IR/SOR System Details
+- **Backend**: `/app/backend/routes/reports.py` — full CRUD with `incident_reports` MongoDB collection
+- **Frontend**: `/app/src/pages/ReportsPage.jsx` — multi-step form, list view, detail view, investigation panel
+- **Sections**: A (Incident Details), B (Persons Involved), C (Description + 911), D (Severity), E (Attachments), F (Follow-up/Investigation)
+- **Incident Types**: Injury, Medication Error, Property Damage, Behavioural, Safeguarding, Near Miss, Other
+- **Severity**: Minor, Moderate, Major, Critical, Serious Occurrence (auto-triggers SOR)
+- **Status**: Open → Under Review → Closed
+- **Access**: Staff = submit + view own; Manager/Admin = view all + edit investigation
+- **Features**: Audit trail, file attachments (GridFS), stats dashboard, filters
 
 ## Key Credentials
 - **Admin**: admin@munal.com / Admin@123456
 
-## Recent Changes (March 15, 2026)
-- **Professional workspace creation**: Multi-step modal with icon/color picker, rich plan cards, member invites, success animation
-- **Message attachments fixed**: GridFS bucket init + route conflict
-- **Password hashing (bcrypt)**: All passwords now hashed
-- **File Manager downloads**: Wired up download buttons
-- **Removed email verification on signup**
+## Key API Endpoints
+- `POST /api/reports` - Create report
+- `GET /api/reports` - List reports (role-filtered)
+- `GET /api/reports/stats` - Dashboard stats
+- `GET /api/reports/{id}` - Get report detail
+- `PUT /api/reports/{id}` - Update report/investigation
+- `POST /api/reports/{id}/attachments` - Upload attachment
+- `GET /api/reports/{id}/attachments/{att_id}` - Download attachment
 
 ## Backlog
 - **P2**: Cloud storage migration testing
-- **P2**: Refactor AdminStripeSettingsPage.jsx
-- **P2**: Clean up orphaned workspace_members data
-- **P3**: Re-enable email verification once Resend DNS configured
+- **P2**: Automated notifications for critical incidents (email manager)
+- **P2**: Export reports to PDF/Excel
+- **P3**: Escalation workflow if not reviewed in 24h
