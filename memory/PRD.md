@@ -56,6 +56,7 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - **Email Notifications**: Critical/SOR incidents auto-notify all admins/managers via Resend (noreply@munal.ai)
 - **Escalation Workflow**: APScheduler runs hourly; reports open >24h are auto-escalated with admin email alerts
 - **Real-Time SSE Notification Bell**: Critical/SOR incidents push a `critical_incident` SSE event to all online admin/manager users; frontend shows toast popup + adds to notification bell with red pulse indicator
+- **Incident Analytics Dashboard**: Dedicated analytics view with severity trend (stacked bar chart), incident type breakdown (donut chart), response time metrics (horizontal bars by severity), and monthly summary cards. Admin/Manager only.
 - **Frontend**: "Export Excel" button on report list, "Export PDF" button on report detail view
 
 ## Backlog
