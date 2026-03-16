@@ -118,6 +118,14 @@ const AdminUserManagementPage = () => {
     }
   };
 
+  const handleChangeRole = async (user, newRole) => {
+    await updateUser(user.id, { role: newRole });
+    toast({
+      title: "Role updated",
+      description: `${user.name || user.email} is now ${newRole}. They must re-login to see changes.`,
+    });
+  };
+
   const handleExport = (format) => {
     if (filteredUsers.length === 0) {
       toast({ title: "Nothing to export", description: "No users match your filters.", variant: "destructive" });
@@ -373,6 +381,13 @@ const AdminUserManagementPage = () => {
                               <><UserCheck className="w-4 h-4 mr-2" /> Activate User</>
                             )}
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Change Role</div>
+                          {['Admin', 'Manager', 'User'].filter(r => r !== (user.role || 'User')).map(role => (
+                            <DropdownMenuItem key={role} onClick={() => handleChangeRole(user, role)} data-testid={`set-role-${role.toLowerCase()}-btn`}>
+                              <Shield className="w-4 h-4 mr-2" /> Set as {role}
+                            </DropdownMenuItem>
+                          ))}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleDeleteUser(user)} className="text-red-600 focus:text-red-600">
                             <Trash2 className="w-4 h-4 mr-2" /> Delete User

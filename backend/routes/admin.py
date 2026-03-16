@@ -326,6 +326,12 @@ async def perform_user_action(user_id: str, action_data: UserAccountAction, requ
             update_data = {"requires_password_change": True}
         elif action == "unlock":
             update_data = {"locked_until": None, "failed_login_attempts": 0}
+        elif action == "set_role_admin":
+            update_data = {"role": "Admin"}
+        elif action == "set_role_manager":
+            update_data = {"role": "Manager"}
+        elif action == "set_role_user":
+            update_data = {"role": "User"}
         else:
             raise HTTPException(status_code=400, detail="Invalid action")
         
