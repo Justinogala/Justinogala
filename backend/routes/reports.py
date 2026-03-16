@@ -14,6 +14,7 @@ import asyncio
 import resend
 
 from config import db, logger, SENDER_EMAIL
+from routes.chat import sse_manager
 
 router = APIRouter(prefix="/reports", tags=["Incident Reports"])
 
@@ -138,6 +139,7 @@ async def create_report(report: ReportCreate):
         # Send email notification for critical/SOR incidents (fire and forget)
         if report.severity in ("critical", "serious_occurrence"):
             asyncio.create_task(_notify_critical_incident(doc))
+            asyncio.create_task(_broadcast_critical_incident_sse(doc))
         
         return {"success": True, "report": doc}
     except Exception as e:
@@ -634,6 +636,41 @@ async def export_report_pdf(report_id: str):
     except Exception as e:
         logger.error(f"Error exporting PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== SSE Real-Time Notification ==============
+
+async def _broadcast_critical_incident_sse(report: dict):
+    """Push a real-time notification to all connected admins/managers via SSE."""
+    try:
+        admins = await db.users.find(
+            {"role": {"$in": ["Admin", "Manager"]}},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+
+        severity_label = report.get("severity", "").replace("_", " ").title()
+        payload = {
+            "report_id": report.get("id"),
+            "report_number": report.get("report_number"),
+            "severity": report.get("severity"),
+            "severity_label": severity_label,
+            "report_type": report.get("report_type"),
+            "location": report.get("location"),
+            "submitted_by_name": report.get("submitted_by_name"),
+            "incident_type": report.get("incident_type", "").replace("_", " ").title(),
+            "timestamp": report.get("created_at"),
+        }
+
+        sent = 0
+        for admin in admins:
+            uid = admin.get("id")
+            if uid and sse_manager.is_user_online(uid):
+                await sse_manager.send_to_user(uid, "critical_incident", payload)
+                sent += 1
+
+        logger.info(f"SSE critical_incident broadcast sent to {sent} online admin/managers for {report.get('report_number')}")
+    except Exception as e:
+        logger.error(f"SSE critical_incident broadcast failed: {e}")
 
 
 # ============== Email Notification Helpers ==============

@@ -1,11 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useWebSocketChat } from '@/hooks/useWebSocketChat';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const WebSocketChatContext = createContext(null);
 
 export const WebSocketChatProvider = ({ children }) => {
   const { user } = useAuth();
+  const { createNotification } = useNotifications();
+  const { toast } = useToast();
   const [messages, setMessages] = useState({});  // {conversationId: [messages]}
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const [typingUsers, setTypingUsers] = useState({});  // {conversationId: userId}
@@ -105,6 +109,27 @@ export const WebSocketChatProvider = ({ children }) => {
     });
   }, []);
 
+  // Handle critical incident SSE notification
+  const handleCriticalIncident = useCallback((data) => {
+    const isSOR = data.report_type === 'SOR';
+    const title = isSOR ? 'Serious Occurrence Reported' : 'Critical Incident Alert';
+
+    createNotification({
+      type: 'incident',
+      title,
+      message: `${data.report_number} — ${data.severity_label} at ${data.location}. Submitted by ${data.submitted_by_name || 'Unknown'}.`,
+      actionUrl: '/reports',
+      icon: 'AlertTriangle',
+      color: isSOR ? 'bg-red-600' : 'bg-orange-500',
+    });
+
+    toast({
+      variant: 'destructive',
+      title,
+      description: `${data.report_number} — ${data.severity_label} ${data.incident_type} at ${data.location}`,
+    });
+  }, [createNotification, toast]);
+
   // Initialize WebSocket/SSE connection
   const {
     isConnected,
@@ -118,7 +143,8 @@ export const WebSocketChatProvider = ({ children }) => {
     handleMessage,
     handlePresence,
     handleTyping,
-    handleReadReceipt
+    handleReadReceipt,
+    handleCriticalIncident
   );
 
   // Fetch initial online users

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE = window.location.origin;
 
-export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onReadReceipt) => {
+export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onReadReceipt, onCriticalIncident) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [connectionType, setConnectionType] = useState(null); // 'sse' or 'ws' or 'polling'
@@ -154,6 +154,12 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         }
       });
 
+      eventSource.addEventListener('critical_incident', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('[Chat] SSE critical incident alert:', data);
+        onCriticalIncident?.(data);
+      });
+
       eventSource.addEventListener('ping', () => {
         // Keep-alive ping received, connection is healthy
       });
@@ -186,7 +192,7 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
       setConnectionError('Could not establish connection');
       setConnectionType('polling');
     }
-  }, [userId, onMessage, onPresence, onTyping, onReadReceipt]);
+  }, [userId, onMessage, onPresence, onTyping, onReadReceipt, onCriticalIncident]);
 
   // Keep connectSSERef in sync with the latest connectSSE function
   useEffect(() => {
