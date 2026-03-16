@@ -92,7 +92,7 @@ from routes.shift_reminders import router as shift_reminders_router
 from routes.admin_workspaces import router as admin_workspaces_router
 from routes.admin_chat_moderation import router as admin_chat_router
 from routes.admin_shifts import router as admin_shifts_router
-from routes.reports import router as reports_router
+from routes.reports import router as reports_router, check_escalations
 
 
 # ============== Include All Routers ==============
@@ -191,6 +191,16 @@ async def startup_event():
         except Exception as idx_err:
             # Index might already exist
             logger.info(f"TTL index status: {idx_err}")
+        
+        # Start escalation scheduler (checks every hour for unreviewed reports)
+        try:
+            from apscheduler.schedulers.asyncio import AsyncIOScheduler
+            scheduler = AsyncIOScheduler()
+            scheduler.add_job(check_escalations, 'interval', hours=1, id='report_escalation')
+            scheduler.start()
+            logger.info("Escalation scheduler started (runs every 1 hour)")
+        except Exception as sched_err:
+            logger.error(f"Escalation scheduler failed to start: {sched_err}")
         
         # Seed admin user if not exists
         try:

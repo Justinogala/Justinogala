@@ -1,14 +1,19 @@
 """
 Incident Reports (IR) and Serious Occurrence Reports (SOR) routes.
-Provides CRUD operations with role-based access control.
+Provides CRUD operations with role-based access control,
+PDF/Excel export, email notifications, and auto-escalation.
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
-from datetime import datetime, timezone
+from fastapi.responses import StreamingResponse
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 import uuid
+import io
+import asyncio
+import resend
 
-from config import db, logger
+from config import db, logger, SENDER_EMAIL
 
 router = APIRouter(prefix="/reports", tags=["Incident Reports"])
 
@@ -130,6 +135,10 @@ async def create_report(report: ReportCreate):
         await db.incident_reports.insert_one(doc)
         doc.pop("_id", None)
         
+        # Send email notification for critical/SOR incidents (fire and forget)
+        if report.severity in ("critical", "serious_occurrence"):
+            asyncio.create_task(_notify_critical_incident(doc))
+        
         return {"success": True, "report": doc}
     except Exception as e:
         logger.error(f"Error creating report: {e}")
@@ -232,6 +241,127 @@ async def get_report_stats(workspace_id: Optional[str] = None):
         }
     except Exception as e:
         logger.error(f"Error getting report stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+# ============== Excel Export ==============
+
+@router.get("/export/excel")
+async def export_reports_excel(
+    workspace_id: Optional[str] = None,
+    report_type: Optional[str] = None,
+    severity: Optional[str] = None,
+    status: Optional[str] = None,
+):
+    """Export filtered reports as an Excel spreadsheet."""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+        query = {}
+        if workspace_id:
+            query["workspace_id"] = workspace_id
+        if report_type:
+            query["report_type"] = report_type
+        if severity:
+            query["severity"] = severity
+        if status:
+            query["status"] = status
+
+        reports = await db.incident_reports.find(query, {"_id": 0}).sort("created_at", -1).to_list(5000)
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Incident Reports"
+
+        header_font = Font(bold=True, color="FFFFFF", size=10)
+        header_fill = PatternFill(start_color="4338CA", end_color="4338CA", fill_type="solid")
+        header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        thin_border = Border(
+            left=Side(style='thin', color='D1D5DB'),
+            right=Side(style='thin', color='D1D5DB'),
+            top=Side(style='thin', color='D1D5DB'),
+            bottom=Side(style='thin', color='D1D5DB'),
+        )
+
+        headers = [
+            "Report #", "Type", "Date", "Time", "Location", "Department",
+            "Incident Type", "Severity", "Status", "Submitted By",
+            "Description", "Immediate Action", "911 Called",
+            "Persons Involved", "Witnesses",
+            "Investigator", "Root Cause", "Corrective Action", "Due Date",
+            "Created At"
+        ]
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_align
+            cell.border = thin_border
+
+        severity_fills = {
+            "minor": PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid"),
+            "moderate": PatternFill(start_color="FEF9C3", end_color="FEF9C3", fill_type="solid"),
+            "major": PatternFill(start_color="FFEDD5", end_color="FFEDD5", fill_type="solid"),
+            "critical": PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid"),
+            "serious_occurrence": PatternFill(start_color="FECACA", end_color="FECACA", fill_type="solid"),
+        }
+
+        for row_num, r in enumerate(reports, 2):
+            persons_str = "; ".join(f"{p.get('full_name','')} ({p.get('role','')})" for p in r.get("persons_involved", []))
+            row_data = [
+                r.get("report_number", ""),
+                r.get("report_type", ""),
+                r.get("incident_date", ""),
+                r.get("incident_time", ""),
+                r.get("location", ""),
+                r.get("department", ""),
+                r.get("incident_type", "").replace("_", " ").title(),
+                r.get("severity", "").replace("_", " ").title(),
+                r.get("status", "").replace("_", " ").title(),
+                r.get("submitted_by_name", ""),
+                r.get("description", ""),
+                r.get("immediate_action", ""),
+                "Yes" if r.get("was_911_called") else "No",
+                persons_str,
+                r.get("witnesses", ""),
+                r.get("assigned_investigator", ""),
+                r.get("root_cause", ""),
+                r.get("corrective_action", ""),
+                r.get("follow_up_due_date", ""),
+                r.get("created_at", ""),
+            ]
+            for col_num, value in enumerate(row_data, 1):
+                cell = ws.cell(row=row_num, column=col_num, value=value or "")
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical="top", wrap_text=True)
+
+            sev = r.get("severity", "")
+            if sev in severity_fills:
+                ws.cell(row=row_num, column=8).fill = severity_fills[sev]
+
+        for col in ws.columns:
+            max_length = 0
+            col_letter = col[0].column_letter
+            for cell in col:
+                if cell.value:
+                    max_length = max(max_length, min(len(str(cell.value)), 40))
+            ws.column_dimensions[col_letter].width = max_length + 3
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        filename = f"incident_reports_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')}.xlsx"
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        logger.error(f"Error exporting Excel: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -399,3 +529,251 @@ async def download_report_attachment(report_id: str, attachment_id: str):
     except Exception as e:
         logger.error(f"Error downloading attachment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== PDF Export ==============
+
+@router.get("/{report_id}/export/pdf")
+async def export_report_pdf(report_id: str):
+    """Export a single report as a PDF document."""
+    try:
+        report = await db.incident_reports.find_one({"id": report_id}, {"_id": 0})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.units import mm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=20*mm, bottomMargin=20*mm, leftMargin=20*mm, rightMargin=20*mm)
+        styles = getSampleStyleSheet()
+        story = []
+
+        # Custom styles
+        title_style = ParagraphStyle('ReportTitle', parent=styles['Title'], fontSize=18, spaceAfter=4, textColor=colors.HexColor('#1e1b4b'))
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=10, textColor=colors.grey, spaceAfter=12)
+        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=13, textColor=colors.HexColor('#4338ca'), spaceBefore=14, spaceAfter=6)
+        body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, leading=14, spaceAfter=8)
+
+        # Header
+        report_type_label = "Serious Occurrence Report" if report.get("report_type") == "SOR" else "Incident Report"
+        story.append(Paragraph(f"{report_type_label}", title_style))
+        story.append(Paragraph(f"{report.get('report_number', 'N/A')} &bull; Status: {(report.get('status') or 'open').replace('_', ' ').title()}", subtitle_style))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e5e7eb')))
+        story.append(Spacer(1, 6))
+
+        # Section A
+        story.append(Paragraph("Section A — Incident Details", section_style))
+        severity_label = report.get("severity", "").replace("_", " ").title()
+        incident_type_label = report.get("incident_type", "").replace("_", " ").title()
+        details_data = [
+            ["Date", report.get("incident_date", ""), "Time", report.get("incident_time", "")],
+            ["Location", report.get("location", ""), "Department", report.get("department", "") or "—"],
+            ["Type", incident_type_label, "Severity", severity_label],
+        ]
+        t = Table(details_data, colWidths=[60, 170, 60, 170])
+        t.setStyle(TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.grey),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.grey),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(t)
+
+        # Section B
+        story.append(Paragraph("Section B — Person(s) Involved", section_style))
+        for i, person in enumerate(report.get("persons_involved", [])):
+            story.append(Paragraph(f"<b>{i+1}.</b> {person.get('full_name', '')} ({person.get('role', '')}) {person.get('contact_info', '') or ''}", body_style))
+        if report.get("witnesses"):
+            story.append(Paragraph(f"<b>Witnesses:</b> {report['witnesses']}", body_style))
+
+        # Section C
+        story.append(Paragraph("Section C — Description", section_style))
+        story.append(Paragraph(report.get("description", ""), body_style))
+        if report.get("immediate_action"):
+            story.append(Paragraph(f"<b>Immediate Action:</b> {report['immediate_action']}", body_style))
+        story.append(Paragraph(f"<b>911 Called:</b> {'Yes' if report.get('was_911_called') else 'No'}", body_style))
+
+        # Section F
+        if any(report.get(k) for k in ("assigned_investigator", "root_cause", "corrective_action", "investigation_notes")):
+            story.append(Paragraph("Section F — Investigation & Follow-Up", section_style))
+            for label, key in [("Investigator", "assigned_investigator"), ("Root Cause", "root_cause"), ("Corrective Action", "corrective_action"), ("Due Date", "follow_up_due_date"), ("Notes", "investigation_notes")]:
+                val = report.get(key)
+                if val:
+                    story.append(Paragraph(f"<b>{label}:</b> {val}", body_style))
+
+        # Audit trail
+        if report.get("audit_log"):
+            story.append(Paragraph("Audit Trail", section_style))
+            for entry in report["audit_log"]:
+                ts = entry.get("at", "")
+                story.append(Paragraph(f"&bull; <b>{entry.get('action', '').title()}</b> by {entry.get('by_name') or entry.get('by', '')} — {ts}", ParagraphStyle('AuditEntry', parent=styles['Normal'], fontSize=8, textColor=colors.grey, spaceAfter=2)))
+
+        # Footer
+        story.append(Spacer(1, 20))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#d1d5db')))
+        story.append(Paragraph(f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} — Munal AI Incident Reporting", ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=colors.lightgrey, spaceBefore=4)))
+
+        doc.build(story)
+        buf.seek(0)
+
+        filename = f"{report.get('report_number', 'report')}.pdf"
+        return StreamingResponse(
+            buf,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting PDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Email Notification Helpers ==============
+
+async def _notify_critical_incident(report: dict):
+    """Send email notification to admins/managers for critical or SOR incidents."""
+    try:
+        admins = await db.users.find(
+            {"role": {"$in": ["Admin", "Manager"]}},
+            {"_id": 0, "email": 1, "name": 1}
+        ).to_list(100)
+
+        if not admins:
+            logger.info("No admins/managers to notify for critical incident")
+            return
+
+        recipient_emails = [a["email"] for a in admins if a.get("email")]
+        if not recipient_emails:
+            return
+
+        severity_label = report.get("severity", "").replace("_", " ").title()
+        report_type = "Serious Occurrence Report (SOR)" if report.get("report_type") == "SOR" else "Incident Report"
+
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <div style="text-align:center;padding:16px 0;">
+                <h1 style="color:#7c3aed;margin:0;">Munal AI</h1>
+            </div>
+            <div style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:8px;padding:24px;margin:16px 0;">
+                <h2 style="color:#991b1b;margin-top:0;">Critical Incident Alert</h2>
+                <p style="color:#4b5563;">A <strong>{severity_label}</strong> {report_type} has been submitted and requires your immediate attention.</p>
+                <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                    <tr><td style="padding:6px 0;color:#6b7280;width:130px;">Report #</td><td style="padding:6px 0;font-weight:bold;">{report.get('report_number', 'N/A')}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Date/Time</td><td style="padding:6px 0;">{report.get('incident_date', '')} at {report.get('incident_time', '')}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Location</td><td style="padding:6px 0;">{report.get('location', '')}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Submitted By</td><td style="padding:6px 0;">{report.get('submitted_by_name', 'Unknown')}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Type</td><td style="padding:6px 0;">{report.get('incident_type', '').replace('_', ' ').title()}</td></tr>
+                </table>
+                <p style="color:#4b5563;"><strong>Description:</strong><br/>{report.get('description', '')[:300]}{'...' if len(report.get('description', '')) > 300 else ''}</p>
+            </div>
+            <p style="color:#6b7280;font-size:13px;">Please review this report at your earliest convenience.</p>
+            <div style="text-align:center;padding:16px 0;border-top:1px solid #e5e7eb;">
+                <p style="color:#9ca3af;font-size:11px;">&copy; 2026 Munal AI. All rights reserved.</p>
+            </div>
+        </div>
+        """
+
+        params = {
+            "from": SENDER_EMAIL,
+            "to": recipient_emails,
+            "subject": f"[CRITICAL] {report.get('report_number', '')} — {severity_label} Incident Reported",
+            "html": html,
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Critical incident notification sent to {len(recipient_emails)} recipients for {report.get('report_number')}")
+    except Exception as e:
+        logger.error(f"Failed to send critical incident notification: {e}")
+
+
+async def _send_escalation_email(report: dict, admin_emails: list):
+    """Send escalation email for reports not reviewed within 24 hours."""
+    try:
+        html = f"""
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <div style="text-align:center;padding:16px 0;">
+                <h1 style="color:#7c3aed;margin:0;">Munal AI</h1>
+            </div>
+            <div style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:8px;padding:24px;margin:16px 0;">
+                <h2 style="color:#92400e;margin-top:0;">Escalation — Unreviewed Report</h2>
+                <p style="color:#4b5563;">The following report has been <strong>open for more than 24 hours</strong> without review:</p>
+                <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                    <tr><td style="padding:6px 0;color:#6b7280;width:130px;">Report #</td><td style="padding:6px 0;font-weight:bold;">{report.get('report_number', 'N/A')}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Severity</td><td style="padding:6px 0;">{report.get('severity', '').replace('_', ' ').title()}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Location</td><td style="padding:6px 0;">{report.get('location', '')}</td></tr>
+                    <tr><td style="padding:6px 0;color:#6b7280;">Created</td><td style="padding:6px 0;">{report.get('created_at', '')}</td></tr>
+                </table>
+                <p style="color:#4b5563;">Please assign an investigator and update the report status.</p>
+            </div>
+            <div style="text-align:center;padding:16px 0;border-top:1px solid #e5e7eb;">
+                <p style="color:#9ca3af;font-size:11px;">&copy; 2026 Munal AI. All rights reserved.</p>
+            </div>
+        </div>
+        """
+
+        params = {
+            "from": SENDER_EMAIL,
+            "to": admin_emails,
+            "subject": f"[ESCALATION] Report {report.get('report_number', '')} — Unreviewed for 24+ hours",
+            "html": html,
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Escalation email sent for report {report.get('report_number')}")
+    except Exception as e:
+        logger.error(f"Failed to send escalation email: {e}")
+
+
+# ============== Escalation Scheduler ==============
+
+async def check_escalations():
+    """Check for reports that have been 'open' for more than 24 hours and escalate."""
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        stale_reports = await db.incident_reports.find(
+            {
+                "status": "open",
+                "created_at": {"$lte": cutoff},
+                "escalated": {"$ne": True},
+            },
+            {"_id": 0}
+        ).to_list(100)
+
+        if not stale_reports:
+            return
+
+        admins = await db.users.find(
+            {"role": "Admin"},
+            {"_id": 0, "email": 1}
+        ).to_list(50)
+        admin_emails = [a["email"] for a in admins if a.get("email")]
+
+        if not admin_emails:
+            logger.info("No admin emails found for escalation")
+            return
+
+        for report in stale_reports:
+            await _send_escalation_email(report, admin_emails)
+            # Mark as escalated so we don't re-send
+            await db.incident_reports.update_one(
+                {"id": report["id"]},
+                {
+                    "$set": {"escalated": True, "escalated_at": datetime.now(timezone.utc).isoformat()},
+                    "$push": {"audit_log": {
+                        "action": "escalated",
+                        "by": "system",
+                        "by_name": "Auto-Escalation",
+                        "at": datetime.now(timezone.utc).isoformat(),
+                    }}
+                }
+            )
+
+        logger.info(f"Escalation check complete: {len(stale_reports)} reports escalated")
+    except Exception as e:
+        logger.error(f"Escalation check failed: {e}")

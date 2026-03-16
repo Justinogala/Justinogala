@@ -8,7 +8,7 @@ import os
 import json
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://db-seed-deploy.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ir-sor-advanced.preview.emergentagent.com')
 
 class TestCouponsAPI:
     """Test Admin Coupons CRUD operations"""

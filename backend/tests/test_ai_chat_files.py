@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://db-seed-deploy.preview.emergentagent.com"
+    BASE_URL = "https://ir-sor-advanced.preview.emergentagent.com"
 
 
 class TestHealthCheck:

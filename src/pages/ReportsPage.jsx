@@ -4,7 +4,7 @@ import {
   FileWarning, Plus, Search, Filter, ChevronDown, ChevronRight,
   Clock, AlertTriangle, Shield, Eye, Edit3, Upload, X, Check,
   Loader2, ArrowLeft, User, MapPin, Calendar, FileText, Users,
-  Phone, MessageSquare, Paperclip, Activity
+  Phone, MessageSquare, Paperclip, Activity, Download, Table2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -371,8 +371,31 @@ const ReportDetail = ({ report, onBack, onUpdate, userRole, userId }) => {
     investigation_notes: report.investigation_notes || '',
   });
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
   const canEdit = userRole === 'Admin' || userRole === 'Manager';
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/reports/${report.id}/export/pdf`);
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${report.report_number}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast({ title: 'PDF exported successfully' });
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to export PDF' });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -399,7 +422,13 @@ const ReportDetail = ({ report, onBack, onUpdate, userRole, userId }) => {
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={onBack}><ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Reports</Button>
-        <Badge className={cn("text-xs", STATUS_BADGES[report.status])}>{report.status?.replace('_', ' ')}</Badge>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting} data-testid="export-pdf-btn">
+            {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Download className="w-3.5 h-3.5 mr-1.5" />}
+            Export PDF
+          </Button>
+          <Badge className={cn("text-xs", STATUS_BADGES[report.status])}>{report.status?.replace('_', ' ')}</Badge>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -567,6 +596,7 @@ const ReportsPage = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({ report_type: '', severity: '', status: '' });
 
@@ -594,6 +624,32 @@ const ReportsPage = () => {
   };
 
   useEffect(() => { fetchReports(); }, [filters]);
+
+  const handleExportExcel = async () => {
+    setExportingExcel(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters.report_type) params.set('report_type', filters.report_type);
+      if (filters.severity) params.set('severity', filters.severity);
+      if (filters.status) params.set('status', filters.status);
+      const res = await fetch(`${API_URL}/api/reports/export/excel?${params}`);
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `incident_reports_${new Date().toISOString().slice(0,10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast({ title: 'Excel exported successfully' });
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to export Excel' });
+    } finally {
+      setExportingExcel(false);
+    }
+  };
 
   const handleSubmitReport = async (formData, files) => {
     setSubmitting(true);
@@ -637,9 +693,15 @@ const ReportsPage = () => {
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Incident Reports</h1>
                   <p className="text-sm text-gray-500 mt-1">IR / SOR reporting and management</p>
                 </div>
-                <Button onClick={() => setView('create')} className="bg-indigo-600 hover:bg-indigo-700" data-testid="new-report-btn">
-                  <Plus className="w-4 h-4 mr-1.5" /> New Report
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={exportingExcel} data-testid="export-excel-btn">
+                    {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Table2 className="w-3.5 h-3.5 mr-1.5" />}
+                    Export Excel
+                  </Button>
+                  <Button onClick={() => setView('create')} className="bg-indigo-600 hover:bg-indigo-700" data-testid="new-report-btn">
+                    <Plus className="w-4 h-4 mr-1.5" /> New Report
+                  </Button>
+                </div>
               </div>
 
               {/* Stats cards */}

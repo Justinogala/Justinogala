@@ -1,157 +1,156 @@
 <analysis>**original_problem_statement**:
-The user's goal is to build a full-stack AI-powered application called Munal/EchoNote AI. The initial scope included a modern chat interface, screen/camera recording, AI-driven analysis, Stripe payments, and a comprehensive admin panel.
+The user's initial goal was to build a full-stack AI application, Munal/EchoNote AI. The project has since evolved through numerous feature requests and bug fixes.
 
-Recent requests have focused on adding advanced workforce features, including a comprehensive Admin Portal with granular role-based access control (RBAC), real-time audit logs, and fixing bugs related to file management. The user also requested updates to the public-facing landing page to reflect the app's current feature set.
+The most recent work involved a series of significant feature additions and enhancements:
+- **Email Verification Removal**: At the user's request, mandatory email verification on signup was removed to solve email deliverability issues. New users are now logged in directly.
+- **Password Security**: Implemented  for password hashing to secure user credentials.
+- **File & Message Attachments**: Fixed bugs preventing file downloads in the user's File Manager and fixed a critical backend issue that blocked file attachments in the messaging system.
+- **UI/UX Enhancements**: Redesigned the Create Workspace flow into a professional, multi-step modal and removed a redundant Billing tab from the workspace settings.
+- **Admin Functionality**: Ensured admins can monitor all user-created workspaces from the admin panel.
+- **IR/SOR Reporting System**: The main task was to build a comprehensive Incident Report (IR) / Statement of Occurrence (SOR) system. This included a detailed submission form, a dashboard for viewing/filtering reports, and the backend infrastructure to support it.
+- **Advanced Reporting Features**: The current task is to enhance the IR/SOR system with automated email notifications, PDF/Excel export capabilities, and an automated escalation workflow.
 
-**PRODUCT REQUIREMENTS for recent tasks**:
-- **Role-Based Access Control (RBAC)**: Implement a system to create/edit users (Admin, Manager, User) with specific, toggleable privileges for all admin functionalities.
-- **Real-Time Audit Log**: Ensure all admin actions are logged in a central place and that the audit log page updates in real time.
-- **File Manager Bug**: Resolve an error where the file uploader displays  on failure.
-- **Content Update**: Rewrite the landing page hero and features section to match the app's capabilities as a workforce management platform.
+**PRODUCT REQUIREMENTS**:
+- Implement advanced features for the IR/SOR system:
+    - Automated email notifications to managers/admins for critical incidents.
+    - Ability for admins/managers to export reports to PDF and Excel.
+    - An automated escalation workflow that notifies admins if a report is not reviewed within 24 hours.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a mature full-stack project with a Vite/React frontend and a modular FastAPI backend using MongoDB. Key features include a 4-tier Stripe subscription system, a user-facing admin panel, an internal messaging system, and a comprehensive shift management module.
-
-Recently, a granular Role-Based Access Control (RBAC) system was fully implemented, allowing admins to assign specific permissions to other admins or managers. The admin audit log was also enhanced to be real-time. The application's landing page and features page have been updated with new marketing copy to reflect its focus on workforce management.
+The application is a mature Vite/React and FastAPI full-stack project using MongoDB. Key functionalities include user/admin authentication, workspace management, file management, a messaging system, text-to-video generation, and a newly-built incident reporting (IR/SOR) system. Security has been improved with  password hashing. The signup flow is now streamlined, bypassing email verification. The UI for workspace creation has been significantly upgraded to a professional multi-step modal.
 
 **Last working item**:
-The user reported a bug in the file manager where upload errors are displayed as . The agent began investigating the cause.
+The agent was beginning the implementation of advanced features for the IR/SOR reporting system, as requested by the user.
 
-- **Last item agent was working**: Debugging the file upload error. The agent was inspecting the frontend code, specifically  and components in , to find where the error object is being incorrectly stringified instead of displaying its message.
+- **Last item agent was working**: Implementing automated notifications, PDF/Excel export, and an escalation workflow for the IR/SOR system. The agent had just installed the required Python libraries (, ) and was about to start modifying the backend code.
 - **Status**: IN PROGRESS
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: Manual testing with the  to replicate the error and verify the fix. The fix will likely be in the frontend error handling ( block) of the file upload logic.
+- **Which testing method agent to use?**: both. The backend agent should test the new export endpoints and the logic for sending notification emails. The frontend agent should verify the UI for the new Export buttons and ensure files are downloaded correctly.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: File Manager Upload Error (Priority: P0 - HIGHEST)**
-    - **Description**: When a file upload fails, the UI displays the generic string  instead of a user-friendly error message.
-    - **Attempted fixes**: The agent was in the process of viewing relevant files to diagnose the issue. No fixes have been attempted yet.
-    - **Next debug checklist**:
-        1.  Examine the  block in the file upload function within .
-        2.  Inspect how the error is handled in the calling component, likely  or similar.
-        3.  Modify the error handling to display  or a custom string instead of the entire error object.
-    - **Why fix this issue and what will be achieved with the fix?**: This will fix a critical UI bug, providing clear feedback to users when a file upload fails.
-    - **Status**: IN PROGRESS
-    - **Is recurring issue?**: Y (This error pattern was also seen and fixed in a previous session for a different component).
-    - **Should Test frontend/backend/both after fix?**: Frontend
+There are no pending bugs or issues. The current focus is on feature development.
 
 **In progress Task List**:
-There are no other in-progress tasks.
+- **Task 1: Implement Advanced IR/SOR Features (Priority: P0 - HIGHEST)**
+  - **Description**: Add automated email notifications, PDF/Excel export, and an escalation workflow to the incident reporting system.
+  - **Where to resume**:
+      1.  **Backend**: In , create new endpoints for PDF and Excel export (e.g., ).
+      2.  **Backend**: Implement the email notification logic using Resend within the report creation/update endpoints for critical incidents.
+      3.  **Backend**: Set up an  job to handle the 24-hour escalation workflow.
+      4.  **Frontend**: In , add Export to PDF and Export to Excel buttons to the UI.
+      5.  **Frontend**: Connect the new buttons to the corresponding backend export APIs.
+  - **What will be achieved with this?**: The IR/SOR system will be elevated to an enterprise-grade module with robust reporting, compliance, and operational alerting features.
+  - **Status**: IN PROGRESS
+  - **Should Test frontend/backend/both after fix?**: Both
+  - **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    - **(P1)** Clean up orphaned data from the  table. The agent discovered records pointing to deleted workspaces.
-    - **(P2)** End-to-End Test Cloud Storage Migration (Carried over from a previous session).
+  - **(P2)** End-to-End Test Cloud Storage Migration.
 - **Future Tasks**:
-    - **(P2)** Refactor  as it is noted to be partially redundant.
+  - **(P2)** Refactor .
+  - **(P2)** Clean up orphaned data from the  table.
+  - **(P3)** Consolidate  and  to reduce code complexity.
 
 **Completed work in this session**
-- **Role-Based Access Control (RBAC) System**: Implemented a comprehensive, granular permission system for admin users.
-    - **Backend**: Added permission-checking middleware to all admin API routes. Updated user models to store a  object.
-    - **Frontend**: Created  context and  hook. Built a dynamic UI in the Add/Edit User modals with collapsible sections and toggles for assigning privileges across all modules (Dashboard, Users, Workspaces, Chat, Shifts, Billing, etc.). The admin sidebar now dynamically hides links based on the logged-in user's permissions.
-- **Real-Time Admin Audit Log**: Consolidated all admin actions into a central  collection and implemented a real-time, auto-refreshing UI on the frontend with polling.
-- **Admin Portal Enhancements**: Completed the implementation of the new admin dashboards for Workspaces, Chat Moderation, and Shifts, integrating them fully into the application.
-- **Landing Page Content Rework**: Rewrote the hero section and features section content on the main landing page and features overview page to align with the application's core value as an all-in-one workforce management platform.
-- **Database Management**: Transferred ownership of all existing workspaces to the primary admin user via a database script as requested by the user.
-- **Bug Fix**: Resolved an issue where admin sidebar menus were not displaying by correcting the React Context hook used for authentication in the .
+- **IR/SOR Reporting System (Phase 1)**: Built the core feature with backend endpoints, database schema, and a multi-step frontend form for submitting and viewing reports (, ).
+- **Password Hashing (bcrypt)**: Secured all user passwords by implementing  hashing in all relevant authentication flows ().
+- **Email Verification Removed**: Modified the signup and login flows to remove mandatory email verification, allowing users direct access upon registration.
+- **Message Attachment Fix**: Resolved a critical backend bug (GridFS initialization and route conflict) that prevented file attachments in the messaging feature from working ().
+- **File Manager Downloads Enabled**: Implemented the  handler to make file download buttons functional ().
+- **Professional Workspace Creation UI**: Overhauled the workspace creation form into a polished, 2-step modal with icon/color pickers and member invites ().
+- **Workspace Billing UI Removed**: Removed the Billing tab from workspace settings for a cleaner interface ().
+- **Admin Workspace Monitoring Fix**: Removed a faulty authentication check, enabling admins to view all user-created workspaces ().
+- **Shift Employment Type Added**: Added a dropdown for Full-time, Part-time, and Casual employment types to the Create New Shift form ().
 
 **Earlier issues found/mentioned but not fixed**
-- **Issue 1: Orphaned Workspace Member Data**
-    - **Debug checklist**:
-        1.  Query the  collection.
-        2.  For each member record, check if the corresponding  exists in the  collection.
-        3.  Create a script to delete member records where the  is orphaned.
-    - **Why to solve this issue and what will be achieved with this?**: To ensure data integrity and prevent potential errors in features that rely on accurate member counts.
-    - **Should Test frontend/backend/both after fix?**: Backend
-    - **Is recurring issue?**: N
+- None.
 
 **Known issue recurrence from previous fork**
 - None.
 
 **Code Architecture**
-permissions
+employment_typeiconcolor
 
 **Key Technical Concepts**
-- **Role-Based Access Control (RBAC)**: Deep implementation on both frontend (React Context, hooks, conditional rendering) and backend (FastAPI dependencies, middleware) to control access to features and data.
-- **Centralized Real-Time Audit Logging**: Consolidating logs from disparate actions into a single MongoDB collection and using frontend polling () to create a live-updating dashboard.
-- **React Context for State Management**: The application now uses three separate contexts:  (for general users),  (for admins), and  (for providing RBAC data to admin components).
-- **Database Scripting**: Direct manipulation of the MongoDB database was performed to mass-update document ownership.
+- **Password Hashing**: Using  to securely store user passwords with a seamless migration path for existing plain-text passwords.
+- **Asynchronous File Storage**: Correctly initializing and using async GridFS () for handling file uploads in the messaging feature.
+- **FastAPI Route Ordering**: Fixing a bug caused by improper route order where a dynamic path parameter was incorrectly capturing a static route segment.
+- **Multi-Step UI/Modals**: Building complex forms with sequential steps to improve user experience (e.g., workspace creation, IR/SOR submission).
+- **Role-Based Access Control (RBAC)**: Designing APIs and UI with different permission levels for users, managers, and admins, which is central to the IR/SOR feature.
 
 **key DB schema**
-- : Modified. Contains a  field to store the granular access rights for each user.
-- : Central collection used for all admin actions, contains fields like , , , , and .
+- :  field now stores a bcrypt hash.
+- : Added  and .
+- : Added .
+- : New collection for the IR/SOR system, including fields for incident details, severity, status, and associated workspace.
 
 **changes in tech stack**
-- No new technologies were added, but a  component was manually created to replicate the functionality of  after an installation issue.
+- **bcrypt**: Added for password security.
+- **reportlab**, **openpyxl**: Added for PDF/Excel export functionality (implementation in progress).
 
 **All files of reference**
-- **File Upload Bug (In Progress)**:
-    - 
-    - 
-- **RBAC & Permissions**:
-    - 
-    - 
-    - 
-    - 
-    - 
-- **Real-time Audit Log**:
-    - 
-- **Landing Page Content**:
-    - 
-    - 
-
-**Areas that need refactoring**:
-- : Still noted as partially redundant.
-- **Multiple Auth Contexts**: The existence of both  and  adds complexity and was the source of a bug. Consolidating them or creating a clearer separation of concerns could improve maintainability.
-
-**key api endpoints**
-- **Modified**:  (POST, PUT) - Now accepts and saves the  object.
-- **Modified**: All admin endpoints under  now use the new permission-checking middleware.
-- **New**:  (GET) - Fetches default permission structures for different roles.
-
-**Critical Info for New Agent**
-- **Your immediate priority is to fix the file upload bug.** The  error is a strong indicator that an entire error object is being rendered as a string. Your first step should be to locate the  block in the file upload logic (likely in  or ) and ensure you are displaying a specific property like .
-- After fixing the bug, thoroughly test the file upload flow to confirm that files are saved to the MongoDB database as intended by the user's original request.
-- Be aware that the new RBAC system is now integral to the admin panel. Any new admin features or changes will require corresponding permission checks in the backend middleware and conditional rendering in the frontend UI.
-
-**documents and test reports created in this job**
+-  (and model )
+- 
+- 
+- 
 - 
 
+**Areas that need refactoring**:
+- The consolidation of  and  remains a potential future cleanup task but was deemed low priority.
+
+**key api endpoints**
+- **New**:
+  - : (POST, GET) Create and fetch IR/SOR reports.
+  - : (GET, PUT, DELETE) Manage a specific report.
+- **Modified**:
+  - , : Now use bcrypt for passwords and skip email verification.
+  - : Routes reordered to fix a conflict, making them functional.
+  - : Authentication requirement removed to allow admin access.
+
+**Critical Info for New Agent**
+- **Your immediate priority is to complete the advanced features for the IR/SOR system:** email notifications, PDF/Excel export, and an escalation workflow. The necessary dependencies are already installed. Start by implementing the backend logic and endpoints in .
+- The user's production site () is significantly behind the preview environment's codebase. If the user reports that a previously fixed feature is not working, remind them that they **must redeploy** to see the latest changes. This has been a recurring theme.
+
+**documents and test reports created in this job**
+- None in this session.
+
 **Last 10 User Messages and any pending HUMAN messages**
-- 10. : User reported the current high-priority bug. **Status: IN PROGRESS**
-- 9. : User reported that the admin sidebar links were missing. **Status: RESOLVED**
-- 8. : This was part of message #10.
-- 7. : User requested the implementation of the backend and frontend RBAC enforcement. **Status: COMPLETED**
-- 6. : User requested an update to the landing page content. **Status: COMPLETED**
-- 5. : User asked for a summary of the app's functionality. **Status: COMPLETED**
-- 4. : User approved the RBAC implementation plan. **Status: ACKNOWLEDGED**
-- 3. : User requested the granular RBAC system. **Status: COMPLETED**
-- 2. : This was part of message #3.
-- 1. : User asked about a specific workspace that was not found in the database. **Status: RESOLVED** (concluded it was likely deleted).
+- 10. User specified notification logic for the advanced IR/SOR features. **Status: IN PROGRESS**
+- 9. User asked for advanced features (export, notifications) for the IR/SOR system. **Status: IN PROGRESS**
+- 8. User provided detailed requirements for the IR/SOR form. **Status: IMPLEMENTED (Phase 1)**
+- 7. i want to add IR/SOR form...: User requested the entire Incident Reporting feature. **Status: IN PROGRESS**
+- 6. on the Create New Shift page, add option to add full time, part-time and casual workers. **Status: COMPLETED**
+- 5. let all Workspace Management... created by the users be added in the admin.... **Status: COMPLETED**
+- 4. am talking about Video generation: User clarifying a previous question. **Status: ACKNOWLEDGED**
+- 3. have done or added anything that i should redeploy?: User asking about the necessity of redeploying. **Status: ACKNOWLEDGED**
+- 2. i tried it and nothing was generated: User reporting an issue with Text-to-Video, which was determined to be a production deployment issue. **Status: RESOLVED (on preview)**
+- 1. remove billing on workspace...: User requested a UI change. **Status: COMPLETED**
 
 **Project Health Check:**
-- **Broken**: The file upload functionality in the file manager is not displaying errors correctly.
+- **Broken**: The production deployment () is severely outdated and lacks numerous critical fixes and features that are already working on the preview environment.
 - **Mocked**: None.
 
 **3rd Party Integrations**
-- **OpenAI**: Used for the AI chat feature.
-- **Stripe**: Fully integrated for subscription payments.
-- **Microsoft Clarity**: Integrated for user analytics.
-- **APScheduler**: Used on the backend for scheduled tasks.
-- **SendGrid**: Considered for email notifications but not yet implemented.
+- **OpenAI**: Used for AI chat features.
+- **Sora 2**: Used for text-to-video generation (via Emergent LLM Key).
+- **Stripe**: For subscription payments.
+- **Resend**: For transactional emails (password reset and upcoming IR/SOR notifications).
+- **APScheduler**: For backend scheduled tasks (to be used for IR/SOR escalation).
+- **bcrypt**: For password hashing.
+- **reportlab**, **openpyxl**: For PDF/Excel generation.
 
 **Testing status**
-- **Testing agent used after significant changes**: YES, for the Admin Portal enhancements.
+- **Testing agent used after significant changes**: NO (Agent relied on manual testing via  and screenshots in this session).
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: None.
 - **Known regressions**: None.
 
 **Credentials to test flow:**
 - **Admin**:  / 
-- **User**: Register any new user via the signup page.
 
 **What agent forgot to execute**
-- The agent correctly prioritized the user's requests. The task to clean up orphaned data in the  table was noted but superseded by the user's more urgent requests for the RBAC system and the file upload bug fix. This task should be added to the backlog.</analysis>
+- Nothing. The agent successfully addressed all user requests in order of priority and consciously deferred lower-priority refactoring tasks.</analysis>
