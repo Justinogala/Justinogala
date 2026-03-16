@@ -32,6 +32,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', gradient: 'from-blue-500 to-cyan-500' },
+    { icon: FileWarning, label: 'IR / SOR Reports', path: '/reports', badge: 'NEW', gradient: 'from-red-500 to-orange-500' },
     { icon: CircleDot, label: 'Quick Record', path: '/quick-record', highlight: true, badge: 'NEW', gradient: 'from-rose-500 to-pink-500' },
     { icon: Volume2, label: 'Text to Audio', path: '/text-to-audio', gradient: 'from-violet-500 to-purple-500' },
     { icon: Video, label: 'Text to Video', path: '/text-to-video', badge: 'NEW', gradient: 'from-fuchsia-500 to-pink-500' },
@@ -43,7 +44,6 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: MessageSquare, label: 'Chat', path: '/workspace/chat', gradient: 'from-pink-500 to-rose-500' },
     { icon: MessageSquare, label: 'Messages', path: '/messages', gradient: 'from-sky-500 to-blue-500' },
     { icon: HardDrive, label: 'Files', path: '/files', gradient: 'from-slate-500 to-gray-500' },
-    { icon: FileWarning, label: 'IR / SOR Reports', path: '/reports', badge: 'NEW', gradient: 'from-red-500 to-orange-500' },
   ];
 
   const paymentSubItems = [
