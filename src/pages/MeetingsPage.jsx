@@ -73,7 +73,7 @@ const MeetingsPage = () => {
               </TabsContent>
 
               <TabsContent value="history" className="m-0 focus-visible:outline-none">
-                <MeetingHistorySection onViewDetails={(id) => navigate(`/meetings/${id}`)} />
+                <MeetingHistorySection onViewDetails={(id) => navigate(`/meeting/${id}`)} />
               </TabsContent>
             </motion.div>
           </AnimatePresence>
