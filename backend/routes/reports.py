@@ -246,6 +246,136 @@ async def get_report_stats(workspace_id: Optional[str] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/analytics")
+async def get_report_analytics(workspace_id: Optional[str] = None):
+    """Advanced analytics: severity trends, type breakdown, response time metrics."""
+    try:
+        match_stage = {}
+        if workspace_id:
+            match_stage["workspace_id"] = workspace_id
+
+        # 1) Severity trend by month (last 12 months)
+        severity_trend_pipeline = [
+            {"$match": match_stage} if match_stage else {"$match": {}},
+            {"$addFields": {
+                "month": {"$substr": ["$created_at", 0, 7]},
+            }},
+            {"$group": {
+                "_id": {"month": "$month", "severity": "$severity"},
+                "count": {"$sum": 1},
+            }},
+            {"$sort": {"_id.month": 1}},
+        ]
+        severity_trend_raw = await db.incident_reports.aggregate(severity_trend_pipeline).to_list(500)
+
+        months_set = sorted({r["_id"]["month"] for r in severity_trend_raw})
+        months_set = months_set[-12:]  # last 12 months
+        severity_keys = ["minor", "moderate", "major", "critical", "serious_occurrence"]
+        severity_trend = []
+        for m in months_set:
+            entry = {"month": m}
+            for sev in severity_keys:
+                entry[sev] = 0
+            for r in severity_trend_raw:
+                if r["_id"]["month"] == m and r["_id"]["severity"] in severity_keys:
+                    entry[r["_id"]["severity"]] = r["count"]
+            severity_trend.append(entry)
+
+        # 2) Incident type breakdown
+        type_pipeline = [
+            {"$match": match_stage} if match_stage else {"$match": {}},
+            {"$group": {"_id": "$incident_type", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+        ]
+        type_breakdown = [
+            {"type": r["_id"], "count": r["count"]}
+            for r in await db.incident_reports.aggregate(type_pipeline).to_list(20)
+        ]
+
+        # 3) Response time: avg hours from created_at to first status change (audit_log)
+        all_reports = await db.incident_reports.find(
+            match_stage if match_stage else {},
+            {"_id": 0, "severity": 1, "status": 1, "created_at": 1, "audit_log": 1}
+        ).to_list(5000)
+
+        from datetime import datetime as dt
+        response_times = {sev: [] for sev in severity_keys}
+        for r in all_reports:
+            sev = r.get("severity", "minor")
+            if sev not in response_times:
+                continue
+            created_str = r.get("created_at", "")
+            audit = r.get("audit_log", [])
+            review_entry = next(
+                (e for e in audit if e.get("action") == "updated" and "status" in (e.get("fields_changed") or [])),
+                None
+            )
+            if review_entry and created_str:
+                try:
+                    created_dt = dt.fromisoformat(created_str.replace("Z", "+00:00"))
+                    reviewed_dt = dt.fromisoformat(review_entry["at"].replace("Z", "+00:00"))
+                    hours = (reviewed_dt - created_dt).total_seconds() / 3600
+                    if hours >= 0:
+                        response_times[sev].append(round(hours, 1))
+                except Exception:
+                    pass
+
+        avg_response = []
+        for sev in severity_keys:
+            vals = response_times[sev]
+            avg_response.append({
+                "severity": sev,
+                "avg_hours": round(sum(vals) / len(vals), 1) if vals else None,
+                "count": len(vals),
+            })
+
+        # 4) Monthly summary (current month vs previous month)
+        now = datetime.now(timezone.utc)
+        current_month = now.strftime("%Y-%m")
+        prev_month_dt = (now.replace(day=1) - timedelta(days=1))
+        prev_month = prev_month_dt.strftime("%Y-%m")
+
+        current_count = 0
+        prev_count = 0
+        current_closed = 0
+        for r in all_reports:
+            m = (r.get("created_at") or "")[:7]
+            if m == current_month:
+                current_count += 1
+                if r.get("status") == "closed":
+                    current_closed += 1
+            elif m == prev_month:
+                prev_count += 1
+
+        escalated_count = await db.incident_reports.count_documents({
+            **(match_stage if match_stage else {}),
+            "escalated": True,
+            "created_at": {"$gte": f"{current_month}-01"},
+        })
+
+        monthly_summary = {
+            "current_month": current_month,
+            "current_count": current_count,
+            "prev_count": prev_count,
+            "change_pct": round(((current_count - prev_count) / prev_count * 100) if prev_count else 0, 1),
+            "closure_rate": round((current_closed / current_count * 100) if current_count else 0, 1),
+            "escalated": escalated_count,
+        }
+
+        return {
+            "success": True,
+            "analytics": {
+                "severity_trend": severity_trend,
+                "type_breakdown": type_breakdown,
+                "response_times": avg_response,
+                "monthly_summary": monthly_summary,
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 # ============== Excel Export ==============

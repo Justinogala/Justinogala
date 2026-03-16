@@ -4,7 +4,8 @@ import {
   FileWarning, Plus, Search, Filter, ChevronDown, ChevronRight,
   Clock, AlertTriangle, Shield, Eye, Edit3, Upload, X, Check,
   Loader2, ArrowLeft, User, MapPin, Calendar, FileText, Users,
-  Phone, MessageSquare, Paperclip, Activity, Download, Table2
+  Phone, MessageSquare, Paperclip, Activity, Download, Table2,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
 import PageTransition from '@/components/PageTransition';
+import IncidentAnalytics from '@/components/reports/IncidentAnalytics';
 import { cn } from '@/lib/utils';
 
 const INCIDENT_TYPES = [
@@ -591,7 +593,7 @@ const ReportDetail = ({ report, onBack, onUpdate, userRole, userId }) => {
 const ReportsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [view, setView] = useState('list'); // list, create, detail
+  const [view, setView] = useState('list'); // list, create, detail, analytics
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -694,6 +696,11 @@ const ReportsPage = () => {
                   <p className="text-sm text-gray-500 mt-1">IR / SOR reporting and management</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                    <Button variant="outline" size="sm" onClick={() => setView('analytics')} data-testid="analytics-tab-btn">
+                      <BarChart3 className="w-3.5 h-3.5 mr-1.5" /> Analytics
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={exportingExcel} data-testid="export-excel-btn">
                     {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Table2 className="w-3.5 h-3.5 mr-1.5" />}
                     Export Excel
@@ -762,7 +769,7 @@ const ReportsPage = () => {
                 <div className="text-center py-16">
                   <FileWarning className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                   <p className="text-gray-500">No reports found</p>
-                  <p className="text-sm text-gray-400 mt-1">Click "New Report" to file an incident report</p>
+                  <p className="text-sm text-gray-400 mt-1">Click &ldquo;New Report&rdquo; to file an incident report</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -827,6 +834,21 @@ const ReportsPage = () => {
                 userRole={user?.role}
                 userId={user?.id}
               />
+            </motion.div>
+          )}
+
+          {view === 'analytics' && (
+            <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Incident Analytics</h1>
+                  <p className="text-sm text-gray-500 mt-1">Trends, breakdowns, and response metrics</p>
+                </div>
+                <Button variant="ghost" onClick={() => setView('list')} data-testid="back-to-reports-btn">
+                  <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Reports
+                </Button>
+              </div>
+              <IncidentAnalytics />
             </motion.div>
           )}
         </AnimatePresence>
