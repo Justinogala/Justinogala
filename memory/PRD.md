@@ -43,13 +43,22 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - `POST /api/reports` - Create report
 - `GET /api/reports` - List reports (role-filtered)
 - `GET /api/reports/stats` - Dashboard stats
+- `GET /api/reports/export/excel` - Export filtered reports to Excel
 - `GET /api/reports/{id}` - Get report detail
 - `PUT /api/reports/{id}` - Update report/investigation
 - `POST /api/reports/{id}/attachments` - Upload attachment
 - `GET /api/reports/{id}/attachments/{att_id}` - Download attachment
+- `GET /api/reports/{id}/export/pdf` - Export individual report to PDF
+
+## Completed (March 16, 2026)
+- **PDF Export**: Individual report export to professionally formatted PDF via `/api/reports/{id}/export/pdf`
+- **Excel Export**: Bulk report export with severity color-coding and filters via `/api/reports/export/excel`
+- **Email Notifications**: Critical/SOR incidents auto-notify all admins/managers via Resend (noreply@munal.ai)
+- **Escalation Workflow**: APScheduler runs hourly; reports open >24h are auto-escalated with admin email alerts
+- **Frontend**: "Export Excel" button on report list, "Export PDF" button on report detail view
 
 ## Backlog
 - **P2**: Cloud storage migration testing
-- **P2**: Automated notifications for critical incidents (email manager)
-- **P2**: Export reports to PDF/Excel
-- **P3**: Escalation workflow if not reviewed in 24h
+- **P2**: Refactor AdminStripeSettingsPage.jsx
+- **P2**: Clean up orphaned data from workspace_members
+- **P3**: Consolidate AuthContext and AdminAuthContext
