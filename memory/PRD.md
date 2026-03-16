@@ -58,6 +58,8 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - **Real-Time SSE Notification Bell**: Critical/SOR incidents push a `critical_incident` SSE event to all online admin/manager users; frontend shows toast popup + adds to notification bell with red pulse indicator
 - **Incident Analytics Dashboard**: Dedicated analytics view with severity trend (stacked bar chart), incident type breakdown (donut chart), response time metrics (horizontal bars by severity), and monthly summary cards. Admin/Manager only.
 - **Admin Role Management**: Added "Change Role" dropdown in admin user management — Set as Admin/Manager/User with toast confirmation. Updated justinoo2001@gmail.com to Admin.
+- **Admin IR/SOR Report Generation**: Added "IR / SOR Reports" as a real report type in admin Generate Report modal — downloads actual PDF/Excel files from backend with date range filters. Other report types remain mocked.
+- **Bulk PDF Export**: New `/api/reports/export/pdf` endpoint generates a multi-page PDF with cover page, severity summary table, and individual report details.
 - **Frontend**: "Export Excel" button on report list, "Export PDF" button on report detail view
 
 ## Backlog
