@@ -93,6 +93,7 @@ from routes.admin_workspaces import router as admin_workspaces_router
 from routes.admin_chat_moderation import router as admin_chat_router
 from routes.admin_shifts import router as admin_shifts_router
 from routes.reports import router as reports_router, check_escalations
+from routes.admin_reports import router as admin_reports_router
 
 
 # ============== Include All Routers ==============
@@ -153,6 +154,7 @@ api_router.include_router(admin_workspaces_router)
 api_router.include_router(admin_chat_router)
 api_router.include_router(admin_shifts_router)
 api_router.include_router(reports_router)
+api_router.include_router(admin_reports_router)
 
 
 # ============== Include Main Router ==============

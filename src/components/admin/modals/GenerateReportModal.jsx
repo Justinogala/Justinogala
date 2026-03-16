@@ -47,8 +47,8 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      // IR / SOR Reports — real backend download
       if (formData.type === 'IR / SOR Reports') {
+        // IR/SOR uses its own dedicated export endpoint
         const fmt = formData.format === 'Excel' ? 'excel' : 'pdf';
         const params = new URLSearchParams();
         if (formData.startDate) params.set('start_date', formData.startDate);
@@ -58,27 +58,32 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
         if (!res.ok) throw new Error('Failed to generate report');
         const blob = await res.blob();
         const ext = fmt === 'excel' ? 'xlsx' : 'pdf';
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `ir_sor_reports_${formData.startDate}_${formData.endDate}.${ext}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-
-        // Also save record to local reports list for display
-        await generateReport({
-          ...formData,
-          size: `${(blob.size / 1024).toFixed(0)} KB`,
-          downloadUrl: 'generated',
+        _downloadBlob(blob, `ir_sor_reports_${formData.startDate}_${formData.endDate}.${ext}`);
+      } else {
+        // All other reports use the admin reports generate endpoint
+        const params = new URLSearchParams({
+          type: formData.type,
+          format: formData.format === 'CSV' ? 'Excel' : formData.format,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
         });
 
-        toast({ title: "IR / SOR Report downloaded", description: `${formData.format} report has been generated and downloaded.` });
-      } else {
-        await generateReport(formData);
-        toast({ title: "Report generated successfully!", description: `Your ${formData.type} report has been created.` });
+        const res = await fetch(`${API_URL}/api/admin/reports/generate?${params}`);
+        if (!res.ok) throw new Error('Failed to generate report');
+        const blob = await res.blob();
+        const safeName = formData.type.toLowerCase().replace(/\s+/g, '_').replace('&', 'and');
+        const ext = formData.format === 'Excel' ? 'xlsx' : formData.format === 'CSV' ? 'xlsx' : 'pdf';
+        _downloadBlob(blob, `${safeName}_${formData.startDate}_${formData.endDate}.${ext}`);
       }
+
+      // Save record to local list for display
+      await generateReport({
+        ...formData,
+        size: 'Generated',
+        downloadUrl: 'generated',
+      });
+
+      toast({ title: "Report downloaded", description: `Your ${formData.type} report (${formData.format}) has been generated.` });
       if (onSuccess) onSuccess();
       onClose();
       setFormData({ type: 'User Activity', startDate: '', endDate: '', format: 'PDF', recipients: '', isScheduled: false, frequency: 'Weekly', time: '09:00' });
@@ -87,6 +92,17 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const _downloadBlob = (blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
   };
 
   const isIRSOR = formData.type === 'IR / SOR Reports';
@@ -147,12 +163,10 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
         </div>
 
-        {isIRSOR && (
-          <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-sm p-3 rounded-lg border border-amber-200 dark:border-amber-800">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>This will generate a real IR / SOR report from incident data and download it immediately.</span>
-          </div>
-        )}
+        <div className="flex items-start gap-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 text-sm p-3 rounded-lg border border-emerald-200 dark:border-emerald-800">
+          <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <span>{isIRSOR ? 'This will generate a real IR / SOR report from incident data and download it immediately.' : 'This will generate a report from real-time database records and download it immediately.'}</span>
+        </div>
 
         {!isIRSOR && (
           <>
@@ -194,7 +208,7 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
           <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
           <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700" data-testid="generate-report-submit-btn">
-            {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>) : (isIRSOR ? 'Generate & Download' : 'Generate Report')}
+            {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>) : (<><Download className="mr-2 h-4 w-4" />Generate &amp; Download</>)}
           </Button>
         </div>
       </form>
