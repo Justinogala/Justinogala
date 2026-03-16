@@ -57,6 +57,7 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - **Escalation Workflow**: APScheduler runs hourly; reports open >24h are auto-escalated with admin email alerts
 - **Real-Time SSE Notification Bell**: Critical/SOR incidents push a `critical_incident` SSE event to all online admin/manager users; frontend shows toast popup + adds to notification bell with red pulse indicator
 - **Incident Analytics Dashboard**: Dedicated analytics view with severity trend (stacked bar chart), incident type breakdown (donut chart), response time metrics (horizontal bars by severity), and monthly summary cards. Admin/Manager only.
+- **Admin Role Management**: Added "Change Role" dropdown in admin user management — Set as Admin/Manager/User with toast confirmation. Updated justinoo2001@gmail.com to Admin.
 - **Frontend**: "Export Excel" button on report list, "Export PDF" button on report detail view
 
 ## Backlog
