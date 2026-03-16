@@ -497,6 +497,146 @@ async def export_reports_excel(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== Bulk PDF Export ==============
+
+@router.get("/export/pdf")
+async def export_reports_bulk_pdf(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    severity: Optional[str] = None,
+    status: Optional[str] = None,
+):
+    """Export all/filtered incident reports as a single multi-page PDF."""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.units import mm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+        query = {}
+        if start_date:
+            query.setdefault("created_at", {})["$gte"] = start_date
+        if end_date:
+            query.setdefault("created_at", {})["$lte"] = end_date
+        if severity:
+            query["severity"] = severity
+        if status:
+            query["status"] = status
+
+        reports = await db.incident_reports.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=15*mm, bottomMargin=15*mm, leftMargin=15*mm, rightMargin=15*mm)
+        styles = getSampleStyleSheet()
+        story = []
+
+        title_style = ParagraphStyle('CoverTitle', parent=styles['Title'], fontSize=22, textColor=colors.HexColor('#1e1b4b'), spaceAfter=6)
+        subtitle_style = ParagraphStyle('CoverSub', parent=styles['Normal'], fontSize=11, textColor=colors.grey, spaceAfter=20)
+        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor('#4338ca'), spaceBefore=10, spaceAfter=4)
+        body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=9, leading=12, spaceAfter=4)
+        header_style = ParagraphStyle('ReportHeader', parent=styles['Heading3'], fontSize=13, textColor=colors.HexColor('#1e1b4b'), spaceBefore=4, spaceAfter=2)
+
+        # Cover page
+        story.append(Spacer(1, 40))
+        story.append(Paragraph("Incident Reports — Summary", title_style))
+        date_range = ""
+        if start_date and end_date:
+            date_range = f"{start_date} to {end_date}"
+        elif start_date:
+            date_range = f"From {start_date}"
+        elif end_date:
+            date_range = f"Up to {end_date}"
+        else:
+            date_range = "All records"
+        story.append(Paragraph(f"{len(reports)} reports &bull; {date_range}", subtitle_style))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e5e7eb')))
+        story.append(Spacer(1, 10))
+
+        # Summary table
+        sev_counts = {}
+        for r in reports:
+            s = r.get("severity", "unknown")
+            sev_counts[s] = sev_counts.get(s, 0) + 1
+
+        summary_data = [["Severity", "Count"]]
+        for s in ["minor", "moderate", "major", "critical", "serious_occurrence"]:
+            if s in sev_counts:
+                summary_data.append([s.replace("_", " ").title(), str(sev_counts[s])])
+        summary_data.append(["Total", str(len(reports))])
+
+        t = Table(summary_data, colWidths=[200, 80])
+        t.setStyle(TableStyle([
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4338ca')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f3f4f6')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ]))
+        story.append(t)
+
+        # Individual reports
+        for i, r in enumerate(reports):
+            if i > 0:
+                story.append(PageBreak())
+
+            report_type = "SOR" if r.get("report_type") == "SOR" else "IR"
+            story.append(header_style and Paragraph(f"{r.get('report_number', '')} — {report_type}", header_style))
+            story.append(Paragraph(f"Status: {(r.get('status') or 'open').replace('_', ' ').title()} &bull; Severity: {r.get('severity', '').replace('_', ' ').title()}", body_style))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#e5e7eb')))
+
+            details = [
+                ["Date", r.get("incident_date", ""), "Time", r.get("incident_time", "")],
+                ["Location", r.get("location", ""), "Dept", r.get("department", "") or "—"],
+                ["Type", r.get("incident_type", "").replace("_", " ").title(), "Submitted", r.get("submitted_by_name", "")],
+            ]
+            dt = Table(details, colWidths=[50, 150, 50, 150])
+            dt.setStyle(TableStyle([
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.grey),
+                ('TEXTCOLOR', (2, 0), (2, -1), colors.grey),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ]))
+            story.append(dt)
+
+            if r.get("description"):
+                story.append(Paragraph("Description", section_style))
+                story.append(Paragraph(r["description"][:500], body_style))
+
+            if r.get("immediate_action"):
+                story.append(Paragraph("Immediate Action", section_style))
+                story.append(Paragraph(r["immediate_action"][:300], body_style))
+
+            persons = r.get("persons_involved", [])
+            if persons:
+                story.append(Paragraph("Persons Involved", section_style))
+                for p in persons:
+                    story.append(Paragraph(f"&bull; {p.get('full_name', '')} ({p.get('role', '')})", body_style))
+
+        # Footer
+        story.append(Spacer(1, 20))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#d1d5db')))
+        story.append(Paragraph(f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} — Munal AI Incident Reporting", ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7, textColor=colors.lightgrey, spaceBefore=4)))
+
+        doc.build(story)
+        buf.seek(0)
+
+        filename = f"incident_reports_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')}.pdf"
+        return StreamingResponse(
+            buf,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except Exception as e:
+        logger.error(f"Error exporting bulk PDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{report_id}")
 async def get_report(report_id: str):
     """Get a single report by ID."""

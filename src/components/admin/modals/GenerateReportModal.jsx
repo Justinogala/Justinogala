@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/components/ui/use-toast';
 import { generateReport } from '@/services/adminService';
-import { FileText, Calendar, Mail, Loader2, Download } from 'lucide-react';
+import { FileText, Calendar, Mail, Loader2, Download, AlertTriangle } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
   const { toast } = useToast();
@@ -34,7 +36,6 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.startDate || !formData.endDate) {
       toast({ title: "Error", description: "Please select a date range.", variant: "destructive" });
       return;
@@ -46,24 +47,41 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      await generateReport(formData);
-      toast({
-        title: "Report generated successfully!",
-        description: `Your ${formData.type} report has been created.`,
-      });
+      // IR / SOR Reports — real backend download
+      if (formData.type === 'IR / SOR Reports') {
+        const fmt = formData.format === 'Excel' ? 'excel' : 'pdf';
+        const params = new URLSearchParams();
+        if (formData.startDate) params.set('start_date', formData.startDate);
+        if (formData.endDate) params.set('end_date', formData.endDate);
+
+        const res = await fetch(`${API_URL}/api/reports/export/${fmt}?${params}`);
+        if (!res.ok) throw new Error('Failed to generate report');
+        const blob = await res.blob();
+        const ext = fmt === 'excel' ? 'xlsx' : 'pdf';
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ir_sor_reports_${formData.startDate}_${formData.endDate}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        // Also save record to local reports list for display
+        await generateReport({
+          ...formData,
+          size: `${(blob.size / 1024).toFixed(0)} KB`,
+          downloadUrl: 'generated',
+        });
+
+        toast({ title: "IR / SOR Report downloaded", description: `${formData.format} report has been generated and downloaded.` });
+      } else {
+        await generateReport(formData);
+        toast({ title: "Report generated successfully!", description: `Your ${formData.type} report has been created.` });
+      }
       if (onSuccess) onSuccess();
       onClose();
-      // Reset form
-      setFormData({
-        type: 'User Activity',
-        startDate: '',
-        endDate: '',
-        format: 'PDF',
-        recipients: '',
-        isScheduled: false,
-        frequency: 'Weekly',
-        time: '09:00'
-      });
+      setFormData({ type: 'User Activity', startDate: '', endDate: '', format: 'PDF', recipients: '', isScheduled: false, frequency: 'Weekly', time: '09:00' });
     } catch (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -71,13 +89,10 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
+  const isIRSOR = formData.type === 'IR / SOR Reports';
+
   return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Generate Report"
-      maxWidth="max-w-2xl"
-    >
+    <BaseModal isOpen={isOpen} onClose={onClose} title="Generate Report" maxWidth="max-w-2xl">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -85,19 +100,17 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
             <div className="relative">
               <FileText className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
               <select
-                id="type"
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 pl-9 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:border-gray-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-gray-400 dark:focus-visible:ring-indigo-500"
+                id="type" name="type" value={formData.type} onChange={handleChange}
+                className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 pl-9 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:border-gray-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:focus-visible:ring-indigo-500"
               >
                 <option>User Activity</option>
                 <option>Meeting Summary</option>
                 <option>System Performance</option>
                 <option>Security Audit</option>
                 <option>Storage Usage</option>
-                <option>Revenue & Billing</option>
+                <option>Revenue &amp; Billing</option>
                 <option>Subscriptions</option>
+                <option>IR / SOR Reports</option>
               </select>
             </div>
           </div>
@@ -107,14 +120,11 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
             <div className="relative">
               <Download className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
               <select
-                id="format"
-                name="format"
-                value={formData.format}
-                onChange={handleChange}
-                className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 pl-9 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:border-gray-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-gray-400 dark:focus-visible:ring-indigo-500"
+                id="format" name="format" value={formData.format} onChange={handleChange}
+                className="flex h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 pl-9 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:border-gray-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:focus-visible:ring-indigo-500"
               >
                 <option>PDF</option>
-                <option>CSV</option>
+                {!isIRSOR && <option>CSV</option>}
                 <option>Excel</option>
               </select>
             </div>
@@ -124,15 +134,7 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
             <Label htmlFor="startDate">Start Date</Label>
             <div className="relative">
               <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                id="startDate"
-                name="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={handleChange}
-                className="pl-9"
-                required
-              />
+              <Input id="startDate" name="startDate" type="date" value={formData.startDate} onChange={handleChange} className="pl-9" required />
             </div>
           </div>
 
@@ -140,88 +142,59 @@ const GenerateReportModal = ({ isOpen, onClose, onSuccess }) => {
             <Label htmlFor="endDate">End Date</Label>
             <div className="relative">
               <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                id="endDate"
-                name="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={handleChange}
-                className="pl-9"
-                required
-              />
+              <Input id="endDate" name="endDate" type="date" value={formData.endDate} onChange={handleChange} className="pl-9" required />
             </div>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="recipients">Email Recipients (Optional)</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              id="recipients"
-              name="recipients"
-              placeholder="email@example.com, another@example.com"
-              value={formData.recipients}
-              onChange={handleChange}
-              className="pl-9"
-            />
+        {isIRSOR && (
+          <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-sm p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>This will generate a real IR / SOR report from incident data and download it immediately.</span>
           </div>
-        </div>
+        )}
 
-        <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center space-x-2 mb-4">
-            <Checkbox 
-              id="isScheduled" 
-              checked={formData.isScheduled}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isScheduled: checked }))}
-            />
-            <Label htmlFor="isScheduled" className="font-semibold cursor-pointer">Schedule this report</Label>
-          </div>
-
-          {formData.isScheduled && (
-            <div className="grid grid-cols-2 gap-4 pl-6 animate-in fade-in slide-in-from-top-2">
-              <div className="space-y-2">
-                <Label htmlFor="frequency">Frequency</Label>
-                <select
-                  id="frequency"
-                  name="frequency"
-                  value={formData.frequency}
-                  onChange={handleChange}
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 dark:border-gray-800 dark:bg-slate-950"
-                >
-                  <option>Daily</option>
-                  <option>Weekly</option>
-                  <option>Monthly</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
-                <Input
-                  id="time"
-                  name="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={handleChange}
-                  className="h-9"
-                />
+        {!isIRSOR && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="recipients">Email Recipients (Optional)</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Input id="recipients" name="recipients" placeholder="email@example.com, another@example.com" value={formData.recipients} onChange={handleChange} className="pl-9" />
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border border-gray-100 dark:border-gray-800">
+              <div className="flex items-center space-x-2 mb-4">
+                <Checkbox id="isScheduled" checked={formData.isScheduled} onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isScheduled: checked }))} />
+                <Label htmlFor="isScheduled" className="font-semibold cursor-pointer">Schedule this report</Label>
+              </div>
+              {formData.isScheduled && (
+                <div className="grid grid-cols-2 gap-4 pl-6 animate-in fade-in slide-in-from-top-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="frequency">Frequency</Label>
+                    <select id="frequency" name="frequency" value={formData.frequency} onChange={handleChange}
+                      className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500 dark:border-gray-800 dark:bg-slate-950"
+                    >
+                      <option>Daily</option>
+                      <option>Weekly</option>
+                      <option>Monthly</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Time</Label>
+                    <Input id="time" name="time" type="time" value={formData.time} onChange={handleChange} className="h-9" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700">
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              'Generate Report'
-            )}
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700" data-testid="generate-report-submit-btn">
+            {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Generating...</>) : (isIRSOR ? 'Generate & Download' : 'Generate Report')}
           </Button>
         </div>
       </form>
