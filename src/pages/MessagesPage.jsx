@@ -14,7 +14,8 @@ import {
   Loader2, Send, Search, Inbox, SendHorizontal, Star, 
   Trash2, Reply, Plus, Mail, ArrowLeft, RefreshCw,
   FileEdit, AlertCircle, RotateCcw, Trash, MoreHorizontal,
-  Paperclip, X, FileText, Image, File, Download, Settings, Menu
+  Paperclip, X, FileText, Image, File, Download, Settings, Menu,
+  Sparkles, Wand2, ListChecks, MessageSquareText, Zap
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -61,6 +62,16 @@ const MessagesPage = () => {
   // Reply state
   const [replyContent, setReplyContent] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+
+  // AI features state
+  const [smartReplies, setSmartReplies] = useState([]);
+  const [loadingSmartReplies, setLoadingSmartReplies] = useState(false);
+  const [threadSummary, setThreadSummary] = useState('');
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [suggestedActions, setSuggestedActions] = useState([]);
+  const [loadingActions, setLoadingActions] = useState(false);
+  const [draftingReply, setDraftingReply] = useState(false);
+  const [aiSettings, setAiSettings] = useState(null);
 
   // Fetch message counts
   const fetchCounts = useCallback(async () => {
@@ -554,6 +565,114 @@ const MessagesPage = () => {
     }
   };
 
+  // ============ AI Features ============
+  // Fetch AI settings for the current user
+  const fetchAiSettings = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const [sRes, aRes] = await Promise.all([
+        fetch(`${API_URL}/api/messages/settings/${user.id}`),
+        fetch(`${API_URL}/api/messages/assistant/${user.id}`),
+      ]);
+      const sData = await sRes.json();
+      const aData = await aRes.json();
+      setAiSettings({
+        aiEnabled: sData.settings?.ai_personalization_enabled ?? true,
+        smartReplies: sData.settings?.ai_smart_replies ?? true,
+        autoCategorize: sData.settings?.ai_auto_categorize ?? true,
+        assistantEnabled: aData.settings?.enabled ?? true,
+        summarize: aData.settings?.summarize_threads ?? true,
+        suggestActions: aData.settings?.suggest_actions ?? true,
+        autoDraft: aData.settings?.auto_draft_replies ?? false,
+      });
+    } catch { /* fallback defaults */ }
+  }, [user?.id]);
+
+  useEffect(() => { fetchAiSettings(); }, [fetchAiSettings]);
+
+  const buildAiPayload = (msg) => ({
+    user_id: user.id,
+    message_content: msg?.content || selectedMessage?.content || '',
+    message_subject: msg?.subject || selectedMessage?.subject || '',
+    sender_name: msg?.sender_name || selectedMessage?.sender_name || '',
+    thread_messages: thread.map(t => ({ sender_name: t.sender_name, content: t.content })),
+  });
+
+  const fetchSmartReplies = async () => {
+    if (!selectedMessage) return;
+    setLoadingSmartReplies(true);
+    setSmartReplies([]);
+    try {
+      const res = await fetch(`${API_URL}/api/messages/ai/smart-replies`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAiPayload()),
+      });
+      const data = await res.json();
+      if (data.success && data.replies?.length) setSmartReplies(data.replies);
+    } catch { /* silent */ }
+    setLoadingSmartReplies(false);
+  };
+
+  const fetchThreadSummary = async () => {
+    if (!selectedMessage) return;
+    setLoadingSummary(true);
+    setThreadSummary('');
+    try {
+      const res = await fetch(`${API_URL}/api/messages/ai/summarize-thread`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAiPayload()),
+      });
+      const data = await res.json();
+      if (data.success && data.summary) setThreadSummary(data.summary);
+    } catch { /* silent */ }
+    setLoadingSummary(false);
+  };
+
+  const fetchSuggestedActions = async () => {
+    if (!selectedMessage) return;
+    setLoadingActions(true);
+    setSuggestedActions([]);
+    try {
+      const res = await fetch(`${API_URL}/api/messages/ai/suggest-actions`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAiPayload()),
+      });
+      const data = await res.json();
+      if (data.success && data.actions?.length) setSuggestedActions(data.actions);
+    } catch { /* silent */ }
+    setLoadingActions(false);
+  };
+
+  const handleAiDraft = async () => {
+    if (!selectedMessage) return;
+    setDraftingReply(true);
+    try {
+      const res = await fetch(`${API_URL}/api/messages/ai/draft-reply`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildAiPayload()),
+      });
+      const data = await res.json();
+      if (data.success && data.draft) {
+        setReplyContent(data.draft);
+        toast({ title: 'AI Draft Ready', description: 'Review and edit before sending' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'AI Draft failed' });
+    }
+    setDraftingReply(false);
+  };
+
+  // Auto-load smart replies when opening a message
+  useEffect(() => {
+    if (selectedMessage && thread.length > 0 && aiSettings?.aiEnabled && aiSettings?.smartReplies) {
+      setSmartReplies([]);
+      setThreadSummary('');
+      setSuggestedActions([]);
+      fetchSmartReplies();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMessage?.id, thread.length]);
+
   const getInitials = (name) => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -740,6 +859,20 @@ const MessagesPage = () => {
                       {thread.length} message{thread.length !== 1 ? 's' : ''} in this conversation
                     </p>
                   </div>
+                  {/* AI Summarize button */}
+                  {aiSettings?.assistantEnabled && aiSettings?.summarize && thread.length > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchThreadSummary}
+                      disabled={loadingSummary}
+                      className="border-violet-200 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-950/40 shrink-0"
+                      data-testid="summarize-thread-btn"
+                    >
+                      {loadingSummary ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <MessageSquareText className="w-3.5 h-3.5 mr-1.5" />}
+                      <span className="hidden sm:inline">Summarize</span>
+                    </Button>
+                  )}
                 </div>
                 
                 <ScrollArea className="flex-1 p-3 md:p-4">
@@ -805,27 +938,124 @@ const MessagesPage = () => {
                 </ScrollArea>
                 
                 {/* Reply Box */}
-                <div className="p-4 border-t bg-gray-50 dark:bg-slate-800/50">
-                  <div className="flex gap-2">
-                    <Textarea
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder="Write your reply..."
-                      className="flex-1 min-h-[60px] md:min-h-[80px] resize-none text-base"
-                      data-testid="reply-input"
-                    />
-                  </div>
-                  <div className="flex justify-end mt-2">
-                    <Button 
-                      onClick={handleSendReply} 
-                      disabled={!replyContent.trim() || sendingReply}
-                      className="h-10 md:h-9"
-                      data-testid="send-reply-btn"
-                    >
-                      {sendingReply ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                      <span className="hidden sm:inline">Send Reply</span>
-                      <span className="sm:hidden">Send</span>
-                    </Button>
+                <div className="border-t bg-gray-50 dark:bg-slate-800/50">
+                  {/* AI Thread Summary */}
+                  {threadSummary && (
+                    <div className="px-4 pt-3" data-testid="thread-summary-panel">
+                      <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <MessageSquareText className="w-3.5 h-3.5 text-violet-600" />
+                          <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">Thread Summary</span>
+                          <button onClick={() => setThreadSummary('')} className="ml-auto text-violet-400 hover:text-violet-600"><X className="w-3 h-3" /></button>
+                        </div>
+                        <p className="text-xs text-violet-800 dark:text-violet-200 leading-relaxed">{threadSummary}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Smart Replies */}
+                  {(smartReplies.length > 0 || loadingSmartReplies) && (
+                    <div className="px-4 pt-3" data-testid="smart-replies-panel">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span className="text-xs font-medium text-slate-500">Smart Replies</span>
+                      </div>
+                      {loadingSmartReplies ? (
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Generating suggestions...
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {smartReplies.map((reply, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setReplyContent(reply)}
+                              className="text-xs px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-slate-600 dark:text-slate-300 transition-colors max-w-[280px] truncate"
+                              data-testid={`smart-reply-${i}`}
+                            >
+                              {reply}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI Suggested Actions */}
+                  {suggestedActions.length > 0 && (
+                    <div className="px-4 pt-3" data-testid="suggested-actions-panel">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Zap className="w-3 h-3 text-emerald-500" />
+                        <span className="text-xs font-medium text-slate-500">Suggested Actions</span>
+                        <button onClick={() => setSuggestedActions([])} className="ml-auto text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {suggestedActions.map((a, i) => (
+                          <span
+                            key={i}
+                            className="text-xs px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                            title={a.description}
+                          >
+                            {a.action}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reply input + AI buttons */}
+                  <div className="p-4">
+                    <div className="flex gap-2">
+                      <Textarea
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        placeholder="Write your reply..."
+                        className="flex-1 min-h-[60px] md:min-h-[80px] resize-none text-base"
+                        data-testid="reply-input"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center gap-1.5">
+                        {/* AI Draft Reply */}
+                        {aiSettings?.assistantEnabled && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleAiDraft}
+                            disabled={draftingReply}
+                            className="text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950/40 h-8 text-xs"
+                            data-testid="ai-draft-btn"
+                          >
+                            {draftingReply ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Wand2 className="w-3 h-3 mr-1" />}
+                            AI Draft
+                          </Button>
+                        )}
+                        {/* Suggest Actions */}
+                        {aiSettings?.assistantEnabled && aiSettings?.suggestActions && suggestedActions.length === 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={fetchSuggestedActions}
+                            disabled={loadingActions}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 h-8 text-xs"
+                            data-testid="suggest-actions-btn"
+                          >
+                            {loadingActions ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ListChecks className="w-3 h-3 mr-1" />}
+                            Actions
+                          </Button>
+                        )}
+                      </div>
+                      <Button 
+                        onClick={handleSendReply} 
+                        disabled={!replyContent.trim() || sendingReply}
+                        className="h-10 md:h-9"
+                        data-testid="send-reply-btn"
+                      >
+                        {sendingReply ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                        <span className="hidden sm:inline">Send Reply</span>
+                        <span className="sm:hidden">Send</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </>

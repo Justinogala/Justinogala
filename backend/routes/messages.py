@@ -955,6 +955,182 @@ async def get_unread_count(user_id: str):
 
 
 
+# ============== AI Features ==============
+
+import os
+import json as json_lib
+
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+
+
+async def _get_user_ai_settings(user_id: str):
+    """Fetch merged AI + assistant settings for a user."""
+    ai = await db.message_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    asst = await db.message_assistant_settings.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    return {
+        "ai_enabled": ai.get("ai_personalization_enabled", True),
+        "tone": ai.get("ai_tone", "professional"),
+        "smart_replies": ai.get("ai_smart_replies", True),
+        "auto_categorize": ai.get("ai_auto_categorize", True),
+        "assistant_enabled": asst.get("enabled", True),
+        "auto_draft": asst.get("auto_draft_replies", False),
+        "summarize": asst.get("summarize_threads", True),
+        "suggest_actions": asst.get("suggest_actions", True),
+        "writing_style": asst.get("writing_style", "concise"),
+    }
+
+
+async def _ai_chat(system_prompt: str, user_prompt: str):
+    api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+    from emergentintegrations.llm.openai import LlmChat, UserMessage
+    import uuid as _uuid
+    llm = LlmChat(
+        api_key=api_key,
+        session_id=str(_uuid.uuid4()),
+        system_message=system_prompt,
+    )
+    llm = llm.with_model("openai", "gpt-4o")
+    response = await llm.send_message(UserMessage(text=user_prompt))
+    return response
+
+
+class AIMessageRequest(BaseModel):
+    user_id: str
+    message_content: str
+    message_subject: Optional[str] = ""
+    sender_name: Optional[str] = ""
+    thread_messages: Optional[List[dict]] = []
+
+
+@router.post("/ai/smart-replies")
+async def ai_smart_replies(req: AIMessageRequest):
+    """Generate 3 short smart reply suggestions for a message."""
+    cfg = await _get_user_ai_settings(req.user_id)
+    if not cfg["ai_enabled"] or not cfg["smart_replies"]:
+        return {"success": True, "replies": []}
+
+    tone = cfg["tone"]
+    system = (
+        f"You are an AI assistant. Generate exactly 3 short reply suggestions for the message below. "
+        f"Use a {tone} tone. Return ONLY a JSON array of 3 strings, nothing else. "
+        f"Each reply should be 1-2 sentences max."
+    )
+    prompt = f"Subject: {req.message_subject}\nFrom: {req.sender_name}\n\n{req.message_content}"
+    try:
+        raw = await _ai_chat(system, prompt)
+        replies = json_lib.loads(raw) if raw.strip().startswith("[") else [r.strip().strip('"') for r in raw.strip().split("\n") if r.strip()]
+        return {"success": True, "replies": replies[:3]}
+    except Exception as e:
+        logger.error(f"Smart replies error: {e}")
+        return {"success": False, "replies": [], "error": str(e)}
+
+
+@router.post("/ai/summarize-thread")
+async def ai_summarize_thread(req: AIMessageRequest):
+    """Summarize a conversation thread."""
+    cfg = await _get_user_ai_settings(req.user_id)
+    if not cfg["assistant_enabled"] or not cfg["summarize"]:
+        return {"success": True, "summary": ""}
+
+    thread_text = "\n\n".join(
+        [f"{m.get('sender_name', 'User')}: {m.get('content', '')}" for m in (req.thread_messages or [])]
+    )
+    if not thread_text.strip():
+        thread_text = f"{req.sender_name}: {req.message_content}"
+
+    system = "You are an AI assistant. Provide a concise summary (3-5 sentences) of the conversation thread below. Focus on key points, decisions, and action items."
+    try:
+        summary = await _ai_chat(system, f"Subject: {req.message_subject}\n\n{thread_text}")
+        return {"success": True, "summary": summary}
+    except Exception as e:
+        logger.error(f"Summarize thread error: {e}")
+        return {"success": False, "summary": "", "error": str(e)}
+
+
+@router.post("/ai/suggest-actions")
+async def ai_suggest_actions(req: AIMessageRequest):
+    """Suggest follow-up actions based on a message."""
+    cfg = await _get_user_ai_settings(req.user_id)
+    if not cfg["assistant_enabled"] or not cfg["suggest_actions"]:
+        return {"success": True, "actions": []}
+
+    system = (
+        "You are an AI assistant. Based on the message below, suggest 2-4 practical follow-up actions. "
+        'Return ONLY a JSON array of objects: [{"action": "short label", "description": "one line detail"}]. Nothing else.'
+    )
+    prompt = f"Subject: {req.message_subject}\nFrom: {req.sender_name}\n\n{req.message_content}"
+    try:
+        raw = await _ai_chat(system, prompt)
+        actions = json_lib.loads(raw) if raw.strip().startswith("[") else []
+        return {"success": True, "actions": actions[:4]}
+    except Exception as e:
+        logger.error(f"Suggest actions error: {e}")
+        return {"success": False, "actions": [], "error": str(e)}
+
+
+@router.post("/ai/draft-reply")
+async def ai_draft_reply(req: AIMessageRequest):
+    """Auto-draft a full reply to a message."""
+    cfg = await _get_user_ai_settings(req.user_id)
+    if not cfg["assistant_enabled"]:
+        return {"success": True, "draft": ""}
+
+    tone = cfg["tone"]
+    style = cfg["writing_style"]
+    style_instruction = {
+        "concise": "Keep the reply short and to the point (2-3 sentences).",
+        "detailed": "Write a thorough, well-structured reply with context.",
+        "creative": "Write in a warm, creative, and engaging tone.",
+        "match_my_style": "Write in a natural, balanced way.",
+    }.get(style, "Keep it concise.")
+
+    system = (
+        f"You are an AI assistant drafting a reply to a message. "
+        f"Use a {tone} tone. {style_instruction} "
+        f"Write only the reply body — no subject line, no greeting name header, just the message content ready to send."
+    )
+    thread_context = ""
+    if req.thread_messages:
+        thread_context = "\n\nThread context:\n" + "\n".join(
+            [f"{m.get('sender_name', 'User')}: {m.get('content', '')[:200]}" for m in req.thread_messages[-5:]]
+        )
+
+    prompt = f"Subject: {req.message_subject}\nFrom: {req.sender_name}\n\n{req.message_content}{thread_context}"
+    try:
+        draft = await _ai_chat(system, prompt)
+        return {"success": True, "draft": draft}
+    except Exception as e:
+        logger.error(f"Draft reply error: {e}")
+        return {"success": False, "draft": "", "error": str(e)}
+
+
+@router.post("/ai/categorize")
+async def ai_categorize_message(req: AIMessageRequest):
+    """Categorize a message using AI."""
+    cfg = await _get_user_ai_settings(req.user_id)
+    if not cfg["ai_enabled"] or not cfg["auto_categorize"]:
+        return {"success": True, "category": ""}
+
+    system = (
+        "You are an AI that categorizes messages. Classify the message below into EXACTLY one category: "
+        "work, personal, urgent, finance, scheduling, support, social, or other. "
+        "Return ONLY the single category word in lowercase, nothing else."
+    )
+    prompt = f"Subject: {req.message_subject}\nFrom: {req.sender_name}\n\n{req.message_content[:500]}"
+    try:
+        raw = await _ai_chat(system, prompt)
+        category = raw.strip().lower().split()[0] if raw.strip() else "other"
+        valid = {"work", "personal", "urgent", "finance", "scheduling", "support", "social", "other"}
+        category = category if category in valid else "other"
+        return {"success": True, "category": category}
+    except Exception as e:
+        logger.error(f"Categorize error: {e}")
+        return {"success": False, "category": "", "error": str(e)}
+
+
 # ============== Message Settings ==============
 
 class MessageSettingsUpdate(BaseModel):
