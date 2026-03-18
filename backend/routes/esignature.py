@@ -10,7 +10,6 @@ import io
 import os
 import base64
 import tempfile
-import subprocess
 
 from config import db, logger
 from security import limiter
@@ -21,24 +20,37 @@ ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx"}
 
 
 def convert_doc_to_pdf(content: bytes, filename: str) -> bytes:
-    """Convert DOC/DOCX to PDF using LibreOffice headless."""
+    """Convert DOC/DOCX to PDF using mammoth + weasyprint."""
+    import mammoth
+    import weasyprint
+
     ext = os.path.splitext(filename)[1].lower()
-    with tempfile.TemporaryDirectory() as tmpdir:
-        input_path = os.path.join(tmpdir, f"input{ext}")
-        with open(input_path, "wb") as f:
-            f.write(content)
-        result = subprocess.run(
-            ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", tmpdir, input_path],
-            capture_output=True, timeout=60,
-        )
-        if result.returncode != 0:
-            logger.error(f"LibreOffice conversion failed: {result.stderr.decode()}")
-            raise HTTPException(status_code=500, detail="Document conversion failed")
-        pdf_path = os.path.join(tmpdir, "input.pdf")
-        if not os.path.exists(pdf_path):
-            raise HTTPException(status_code=500, detail="Converted PDF not found")
-        with open(pdf_path, "rb") as f:
-            return f.read()
+    if ext not in {".doc", ".docx"}:
+        raise HTTPException(status_code=400, detail="Only DOC and DOCX files are supported")
+
+    try:
+        result = mammoth.convert_to_html(io.BytesIO(content))
+        html_body = result.value
+
+        full_html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+body {{ font-family: sans-serif; margin: 40px; line-height: 1.6; color: #222; }}
+h1 {{ font-size: 24px; margin-bottom: 12px; }}
+h2 {{ font-size: 20px; margin-bottom: 10px; }}
+h3 {{ font-size: 16px; margin-bottom: 8px; }}
+p {{ margin-bottom: 8px; }}
+table {{ border-collapse: collapse; width: 100%; margin: 12px 0; }}
+th, td {{ border: 1px solid #ccc; padding: 6px 10px; text-align: left; }}
+img {{ max-width: 100%; }}
+ul, ol {{ margin-left: 20px; margin-bottom: 8px; }}
+</style></head><body>{html_body}</body></html>"""
+
+        pdf_bytes = weasyprint.HTML(string=full_html).write_pdf()
+        return pdf_bytes
+    except Exception as e:
+        logger.error(f"DOCX to PDF conversion failed: {e}")
+        raise HTTPException(status_code=500, detail="Document conversion failed")
 
 
 def convert_pdf_to_docx(content: bytes) -> bytes:
@@ -103,7 +115,7 @@ async def delete_signature(sig_id: str):
 
 @router.post("/convert-to-pdf")
 @limiter.limit("10/minute")
-async def convert_word_to_pdf(request: Request, file: UploadFile = File(...)):
+async def convert_word_to_pdf(request: Request, file: UploadFile = File(...), user_id: str = Form("")):
     """Convert a DOC/DOCX file to PDF and return the PDF directly."""
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in {".doc", ".docx"}:
@@ -116,6 +128,21 @@ async def convert_word_to_pdf(request: Request, file: UploadFile = File(...)):
     pdf_bytes = convert_doc_to_pdf(content, file.filename)
     pdf_name = os.path.splitext(file.filename)[0] + ".pdf"
 
+    # Save to conversion history
+    if user_id:
+        history_entry = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "conversion_type": "word-to-pdf",
+            "original_filename": file.filename,
+            "converted_filename": pdf_name,
+            "original_size": len(content),
+            "converted_size": len(pdf_bytes),
+            "file_data": base64.b64encode(pdf_bytes).decode("utf-8"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.conversion_history.insert_one(history_entry)
+
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
@@ -127,7 +154,7 @@ async def convert_word_to_pdf(request: Request, file: UploadFile = File(...)):
 
 @router.post("/convert-to-word")
 @limiter.limit("10/minute")
-async def convert_pdf_to_word(request: Request, file: UploadFile = File(...)):
+async def convert_pdf_to_word(request: Request, file: UploadFile = File(...), user_id: str = Form("")):
     """Convert a PDF file to DOCX and return the DOCX directly."""
     ext = os.path.splitext(file.filename)[1].lower()
     if ext != ".pdf":
@@ -139,6 +166,21 @@ async def convert_pdf_to_word(request: Request, file: UploadFile = File(...)):
 
     docx_bytes = convert_pdf_to_docx(content)
     docx_name = os.path.splitext(file.filename)[0] + ".docx"
+
+    # Save to conversion history
+    if user_id:
+        history_entry = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            "conversion_type": "pdf-to-word",
+            "original_filename": file.filename,
+            "converted_filename": docx_name,
+            "original_size": len(content),
+            "converted_size": len(docx_bytes),
+            "file_data": base64.b64encode(docx_bytes).decode("utf-8"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.conversion_history.insert_one(history_entry)
 
     return StreamingResponse(
         io.BytesIO(docx_bytes),
@@ -384,3 +426,43 @@ async def get_signing_history(user_id: str):
         {"user_id": user_id}, {"_id": 0}
     ).sort("signed_at", -1).to_list(100)
     return {"history": history}
+
+
+# ============ Conversion History ============
+
+@router.get("/conversion-history")
+async def get_conversion_history(user_id: str):
+    """Get file conversion history for a user."""
+    history = await db.conversion_history.find(
+        {"user_id": user_id}, {"_id": 0, "file_data": 0}
+    ).sort("created_at", -1).to_list(100)
+    return {"history": history}
+
+
+@router.get("/conversion-history/{entry_id}/download")
+async def download_conversion(entry_id: str):
+    """Download a previously converted file."""
+    entry = await db.conversion_history.find_one(
+        {"id": entry_id}, {"_id": 0, "file_data": 1, "converted_filename": 1, "conversion_type": 1}
+    )
+    if not entry or not entry.get("file_data"):
+        raise HTTPException(status_code=404, detail="Conversion not found")
+
+    content = base64.b64decode(entry["file_data"])
+    mime = "application/pdf" if entry["conversion_type"] == "word-to-pdf" else \
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="{entry["converted_filename"]}"'},
+    )
+
+
+@router.delete("/conversion-history/{entry_id}")
+async def delete_conversion(entry_id: str):
+    """Delete a conversion history entry."""
+    result = await db.conversion_history.delete_one({"id": entry_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"success": True}

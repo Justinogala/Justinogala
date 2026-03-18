@@ -176,7 +176,7 @@ const UploadSignature = ({ onSave, onClose }) => {
 };
 
 // ============ Word to PDF Converter ============
-const WordToPdfConverter = ({ onBack }) => {
+const WordToPdfConverter = ({ onBack, userId }) => {
   const { toast } = useToast();
   const [converting, setConverting] = useState(false);
   const [convertedFile, setConvertedFile] = useState(null);
@@ -194,6 +194,7 @@ const WordToPdfConverter = ({ onBack }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (userId) formData.append('user_id', userId);
       const res = await fetch(`${API_URL}/api/esignature/convert-to-pdf`, { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -351,7 +352,7 @@ const WordToPdfConverter = ({ onBack }) => {
 };
 
 // ============ PDF to Word Converter ============
-const PdfToWordConverter = ({ onBack }) => {
+const PdfToWordConverter = ({ onBack, userId }) => {
   const { toast } = useToast();
   const [converting, setConverting] = useState(false);
   const [convertedFile, setConvertedFile] = useState(null);
@@ -369,6 +370,7 @@ const PdfToWordConverter = ({ onBack }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (userId) formData.append('user_id', userId);
       const res = await fetch(`${API_URL}/api/esignature/convert-to-word`, { method: 'POST', body: formData });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -553,17 +555,25 @@ const ESignaturePage = () => {
   // History
   const [history, setHistory] = useState([]);
   const [savedSigs, setSavedSigs] = useState([]);
+  const [conversionHistory, setConversionHistory] = useState([]);
 
   const pdfContainerRef = useRef(null);
 
-  // Load history + saved signatures
+  // Load history + saved signatures + conversion history
+  const loadConversionHistory = useCallback(() => {
+    if (!user?.id) return;
+    fetch(`${API_URL}/api/esignature/conversion-history?user_id=${user.id}`)
+      .then(r => r.json()).then(d => setConversionHistory(d.history || [])).catch(() => {});
+  }, [user?.id]);
+
   useEffect(() => {
     if (!user?.id) return;
     fetch(`${API_URL}/api/esignature/history?user_id=${user.id}`)
       .then(r => r.json()).then(d => setHistory(d.history || [])).catch(() => {});
     fetch(`${API_URL}/api/esignature/signatures?user_id=${user.id}`)
       .then(r => r.json()).then(d => setSavedSigs(d.signatures || [])).catch(() => {});
-  }, [user?.id]);
+    loadConversionHistory();
+  }, [user?.id, loadConversionHistory]);
 
   const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
 
@@ -746,9 +756,9 @@ const ESignaturePage = () => {
   return (
     <PageTransition>
       {viewMode === 'wordtopdf' ? (
-        <WordToPdfConverter onBack={() => setViewMode('esignature')} />
+        <WordToPdfConverter onBack={() => { setViewMode('esignature'); loadConversionHistory(); }} userId={user?.id} />
       ) : viewMode === 'pdftoword' ? (
-        <PdfToWordConverter onBack={() => setViewMode('esignature')} />
+        <PdfToWordConverter onBack={() => { setViewMode('esignature'); loadConversionHistory(); }} userId={user?.id} />
       ) : (
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6" data-testid="esignature-page">
         <div className="flex items-center justify-between">
@@ -776,6 +786,7 @@ const ESignaturePage = () => {
             <TabsTrigger value="sign"><PenLine className="w-3.5 h-3.5 mr-1.5" /> Sign</TabsTrigger>
             <TabsTrigger value="history"><History className="w-3.5 h-3.5 mr-1.5" /> History</TabsTrigger>
             <TabsTrigger value="saved"><Save className="w-3.5 h-3.5 mr-1.5" /> Saved Signatures</TabsTrigger>
+            <TabsTrigger value="conversions" data-testid="conversions-tab"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Conversions</TabsTrigger>
           </TabsList>
 
           {/* ====== SIGN TAB ====== */}
@@ -1057,6 +1068,68 @@ const ESignaturePage = () => {
                         >
                           <X className="w-3 h-3" />
                         </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ====== CONVERSIONS TAB ====== */}
+          <TabsContent value="conversions">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Conversion History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {conversionHistory.length === 0 ? (
+                  <div className="text-center py-10 text-slate-400">
+                    <RefreshCw className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">No conversions yet</p>
+                    <p className="text-xs mt-1">Use Word to PDF or PDF to Word to see your history here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {conversionHistory.map(c => (
+                      <div key={c.id} className="flex items-center justify-between border rounded-lg p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" data-testid={`conversion-entry-${c.id}`}>
+                        <div className="flex items-center gap-3">
+                          {c.conversion_type === 'word-to-pdf' ? (
+                            <FileOutput className="w-8 h-8 text-indigo-500 shrink-0" />
+                          ) : (
+                            <FileInput className="w-8 h-8 text-indigo-500 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{c.original_filename}</p>
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <Badge variant="outline" className="text-[10px]">
+                                {c.conversion_type === 'word-to-pdf' ? 'DOC → PDF' : 'PDF → DOCX'}
+                              </Badge>
+                              <span>{(c.converted_size / 1024).toFixed(1)} KB</span>
+                              <span>&bull;</span>
+                              <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="sm" title="Download" data-testid={`download-conversion-${c.id}`} onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = `${API_URL}/api/esignature/conversion-history/${c.id}/download`;
+                            a.download = c.converted_filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                          }}>
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Delete" className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30" data-testid={`delete-conversion-${c.id}`} onClick={async () => {
+                            await fetch(`${API_URL}/api/esignature/conversion-history/${c.id}`, { method: 'DELETE' });
+                            setConversionHistory(prev => prev.filter(x => x.id !== c.id));
+                            toast({ title: 'Conversion deleted' });
+                          }}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
