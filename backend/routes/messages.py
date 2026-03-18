@@ -64,6 +64,7 @@ class DraftMessageRequest(BaseModel):
 
 class ReplyMessageRequest(BaseModel):
     content: str
+    attachments: Optional[List[dict]] = None
 
 
 class MessageResponse(BaseModel):
@@ -627,6 +628,7 @@ async def reply_to_message(message_id: str, sender_id: str, request: ReplyMessag
             "recipient_name": recipient.get("name") or recipient.get("email", "Unknown") if recipient else "Unknown",
             "subject": encrypt_field(f"Re: {orig_subject}"),
             "content": encrypt_field(sanitize_text(request.content)),
+            "attachments": request.attachments or [],
             "is_read": False,
             "is_starred": False,
             "is_draft": False,

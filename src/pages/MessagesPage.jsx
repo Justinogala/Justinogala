@@ -15,7 +15,7 @@ import {
   Trash2, Reply, Plus, Mail, ArrowLeft, RefreshCw,
   FileEdit, AlertCircle, RotateCcw, Trash, MoreHorizontal,
   Paperclip, X, FileText, Image, File, Download, Settings, Menu,
-  Sparkles, Wand2, ListChecks, MessageSquareText, Zap
+  Sparkles, Wand2, ListChecks, MessageSquareText, Zap, Smile, AtSign
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -72,6 +72,9 @@ const MessagesPage = () => {
   // Reply state
   const [replyContent, setReplyContent] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const [replyAttachments, setReplyAttachments] = useState([]);
+  const [uploadingReplyAttachment, setUploadingReplyAttachment] = useState(false);
+  const replyFileInputRef = useRef(null);
 
   // AI features state
   const [smartReplies, setSmartReplies] = useState([]);
@@ -518,12 +521,13 @@ const MessagesPage = () => {
       const response = await fetch(`${API_URL}/api/messages/reply/${selectedMessage.id}/${user.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: replyContent })
+        body: JSON.stringify({ content: replyContent, attachments: replyAttachments.length > 0 ? replyAttachments : undefined })
       });
       const data = await response.json();
       if (data.success) {
         toast({ title: 'Success', description: 'Reply sent!' });
         setReplyContent('');
+        setReplyAttachments([]);
         await fetchThread(selectedMessage.id);
       } else {
         toast({ title: 'Error', description: data.error || 'Failed to send reply', variant: 'destructive' });
@@ -533,6 +537,45 @@ const MessagesPage = () => {
       toast({ title: 'Error', description: 'Failed to send reply', variant: 'destructive' });
     } finally {
       setSendingReply(false);
+    }
+  };
+
+  // Handle reply file upload
+  const handleReplyFileUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    setUploadingReplyAttachment(true);
+    try {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+          toast({ title: 'Error', description: `${file.name} is too large (max 10MB)`, variant: 'destructive' });
+          continue;
+        }
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('user_id', user.id);
+        const response = await fetch(`${API_URL}/api/messages/attachments/upload`, { method: 'POST', body: formData });
+        const data = await response.json();
+        if (data.success) {
+          setReplyAttachments(prev => [...prev, data.attachment]);
+        } else {
+          toast({ title: 'Error', description: `Failed to upload ${file.name}`, variant: 'destructive' });
+        }
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to upload files', variant: 'destructive' });
+    } finally {
+      setUploadingReplyAttachment(false);
+      if (replyFileInputRef.current) replyFileInputRef.current.value = '';
+    }
+  };
+
+  const removeReplyAttachment = async (attachmentId) => {
+    try {
+      await fetch(`${API_URL}/api/messages/attachments/${attachmentId}?user_id=${user.id}`, { method: 'DELETE' });
+      setReplyAttachments(prev => prev.filter(a => a.id !== attachmentId));
+    } catch (error) {
+      console.error('Error removing reply attachment:', error);
     }
   };
 
@@ -1080,56 +1123,106 @@ const MessagesPage = () => {
 
                   {/* Reply input + AI buttons */}
                   <div className="p-4">
-                    <div className="flex gap-2">
+                    {/* Reply Attachments */}
+                    {replyAttachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {replyAttachments.map((att) => {
+                          const IconComp = getFileIcon(att.content_type, att.filename);
+                          return (
+                            <div key={att.id} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm group" data-testid={`reply-attachment-${att.id}`}>
+                              <IconComp className="w-4 h-4 text-indigo-500 shrink-0" />
+                              <span className="truncate max-w-[140px]">{att.filename}</span>
+                              <span className="text-xs text-slate-400">{formatFileSize(att.size)}</span>
+                              <button onClick={() => removeReplyAttachment(att.id)} className="ml-1 text-slate-400 hover:text-red-500 transition-colors" data-testid={`remove-reply-att-${att.id}`}>
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-300 dark:focus-within:ring-violet-700 transition-shadow">
                       <Textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
                         placeholder="Write your reply..."
-                        className="flex-1 min-h-[60px] md:min-h-[80px] resize-none text-base"
+                        className="border-0 focus-visible:ring-0 min-h-[60px] md:min-h-[80px] resize-none text-base rounded-none"
                         data-testid="reply-input"
                       />
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-1.5">
-                        {/* AI Draft Reply */}
-                        {aiSettings?.assistantEnabled && (
+
+                      {/* Toolbar */}
+                      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-900/50 border-t">
+                        <div className="flex items-center gap-0.5">
+                          {/* File Attach */}
+                          <input
+                            type="file"
+                            ref={replyFileInputRef}
+                            onChange={handleReplyFileUpload}
+                            className="hidden"
+                            multiple
+                            data-testid="reply-file-input"
+                          />
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={handleAiDraft}
-                            disabled={draftingReply}
-                            className="text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950/40 h-8 text-xs"
-                            data-testid="ai-draft-btn"
+                            onClick={() => replyFileInputRef.current?.click()}
+                            disabled={uploadingReplyAttachment}
+                            className="h-8 w-8 p-0 text-slate-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/40"
+                            title="Attach file"
+                            data-testid="reply-attach-btn"
                           >
-                            {draftingReply ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Wand2 className="w-3 h-3 mr-1" />}
-                            AI Draft
+                            {uploadingReplyAttachment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                           </Button>
-                        )}
-                        {/* Suggest Actions */}
-                        {aiSettings?.assistantEnabled && aiSettings?.suggestActions && suggestedActions.length === 0 && (
-                          <Button
-                            variant="ghost"
+
+                          <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+                          {/* AI Draft Reply */}
+                          {aiSettings?.assistantEnabled && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleAiDraft}
+                              disabled={draftingReply}
+                              className="text-violet-600 hover:text-violet-700 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950/40 h-8 text-xs gap-1"
+                              data-testid="ai-draft-btn"
+                            >
+                              {draftingReply ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                              <span className="hidden sm:inline">AI Draft</span>
+                            </Button>
+                          )}
+                          {/* Suggest Actions */}
+                          {aiSettings?.assistantEnabled && aiSettings?.suggestActions && suggestedActions.length === 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={fetchSuggestedActions}
+                              disabled={loadingActions}
+                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 h-8 text-xs gap-1"
+                              data-testid="suggest-actions-btn"
+                            >
+                              {loadingActions ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ListChecks className="w-3.5 h-3.5" />}
+                              <span className="hidden sm:inline">Actions</span>
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {replyContent.length > 0 && (
+                            <span className="text-[11px] text-slate-400 tabular-nums">{replyContent.length}</span>
+                          )}
+                          <Button 
+                            onClick={handleSendReply} 
+                            disabled={!replyContent.trim() || sendingReply}
                             size="sm"
-                            onClick={fetchSuggestedActions}
-                            disabled={loadingActions}
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40 h-8 text-xs"
-                            data-testid="suggest-actions-btn"
+                            className="h-8 px-4 bg-violet-600 hover:bg-violet-700"
+                            data-testid="send-reply-btn"
                           >
-                            {loadingActions ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <ListChecks className="w-3 h-3 mr-1" />}
-                            Actions
+                            {sendingReply ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Send className="w-4 h-4 mr-1.5" />}
+                            <span className="hidden sm:inline">Send</span>
                           </Button>
-                        )}
+                        </div>
                       </div>
-                      <Button 
-                        onClick={handleSendReply} 
-                        disabled={!replyContent.trim() || sendingReply}
-                        className="h-10 md:h-9"
-                        data-testid="send-reply-btn"
-                      >
-                        {sendingReply ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                        <span className="hidden sm:inline">Send Reply</span>
-                        <span className="sm:hidden">Send</span>
-                      </Button>
                     </div>
                   </div>
                 </div>
