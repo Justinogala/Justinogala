@@ -138,6 +138,43 @@ const TypeSignature = ({ onSave, onClose }) => {
   );
 };
 
+// ============ Upload Signature ============
+const UploadSignature = ({ onSave, onClose }) => {
+  const [preview, setPreview] = useState(null);
+  const fileRef = useRef(null);
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="space-y-3">
+      {!preview ? (
+        <label className="flex flex-col items-center gap-2 cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 hover:border-indigo-400 transition-colors" data-testid="upload-sig-area">
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} className="hidden" data-testid="upload-sig-input" />
+          <FileUp className="w-6 h-6 text-slate-400" />
+          <span className="text-xs text-slate-500">PNG, JPG or WEBP</span>
+        </label>
+      ) : (
+        <div className="border rounded-lg p-2 bg-white">
+          <img src={preview} alt="Uploaded signature" className="max-h-20 mx-auto" />
+        </div>
+      )}
+      <div className="flex gap-2 justify-end">
+        <Button variant="ghost" size="sm" onClick={onClose}><X className="w-3.5 h-3.5 mr-1" /> Cancel</Button>
+        <Button size="sm" onClick={() => preview && onSave(preview)} disabled={!preview} className="bg-indigo-600 hover:bg-indigo-700" data-testid="use-uploaded-sig-btn">
+          <Check className="w-3.5 h-3.5 mr-1" /> Use Signature
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // ============ Main Page ============
 const ESignaturePage = () => {
   const { user } = useAuth();
@@ -476,17 +513,21 @@ const ESignaturePage = () => {
                     </CardHeader>
                     <CardContent className="p-3 pt-0 space-y-2">
                       {!sigMode && !signatureDataUrl && (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <Button variant="outline" size="sm" onClick={() => setSigMode('draw')} className="h-16 flex-col gap-1" data-testid="draw-sig-btn">
                             <PenLine className="w-5 h-5" /> Draw
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => setSigMode('type')} className="h-16 flex-col gap-1" data-testid="type-sig-btn">
                             <Type className="w-5 h-5" /> Type
                           </Button>
+                          <Button variant="outline" size="sm" onClick={() => setSigMode('upload')} className="h-16 flex-col gap-1" data-testid="upload-sig-btn">
+                            <FileUp className="w-5 h-5" /> Upload
+                          </Button>
                         </div>
                       )}
                       {sigMode === 'draw' && <SignaturePad onSave={handleSignatureReady} onClose={() => setSigMode(null)} />}
                       {sigMode === 'type' && <TypeSignature onSave={handleSignatureReady} onClose={() => setSigMode(null)} />}
+                      {sigMode === 'upload' && <UploadSignature onSave={handleSignatureReady} onClose={() => setSigMode(null)} />}
                       {signatureDataUrl && !sigMode && (
                         <div className="space-y-2">
                           <div className="border rounded-lg p-2 bg-white">
