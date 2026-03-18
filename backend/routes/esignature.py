@@ -81,6 +81,29 @@ async def delete_signature(sig_id: str):
     return {"success": True}
 
 
+# ============ Standalone Word to PDF ============
+
+@router.post("/convert-to-pdf")
+async def convert_word_to_pdf(file: UploadFile = File(...)):
+    """Convert a DOC/DOCX file to PDF and return the PDF directly."""
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in {".doc", ".docx"}:
+        raise HTTPException(status_code=400, detail="Only DOC and DOCX files are supported")
+
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+    pdf_bytes = convert_doc_to_pdf(content, file.filename)
+    pdf_name = os.path.splitext(file.filename)[0] + ".pdf"
+
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{pdf_name}"'},
+    )
+
+
 # ============ Document Upload ============
 
 @router.post("/upload")
