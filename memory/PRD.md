@@ -26,7 +26,7 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - Admin Portal with RBAC
 - Calendar, Meetings, Voice Chat
 
-## eSignature Feature (Implemented - March 18, 2026)
+## eSignature Feature (March 18, 2026)
 - Upload PDF, DOC, DOCX files (auto-converts to PDF via LibreOffice)
 - Create signatures: Draw, Type, or Upload image
 - Place signatures on PDF pages with drag positioning
@@ -34,27 +34,23 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - Word to PDF converter page (standalone)
 - Signing history and saved signatures for reuse
 
-## AI Messaging Features (Implemented - March 18, 2026)
+## AI Messaging Features (March 18, 2026)
+- **AI Compose**: Type a brief prompt (e.g., "schedule follow-up about Q1") and AI generates full subject + body
 - **Smart Replies**: Auto-generates 3 clickable reply suggestions when opening a message
-- **AI Draft Reply**: Generates a full reply matching user's tone/writing style preferences
+- **AI Draft Reply**: Generates a full reply matching user's tone/writing style
 - **Summarize Thread**: Condenses long conversations into 3-5 sentence summaries
-- **Suggest Actions**: Recommends 2-4 follow-up actions (e.g., "Schedule meeting", "Prepare materials")
+- **Suggest Actions**: Recommends 2-4 follow-up actions
 - **Auto-Categorize**: Classifies messages into work/personal/urgent/finance/scheduling/support/social
 - All features respect user settings in Message Settings → AI Personalization & AI Assistant tabs
-- Backend: `/app/backend/routes/messages.py` (AI endpoints)
-- Frontend: `/app/src/pages/MessagesPage.jsx` (AI UI integration)
 
 ## Key API Endpoints
 ### eSignature
 - `POST /api/esignature/upload` — Upload PDF/DOC/DOCX
 - `POST /api/esignature/sign` — Apply signatures
-- `GET /api/esignature/documents/{id}/pdf` — Get original PDF
-- `GET /api/esignature/documents/{id}/signed` — Download signed
 - `POST /api/esignature/convert-to-pdf` — Standalone Word→PDF
-- `GET /api/esignature/history` — Signing history
-- `POST/GET/DELETE /api/esignature/signatures` — Saved signatures CRUD
 
 ### AI Messaging
+- `POST /api/messages/ai/compose` — Generate subject + body from prompt
 - `POST /api/messages/ai/smart-replies` — 3 reply suggestions
 - `POST /api/messages/ai/summarize-thread` — Thread summary
 - `POST /api/messages/ai/suggest-actions` — Follow-up actions
@@ -65,9 +61,10 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - **Admin**: admin@munal.com / Admin@123456
 
 ## Completed
-- **March 18, 2026**: AI Messaging features (smart replies, draft, summarize, actions, categorize). All 5 endpoints tested with real GPT-4o. Frontend integration: auto-loading smart replies, AI Draft button, Actions button, Summarize button.
-- **March 18, 2026**: eSignature with DOC/DOCX conversion, Upload Signature option, Word to PDF converter page.
-- **March 16, 2026**: PDF/Excel Export, Email Notifications, Escalation Workflow, SSE Notification Bell, Incident Analytics, Admin Reports, Meeting History.
+- **March 18, 2026**: AI-powered email compose (prompt → subject + body generation)
+- **March 18, 2026**: AI Messaging features (smart replies, draft, summarize, actions, categorize)
+- **March 18, 2026**: eSignature with DOC/DOCX conversion, Upload Signature, Word to PDF converter
+- **March 16, 2026**: PDF/Excel Export, Email Notifications, Escalation Workflow, SSE Notification Bell, Incident Analytics, Admin Reports, Meeting History
 
 ## Backlog
 - **P2**: Cloud storage migration testing

@@ -1131,6 +1131,47 @@ async def ai_categorize_message(req: AIMessageRequest):
         return {"success": False, "category": "", "error": str(e)}
 
 
+@router.post("/ai/compose")
+async def ai_compose_message(req: AIMessageRequest):
+    """Generate a full message (subject + body) from a brief prompt."""
+    cfg = await _get_user_ai_settings(req.user_id)
+    tone = cfg["tone"]
+    style = cfg["writing_style"]
+
+    style_instruction = {
+        "concise": "Keep the message short and to the point.",
+        "detailed": "Write a thorough, well-structured message.",
+        "creative": "Write in a warm, creative, and engaging way.",
+        "match_my_style": "Write in a natural, balanced way.",
+    }.get(style, "Keep it concise.")
+
+    recipient_ctx = f" The recipient is {req.sender_name}." if req.sender_name else ""
+
+    system = (
+        f"You are an AI assistant composing an email/message. Use a {tone} tone. {style_instruction}"
+        f"{recipient_ctx} Based on the user's brief prompt, generate a message."
+        " Return ONLY valid JSON with exactly two keys: "
+        '{"subject": "...", "body": "..."}. No markdown, no extra text.'
+    )
+    try:
+        raw = await _ai_chat(system, req.message_content)
+        # Strip markdown code fences if present
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3].strip()
+        result = json_lib.loads(cleaned)
+        return {
+            "success": True,
+            "subject": result.get("subject", ""),
+            "body": result.get("body", ""),
+        }
+    except Exception as e:
+        logger.error(f"AI compose error: {e}")
+        return {"success": False, "subject": "", "body": "", "error": str(e)}
+
+
 # ============== Message Settings ==============
 
 class MessageSettingsUpdate(BaseModel):

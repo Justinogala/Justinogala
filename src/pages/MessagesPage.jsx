@@ -73,6 +73,39 @@ const MessagesPage = () => {
   const [draftingReply, setDraftingReply] = useState(false);
   const [aiSettings, setAiSettings] = useState(null);
 
+  // AI Compose state
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [composingWithAi, setComposingWithAi] = useState(false);
+  const [showAiCompose, setShowAiCompose] = useState(false);
+
+  const handleAiCompose = async () => {
+    if (!aiPrompt.trim()) return;
+    setComposingWithAi(true);
+    try {
+      const res = await fetch(`${API_URL}/api/messages/ai/compose`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          message_content: aiPrompt,
+          sender_name: composeRecipient?.name || '',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.subject && data.body) {
+        setComposeSubject(data.subject);
+        setComposeContent(data.body);
+        setShowAiCompose(false);
+        setAiPrompt('');
+        toast({ title: 'AI Compose', description: 'Subject and message generated — review and edit before sending' });
+      } else {
+        toast({ variant: 'destructive', title: 'AI Compose failed', description: data.error || 'Try rephrasing your prompt' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'AI Compose failed' });
+    }
+    setComposingWithAi(false);
+  };
+
   // Fetch message counts
   const fetchCounts = useCallback(async () => {
     if (!user?.id) return;
@@ -1274,6 +1307,47 @@ const MessagesPage = () => {
             </DialogHeader>
             
             <div className="space-y-4 py-2 md:py-4">
+              {/* AI Compose Bar */}
+              {!showAiCompose ? (
+                <button
+                  onClick={() => setShowAiCompose(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-950/40 transition-colors text-sm"
+                  data-testid="show-ai-compose-btn"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>Write with AI — describe what you want to say</span>
+                </button>
+              ) : (
+                <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-3 space-y-2" data-testid="ai-compose-panel">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-violet-600 shrink-0" />
+                    <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">AI Compose</span>
+                    <button onClick={() => { setShowAiCompose(false); setAiPrompt(''); }} className="ml-auto text-violet-400 hover:text-violet-600"><X className="w-3.5 h-3.5" /></button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder='e.g. "schedule follow-up about Q1 report" or "thank them for the presentation"'
+                      className="flex-1 h-9 text-sm bg-white dark:bg-slate-900 border-violet-200 dark:border-violet-800"
+                      onKeyDown={(e) => e.key === 'Enter' && !composingWithAi && handleAiCompose()}
+                      disabled={composingWithAi}
+                      data-testid="ai-compose-prompt-input"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleAiCompose}
+                      disabled={!aiPrompt.trim() || composingWithAi}
+                      className="bg-violet-600 hover:bg-violet-700 h-9 px-4 shrink-0"
+                      data-testid="ai-compose-generate-btn"
+                    >
+                      {composingWithAi ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                      <span className="ml-1.5 hidden sm:inline">{composingWithAi ? 'Generating...' : 'Generate'}</span>
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-violet-500">Describe your message briefly — AI will generate the subject and full body for you.</p>
+                </div>
+              )}
               {/* Recipient Search */}
               <div>
                 <label className="text-sm font-medium mb-1.5 block">To:</label>
