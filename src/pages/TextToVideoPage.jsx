@@ -50,6 +50,7 @@ const TextToVideoPage = () => {
   // Voice preview
   const [previewingVoice, setPreviewingVoice] = useState(null);
   const [previewAudio, setPreviewAudio] = useState(null);
+  const [voiceDropdownOpen, setVoiceDropdownOpen] = useState(false);
   
   // History
   const [videoHistory, setVideoHistory] = useState([]);
@@ -416,58 +417,85 @@ const TextToVideoPage = () => {
                       {/* Voice */}
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Voice</Label>
-                        <div className="space-y-1.5" data-testid="voice-select-trigger">
-                          {[
-                            { value: 'alloy', name: 'Alloy', desc: 'Neutral, balanced' },
-                            { value: 'echo', name: 'Echo', desc: 'Male, warm' },
-                            { value: 'fable', name: 'Fable', desc: 'British accent' },
-                            { value: 'onyx', name: 'Onyx', desc: 'Male, deep' },
-                            { value: 'nova', name: 'Nova', desc: 'Female, friendly' },
-                            { value: 'shimmer', name: 'Shimmer', desc: 'Female, soft' },
-                          ].map((v) => (
-                            <div
-                              key={v.value}
-                              data-testid={`voice-option-${v.value}`}
-                              onClick={() => !generating && setVoice(v.value)}
-                              className={cn(
-                                "flex items-center justify-between px-3 py-2 rounded-lg border cursor-pointer transition-all",
-                                voice === v.value
-                                  ? "border-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/30 dark:border-fuchsia-600 ring-1 ring-fuchsia-300 dark:ring-fuchsia-700"
-                                  : "border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600",
-                                generating && "opacity-50 cursor-not-allowed"
-                              )}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className={cn(
-                                  "w-3 h-3 rounded-full border-2 flex-shrink-0 transition-colors",
-                                  voice === v.value
-                                    ? "border-fuchsia-500 bg-fuchsia-500"
-                                    : "border-gray-300 dark:border-slate-600"
-                                )} />
-                                <Mic className={cn("w-3.5 h-3.5 flex-shrink-0", voice === v.value ? "text-fuchsia-600 dark:text-fuchsia-400" : "text-gray-400")} />
-                                <span className={cn("text-sm font-medium", voice === v.value ? "text-fuchsia-700 dark:text-fuchsia-300" : "text-gray-700 dark:text-gray-300")}>{v.name}</span>
-                                <span className="text-xs text-gray-400 truncate">- {v.desc}</span>
-                              </div>
-                              <button
-                                type="button"
-                                data-testid={`voice-preview-${v.value}`}
-                                onClick={(e) => { e.stopPropagation(); handleVoicePreview(v.value); }}
-                                className={cn(
-                                  "p-1.5 rounded-full flex-shrink-0 transition-all",
-                                  previewingVoice === v.value
-                                    ? "bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/50 dark:text-fuchsia-400"
-                                    : "hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                )}
-                                title={previewingVoice === v.value ? "Stop preview" : `Preview ${v.name}`}
-                              >
-                                {previewingVoice === v.value ? (
-                                  <StopCircle className="w-4 h-4" />
-                                ) : (
-                                  <Play className="w-4 h-4" />
-                                )}
-                              </button>
+                        <div className="relative" data-testid="voice-select-trigger">
+                          {/* Dropdown trigger - shows selected voice */}
+                          <button
+                            type="button"
+                            data-testid="voice-dropdown-trigger"
+                            onClick={() => !generating && setVoiceDropdownOpen(!voiceDropdownOpen)}
+                            className={cn(
+                              "flex items-center justify-between w-full h-10 px-3 py-2 text-sm rounded-md border bg-background transition-colors",
+                              voiceDropdownOpen ? "border-fuchsia-400 ring-1 ring-fuchsia-300 dark:ring-fuchsia-700" : "border-input",
+                              generating && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Mic className="w-4 h-4 text-fuchsia-500" />
+                              <span>{
+                                { alloy: 'Alloy', echo: 'Echo', fable: 'Fable', onyx: 'Onyx', nova: 'Nova', shimmer: 'Shimmer' }[voice]
+                              }</span>
+                              <span className="text-xs text-gray-400">- {
+                                { alloy: 'Neutral, balanced', echo: 'Male, warm', fable: 'British accent', onyx: 'Male, deep', nova: 'Female, friendly', shimmer: 'Female, soft' }[voice]
+                              }</span>
                             </div>
-                          ))}
+                            <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform", voiceDropdownOpen && "rotate-180")} />
+                          </button>
+
+                          {/* Dropdown content */}
+                          {voiceDropdownOpen && (
+                            <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg py-1 space-y-0.5">
+                              {[
+                                { value: 'alloy', name: 'Alloy', desc: 'Neutral, balanced' },
+                                { value: 'echo', name: 'Echo', desc: 'Male, warm' },
+                                { value: 'fable', name: 'Fable', desc: 'British accent' },
+                                { value: 'onyx', name: 'Onyx', desc: 'Male, deep' },
+                                { value: 'nova', name: 'Nova', desc: 'Female, friendly' },
+                                { value: 'shimmer', name: 'Shimmer', desc: 'Female, soft' },
+                              ].map((v) => (
+                                <div
+                                  key={v.value}
+                                  data-testid={`voice-option-${v.value}`}
+                                  onClick={() => { setVoice(v.value); setVoiceDropdownOpen(false); }}
+                                  className={cn(
+                                    "flex items-center justify-between px-3 py-2 mx-1 rounded-md cursor-pointer transition-colors",
+                                    voice === v.value
+                                      ? "bg-fuchsia-50 dark:bg-fuchsia-950/30 text-fuchsia-700 dark:text-fuchsia-300"
+                                      : "hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <div className={cn(
+                                      "w-3 h-3 rounded-full border-2 flex-shrink-0 transition-colors",
+                                      voice === v.value
+                                        ? "border-fuchsia-500 bg-fuchsia-500"
+                                        : "border-gray-300 dark:border-slate-600"
+                                    )} />
+                                    <Mic className={cn("w-3.5 h-3.5 flex-shrink-0", voice === v.value ? "text-fuchsia-500" : "text-gray-400")} />
+                                    <span className="text-sm font-medium">{v.name}</span>
+                                    <span className="text-xs text-gray-400">- {v.desc}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    data-testid={`voice-preview-${v.value}`}
+                                    onClick={(e) => { e.stopPropagation(); handleVoicePreview(v.value); }}
+                                    className={cn(
+                                      "p-1.5 rounded-full flex-shrink-0 transition-all",
+                                      previewingVoice === v.value
+                                        ? "bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/50 dark:text-fuchsia-400"
+                                        : "hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    )}
+                                    title={previewingVoice === v.value ? "Stop preview" : `Preview ${v.name}`}
+                                  >
+                                    {previewingVoice === v.value ? (
+                                      <StopCircle className="w-4 h-4" />
+                                    ) : (
+                                      <Play className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
 
