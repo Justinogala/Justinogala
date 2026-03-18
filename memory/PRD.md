@@ -23,6 +23,7 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ## What's Been Implemented
 - All core features listed above
 - Voice selection dropdown for Text-to-Video (6 voices: alloy, echo, fable, onyx, nova, shimmer)
+- Voice preview/playback buttons next to each voice option (calls TTS API for audio samples)
 - CC/BCC in messaging
 - Word-to-PDF converter
 - Meeting history
