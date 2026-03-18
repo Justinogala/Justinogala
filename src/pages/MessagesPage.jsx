@@ -75,6 +75,7 @@ const MessagesPage = () => {
   const [replyAttachments, setReplyAttachments] = useState([]);
   const [uploadingReplyAttachment, setUploadingReplyAttachment] = useState(false);
   const replyFileInputRef = useRef(null);
+  const [replyDragOver, setReplyDragOver] = useState(false);
 
   // AI features state
   const [smartReplies, setSmartReplies] = useState([]);
@@ -577,6 +578,18 @@ const MessagesPage = () => {
     } catch (error) {
       console.error('Error removing reply attachment:', error);
     }
+  };
+
+  const handleReplyDrop = (e) => {
+    e.preventDefault();
+    setReplyDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    // Reuse the file upload logic via a synthetic event
+    const dt = new DataTransfer();
+    files.forEach(f => dt.items.add(f));
+    const fakeInput = { target: { files: dt.files } };
+    handleReplyFileUpload(fakeInput);
   };
 
   // Toggle star
@@ -1142,7 +1155,26 @@ const MessagesPage = () => {
                       </div>
                     )}
 
-                    <div className="border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-300 dark:focus-within:ring-violet-700 transition-shadow">
+                    <div
+                      className={cn(
+                        "border rounded-xl overflow-hidden transition-all relative",
+                        replyDragOver
+                          ? "ring-2 ring-violet-400 border-violet-400 bg-violet-50/50 dark:bg-violet-950/20"
+                          : "focus-within:ring-2 focus-within:ring-violet-300 dark:focus-within:ring-violet-700"
+                      )}
+                      onDragOver={(e) => { e.preventDefault(); setReplyDragOver(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setReplyDragOver(false); }}
+                      onDrop={handleReplyDrop}
+                      data-testid="reply-drop-zone"
+                    >
+                      {replyDragOver && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-violet-50/80 dark:bg-violet-950/60 backdrop-blur-sm rounded-xl pointer-events-none">
+                          <div className="flex flex-col items-center gap-1.5 text-violet-600 dark:text-violet-400">
+                            <Paperclip className="w-6 h-6" />
+                            <span className="text-sm font-medium">Drop files to attach</span>
+                          </div>
+                        </div>
+                      )}
                       <Textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
