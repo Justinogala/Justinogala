@@ -27,7 +27,7 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - PDF to Word converter on eSignature page (next to Word to PDF button)
 - Word-to-PDF converter fixed (mammoth + weasyprint, replacing broken LibreOffice)
 - File conversion history panel (Conversions tab) with download and delete
-- Reply toolbar with file attachment, AI tools, character counter
+- Reply toolbar with file attachment, drag-and-drop, AI tools, character counter
 - CC/BCC in messaging
 - Word-to-PDF converter
 - Meeting history
