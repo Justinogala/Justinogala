@@ -12,6 +12,7 @@ import resend
 
 from config import db, logger, SENDER_EMAIL
 from services.storage import storage_service, STORAGE_PROVIDERS
+from encryption import decrypt_field
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -156,10 +157,11 @@ async def get_audit_logs(
     category: Optional[str] = None,
     action: Optional[str] = None,
     admin_id: Optional[str] = None,
+    user_email: Optional[str] = None,
     days: int = 30,
     limit: int = 100
 ):
-    """Get audit logs with filtering"""
+    """Get audit logs with filtering. Decrypts details at rest."""
     try:
         query = {}
         if category:
@@ -168,12 +170,17 @@ async def get_audit_logs(
             query["action"] = {"$regex": action, "$options": "i"}
         if admin_id:
             query["admin_id"] = admin_id
+        if user_email:
+            query["user_email"] = {"$regex": user_email, "$options": "i"}
         
         logs = await db.audit_logs.find(
             query, {"_id": 0}
         ).sort("timestamp", -1).limit(limit).to_list(limit)
         
-        return {"logs": logs, "count": len(logs)}
+        for log in logs:
+            log["details"] = decrypt_field(log.get("details")) or ""
+        
+        return {"success": True, "logs": logs, "count": len(logs)}
     except Exception as e:
         logger.error(f"Error fetching audit logs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1764,22 +1771,3 @@ async def delete_broadcast(broadcast_id: str):
     except Exception as e:
         logger.error(f"Error deleting broadcast: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ============== Audit Logs ==============
-
-@router.get("/audit-logs")
-async def fetch_audit_logs(
-    limit: int = Query(50, le=200),
-    action: Optional[str] = None,
-    user_email: Optional[str] = None,
-):
-    """Fetch recent audit log entries (admin only)."""
-    query = {}
-    if action:
-        query["action"] = action
-    if user_email:
-        query["user_email"] = {"$regex": user_email, "$options": "i"}
-
-    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit)
-    return {"success": True, "logs": logs, "count": len(logs)}

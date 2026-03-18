@@ -80,14 +80,15 @@ def set_audit_db(database):
 
 async def log_audit(action: str, user_id: str = "", user_email: str = "",
                     details: str = "", ip: str = "", success: bool = True):
-    """Log a security/audit event to the audit_logs collection."""
+    """Log a security/audit event to the audit_logs collection. Details encrypted at rest."""
     if _audit_db is None:
         return
+    from encryption import encrypt_field
     doc = {
         "action": action,
         "user_id": user_id,
         "user_email": user_email,
-        "details": details,
+        "details": encrypt_field(details) if details else "",
         "ip_address": ip,
         "success": success,
         "timestamp": datetime.now(timezone.utc).isoformat(),

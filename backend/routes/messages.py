@@ -16,9 +16,23 @@ import io
 
 from config import db, SENDER_EMAIL
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+from encryption import encrypt_field, decrypt_field, encrypt_dict, decrypt_dict
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 logger = logging.getLogger(__name__)
+
+# Sensitive fields encrypted at rest
+MSG_ENCRYPT_FIELDS = ["content", "subject"]
+
+
+def _decrypt_messages(messages: list[dict]) -> list[dict]:
+    """Decrypt sensitive fields in a list of message dicts."""
+    return [decrypt_dict(m, MSG_ENCRYPT_FIELDS) for m in messages]
+
+
+def _decrypt_message(message: dict) -> dict:
+    """Decrypt sensitive fields in a single message dict."""
+    return decrypt_dict(message, MSG_ENCRYPT_FIELDS)
 
 # GridFS bucket for message attachments
 fs_attachments = None
@@ -149,7 +163,7 @@ async def get_inbox(user_id: str, limit: int = 50, skip: int = 0):
         
         return {
             "success": True,
-            "messages": messages,
+            "messages": _decrypt_messages(messages),
             "senders": senders,
             "total": total,
             "unread_count": unread_count
@@ -192,7 +206,7 @@ async def get_sent_messages(user_id: str, limit: int = 50, skip: int = 0):
         
         return {
             "success": True,
-            "messages": messages,
+            "messages": _decrypt_messages(messages),
             "recipients": recipients,
             "total": total
         }
@@ -224,7 +238,7 @@ async def get_drafts(user_id: str, limit: int = 50, skip: int = 0):
         
         return {
             "success": True,
-            "messages": messages,
+            "messages": _decrypt_messages(messages),
             "recipients": recipients,
             "total": total
         }
@@ -256,7 +270,7 @@ async def get_junk_messages(user_id: str, limit: int = 50, skip: int = 0):
         
         return {
             "success": True,
-            "messages": messages,
+            "messages": _decrypt_messages(messages),
             "senders": senders,
             "total": total
         }
@@ -304,7 +318,7 @@ async def get_trash_messages(user_id: str, limit: int = 50, skip: int = 0):
         
         return {
             "success": True,
-            "messages": messages,
+            "messages": _decrypt_messages(messages),
             "users": users,
             "total": total
         }
@@ -346,7 +360,7 @@ async def get_message_thread(message_id: str):
         
         return {
             "success": True,
-            "thread": thread_messages,
+            "thread": _decrypt_messages(thread_messages),
             "participants": participants
         }
     except HTTPException:
@@ -401,8 +415,8 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
             "sender_name": sender.get("name") or sender.get("email", "Unknown"),
             "recipient_id": recipient_id,
             "recipient_name": recipient.get("name") or recipient.get("email", "Unknown"),
-            "subject": subject,
-            "content": content,
+            "subject": encrypt_field(subject),
+            "content": encrypt_field(content),
             "attachments": request.attachments or [],
             "cc": [{"id": uid, "name": cc_names[uid]} for uid in cc_ids if uid in cc_names],
             "bcc": [{"id": uid, "name": bcc_names[uid]} for uid in bcc_ids if uid in bcc_names],
@@ -419,6 +433,9 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
         
         await db.user_messages.insert_one(message)
         message.pop("_id", None)
+
+        # Return decrypted version to sender
+        response_msg = _decrypt_message(message)
 
         # Create copies for CC recipients
         for uid in cc_ids:
@@ -448,7 +465,7 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
                 request.content
             )
         
-        return {"success": True, "message": message}
+        return {"success": True, "message": response_msg}
     except HTTPException:
         raise
     except Exception as e:
@@ -481,9 +498,11 @@ async def save_draft(sender_id: str, request: DraftMessageRequest, draft_id: Opt
                 {"$set": {
                     "recipient_id": request.recipient_id,
                     "recipient_name": recipient_name,
-                    "subject": request.subject or "",
-                    "content": request.content or "",
+                    "subject": encrypt_field(request.subject or ""),
+                    "content": encrypt_field(request.content or ""),
                     "attachments": request.attachments or [],
+                    "cc_ids": request.cc_ids or [],
+                    "bcc_ids": request.bcc_ids or [],
                     "updated_at": now
                 }}
             )
@@ -491,7 +510,7 @@ async def save_draft(sender_id: str, request: DraftMessageRequest, draft_id: Opt
                 raise HTTPException(status_code=404, detail="Draft not found")
             
             draft = await db.user_messages.find_one({"id": draft_id}, {"_id": 0})
-            return {"success": True, "message": draft}
+            return {"success": True, "message": _decrypt_message(draft)}
         else:
             # Create new draft
             message_id = str(uuid.uuid4())
@@ -503,8 +522,8 @@ async def save_draft(sender_id: str, request: DraftMessageRequest, draft_id: Opt
                 "sender_name": sender.get("name") or sender.get("email", "Unknown"),
                 "recipient_id": request.recipient_id,
                 "recipient_name": recipient_name,
-                "subject": request.subject or "",
-                "content": request.content or "",
+                "subject": encrypt_field(request.subject or ""),
+                "content": encrypt_field(request.content or ""),
                 "attachments": request.attachments or [],
                 "is_read": False,
                 "is_starred": False,
@@ -520,7 +539,7 @@ async def save_draft(sender_id: str, request: DraftMessageRequest, draft_id: Opt
             await db.user_messages.insert_one(draft)
             draft.pop("_id", None)
             
-            return {"success": True, "message": draft}
+            return {"success": True, "message": _decrypt_message(draft)}
     except HTTPException:
         raise
     except Exception as e:
@@ -592,6 +611,9 @@ async def reply_to_message(message_id: str, sender_id: str, request: ReplyMessag
         sender = await db.users.find_one({"id": sender_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
         recipient = await db.users.find_one({"id": recipient_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
         
+        # Decrypt original subject for the reply subject line
+        orig_subject = decrypt_field(original.get("subject", ""))
+        
         reply_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         
@@ -603,8 +625,8 @@ async def reply_to_message(message_id: str, sender_id: str, request: ReplyMessag
             "sender_name": sender.get("name") or sender.get("email", "Unknown") if sender else "Unknown",
             "recipient_id": recipient_id,
             "recipient_name": recipient.get("name") or recipient.get("email", "Unknown") if recipient else "Unknown",
-            "subject": f"Re: {original['subject']}",
-            "content": request.content,
+            "subject": encrypt_field(f"Re: {orig_subject}"),
+            "content": encrypt_field(sanitize_text(request.content)),
             "is_read": False,
             "is_starred": False,
             "is_draft": False,
@@ -619,18 +641,18 @@ async def reply_to_message(message_id: str, sender_id: str, request: ReplyMessag
         await db.user_messages.insert_one(reply)
         reply.pop("_id", None)
         
-        # Send email notification
+        # Send email notification (use decrypted content)
         if recipient and recipient.get("email"):
             background_tasks.add_task(
                 send_email_notification,
                 recipient.get("email"),
                 recipient.get("name") or "User",
                 sender.get("name") if sender else "Someone",
-                f"Re: {original['subject']}",
+                f"Re: {orig_subject}",
                 request.content
             )
         
-        return {"success": True, "message": reply}
+        return {"success": True, "message": _decrypt_message(reply)}
     except HTTPException:
         raise
     except Exception as e:
