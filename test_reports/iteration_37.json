@@ -1,0 +1,51 @@
+{
+  "summary": "Voice selection dropdown feature for Text-to-Video page - All tests PASSED. Backend: 5/5 tests passed - /api/ai/video/status returns supported_voices, /api/ai/video/generate accepts voice parameter. Frontend: Voice dropdown renders correctly in General Settings panel, shows all 6 voices, defaults to 'nova', and selection changes work properly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Backend: GET /api/ai/video/status returns supported_voices array with all 6 voices (alloy, echo, fable, onyx, nova, shimmer)",
+    "Backend: GET /api/ai/video/status returns all expected metadata (provider, supported_sizes, supported_durations, supported_models)",
+    "Backend: POST /api/ai/video/generate accepts voice parameter in request body",
+    "Backend: POST /api/ai/video/generate defaults voice to 'nova' when not provided",
+    "Backend: POST /api/ai/video/generate accepts all 6 valid voice values",
+    "Frontend: Voice dropdown renders in General Settings panel on Text to Video page",
+    "Frontend: Voice dropdown shows all 6 options with descriptions (Alloy-Neutral, Echo-Male warm, Fable-British, Onyx-Male deep, Nova-Female friendly, Shimmer-Female soft)",
+    "Frontend: Default voice is 'Nova' as expected",
+    "Frontend: Voice selection can be changed (tested Nova -> Echo)"
+  ],
+  "failed_tests": [],
+  "test_report_links": [
+    "/app/backend/tests/test_voice_video.py",
+    "/app/test_reports/pytest/voice_video_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Voice dropdown implementation uses proper Shadcn Select component with data-testid attributes for testing",
+    "Backend VideoGenerationRequest model properly defines voice field with default 'nova'",
+    "Voice parameter is properly passed through to generate_video_sync function",
+    "All 6 voices match OpenAI TTS voice options (alloy, echo, fable, onyx, nova, shimmer)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_voice_video.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 tests passed)",
+    "frontend": "100% (all voice dropdown tests passed)"
+  },
+  "test_credentials": {
+    "user": "admin@munal.com",
+    "password": "Admin@123456",
+    "app_url": "https://voice-video-gen-6.preview.emergentagent.com"
+  },
+  "seed_data_creation": "None required",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Voice selection dropdown feature fully tested and working. Backend tests in /app/backend/tests/test_voice_video.py. Voice dropdown is located in General Settings panel on TextToVideoPage.jsx between Model and Resolution selectors. Uses data-testid='voice-select-trigger' and data-testid='voice-option-{voice}' for each option. Default voice is 'nova'. All 6 OpenAI voices supported: alloy, echo, fable, onyx, nova, shimmer."
+}

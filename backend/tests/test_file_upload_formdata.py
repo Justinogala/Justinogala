@@ -24,7 +24,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://signature-hub-17.preview.emergentagent.com"
+    BASE_URL = "https://voice-video-gen-6.preview.emergentagent.com"
 
 
 class TestHealthCheck:

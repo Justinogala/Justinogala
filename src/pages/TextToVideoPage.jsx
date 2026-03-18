@@ -4,7 +4,7 @@ import {
   Video, Sparkles, Download, RefreshCw, Play, Pause, 
   Loader2, AlertCircle, Settings2, Clock, Maximize, 
   Square, RectangleHorizontal, RectangleVertical, Film, ChevronDown,
-  Save, History, Trash2, Eye
+  Save, History, Trash2, Eye, Mic
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +45,7 @@ const TextToVideoPage = () => {
   const [model, setModel] = useState('sora-2');
   const [size, setSize] = useState('1280x720');
   const [duration, setDuration] = useState(4);
+  const [voice, setVoice] = useState('nova');
   
   // History
   const [videoHistory, setVideoHistory] = useState([]);
@@ -102,7 +103,7 @@ const TextToVideoPage = () => {
       const res = await fetch(`${API_URL}/api/ai/video/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model, size, duration })
+        body: JSON.stringify({ prompt, model, size, duration, voice })
       });
 
       if (!res.ok) {
@@ -359,6 +360,34 @@ const TextToVideoPage = () => {
                                 <Badge className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">HD</Badge>
                               </div>
                             </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Voice */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Voice</Label>
+                        <Select value={voice} onValueChange={setVoice} disabled={generating}>
+                          <SelectTrigger data-testid="voice-select-trigger">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[
+                              { value: 'alloy', name: 'Alloy', desc: 'Neutral, balanced', gender: '' },
+                              { value: 'echo', name: 'Echo', desc: 'Male, warm', gender: 'M' },
+                              { value: 'fable', name: 'Fable', desc: 'British accent', gender: '' },
+                              { value: 'onyx', name: 'Onyx', desc: 'Male, deep', gender: 'M' },
+                              { value: 'nova', name: 'Nova', desc: 'Female, friendly', gender: 'F' },
+                              { value: 'shimmer', name: 'Shimmer', desc: 'Female, soft', gender: 'F' },
+                            ].map((v) => (
+                              <SelectItem key={v.value} value={v.value} data-testid={`voice-option-${v.value}`}>
+                                <div className="flex items-center gap-2">
+                                  <Mic className="w-4 h-4" />
+                                  <span>{v.name}</span>
+                                  <span className="text-gray-400 text-xs">- {v.desc}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

@@ -561,6 +561,7 @@ class VideoGenerationRequest(BaseModel):
     size: str = "1280x720"  # 1280x720, 1792x1024, 1024x1792, 1024x1024
     duration: int = 12  # Base: 4, 8, 12. Extended: 24, 36, 48, 60 (multi-clip)
     model: str = "sora-2"  # sora-2 or sora-2-pro
+    voice: str = "nova"  # alloy, echo, fable, onyx, nova, shimmer
 
 
 async def get_video_api_key():
@@ -574,7 +575,7 @@ async def get_video_api_key():
     return EMERGENT_LLM_KEY or OPENAI_API_KEY
 
 
-def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str):
+def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str, voice: str = "nova"):
     """Synchronous video generation using OpenAI API directly (runs in thread pool)"""
     import requests
     import time
@@ -724,6 +725,7 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
             "video_base64": video_base64,
             "size": size,
             "duration": duration,
+            "voice": voice,
             "file_size": len(video_bytes)
         }
         logger.info(f"Video job {job_id} completed: {len(video_bytes)} bytes")
@@ -807,10 +809,11 @@ async def generate_video(request: VideoGenerationRequest):
             request.model,
             request.size,
             request.duration,
-            api_key
+            api_key,
+            request.voice
         )
         
-        logger.info(f"Video job {job_id} started: prompt='{request.prompt[:50]}...', duration={request.duration}s")
+        logger.info(f"Video job {job_id} started: prompt='{request.prompt[:50]}...', duration={request.duration}s, voice={request.voice}")
         
         return {
             "success": True,
@@ -873,7 +876,8 @@ async def get_video_generation_status():
             "base": [4, 8, 12],
             "extended": [24, 36, 48, 60]
         },
-        "supported_models": ["sora-2", "sora-2-pro"]
+        "supported_models": ["sora-2", "sora-2-pro"],
+        "supported_voices": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
     }
 
 
