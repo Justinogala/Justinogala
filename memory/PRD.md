@@ -26,6 +26,19 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - Admin Portal with RBAC
 - Calendar, Meetings, Voice Chat
 
+## eSignature Feature (Implemented - March 18, 2026)
+- **Upload**: PDF, DOC, DOCX files (DOC/DOCX auto-converted to PDF via LibreOffice headless)
+- **Create Signature**: Draw on canvas or type with font selection
+- **Place Signature**: Click on PDF pages to position signature overlays, draggable
+- **Add Fields**: Date field placement
+- **Sign**: Apply signatures to PDF using PyMuPDF, generates signed PDF
+- **Download**: Download signed PDF
+- **File Manager Integration**: Signed PDFs auto-saved to GridFS file manager
+- **History**: View all previously signed documents with re-download
+- **Saved Signatures**: Save signatures for reuse across documents
+- **Backend**: `/app/backend/routes/esignature.py`
+- **Frontend**: `/app/src/pages/ESignaturePage.jsx`
+
 ## IR/SOR System Details
 - **Backend**: `/app/backend/routes/reports.py` — full CRUD with `incident_reports` MongoDB collection
 - **Frontend**: `/app/src/pages/ReportsPage.jsx` — multi-step form, list view, detail view, investigation panel
@@ -49,19 +62,18 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - `POST /api/reports/{id}/attachments` - Upload attachment
 - `GET /api/reports/{id}/attachments/{att_id}` - Download attachment
 - `GET /api/reports/{id}/export/pdf` - Export individual report to PDF
+- `POST /api/esignature/upload` - Upload PDF/DOC/DOCX for signing
+- `POST /api/esignature/sign` - Apply signatures to document
+- `GET /api/esignature/documents/{doc_id}/pdf` - Get original PDF
+- `GET /api/esignature/documents/{doc_id}/signed` - Download signed PDF
+- `GET /api/esignature/history` - Get signing history
+- `POST /api/esignature/signatures` - Save signature for reuse
+- `GET /api/esignature/signatures` - List saved signatures
+- `DELETE /api/esignature/signatures/{sig_id}` - Delete saved signature
 
-## Completed (March 16, 2026)
-- **PDF Export**: Individual report export to professionally formatted PDF via `/api/reports/{id}/export/pdf`
-- **Excel Export**: Bulk report export with severity color-coding and filters via `/api/reports/export/excel`
-- **Email Notifications**: Critical/SOR incidents auto-notify all admins/managers via Resend (noreply@munal.ai)
-- **Escalation Workflow**: APScheduler runs hourly; reports open >24h are auto-escalated with admin email alerts
-- **Real-Time SSE Notification Bell**: Critical/SOR incidents push a `critical_incident` SSE event to all online admin/manager users; frontend shows toast popup + adds to notification bell with red pulse indicator
-- **Incident Analytics Dashboard**: Dedicated analytics view with severity trend (stacked bar chart), incident type breakdown (donut chart), response time metrics (horizontal bars by severity), and monthly summary cards. Admin/Manager only.
-- **Admin Role Management**: Added "Change Role" dropdown in admin user management — Set as Admin/Manager/User with toast confirmation. Updated justinoo2001@gmail.com to Admin.
-- **Admin IR/SOR Report Generation**: Added "IR / SOR Reports" as a real report type in admin Generate Report modal — downloads actual PDF/Excel files from backend with date range filters.
-- **All Admin Reports Real Data**: ALL 8 report types (User Activity, Meeting Summary, System Performance, Security Audit, Storage Usage, Revenue & Billing, Subscriptions, IR/SOR) now generate real PDF/Excel from MongoDB — no more mocked data.
-- **Bulk PDF Export**: New `/api/reports/export/pdf` endpoint generates a multi-page PDF with cover page, severity summary table, and individual report details.
-- **Frontend**: "Export Excel" button on report list, "Export PDF" button on report detail view
+## Completed
+- **March 18, 2026**: eSignature feature with DOC/DOCX-to-PDF conversion, draw/type signatures, PDF placement, signing, download, history, saved signatures. All 16 backend + all frontend tests passed.
+- **March 16, 2026**: PDF/Excel Export, Email Notifications, Escalation Workflow, SSE Notification Bell, Incident Analytics Dashboard, Admin Role Management, All Admin Reports Real Data, Bulk PDF Export, Meeting History Activation.
 
 ## Backlog
 - **P2**: Cloud storage migration testing
