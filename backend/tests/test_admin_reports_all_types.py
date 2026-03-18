@@ -8,7 +8,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ir-sor-advanced.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://signature-hub-17.preview.emergentagent.com')
 BASE_URL = BASE_URL.rstrip('/')
 
 ADMIN_REPORT_ENDPOINT = f"{BASE_URL}/api/admin/reports/generate"

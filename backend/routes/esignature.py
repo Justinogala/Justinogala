@@ -1,0 +1,278 @@
+"""
+eSignature routes — Upload PDFs, create/manage signatures,
+apply signatures to documents, and download signed copies.
+"""
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
+from datetime import datetime, timezone
+from typing import Optional
+import uuid
+import io
+import base64
+
+from config import db, logger
+
+router = APIRouter(prefix="/esignature", tags=["esignature"])
+
+
+# ============ Signature CRUD ============
+
+@router.get("/signatures")
+async def list_signatures(user_id: str):
+    """List saved signatures for a user."""
+    sigs = await db.esignatures.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    return {"signatures": sigs}
+
+
+@router.post("/signatures")
+async def save_signature(
+    user_id: str = Form(...),
+    name: str = Form("My Signature"),
+    sig_type: str = Form("draw"),
+    data_url: str = Form(...),
+):
+    """Save a signature (base64 data URL from canvas/typed/uploaded)."""
+    sig = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "name": name,
+        "type": sig_type,
+        "data_url": data_url,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.esignatures.insert_one(sig)
+    sig.pop("_id", None)
+    return {"success": True, "signature": sig}
+
+
+@router.delete("/signatures/{sig_id}")
+async def delete_signature(sig_id: str):
+    """Delete a saved signature."""
+    result = await db.esignatures.delete_one({"id": sig_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Signature not found")
+    return {"success": True}
+
+
+# ============ Document Upload ============
+
+@router.post("/upload")
+async def upload_document(
+    user_id: str = Form(...),
+    file: UploadFile = File(...),
+):
+    """Upload a PDF for signing. Returns document ID and page count."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    import fitz
+
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+    try:
+        pdf = fitz.open(stream=content, filetype="pdf")
+        page_count = len(pdf)
+        pdf.close()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid PDF file")
+
+    doc_id = str(uuid.uuid4())
+    doc = {
+        "id": doc_id,
+        "user_id": user_id,
+        "filename": file.filename,
+        "content_type": file.content_type or "application/pdf",
+        "size": len(content),
+        "page_count": page_count,
+        "pdf_data": base64.b64encode(content).decode("utf-8"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "signed": False,
+    }
+    await db.esignature_documents.insert_one(doc)
+    doc.pop("_id", None)
+    doc.pop("pdf_data", None)
+
+    return {
+        "success": True,
+        "document": {
+            "id": doc_id,
+            "filename": file.filename,
+            "page_count": page_count,
+            "size": len(content),
+        }
+    }
+
+
+@router.get("/documents/{doc_id}/pdf")
+async def get_document_pdf(doc_id: str):
+    """Stream the original PDF for rendering."""
+    doc = await db.esignature_documents.find_one({"id": doc_id}, {"pdf_data": 1})
+    if not doc or not doc.get("pdf_data"):
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    content = base64.b64decode(doc["pdf_data"])
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'inline; filename="document.pdf"'}
+    )
+
+
+# ============ Sign Document ============
+
+@router.post("/sign")
+async def sign_document(
+    doc_id: str = Form(...),
+    user_id: str = Form(...),
+    user_name: str = Form(""),
+    user_email: str = Form(""),
+    signature_data_url: str = Form(...),
+    placements: str = Form(...),
+):
+    """
+    Apply signature(s) to a PDF.
+    placements: JSON string of [{page, x, y, width, height, type}]
+    """
+    import fitz
+    import json
+
+    doc_record = await db.esignature_documents.find_one({"id": doc_id})
+    if not doc_record:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    try:
+        placement_list = json.loads(placements)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid placements JSON")
+
+    if not placement_list:
+        raise HTTPException(status_code=400, detail="No signature placements provided")
+
+    # Decode original PDF
+    pdf_bytes = base64.b64decode(doc_record["pdf_data"])
+    pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
+
+    # Decode signature image
+    sig_header, sig_b64 = signature_data_url.split(",", 1) if "," in signature_data_url else ("", signature_data_url)
+    sig_bytes = base64.b64decode(sig_b64)
+
+    # Apply each placement
+    for p in placement_list:
+        page_num = int(p.get("page", 0))
+        if page_num < 0 or page_num >= len(pdf):
+            continue
+
+        page = pdf[page_num]
+        page_rect = page.rect
+
+        # Coordinates from frontend are percentages (0-1) of page dimensions
+        x = float(p.get("x", 0)) * page_rect.width
+        y = float(p.get("y", 0)) * page_rect.height
+        w = float(p.get("width", 0.2)) * page_rect.width
+        h = float(p.get("height", 0.08)) * page_rect.height
+
+        sig_rect = fitz.Rect(x, y, x + w, y + h)
+
+        if p.get("type") == "date":
+            # Insert date text
+            date_text = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            page.insert_textbox(sig_rect, date_text, fontsize=10, align=fitz.TEXT_ALIGN_LEFT)
+        elif p.get("type") == "text":
+            text = p.get("text", "")
+            page.insert_textbox(sig_rect, text, fontsize=10, align=fitz.TEXT_ALIGN_LEFT)
+        else:
+            # Insert signature image
+            page.insert_image(sig_rect, stream=sig_bytes)
+
+    # Save signed PDF
+    signed_buf = io.BytesIO()
+    pdf.save(signed_buf)
+    pdf.close()
+    signed_buf.seek(0)
+    signed_bytes = signed_buf.read()
+    signed_b64 = base64.b64encode(signed_bytes).decode("utf-8")
+
+    # Update document record
+    signed_filename = doc_record["filename"].replace(".pdf", "_signed.pdf")
+    await db.esignature_documents.update_one(
+        {"id": doc_id},
+        {"$set": {
+            "signed": True,
+            "signed_pdf_data": signed_b64,
+            "signed_filename": signed_filename,
+            "signed_at": datetime.now(timezone.utc).isoformat(),
+            "signed_by": user_name or user_id,
+        }}
+    )
+
+    # Save to signing history
+    history_entry = {
+        "id": str(uuid.uuid4()),
+        "doc_id": doc_id,
+        "user_id": user_id,
+        "user_name": user_name,
+        "user_email": user_email,
+        "filename": doc_record["filename"],
+        "signed_filename": signed_filename,
+        "page_count": doc_record.get("page_count", 0),
+        "placements_count": len(placement_list),
+        "signed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.esignature_history.insert_one(history_entry)
+
+    # Also save to file manager (chat_files) for user access
+    from motor.motor_asyncio import AsyncIOMotorGridFSBucket
+    fs = AsyncIOMotorGridFSBucket(db, bucket_name="chat_files")
+    grid_id = await fs.upload_from_stream(
+        signed_filename,
+        io.BytesIO(signed_bytes),
+        metadata={
+            "user_id": user_id,
+            "content_type": "application/pdf",
+            "category": "esignature",
+            "original_name": doc_record["filename"],
+        }
+    )
+
+    return {
+        "success": True,
+        "signed_document": {
+            "id": doc_id,
+            "filename": signed_filename,
+            "size": len(signed_bytes),
+            "file_manager_id": str(grid_id),
+        }
+    }
+
+
+@router.get("/documents/{doc_id}/signed")
+async def download_signed_pdf(doc_id: str):
+    """Download the signed version of a document."""
+    doc = await db.esignature_documents.find_one(
+        {"id": doc_id}, {"signed_pdf_data": 1, "signed_filename": 1, "signed": 1}
+    )
+    if not doc or not doc.get("signed"):
+        raise HTTPException(status_code=404, detail="Signed document not found")
+
+    content = base64.b64decode(doc["signed_pdf_data"])
+    filename = doc.get("signed_filename", "signed_document.pdf")
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+# ============ History ============
+
+@router.get("/history")
+async def get_signing_history(user_id: str):
+    """Get signing history for a user."""
+    history = await db.esignature_history.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).sort("signed_at", -1).to_list(100)
+    return {"history": history}

@@ -76,6 +76,7 @@ const SharedRecordingPage = lazy(() => import('@/pages/SharedRecordingPage'));
 const WorkspaceDetailPage = lazy(() => import('@/pages/WorkspaceDetailPage'));
 const ShiftManagementPage = lazy(() => import('@/pages/ShiftManagementPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
+const ESignaturePage = lazy(() => import('@/pages/ESignaturePage'));
 
 // AI Pages
 const TranscriptionPage = lazy(() => import('@/pages/TranscriptionPage'));
@@ -371,6 +372,7 @@ function App() {
                                 <Route path="/voice-chat" element={<VoiceChatPage />} />
                                 <Route path="/video-call" element={<VideoCallPage />} />
                                 <Route path="/files" element={<FileManagementPage />} />
+                                <Route path="/esignature" element={<ESignaturePage />} />
                                 
                                 <Route path="/workspaces" element={<WorkspacesPage />} />
                                 <Route path="/workspace/chat" element={<WorkspaceChatPage />} />
