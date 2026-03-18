@@ -9,6 +9,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from pathlib import Path
 from datetime import datetime, timezone
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import os
 import logging
 
@@ -39,6 +41,13 @@ app = FastAPI(
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json"
 )
+
+# ============== Security Setup ==============
+from security import limiter, SecurityHeadersMiddleware
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Create base API router
 api_router = APIRouter(prefix="/api")
@@ -166,11 +175,24 @@ app.include_router(api_router)
 
 # ============== CORS Middleware ==============
 
+ALLOWED_ORIGINS = [
+    os.environ.get("FRONTEND_URL", ""),
+    "https://munal.ai",
+    "https://www.munal.ai",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+# Also allow the preview URL pattern
+ALLOWED_ORIGINS = [o for o in ALLOWED_ORIGINS if o] + [
+    f"https://{h}" for h in [os.environ.get("ALLOWED_HOST", "")]
+    if h
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS if any(ALLOWED_ORIGINS) else ["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 

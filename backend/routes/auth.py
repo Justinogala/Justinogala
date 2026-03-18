@@ -1,7 +1,7 @@
 """
 Authentication routes - login, register, password reset, email verification.
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -15,6 +15,7 @@ import bcrypt
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, SENDER_EMAIL, logger
 from models import UserCreate, UserLogin, ForgotPasswordRequest, ResetPasswordRequest
+from security import limiter, sanitize_text, guard_mongo_query
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer(auto_error=False)
@@ -190,10 +191,14 @@ async def send_password_reset_email(email: str, temp_password: str, user_name: s
 # ============== Routes ==============
 
 @router.post("/register")
-async def register_user(user: UserCreate):
+@limiter.limit("5/minute")
+async def register_user(request: Request, user: UserCreate):
     """Register a new user - no email verification required"""
+    # Sanitize inputs
+    email = guard_mongo_query(user.email.lower())
+    name = sanitize_text(user.name) if user.name else ""
     # Check if email already exists
-    existing = await db.users.find_one({"email": user.email.lower()})
+    existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
@@ -201,9 +206,9 @@ async def register_user(user: UserCreate):
     
     user_doc = {
         "id": user_id,
-        "email": user.email.lower(),
+        "email": email,
         "password": hash_password(user.password),
-        "name": user.name,
+        "name": name,
         "role": user.role,
         "status": user.status,
         "plan": user.plan,
@@ -316,10 +321,12 @@ async def resend_verification(data: dict):
     return {"message": "Verification code sent"}
 
 @router.post("/login")
-async def login_user(credentials: UserLogin):
+@limiter.limit("10/minute")
+async def login_user(request: Request, credentials: UserLogin):
     """Login a user and return JWT token"""
+    email = guard_mongo_query(credentials.email.lower())
     user = await db.users.find_one(
-        {"email": credentials.email.lower()},
+        {"email": email},
         {"_id": 0}
     )
     
@@ -380,9 +387,11 @@ async def login_user(credentials: UserLogin):
     }
 
 @router.post("/forgot-password")
-async def forgot_password(request: ForgotPasswordRequest):
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, req: ForgotPasswordRequest):
     """Send password reset email"""
-    user = await db.users.find_one({"email": request.email.lower()})
+    email = guard_mongo_query(req.email.lower())
+    user = await db.users.find_one({"email": email})
     
     if not user:
         # Don't reveal if email exists
@@ -393,7 +402,7 @@ async def forgot_password(request: ForgotPasswordRequest):
     
     # Update user with temp password (hashed)
     await db.users.update_one(
-        {"email": request.email.lower()},
+        {"email": email},
         {
             "$set": {
                 "password": hash_password(temp_password),
@@ -405,7 +414,7 @@ async def forgot_password(request: ForgotPasswordRequest):
     
     # Send email
     try:
-        await send_password_reset_email(request.email, temp_password, user.get("name", "User"))
+        await send_password_reset_email(req.email, temp_password, user.get("name", "User"))
     except Exception as e:
         logger.error(f"Failed to send password reset email: {e}")
         raise HTTPException(status_code=500, detail="Failed to send password reset email")

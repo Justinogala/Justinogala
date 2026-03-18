@@ -2,7 +2,7 @@
 eSignature routes — Upload PDFs/DOC/DOCX, create/manage signatures,
 apply signatures to documents, and download signed copies.
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 import uuid
@@ -13,6 +13,7 @@ import tempfile
 import subprocess
 
 from config import db, logger
+from security import limiter
 
 router = APIRouter(prefix="/esignature", tags=["esignature"])
 
@@ -84,7 +85,8 @@ async def delete_signature(sig_id: str):
 # ============ Standalone Word to PDF ============
 
 @router.post("/convert-to-pdf")
-async def convert_word_to_pdf(file: UploadFile = File(...)):
+@limiter.limit("10/minute")
+async def convert_word_to_pdf(request: Request, file: UploadFile = File(...)):
     """Convert a DOC/DOCX file to PDF and return the PDF directly."""
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in {".doc", ".docx"}:
@@ -107,7 +109,9 @@ async def convert_word_to_pdf(file: UploadFile = File(...)):
 # ============ Document Upload ============
 
 @router.post("/upload")
+@limiter.limit("15/minute")
 async def upload_document(
+    request: Request,
     user_id: str = Form(...),
     file: UploadFile = File(...),
 ):
@@ -184,7 +188,9 @@ async def get_document_pdf(doc_id: str):
 # ============ Sign Document ============
 
 @router.post("/sign")
+@limiter.limit("10/minute")
 async def sign_document(
+    request: Request,
     doc_id: str = Form(...),
     user_id: str = Form(...),
     user_name: str = Form(""),

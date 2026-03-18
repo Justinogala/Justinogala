@@ -2,7 +2,7 @@
 Internal Messaging System Routes
 Email-like messaging between users on the platform
 """
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Form, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
@@ -362,8 +362,13 @@ async def get_message_thread(message_id: str):
 async def send_message(sender_id: str, request: SendMessageRequest, background_tasks: BackgroundTasks):
     """Send a new message to another user, with optional CC and BCC."""
     try:
+        # Sanitize inputs
+        subject = sanitize_text(request.subject)
+        content = sanitize_text(request.content)
+        recipient_id = guard_mongo_query(request.recipient_id)
+
         # Verify recipient exists
-        recipient = await db.users.find_one({"id": request.recipient_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        recipient = await db.users.find_one({"id": recipient_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
         if not recipient:
             raise HTTPException(status_code=404, detail="Recipient not found")
         
@@ -394,10 +399,10 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
             "thread_id": message_id,
             "sender_id": sender_id,
             "sender_name": sender.get("name") or sender.get("email", "Unknown"),
-            "recipient_id": request.recipient_id,
+            "recipient_id": recipient_id,
             "recipient_name": recipient.get("name") or recipient.get("email", "Unknown"),
-            "subject": request.subject,
-            "content": request.content,
+            "subject": subject,
+            "content": content,
             "attachments": request.attachments or [],
             "cc": [{"id": uid, "name": cc_names[uid]} for uid in cc_ids if uid in cc_names],
             "bcc": [{"id": uid, "name": bcc_names[uid]} for uid in bcc_ids if uid in bcc_names],
@@ -994,6 +999,8 @@ async def get_unread_count(user_id: str):
 import os
 import json as json_lib
 
+from security import limiter, sanitize_text, guard_mongo_query
+
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
@@ -1040,7 +1047,8 @@ class AIMessageRequest(BaseModel):
 
 
 @router.post("/ai/smart-replies")
-async def ai_smart_replies(req: AIMessageRequest):
+@limiter.limit("20/minute")
+async def ai_smart_replies(request: Request, req: AIMessageRequest):
     """Generate 3 short smart reply suggestions for a message."""
     cfg = await _get_user_ai_settings(req.user_id)
     if not cfg["ai_enabled"] or not cfg["smart_replies"]:
@@ -1063,7 +1071,8 @@ async def ai_smart_replies(req: AIMessageRequest):
 
 
 @router.post("/ai/summarize-thread")
-async def ai_summarize_thread(req: AIMessageRequest):
+@limiter.limit("10/minute")
+async def ai_summarize_thread(request: Request, req: AIMessageRequest):
     """Summarize a conversation thread."""
     cfg = await _get_user_ai_settings(req.user_id)
     if not cfg["assistant_enabled"] or not cfg["summarize"]:
@@ -1085,7 +1094,8 @@ async def ai_summarize_thread(req: AIMessageRequest):
 
 
 @router.post("/ai/suggest-actions")
-async def ai_suggest_actions(req: AIMessageRequest):
+@limiter.limit("15/minute")
+async def ai_suggest_actions(request: Request, req: AIMessageRequest):
     """Suggest follow-up actions based on a message."""
     cfg = await _get_user_ai_settings(req.user_id)
     if not cfg["assistant_enabled"] or not cfg["suggest_actions"]:
@@ -1106,7 +1116,8 @@ async def ai_suggest_actions(req: AIMessageRequest):
 
 
 @router.post("/ai/draft-reply")
-async def ai_draft_reply(req: AIMessageRequest):
+@limiter.limit("15/minute")
+async def ai_draft_reply(request: Request, req: AIMessageRequest):
     """Auto-draft a full reply to a message."""
     cfg = await _get_user_ai_settings(req.user_id)
     if not cfg["assistant_enabled"]:
@@ -1142,7 +1153,8 @@ async def ai_draft_reply(req: AIMessageRequest):
 
 
 @router.post("/ai/categorize")
-async def ai_categorize_message(req: AIMessageRequest):
+@limiter.limit("20/minute")
+async def ai_categorize_message(request: Request, req: AIMessageRequest):
     """Categorize a message using AI."""
     cfg = await _get_user_ai_settings(req.user_id)
     if not cfg["ai_enabled"] or not cfg["auto_categorize"]:
@@ -1166,7 +1178,8 @@ async def ai_categorize_message(req: AIMessageRequest):
 
 
 @router.post("/ai/compose")
-async def ai_compose_message(req: AIMessageRequest):
+@limiter.limit("15/minute")
+async def ai_compose_message(request: Request, req: AIMessageRequest):
     """Generate a full message (subject + body) from a brief prompt."""
     cfg = await _get_user_ai_settings(req.user_id)
     tone = cfg["tone"]

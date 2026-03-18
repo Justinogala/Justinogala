@@ -9,6 +9,7 @@ APScheduler==3.11.2
 attrs==25.4.0
 bcrypt==4.1.3
 black==26.1.0
+bleach==6.3.0
 boto3==1.42.51
 botocore==1.42.51
 certifi==2026.1.4
@@ -16,6 +17,7 @@ cffi==2.0.0
 charset-normalizer==3.4.4
 click==8.3.1
 cryptography==46.0.5
+Deprecated==1.3.1
 distro==1.9.0
 dnspython==2.8.0
 ecdsa==0.19.1
@@ -55,6 +57,7 @@ jq==1.11.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 librt==0.8.1
+limits==5.8.0
 litellm==1.80.0
 lxml==6.0.2
 markdown-it-py==4.0.0
@@ -112,6 +115,7 @@ s3transfer==0.16.0
 s5cmd==0.2.0
 shellingham==1.5.4
 six==1.17.0
+slowapi==0.1.9
 sniffio==1.3.1
 sseclient-py==1.9.0
 starlette==0.37.2
@@ -130,6 +134,8 @@ uritemplate==4.2.0
 urllib3==2.6.3
 uvicorn==0.25.0
 watchfiles==1.1.1
+webencodings==0.5.1
 websockets==15.0.1
+wrapt==2.1.2
 yarl==1.22.0
 zipp==3.23.0
