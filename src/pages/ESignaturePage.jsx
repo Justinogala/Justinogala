@@ -2,28 +2,27 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Upload, PenLine, Type, Image, Calendar as CalIcon, Download,
+  Upload, PenLine, Type, Calendar as CalIcon, Download,
   Trash2, ChevronLeft, ChevronRight, Loader2, Check, X, Save,
-  FileText, History, Plus, GripVertical, ZoomIn, ZoomOut, RotateCcw
+  FileText, History, Plus, GripVertical, ZoomIn, ZoomOut, RotateCcw,
+  FileUp, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
-} from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import PageTransition from '@/components/PageTransition';
 import { cn } from '@/lib/utils';
+import { getApiUrl } from '@/lib/api';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Set PDF.js worker - use unpkg CDN with exact version for reliability
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+const API_URL = getApiUrl();
 
 // ============ Signature Pad (Draw) ============
 const SignaturePad = ({ onSave, onClose }) => {
@@ -176,11 +175,15 @@ const ESignaturePage = () => {
       .then(r => r.json()).then(d => setSavedSigs(d.signatures || [])).catch(() => {});
   }, [user?.id]);
 
-  // Upload PDF
+  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
+
+  // Upload PDF or DOC/DOCX (auto-converts to PDF)
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
-      toast({ variant: 'destructive', title: 'Please select a PDF file' });
+    if (!file) return;
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      toast({ variant: 'destructive', title: 'Unsupported file', description: 'Please select a PDF, DOC, or DOCX file' });
       return;
     }
     setUploading(true);
@@ -199,7 +202,8 @@ const ESignaturePage = () => {
       setCurrentPage(1);
       setPlacements([]);
       setSignedUrl(null);
-      toast({ title: 'PDF uploaded', description: `${file.name} — ${data.document.page_count} pages` });
+      const converted = data.document.converted ? ' (converted to PDF)' : '';
+      toast({ title: 'Document ready', description: `${file.name}${converted} — ${data.document.page_count} pages` });
     } catch (err) {
       toast({ variant: 'destructive', title: 'Upload failed', description: err.message });
     } finally {
@@ -378,15 +382,22 @@ const ESignaturePage = () => {
               <Card>
                 <CardContent className="p-8">
                   <label className="flex flex-col items-center gap-4 cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-12 hover:border-indigo-400 transition-colors" data-testid="pdf-upload-area">
-                    <input type="file" accept=".pdf" onChange={handleUpload} className="hidden" data-testid="pdf-upload-input" />
+                    <input type="file" accept=".pdf,.doc,.docx" onChange={handleUpload} className="hidden" data-testid="pdf-upload-input" />
                     {uploading ? (
                       <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
                     ) : (
                       <Upload className="w-10 h-10 text-slate-400" />
                     )}
                     <div className="text-center">
-                      <p className="font-medium text-slate-700 dark:text-slate-300">{uploading ? 'Uploading...' : 'Click to upload a PDF'}</p>
-                      <p className="text-xs text-slate-400 mt-1">PDF files up to 20MB</p>
+                      <p className="font-medium text-slate-700 dark:text-slate-300">{uploading ? 'Processing...' : 'Click to upload a document'}</p>
+                      <p className="text-xs text-slate-400 mt-1">PDF, DOC, DOCX files up to 20MB</p>
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        <Badge variant="outline" className="text-[10px]">PDF</Badge>
+                        <Badge variant="outline" className="text-[10px]">DOC</Badge>
+                        <Badge variant="outline" className="text-[10px]">DOCX</Badge>
+                        <RefreshCw className="w-3 h-3 text-slate-400" />
+                        <span className="text-[10px] text-slate-400">Auto-converts to PDF</span>
+                      </div>
                     </div>
                   </label>
                 </CardContent>

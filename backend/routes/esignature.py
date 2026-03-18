@@ -1,18 +1,43 @@
 """
-eSignature routes — Upload PDFs, create/manage signatures,
+eSignature routes — Upload PDFs/DOC/DOCX, create/manage signatures,
 apply signatures to documents, and download signed copies.
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
-from typing import Optional
 import uuid
 import io
+import os
 import base64
+import tempfile
+import subprocess
 
 from config import db, logger
 
 router = APIRouter(prefix="/esignature", tags=["esignature"])
+
+ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx"}
+
+
+def convert_doc_to_pdf(content: bytes, filename: str) -> bytes:
+    """Convert DOC/DOCX to PDF using LibreOffice headless."""
+    ext = os.path.splitext(filename)[1].lower()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, f"input{ext}")
+        with open(input_path, "wb") as f:
+            f.write(content)
+        result = subprocess.run(
+            ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", tmpdir, input_path],
+            capture_output=True, timeout=60,
+        )
+        if result.returncode != 0:
+            logger.error(f"LibreOffice conversion failed: {result.stderr.decode()}")
+            raise HTTPException(status_code=500, detail="Document conversion failed")
+        pdf_path = os.path.join(tmpdir, "input.pdf")
+        if not os.path.exists(pdf_path):
+            raise HTTPException(status_code=500, detail="Converted PDF not found")
+        with open(pdf_path, "rb") as f:
+            return f.read()
 
 
 # ============ Signature CRUD ============
@@ -63,46 +88,57 @@ async def upload_document(
     user_id: str = Form(...),
     file: UploadFile = File(...),
 ):
-    """Upload a PDF for signing. Returns document ID and page count."""
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported")
-
+    """Upload a PDF, DOC, or DOCX for signing. Converts DOC/DOCX to PDF automatically."""
     import fitz
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Only PDF, DOC, and DOCX files are supported")
 
     content = await file.read()
     if len(content) > 20 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+    converted = False
+    if ext in {".doc", ".docx"}:
+        content = convert_doc_to_pdf(content, file.filename)
+        converted = True
 
     try:
         pdf = fitz.open(stream=content, filetype="pdf")
         page_count = len(pdf)
         pdf.close()
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid PDF file")
+        raise HTTPException(status_code=400, detail="Invalid or corrupted document")
 
     doc_id = str(uuid.uuid4())
+    original_filename = file.filename
+    pdf_filename = os.path.splitext(original_filename)[0] + ".pdf" if converted else original_filename
+
     doc = {
         "id": doc_id,
         "user_id": user_id,
-        "filename": file.filename,
-        "content_type": file.content_type or "application/pdf",
+        "filename": pdf_filename,
+        "original_filename": original_filename,
+        "content_type": "application/pdf",
         "size": len(content),
         "page_count": page_count,
         "pdf_data": base64.b64encode(content).decode("utf-8"),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "signed": False,
+        "converted": converted,
     }
     await db.esignature_documents.insert_one(doc)
-    doc.pop("_id", None)
-    doc.pop("pdf_data", None)
 
     return {
         "success": True,
         "document": {
             "id": doc_id,
-            "filename": file.filename,
+            "filename": pdf_filename,
+            "original_filename": original_filename,
             "page_count": page_count,
             "size": len(content),
+            "converted": converted,
         }
     }
 
@@ -158,6 +194,8 @@ async def sign_document(
 
     # Decode signature image
     sig_header, sig_b64 = signature_data_url.split(",", 1) if "," in signature_data_url else ("", signature_data_url)
+    # Ensure proper base64 padding
+    sig_b64 += "=" * (-len(sig_b64) % 4)
     sig_bytes = base64.b64decode(sig_b64)
 
     # Apply each placement
