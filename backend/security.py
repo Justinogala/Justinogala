@@ -1,6 +1,6 @@
 """
 Security middleware and utilities for Munal AI.
-Rate limiting, input sanitization, and security headers.
+Rate limiting, input sanitization, password policy, audit logging, and security headers.
 """
 import re
 import bleach
@@ -9,10 +9,29 @@ from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from datetime import datetime, timezone
 
 # ============== Rate Limiter ==============
 
 limiter = Limiter(key_func=get_remote_address)
+
+
+# ============== Password Policy ==============
+
+def validate_password(password: str) -> str | None:
+    """
+    Enforce password policy on NEW passwords only.
+    Returns error message if invalid, None if OK.
+    """
+    if len(password) < 8:
+        return "Password must be at least 8 characters"
+    if not re.search(r"[A-Z]", password):
+        return "Password must contain at least one uppercase letter"
+    if not re.search(r"[a-z]", password):
+        return "Password must contain at least one lowercase letter"
+    if not re.search(r"\d", password):
+        return "Password must contain at least one number"
+    return None
 
 
 # ============== Input Sanitization ==============
@@ -48,6 +67,37 @@ def guard_mongo_query(value):
     return value
 
 
+# ============== Audit Logging ==============
+
+_audit_db = None
+
+
+def set_audit_db(database):
+    """Set the MongoDB database reference for audit logging."""
+    global _audit_db
+    _audit_db = database
+
+
+async def log_audit(action: str, user_id: str = "", user_email: str = "",
+                    details: str = "", ip: str = "", success: bool = True):
+    """Log a security/audit event to the audit_logs collection."""
+    if _audit_db is None:
+        return
+    doc = {
+        "action": action,
+        "user_id": user_id,
+        "user_email": user_email,
+        "details": details,
+        "ip_address": ip,
+        "success": success,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        await _audit_db.audit_logs.insert_one(doc)
+    except Exception:
+        pass  # Never let audit logging break the app
+
+
 # ============== Security Headers Middleware ==============
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -58,4 +108,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self' https: wss:; "
+            "frame-ancestors 'none';"
+        )
         return response

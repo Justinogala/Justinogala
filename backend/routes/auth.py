@@ -15,7 +15,7 @@ import bcrypt
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, SENDER_EMAIL, logger
 from models import UserCreate, UserLogin, ForgotPasswordRequest, ResetPasswordRequest
-from security import limiter, sanitize_text, guard_mongo_query
+from security import limiter, sanitize_text, guard_mongo_query, validate_password, log_audit
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer(auto_error=False)
@@ -54,6 +54,25 @@ def create_jwt_token(user_id: str, email: str, role: str = "User") -> str:
         "iat": datetime.now(timezone.utc)
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token(user_id: str) -> tuple[str, datetime]:
+    """Create a long-lived refresh token (7 days). Returns (token, expiry)."""
+    expiry = datetime.now(timezone.utc) + timedelta(days=7)
+    payload = {
+        "sub": user_id,
+        "type": "refresh",
+        "exp": expiry,
+        "iat": datetime.now(timezone.utc),
+        "jti": str(uuid.uuid4()),
+    }
+    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return token, expiry
+
+
+def _get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    return forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "")
 
 def verify_jwt_token(token: str) -> dict:
     """Verify and decode a JWT token"""
@@ -197,6 +216,14 @@ async def register_user(request: Request, user: UserCreate):
     # Sanitize inputs
     email = guard_mongo_query(user.email.lower())
     name = sanitize_text(user.name) if user.name else ""
+
+    # Enforce password policy on new registrations
+    pw_error = validate_password(user.password)
+    if pw_error:
+        await log_audit("register_failed", user_email=email, details=f"Password policy: {pw_error}",
+                        ip=_get_client_ip(request), success=False)
+        raise HTTPException(status_code=400, detail=pw_error)
+
     # Check if email already exists
     existing = await db.users.find_one({"email": email})
     if existing:
@@ -220,8 +247,12 @@ async def register_user(request: Request, user: UserCreate):
     
     await db.users.insert_one(user_doc)
     
-    # Generate JWT token
-    token = create_jwt_token(user_id, user.email.lower(), user.role)
+    # Generate tokens
+    token = create_jwt_token(user_id, email, user.role)
+    refresh_token, _ = create_refresh_token(user_id)
+
+    await log_audit("register", user_id=user_id, user_email=email,
+                    details="New user registered", ip=_get_client_ip(request))
     
     # Return user without password
     user_doc.pop("password")
@@ -231,7 +262,8 @@ async def register_user(request: Request, user: UserCreate):
     
     return {
         "user": user_doc,
-        "token": token
+        "token": token,
+        "refresh_token": refresh_token
     }
 
 @router.post("/verify-email")
@@ -331,10 +363,14 @@ async def login_user(request: Request, credentials: UserLogin):
     )
     
     if not user:
+        await log_audit("login_failed", user_email=email,
+                        details="User not found", ip=_get_client_ip(request), success=False)
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     # Check password (supports both bcrypt hashed and legacy plain-text)
     if not verify_password(credentials.password, user["password"]):
+        await log_audit("login_failed", user_id=user.get("id", ""), user_email=email,
+                        details="Wrong password", ip=_get_client_ip(request), success=False)
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     # Auto-migrate plain-text password to bcrypt on successful login
@@ -360,14 +396,18 @@ async def login_user(request: Request, credentials: UserLogin):
     # Check if using temporary password
     requires_password_change = user.get("requires_password_change", False)
     
-    # Generate JWT token
+    # Generate tokens
     token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
+    refresh_token, _ = create_refresh_token(user["id"])
     
     # Update last login
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"last_login": datetime.now(timezone.utc)}}
     )
+
+    await log_audit("login", user_id=user["id"], user_email=user["email"],
+                    details="Login successful", ip=_get_client_ip(request))
     
     # Return user without password
     user.pop("password", None)
@@ -383,8 +423,36 @@ async def login_user(request: Request, credentials: UserLogin):
     return {
         "user": user,
         "token": token,
+        "refresh_token": refresh_token,
         "requires_password_change": requires_password_change
     }
+
+
+@router.post("/refresh")
+@limiter.limit("30/minute")
+async def refresh_access_token(request: Request):
+    """Exchange a valid refresh token for a new access token."""
+    body = await request.json()
+    refresh_token = body.get("refresh_token", "")
+    if not refresh_token:
+        raise HTTPException(status_code=400, detail="Refresh token required")
+    try:
+        payload = jwt.decode(refresh_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        user_id = payload["sub"]
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        if user.get("status") == "Suspended":
+            raise HTTPException(status_code=403, detail="Account suspended")
+        new_token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
+        new_refresh, _ = create_refresh_token(user["id"])
+        return {"token": new_token, "refresh_token": new_refresh}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired — please log in again")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 @router.post("/forgot-password")
 @limiter.limit("5/minute")
@@ -437,6 +505,11 @@ async def change_password(request: ResetPasswordRequest):
     if user.get("temp_password_expires"):
         if datetime.now(timezone.utc) > user["temp_password_expires"]:
             raise HTTPException(status_code=401, detail="Temporary password has expired")
+
+    # Enforce password policy on new password
+    pw_error = validate_password(request.new_password)
+    if pw_error:
+        raise HTTPException(status_code=400, detail=pw_error)
     
     # Update password (hashed)
     await db.users.update_one(
@@ -450,6 +523,9 @@ async def change_password(request: ResetPasswordRequest):
             "$unset": {"temp_password_expires": ""}
         }
     )
+
+    await log_audit("password_change", user_id=user["id"], user_email=user["email"],
+                    details="Password changed via temp password")
     
     # Generate new token
     token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))

@@ -43,7 +43,7 @@ app = FastAPI(
 )
 
 # ============== Security Setup ==============
-from security import limiter, SecurityHeadersMiddleware
+from security import limiter, SecurityHeadersMiddleware, set_audit_db
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -203,6 +203,7 @@ app.add_middleware(
 async def startup_event():
     """Application startup tasks"""
     logger.info("Munal AI API starting up...")
+    set_audit_db(db)
     try:
         await db.command("ping")
         logger.info("Database connection successful")

@@ -8,6 +8,9 @@ const AuthContext = createContext(null);
 
 const SESSIONS_KEY = 'munal_sessions';
 const AUTH_KEY = 'munal_auth';
+const REFRESH_KEY = 'munal_refresh';
+const LAST_ACTIVITY_KEY = 'munal_last_activity';
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 export const AuthProvider = ({ children }) => {
   // Regular User State
@@ -78,6 +81,53 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
+  // ---- Inactivity auto-logout (30 min) ----
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const trackActivity = () => localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, trackActivity, { passive: true }));
+    trackActivity();
+
+    const interval = setInterval(() => {
+      const last = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY) || '0', 10);
+      if (Date.now() - last > INACTIVITY_TIMEOUT) {
+        logout();
+      }
+    }, 60_000); // check every minute
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, trackActivity));
+      clearInterval(interval);
+    };
+  }, [isAuthenticated]);
+
+  // ---- Token refresh (refresh 2 min before expiry) ----
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const refreshInterval = setInterval(async () => {
+      const refreshToken = localStorage.getItem(REFRESH_KEY);
+      if (!refreshToken) return;
+      try {
+        const res = await fetch(`${API_URL}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const session = JSON.parse(localStorage.getItem(SESSIONS_KEY) || '{}');
+          session.token = data.token;
+          session.createdAt = new Date().toISOString();
+          localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
+          if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+        }
+      } catch { /* silent */ }
+    }, 22 * 60 * 1000); // refresh every 22 hours (before 24h expiry)
+    return () => clearInterval(refreshInterval);
+  }, [isAuthenticated]);
+
   
 
   // Safe JSON parser that handles non-JSON responses
@@ -116,6 +166,8 @@ export const AuthProvider = ({ children }) => {
       };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
       localStorage.setItem(AUTH_KEY, JSON.stringify(foundUser));
+      if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+      localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
       setUser(foundUser);
       setIsAuthenticated(true);
       return { success: true, user: foundUser };
@@ -155,6 +207,8 @@ export const AuthProvider = ({ children }) => {
       };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
       localStorage.setItem(AUTH_KEY, JSON.stringify(newUser));
+      if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+      localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
       setUser(newUser);
       setIsAuthenticated(true);
       return { success: true, user: newUser };
@@ -172,6 +226,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       await delay(300);
       localStorage.removeItem(SESSIONS_KEY);
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(LAST_ACTIVITY_KEY);
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {

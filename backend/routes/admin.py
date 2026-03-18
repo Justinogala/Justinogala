@@ -1764,3 +1764,22 @@ async def delete_broadcast(broadcast_id: str):
     except Exception as e:
         logger.error(f"Error deleting broadcast: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Audit Logs ==============
+
+@router.get("/audit-logs")
+async def fetch_audit_logs(
+    limit: int = Query(50, le=200),
+    action: Optional[str] = None,
+    user_email: Optional[str] = None,
+):
+    """Fetch recent audit log entries (admin only)."""
+    query = {}
+    if action:
+        query["action"] = action
+    if user_email:
+        query["user_email"] = {"$regex": user_email, "$options": "i"}
+
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit)
+    return {"success": True, "logs": logs, "count": len(logs)}
