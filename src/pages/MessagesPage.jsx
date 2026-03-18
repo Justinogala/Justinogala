@@ -53,6 +53,16 @@ const MessagesPage = () => {
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+
+  // CC / BCC state
+  const [showCcBcc, setShowCcBcc] = useState(false);
+  const [ccRecipients, setCcRecipients] = useState([]);
+  const [bccRecipients, setBccRecipients] = useState([]);
+  const [ccSearchQuery, setCcSearchQuery] = useState('');
+  const [bccSearchQuery, setBccSearchQuery] = useState('');
+  const [ccSearchResults, setCcSearchResults] = useState([]);
+  const [bccSearchResults, setBccSearchResults] = useState([]);
+  const [activeSearchField, setActiveSearchField] = useState(null); // 'to' | 'cc' | 'bcc'
   
   // Attachment state
   const [attachments, setAttachments] = useState([]);
@@ -183,6 +193,16 @@ const MessagesPage = () => {
     }
   }, [user?.id]);
 
+  // Generic user search for CC/BCC
+  const searchUsersFor = useCallback(async (query, setResults) => {
+    if (!query || query.length < 2 || !user?.id) { setResults([]); return; }
+    try {
+      const response = await fetch(`${API_URL}/api/messages/users/search?q=${encodeURIComponent(query)}&current_user_id=${user.id}`);
+      const data = await response.json();
+      if (data.success) setResults(data.users);
+    } catch { /* silent */ }
+  }, [user?.id]);
+
   useEffect(() => {
     fetchMessages();
     fetchCounts();
@@ -194,6 +214,17 @@ const MessagesPage = () => {
     }, 300);
     return () => clearTimeout(debounce);
   }, [userSearchQuery, searchUsers]);
+
+  // Debounced search for CC/BCC
+  useEffect(() => {
+    const t = setTimeout(() => searchUsersFor(ccSearchQuery, setCcSearchResults), 300);
+    return () => clearTimeout(t);
+  }, [ccSearchQuery, searchUsersFor]);
+
+  useEffect(() => {
+    const t = setTimeout(() => searchUsersFor(bccSearchQuery, setBccSearchResults), 300);
+    return () => clearTimeout(t);
+  }, [bccSearchQuery, searchUsersFor]);
 
   // Open message
   const openMessage = async (message) => {
@@ -233,6 +264,15 @@ const MessagesPage = () => {
     setUserSearchQuery('');
     setUserSearchResults([]);
     setAttachments([]);
+    setShowCcBcc(false);
+    setCcRecipients([]);
+    setBccRecipients([]);
+    setCcSearchQuery('');
+    setBccSearchQuery('');
+    setCcSearchResults([]);
+    setBccSearchResults([]);
+    setShowAiCompose(false);
+    setAiPrompt('');
   };
 
   // Handle file upload
@@ -412,7 +452,9 @@ const MessagesPage = () => {
             recipient_id: composeRecipient.id,
             subject: composeSubject,
             content: composeContent,
-            attachments: attachments.map(a => ({ id: a.id, filename: a.filename, size: a.size, content_type: a.content_type }))
+            attachments: attachments.map(a => ({ id: a.id, filename: a.filename, size: a.size, content_type: a.content_type })),
+            cc_ids: ccRecipients.map(u => u.id),
+            bcc_ids: bccRecipients.map(u => u.id),
           })
         });
       }
@@ -1350,7 +1392,18 @@ const MessagesPage = () => {
               )}
               {/* Recipient Search */}
               <div>
-                <label className="text-sm font-medium mb-1.5 block">To:</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium">To:</label>
+                  {!showCcBcc && (
+                    <button
+                      onClick={() => setShowCcBcc(true)}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                      data-testid="show-cc-bcc-btn"
+                    >
+                      Cc &amp; Bcc
+                    </button>
+                  )}
+                </div>
                 {composeRecipient ? (
                   <div className="flex items-center gap-2 p-2 bg-gray-100 dark:bg-slate-800 rounded-lg">
                     <Avatar className="w-8 h-8">
@@ -1408,6 +1461,80 @@ const MessagesPage = () => {
                   </div>
                 )}
               </div>
+
+              {/* CC Field */}
+              {showCcBcc && (
+                <div data-testid="cc-field">
+                  <label className="text-sm font-medium mb-1.5 block">Cc:</label>
+                  {ccRecipients.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                      {ccRecipients.map((u) => (
+                        <span key={u.id} className="inline-flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                          {u.name || u.email}
+                          <button onClick={() => setCcRecipients(prev => prev.filter(r => r.id !== u.id))} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Input
+                      value={ccSearchQuery}
+                      onChange={(e) => setCcSearchQuery(e.target.value)}
+                      placeholder="Add Cc recipients..."
+                      className="h-9 text-sm"
+                      data-testid="cc-search-input"
+                    />
+                    {ccSearchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border rounded-lg shadow-lg max-h-36 overflow-y-auto">
+                        {ccSearchResults.filter(u => !ccRecipients.find(r => r.id === u.id) && u.id !== composeRecipient?.id).map((u) => (
+                          <button key={u.id} onClick={() => { setCcRecipients(prev => [...prev, u]); setCcSearchQuery(''); setCcSearchResults([]); }}
+                            className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-slate-800 text-sm" data-testid={`cc-result-${u.id}`}>
+                            <Avatar className="w-6 h-6"><AvatarFallback className="bg-indigo-100 text-indigo-700 text-[10px]">{getInitials(u.name)}</AvatarFallback></Avatar>
+                            <span className="truncate">{u.name || u.email}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* BCC Field */}
+              {showCcBcc && (
+                <div data-testid="bcc-field">
+                  <label className="text-sm font-medium mb-1.5 block">Bcc:</label>
+                  {bccRecipients.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                      {bccRecipients.map((u) => (
+                        <span key={u.id} className="inline-flex items-center gap-1 text-xs bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                          {u.name || u.email}
+                          <button onClick={() => setBccRecipients(prev => prev.filter(r => r.id !== u.id))} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Input
+                      value={bccSearchQuery}
+                      onChange={(e) => setBccSearchQuery(e.target.value)}
+                      placeholder="Add Bcc recipients..."
+                      className="h-9 text-sm"
+                      data-testid="bcc-search-input"
+                    />
+                    {bccSearchResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border rounded-lg shadow-lg max-h-36 overflow-y-auto">
+                        {bccSearchResults.filter(u => !bccRecipients.find(r => r.id === u.id) && u.id !== composeRecipient?.id).map((u) => (
+                          <button key={u.id} onClick={() => { setBccRecipients(prev => [...prev, u]); setBccSearchQuery(''); setBccSearchResults([]); }}
+                            className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-slate-800 text-sm" data-testid={`bcc-result-${u.id}`}>
+                            <Avatar className="w-6 h-6"><AvatarFallback className="bg-gray-200 text-gray-700 text-[10px]">{getInitials(u.name)}</AvatarFallback></Avatar>
+                            <span className="truncate">{u.name || u.email}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* Subject */}
               <div>

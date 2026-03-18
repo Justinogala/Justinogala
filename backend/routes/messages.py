@@ -35,6 +35,8 @@ class SendMessageRequest(BaseModel):
     subject: str
     content: str
     attachments: Optional[List[dict]] = None
+    cc_ids: Optional[List[str]] = None
+    bcc_ids: Optional[List[str]] = None
 
 
 class DraftMessageRequest(BaseModel):
@@ -42,6 +44,8 @@ class DraftMessageRequest(BaseModel):
     subject: Optional[str] = ""
     content: Optional[str] = ""
     attachments: Optional[List[dict]] = None
+    cc_ids: Optional[List[str]] = None
+    bcc_ids: Optional[List[str]] = None
 
 
 class ReplyMessageRequest(BaseModel):
@@ -356,7 +360,7 @@ async def get_message_thread(message_id: str):
 
 @router.post("/send/{sender_id}")
 async def send_message(sender_id: str, request: SendMessageRequest, background_tasks: BackgroundTasks):
-    """Send a new message to another user"""
+    """Send a new message to another user, with optional CC and BCC."""
     try:
         # Verify recipient exists
         recipient = await db.users.find_one({"id": request.recipient_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
@@ -367,13 +371,27 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
         sender = await db.users.find_one({"id": sender_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
         if not sender:
             raise HTTPException(status_code=404, detail="Sender not found")
-        
+
+        # Resolve CC / BCC user names
+        cc_ids = request.cc_ids or []
+        bcc_ids = request.bcc_ids or []
+        cc_names = {}
+        bcc_names = {}
+        for uid in cc_ids:
+            u = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+            if u:
+                cc_names[uid] = u.get("name") or u.get("email", "Unknown")
+        for uid in bcc_ids:
+            u = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+            if u:
+                bcc_names[uid] = u.get("name") or u.get("email", "Unknown")
+
         message_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         
         message = {
             "id": message_id,
-            "thread_id": message_id,  # First message is its own thread
+            "thread_id": message_id,
             "sender_id": sender_id,
             "sender_name": sender.get("name") or sender.get("email", "Unknown"),
             "recipient_id": request.recipient_id,
@@ -381,6 +399,8 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
             "subject": request.subject,
             "content": request.content,
             "attachments": request.attachments or [],
+            "cc": [{"id": uid, "name": cc_names[uid]} for uid in cc_ids if uid in cc_names],
+            "bcc": [{"id": uid, "name": bcc_names[uid]} for uid in bcc_ids if uid in bcc_names],
             "is_read": False,
             "is_starred": False,
             "is_draft": False,
@@ -393,9 +413,23 @@ async def send_message(sender_id: str, request: SendMessageRequest, background_t
         }
         
         await db.user_messages.insert_one(message)
-        
-        # Remove _id for response
         message.pop("_id", None)
+
+        # Create copies for CC recipients
+        for uid in cc_ids:
+            if uid in cc_names and uid != request.recipient_id:
+                cc_copy = {**message, "id": str(uuid.uuid4()), "recipient_id": uid,
+                           "recipient_name": cc_names[uid], "is_cc_copy": True}
+                cc_copy.pop("_id", None)
+                await db.user_messages.insert_one(cc_copy)
+
+        # Create copies for BCC recipients (bcc list stripped)
+        for uid in bcc_ids:
+            if uid in bcc_names and uid != request.recipient_id and uid not in cc_ids:
+                bcc_copy = {**message, "id": str(uuid.uuid4()), "recipient_id": uid,
+                            "recipient_name": bcc_names[uid], "is_bcc_copy": True, "bcc": []}
+                bcc_copy.pop("_id", None)
+                await db.user_messages.insert_one(bcc_copy)
         
         # Send email notification in background
         recipient_email = recipient.get("email")
