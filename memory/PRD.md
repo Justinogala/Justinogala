@@ -9,7 +9,7 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - **Database**: MongoDB (Atlas) with GridFS for file storage
 - **Auth**: JWT-based with bcrypt password hashing
 - **Payments**: Stripe (4-tier subscription)
-- **AI**: OpenAI integration
+- **AI**: OpenAI GPT-4o via Emergent LLM Key
 - **Email**: Resend (noreply@munal.ai)
 
 ## Core Features (Implemented)
@@ -18,62 +18,56 @@ Build a full-stack AI-powered workforce management platform called "Munal/EchoNo
 - AI Chat with file attachments
 - Internal messaging with file attachments (GridFS)
 - File Manager with downloads
-- **IR/SOR Incident Reporting System** (5-step form, role-based access, investigation workflow, audit trail, attachments)
+- IR/SOR Incident Reporting System
 - Professional multi-step workspace creation
 - Screen/camera recording & transcription
-- Shift/Workspace management (with worker type: full-time, part-time, casual)
+- Shift/Workspace management
 - 4-tier Stripe subscription system
 - Admin Portal with RBAC
 - Calendar, Meetings, Voice Chat
 
 ## eSignature Feature (Implemented - March 18, 2026)
-- **Upload**: PDF, DOC, DOCX files (DOC/DOCX auto-converted to PDF via LibreOffice headless)
-- **Create Signature**: Draw on canvas or type with font selection
-- **Place Signature**: Click on PDF pages to position signature overlays, draggable
-- **Add Fields**: Date field placement
-- **Sign**: Apply signatures to PDF using PyMuPDF, generates signed PDF
-- **Download**: Download signed PDF
-- **File Manager Integration**: Signed PDFs auto-saved to GridFS file manager
-- **History**: View all previously signed documents with re-download
-- **Saved Signatures**: Save signatures for reuse across documents
-- **Backend**: `/app/backend/routes/esignature.py`
-- **Frontend**: `/app/src/pages/ESignaturePage.jsx`
+- Upload PDF, DOC, DOCX files (auto-converts to PDF via LibreOffice)
+- Create signatures: Draw, Type, or Upload image
+- Place signatures on PDF pages with drag positioning
+- Sign PDFs with PyMuPDF, auto-save to File Manager
+- Word to PDF converter page (standalone)
+- Signing history and saved signatures for reuse
 
-## IR/SOR System Details
-- **Backend**: `/app/backend/routes/reports.py` — full CRUD with `incident_reports` MongoDB collection
-- **Frontend**: `/app/src/pages/ReportsPage.jsx` — multi-step form, list view, detail view, investigation panel
-- **Sections**: A (Incident Details), B (Persons Involved), C (Description + 911), D (Severity), E (Attachments), F (Follow-up/Investigation)
-- **Incident Types**: Injury, Medication Error, Property Damage, Behavioural, Safeguarding, Near Miss, Other
-- **Severity**: Minor, Moderate, Major, Critical, Serious Occurrence (auto-triggers SOR)
-- **Status**: Open → Under Review → Closed
-- **Access**: Staff = submit + view own; Manager/Admin = view all + edit investigation
-- **Features**: Audit trail, file attachments (GridFS), stats dashboard, filters
+## AI Messaging Features (Implemented - March 18, 2026)
+- **Smart Replies**: Auto-generates 3 clickable reply suggestions when opening a message
+- **AI Draft Reply**: Generates a full reply matching user's tone/writing style preferences
+- **Summarize Thread**: Condenses long conversations into 3-5 sentence summaries
+- **Suggest Actions**: Recommends 2-4 follow-up actions (e.g., "Schedule meeting", "Prepare materials")
+- **Auto-Categorize**: Classifies messages into work/personal/urgent/finance/scheduling/support/social
+- All features respect user settings in Message Settings → AI Personalization & AI Assistant tabs
+- Backend: `/app/backend/routes/messages.py` (AI endpoints)
+- Frontend: `/app/src/pages/MessagesPage.jsx` (AI UI integration)
+
+## Key API Endpoints
+### eSignature
+- `POST /api/esignature/upload` — Upload PDF/DOC/DOCX
+- `POST /api/esignature/sign` — Apply signatures
+- `GET /api/esignature/documents/{id}/pdf` — Get original PDF
+- `GET /api/esignature/documents/{id}/signed` — Download signed
+- `POST /api/esignature/convert-to-pdf` — Standalone Word→PDF
+- `GET /api/esignature/history` — Signing history
+- `POST/GET/DELETE /api/esignature/signatures` — Saved signatures CRUD
+
+### AI Messaging
+- `POST /api/messages/ai/smart-replies` — 3 reply suggestions
+- `POST /api/messages/ai/summarize-thread` — Thread summary
+- `POST /api/messages/ai/suggest-actions` — Follow-up actions
+- `POST /api/messages/ai/draft-reply` — Auto-draft reply
+- `POST /api/messages/ai/categorize` — Message categorization
 
 ## Key Credentials
 - **Admin**: admin@munal.com / Admin@123456
 
-## Key API Endpoints
-- `POST /api/reports` - Create report
-- `GET /api/reports` - List reports (role-filtered)
-- `GET /api/reports/stats` - Dashboard stats
-- `GET /api/reports/export/excel` - Export filtered reports to Excel
-- `GET /api/reports/{id}` - Get report detail
-- `PUT /api/reports/{id}` - Update report/investigation
-- `POST /api/reports/{id}/attachments` - Upload attachment
-- `GET /api/reports/{id}/attachments/{att_id}` - Download attachment
-- `GET /api/reports/{id}/export/pdf` - Export individual report to PDF
-- `POST /api/esignature/upload` - Upload PDF/DOC/DOCX for signing
-- `POST /api/esignature/sign` - Apply signatures to document
-- `GET /api/esignature/documents/{doc_id}/pdf` - Get original PDF
-- `GET /api/esignature/documents/{doc_id}/signed` - Download signed PDF
-- `GET /api/esignature/history` - Get signing history
-- `POST /api/esignature/signatures` - Save signature for reuse
-- `GET /api/esignature/signatures` - List saved signatures
-- `DELETE /api/esignature/signatures/{sig_id}` - Delete saved signature
-
 ## Completed
-- **March 18, 2026**: eSignature feature with DOC/DOCX-to-PDF conversion, draw/type signatures, PDF placement, signing, download, history, saved signatures. All 16 backend + all frontend tests passed.
-- **March 16, 2026**: PDF/Excel Export, Email Notifications, Escalation Workflow, SSE Notification Bell, Incident Analytics Dashboard, Admin Role Management, All Admin Reports Real Data, Bulk PDF Export, Meeting History Activation.
+- **March 18, 2026**: AI Messaging features (smart replies, draft, summarize, actions, categorize). All 5 endpoints tested with real GPT-4o. Frontend integration: auto-loading smart replies, AI Draft button, Actions button, Summarize button.
+- **March 18, 2026**: eSignature with DOC/DOCX conversion, Upload Signature option, Word to PDF converter page.
+- **March 16, 2026**: PDF/Excel Export, Email Notifications, Escalation Workflow, SSE Notification Bell, Incident Analytics, Admin Reports, Meeting History.
 
 ## Backlog
 - **P2**: Cloud storage migration testing
