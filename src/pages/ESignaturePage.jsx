@@ -6,7 +6,7 @@ import {
   Upload, PenLine, Type, Calendar as CalIcon, Download,
   Trash2, ChevronLeft, ChevronRight, Loader2, Check, X, Save,
   FileText, History, Plus, GripVertical, ZoomIn, ZoomOut, RotateCcw,
-  FileUp, RefreshCw, ArrowLeft, FileOutput
+  FileUp, RefreshCw, ArrowLeft, FileOutput, FileInput
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -350,6 +350,181 @@ const WordToPdfConverter = ({ onBack }) => {
   );
 };
 
+// ============ PDF to Word Converter ============
+const PdfToWordConverter = ({ onBack }) => {
+  const { toast } = useToast();
+  const [converting, setConverting] = useState(false);
+  const [convertedFile, setConvertedFile] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleConvert = async (file) => {
+    if (!file) return;
+    const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (ext !== '.pdf') {
+      toast({ variant: 'destructive', title: 'Unsupported file', description: 'Please select a PDF file' });
+      return;
+    }
+    setConverting(true);
+    setConvertedFile(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_URL}/api/esignature/convert-to-word`, { method: 'POST', body: formData });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Conversion failed');
+      }
+      const blob = await res.blob();
+      const docxName = file.name.replace(/\.pdf$/i, '.docx');
+      setConvertedFile({ blob, name: docxName, size: blob.size });
+      toast({ title: 'Conversion complete', description: `${docxName} is ready to download` });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Conversion failed', description: err.message });
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!convertedFile) return;
+    const url = URL.createObjectURL(convertedFile.blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = convertedFile.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleConvert(file);
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-6 space-y-6" data-testid="pdf-to-word-page">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8" data-testid="back-from-pdf-to-word-btn">
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">PDF to Word converter</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Drag and drop a PDF document to convert to Word (DOCX)</p>
+        </div>
+      </div>
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="grid md:grid-cols-[1fr_auto] items-center">
+            <div className="p-8 md:p-10 space-y-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600" />
+                  <span className="text-sm font-semibold text-indigo-600 tracking-wide">Munal eSignature</span>
+                </div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">PDF to Word converter</h2>
+                <p className="text-sm text-slate-500">Drag and drop a PDF document to convert to an editable Word file (DOCX).</p>
+              </div>
+
+              {!convertedFile ? (
+                <label
+                  className={cn(
+                    "inline-flex items-center gap-2 px-5 py-2.5 rounded-lg cursor-pointer font-medium text-sm transition-all",
+                    converting
+                      ? "bg-slate-200 text-slate-400 cursor-wait"
+                      : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg"
+                  )}
+                  data-testid="pdf-select-file-btn"
+                >
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => handleConvert(e.target.files?.[0])}
+                    className="hidden"
+                    disabled={converting}
+                    data-testid="pdf-file-input"
+                  />
+                  {converting ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Converting...</>
+                  ) : (
+                    <><Upload className="w-4 h-4" /> Select a file</>
+                  )}
+                </label>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
+                    <Check className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 truncate">{convertedFile.name}</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">{(convertedFile.size / 1024).toFixed(1)} KB — Ready to download</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleDownload} className="bg-indigo-600 hover:bg-indigo-700" data-testid="download-converted-docx-btn">
+                      <Download className="w-4 h-4 mr-2" /> Download Word
+                    </Button>
+                    <Button variant="outline" onClick={() => setConvertedFile(null)} data-testid="convert-another-pdf-btn">
+                      <RefreshCw className="w-4 h-4 mr-2" /> Convert another
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Decorative icon area */}
+            <div className="hidden md:flex items-center justify-center p-8">
+              <div className="w-28 h-36 rounded-xl border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/30 flex flex-col items-center justify-center gap-2">
+                <FileText className="w-10 h-10 text-indigo-400" />
+                <span className="text-[10px] text-indigo-400 font-medium">PDF → DOCX</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Drop zone overlay */}
+          {!convertedFile && !converting && (
+            <div
+              className={cn(
+                "border-t border-dashed p-8 text-center transition-colors",
+                dragOver ? "bg-indigo-50 dark:bg-indigo-950/20 border-indigo-400" : "border-slate-200 dark:border-slate-700"
+              )}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              data-testid="pdf-drop-zone"
+            >
+              <p className="text-sm text-slate-400">
+                {dragOver ? 'Drop your file here...' : 'Or drag and drop your PDF document here'}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* How it works */}
+      <div className="space-y-4 pt-2">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">How to convert PDF to Word</h3>
+        <p className="text-sm text-slate-500">Follow these easy steps to turn PDF files into editable Word documents:</p>
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          {[
+            { step: 1, text: <>Click the <strong>Select a file</strong> button above, or drag and drop your PDF into the drop zone.</> },
+            { step: 2, text: 'Select the PDF file you want to convert into the Word (DOCX) format.' },
+            { step: 3, text: 'Watch Munal automatically convert the file.' },
+            { step: 4, text: 'Download your new Word document.' },
+          ].map(({ step, text }) => (
+            <div key={step} className="flex items-start gap-4 py-4">
+              <span className="text-2xl font-light text-slate-300 dark:text-slate-600 w-6 text-right shrink-0">{step}</span>
+              <p className="text-sm text-slate-600 dark:text-slate-400">{text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ============ Main Page ============
 const ESignaturePage = () => {
   const { user } = useAuth();
@@ -572,6 +747,8 @@ const ESignaturePage = () => {
     <PageTransition>
       {viewMode === 'wordtopdf' ? (
         <WordToPdfConverter onBack={() => setViewMode('esignature')} />
+      ) : viewMode === 'pdftoword' ? (
+        <PdfToWordConverter onBack={() => setViewMode('esignature')} />
       ) : (
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6" data-testid="esignature-page">
         <div className="flex items-center justify-between">
@@ -582,6 +759,9 @@ const ESignaturePage = () => {
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setViewMode('wordtopdf')} className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40" data-testid="word-to-pdf-btn">
               <FileOutput className="w-3.5 h-3.5 mr-1.5" /> Word to PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setViewMode('pdftoword')} className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40" data-testid="pdf-to-word-btn">
+              <FileInput className="w-3.5 h-3.5 mr-1.5" /> PDF to Word
             </Button>
             {docId && (
               <Button variant="outline" size="sm" onClick={reset} data-testid="reset-btn">

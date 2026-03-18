@@ -41,6 +41,23 @@ def convert_doc_to_pdf(content: bytes, filename: str) -> bytes:
             return f.read()
 
 
+def convert_pdf_to_docx(content: bytes) -> bytes:
+    """Convert PDF to DOCX using pdf2docx."""
+    from pdf2docx import Converter
+    with tempfile.TemporaryDirectory() as tmpdir:
+        pdf_path = os.path.join(tmpdir, "input.pdf")
+        docx_path = os.path.join(tmpdir, "output.docx")
+        with open(pdf_path, "wb") as f:
+            f.write(content)
+        cv = Converter(pdf_path)
+        cv.convert(docx_path)
+        cv.close()
+        if not os.path.exists(docx_path):
+            raise HTTPException(status_code=500, detail="Converted DOCX not found")
+        with open(docx_path, "rb") as f:
+            return f.read()
+
+
 # ============ Signature CRUD ============
 
 @router.get("/signatures")
@@ -103,6 +120,30 @@ async def convert_word_to_pdf(request: Request, file: UploadFile = File(...)):
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{pdf_name}"'},
+    )
+
+
+# ============ Standalone PDF to Word ============
+
+@router.post("/convert-to-word")
+@limiter.limit("10/minute")
+async def convert_pdf_to_word(request: Request, file: UploadFile = File(...)):
+    """Convert a PDF file to DOCX and return the DOCX directly."""
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext != ".pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 20MB)")
+
+    docx_bytes = convert_pdf_to_docx(content)
+    docx_name = os.path.splitext(file.filename)[0] + ".docx"
+
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{docx_name}"'},
     )
 
 

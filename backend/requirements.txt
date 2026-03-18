@@ -27,7 +27,9 @@ et_xmlfile==2.0.0
 fastapi==0.110.1
 fastuuid==0.14.0
 filelock==3.24.2
+fire==0.7.1
 flake8==7.3.0
+fonttools==4.62.1
 frozenlist==1.8.0
 fsspec==2026.2.0
 google-ai-generativelanguage==0.6.15
@@ -71,11 +73,13 @@ mypy_extensions==1.1.0
 numpy==2.4.2
 oauthlib==3.3.1
 openai==1.99.9
+opencv-python-headless==4.13.0.92
 openpyxl==3.1.5
 packaging==26.0
 pandas==3.0.1
 passlib==1.7.4
 pathspec==1.0.4
+pdf2docx==0.5.12
 pillow==12.1.1
 platformdirs==4.9.2
 pluggy==1.6.0
@@ -121,6 +125,7 @@ sseclient-py==1.9.0
 starlette==0.37.2
 stripe==14.3.0
 tenacity==9.1.4
+termcolor==3.3.0
 tiktoken==0.12.0
 tokenizers==0.22.2
 tqdm==4.67.3
