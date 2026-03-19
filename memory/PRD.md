@@ -1,10 +1,10 @@
 # Munal/EchoNote AI - Product Requirements Document
 
 ## Original Problem Statement
-Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, and SharePoint-style Workspace Hubs.
+Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, and SharePoint-style Workspace Hubs with templates.
 
 ## Tech Stack
-- **Frontend**: Vite/React, Tailwind CSS, Shadcn/UI, Recharts
+- **Frontend**: Vite/React, Tailwind CSS, Shadcn/UI, Recharts, Framer Motion
 - **Backend**: FastAPI (Python), MongoDB
 - **Integrations**: OpenAI (GPT-4o, Whisper, TTS), Sora 2, Stripe, Resend, emergentintegrations
 
@@ -13,18 +13,26 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ### Approvals Module (Complete)
 - Phase 1: Dashboard, Template Store (23 templates), Workflow Engine, CRUD, CSV Export
 - P1: Admin Template CRUD, In-App Notifications, Meetings/Files/Chat Integration
-- Phase 2: Analytics Dashboard (4 charts), AI Insights, Bottleneck Detection, Duplicate Request
-- Weekly Digest: Resend email, APScheduler cron (Monday 9AM), user preferences toggle
+- Phase 2: Analytics (4 charts), AI Insights, Bottleneck Detection, Duplicate Request
+- Weekly Digest: Resend email, APScheduler cron (Monday 9AM), user preferences
 
-### SharePoint-Style Workspace Hub (Complete - Mar 2026)
-- **Hero Banner**: Workspace icon, name, scope badge (Org/Team), description, quick actions (Shifts, Chat)
-- **Dynamic Stats**: Real member count, file count, pending approvals, announcement count, weekly activity — all from DB
-- **Quick Access Grid**: Chat, Files, Approvals, Calendar cards with gradient icons
-- **Announcements (News)**: Full CRUD — create, pin to top, delete. Shown in Home + News tabs
-- **Activity Feed**: Real activities from DB — member joins, approvals created, announcements posted
-- **Workspace Scope**: Organisation-wide vs Team-specific during creation. Scope badge on cards & hub
-- **Tab Navigation**: Home, News, Members, Activity, Settings — each fully functional
-- **Settings Tab**: Edit name/description, scope display, danger zone with workspace delete
+### SharePoint-Style Workspace Hub (Complete)
+- Hero Banner with scope badge, Quick Access grid, Activity feed, Announcements CRUD
+- Dynamic Stats from DB, Tab navigation (Home/News/Members/Activity/Settings)
+
+### Workspace Templates (Complete - Mar 2026)
+- **6 Pre-built Blueprints**: Project Team, HR Department, Finance, Engineering, Marketing, General
+- **Auto-seeding on creation**: Welcome announcements (pinned), department-specific approval templates, custom quick links
+- **Template Selection Step**: Step 0 in Create Workspace modal with card grid, "Start from Scratch" option
+- **Auto-fill**: Selecting template pre-fills name, description, color, icon, scope
+- **Template Badge**: Shows "Using: {name} template" in Step 1 with "Change" link
+- **Custom Quick Links**: Template-specific links stored in workspace.settings and rendered in hub
+- **Approval Templates**: Seeded as is_custom=true with team_id=workspace_id
+  - HR: Leave Request, New Hire Onboarding, Performance Review
+  - Finance: Expense Report, Budget Request, Invoice Approval
+  - Engineering: Deployment Request, Incident Report
+  - Marketing: Campaign Proposal, Content Review
+  - Project Team: Sprint Sign-off, Change Request
 
 ### Other Features (Complete)
 - User/Admin auth (JWT + refresh tokens), Workspace management
@@ -46,20 +54,20 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Scheduled rotation for external API keys
 
 ## Key API Endpoints
+### Workspace Templates
+- `GET /api/workspaces/templates` - List 6 templates (summary)
+- `GET /api/workspaces/templates/{id}` - Full template with announcements & approval templates
+- `POST /api/workspaces` - Create workspace (with template_id for auto-seeding)
+
 ### Workspaces
-- `POST /api/workspaces` (with scope: team|org)
 - `GET/PUT/DELETE /api/workspaces/{id}`
-- `GET /api/workspaces/{id}/stats` - Real-time stats
-- `GET /api/workspaces/{id}/activity` - Activity feed
-- `GET/POST/PUT/DELETE /api/workspaces/{id}/announcements` - Announcements CRUD
+- `GET /api/workspaces/{id}/stats`, `GET /api/workspaces/{id}/activity`
+- `GET/POST/PUT/DELETE /api/workspaces/{id}/announcements`
 
 ### Approvals
-- Templates: `GET/POST/PUT/DELETE /api/approvals/templates[/{id}]`
-- CRUD: `POST create`, `GET list`, `GET detail/{id}`, `POST action/{id}`, `POST comments/{id}`
-- Analytics: `GET analytics`, `POST duplicate/{id}`, `GET stats`, `GET export`
-- Notifications: `GET/POST notifications`, Digest: `GET preview`, `POST trigger`, `GET/POST preferences`
+- Templates, CRUD, Actions, Comments, Stats, Export, Analytics, Duplicate, Notifications, Digest
 
 ## DB Collections
-- `workspaces`, `workspace_members`, `workspace_announcements`
+- `workspaces` (with settings.quick_links, settings.template_id)
+- `workspace_members`, `workspace_announcements`
 - `approvals`, `approval_templates`, `approval_comments`, `approval_audit`, `approval_notifications`, `approval_digest_prefs`
-- `users`, `messages`, `files`, `meetings`, `conversion_history`
