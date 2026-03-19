@@ -102,6 +102,7 @@ from routes.admin_workspaces import router as admin_workspaces_router
 from routes.admin_chat_moderation import router as admin_chat_router
 from routes.admin_shifts import router as admin_shifts_router
 from routes.reports import router as reports_router, check_escalations
+from routes.approvals import run_weekly_digest
 from routes.admin_reports import router as admin_reports_router
 from routes.esignature import router as esignature_router
 from routes.approvals import router as approvals_router
@@ -224,8 +225,10 @@ async def startup_event():
             from apscheduler.schedulers.asyncio import AsyncIOScheduler
             scheduler = AsyncIOScheduler()
             scheduler.add_job(check_escalations, 'interval', hours=1, id='report_escalation')
+            scheduler.add_job(run_weekly_digest, 'cron', day_of_week='mon', hour=9, minute=0, id='weekly_digest')
             scheduler.start()
             logger.info("Escalation scheduler started (runs every 1 hour)")
+            logger.info("Weekly digest scheduler started (runs every Monday 9 AM UTC)")
         except Exception as sched_err:
             logger.error(f"Escalation scheduler failed to start: {sched_err}")
         

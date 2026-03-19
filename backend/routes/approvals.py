@@ -7,9 +7,12 @@ import io
 import os
 import csv
 import base64
+import asyncio
+import resend
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
@@ -887,3 +890,285 @@ async def duplicate_approval(
             })
 
     return {"success": True, "approval": {k: v for k, v in new_approval.items() if k != "_id"}}
+
+
+# ============ Weekly Digest ============
+
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+resend.api_key = os.environ.get('RESEND_API_KEY', '')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://munal.ai')
+
+
+def build_digest_html(user_name, stats, bottlenecks, trend_direction, trend_pct, period_label):
+    """Build the HTML email template for the weekly digest."""
+    # Trend arrow
+    trend_arrow = "&#x2191;" if trend_direction == "up" else ("&#x2193;" if trend_direction == "down" else "&#x2192;")
+    trend_color = "#10b981" if trend_direction == "up" else ("#ef4444" if trend_direction == "down" else "#6b7280")
+    trend_text = f"{abs(trend_pct)}% {trend_direction}" if trend_pct else "No change"
+
+    bottleneck_html = ""
+    if bottlenecks:
+        items = ""
+        for b in bottlenecks[:5]:
+            sev_bg = "#fef2f2" if b["severity"] == "high" else "#fffbeb"
+            sev_border = "#fecaca" if b["severity"] == "high" else "#fde68a"
+            sev_color = "#dc2626" if b["severity"] == "high" else "#d97706"
+            items += f"""
+            <div style="padding:10px 14px;margin-bottom:6px;background:{sev_bg};border-left:3px solid {sev_border};border-radius:6px;">
+              <span style="color:{sev_color};font-weight:600;font-size:11px;text-transform:uppercase;">{b['severity']}</span>
+              <p style="margin:2px 0 0;font-size:13px;color:#334155;">{b['message']}</p>
+            </div>"""
+        bottleneck_html = f"""
+        <div style="margin-top:24px;">
+          <h3 style="font-size:14px;font-weight:700;color:#334155;margin:0 0 10px;">Bottleneck Alerts</h3>
+          {items}
+        </div>"""
+
+    return f"""
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+    <body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:28px 24px;border-radius:12px 12px 0 0;">
+          <h1 style="margin:0;font-size:20px;color:#fff;font-weight:700;">Approvals Weekly Digest</h1>
+          <p style="margin:6px 0 0;font-size:13px;color:#c4b5fd;">{period_label}</p>
+        </div>
+
+        <!-- Body -->
+        <div style="background:#fff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;border-top:none;">
+          <p style="font-size:14px;color:#475569;margin:0 0 20px;">Hi {user_name},<br>Here's your weekly approval activity summary:</p>
+
+          <!-- Stats grid -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+            <div style="flex:1;min-width:110px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:24px;font-weight:800;color:#16a34a;">{stats['new_sent']}</div>
+              <div style="font-size:11px;color:#4ade80;font-weight:600;margin-top:2px;">SENT</div>
+            </div>
+            <div style="flex:1;min-width:110px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:24px;font-weight:800;color:#2563eb;">{stats['new_received']}</div>
+              <div style="font-size:11px;color:#60a5fa;font-weight:600;margin-top:2px;">RECEIVED</div>
+            </div>
+            <div style="flex:1;min-width:110px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:24px;font-weight:800;color:#16a34a;">{stats['approved']}</div>
+              <div style="font-size:11px;color:#4ade80;font-weight:600;margin-top:2px;">APPROVED</div>
+            </div>
+            <div style="flex:1;min-width:110px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:24px;font-weight:800;color:#dc2626;">{stats['rejected']}</div>
+              <div style="font-size:11px;color:#f87171;font-weight:600;margin-top:2px;">REJECTED</div>
+            </div>
+          </div>
+
+          <!-- Still pending -->
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+            <div style="font-size:22px;font-weight:800;color:#d97706;">{stats['still_pending']}</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#92400e;">Awaiting Your Action</div>
+              <div style="font-size:11px;color:#b45309;">Pending requests that need your review</div>
+            </div>
+          </div>
+
+          <!-- Trend -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;color:{trend_color};">{trend_arrow}</span>
+            <span style="font-size:13px;color:#475569;">Volume trend: <strong style="color:{trend_color};">{trend_text}</strong> vs previous week</span>
+          </div>
+
+          <!-- Approval rate -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;color:#475569;">Approval rate: <strong>{stats['approval_rate']}%</strong></span>
+          </div>
+
+          {bottleneck_html}
+
+          <!-- CTA -->
+          <div style="text-align:center;margin-top:28px;">
+            <a href="{FRONTEND_URL}/approvals" style="display:inline-block;background:#7c3aed;color:#fff;font-weight:600;font-size:14px;padding:12px 28px;border-radius:8px;text-decoration:none;">View Dashboard</a>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center;padding:16px 0;font-size:11px;color:#94a3b8;">
+          Munal AI &bull; Approval Workflow Digest<br>
+          <a href="{FRONTEND_URL}/approvals" style="color:#7c3aed;text-decoration:none;">Manage digest preferences</a>
+        </div>
+      </div>
+    </body></html>"""
+
+
+async def compute_user_digest(user_id):
+    """Compute digest data for a single user for the past 7 days."""
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+    two_weeks_ago = now - timedelta(days=14)
+    week_ago_iso = week_ago.isoformat()
+    two_weeks_ago_iso = two_weeks_ago.isoformat()
+
+    # This week's approvals involving this user
+    all_approvals = await db.approvals.find(
+        {"$or": [{"sender_id": user_id}, {"steps.approver_id": user_id}]}, {"_id": 0}
+    ).to_list(5000)
+
+    this_week = [a for a in all_approvals if a.get("created_at", "") >= week_ago_iso]
+    prev_week = [a for a in all_approvals if two_weeks_ago_iso <= a.get("created_at", "") < week_ago_iso]
+
+    new_sent = sum(1 for a in this_week if a.get("sender_id") == user_id)
+    new_received = sum(1 for a in this_week if any(s.get("approver_id") == user_id for s in a.get("steps", [])))
+
+    # Actions this week across all approvals
+    approved = 0
+    rejected = 0
+    for a in all_approvals:
+        if a.get("status") == "approved" and a.get("completed_at", "") >= week_ago_iso:
+            if a.get("sender_id") == user_id or any(s.get("approver_id") == user_id for s in a.get("steps", [])):
+                approved += 1
+        if a.get("status") == "rejected" and a.get("completed_at", "") >= week_ago_iso:
+            if a.get("sender_id") == user_id or any(s.get("approver_id") == user_id for s in a.get("steps", [])):
+                rejected += 1
+
+    still_pending = sum(1 for a in all_approvals if a.get("status") == "pending" and any(
+        s.get("approver_id") == user_id and s.get("status") == "pending" for s in a.get("steps", [])))
+
+    # Approval rate
+    total_resolved = approved + rejected
+    approval_rate = round((approved / max(total_resolved, 1)) * 100, 1)
+
+    # Trend
+    this_count = len(this_week)
+    prev_count = len(prev_week)
+    if prev_count > 0:
+        trend_pct = round(((this_count - prev_count) / prev_count) * 100, 1)
+        trend_direction = "up" if trend_pct > 0 else ("down" if trend_pct < 0 else "flat")
+    else:
+        trend_pct = 0
+        trend_direction = "up" if this_count > 0 else "flat"
+
+    # Bottlenecks
+    bottlenecks = []
+    for a in all_approvals:
+        if a.get("status") == "pending" and a.get("created_at"):
+            try:
+                created_dt = datetime.fromisoformat(a["created_at"].replace("Z", "+00:00"))
+                age_hours = (now - created_dt).total_seconds() / 3600
+                if age_hours > 72:
+                    bottlenecks.append({
+                        "type": "stuck_request",
+                        "severity": "high" if age_hours > 168 else "medium",
+                        "message": f'"{a.get("title", "")}" pending for {round(age_hours / 24, 1)} days',
+                    })
+            except Exception:
+                pass
+
+    stats = {
+        "new_sent": new_sent,
+        "new_received": new_received,
+        "approved": approved,
+        "rejected": rejected,
+        "still_pending": still_pending,
+        "approval_rate": approval_rate,
+    }
+
+    period_label = f"{week_ago.strftime('%b %d')} - {now.strftime('%b %d, %Y')}"
+    return stats, bottlenecks, trend_direction, trend_pct, period_label
+
+
+async def send_digest_for_user(user_id, user_name, user_email):
+    """Compute and send digest email for one user. Returns dict with result."""
+    if not user_email:
+        return {"user_id": user_id, "sent": False, "reason": "no_email"}
+
+    # Check preference
+    pref = await db.approval_digest_prefs.find_one({"user_id": user_id})
+    if pref and not pref.get("enabled", True):
+        return {"user_id": user_id, "sent": False, "reason": "opted_out"}
+
+    stats, bottlenecks, trend_dir, trend_pct, period_label = await compute_user_digest(user_id)
+
+    # Skip if zero activity
+    total_activity = stats["new_sent"] + stats["new_received"] + stats["approved"] + stats["rejected"]
+    if total_activity == 0 and stats["still_pending"] == 0:
+        return {"user_id": user_id, "sent": False, "reason": "no_activity"}
+
+    html = build_digest_html(user_name, stats, bottlenecks, trend_dir, trend_pct, period_label)
+
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [user_email],
+            "subject": f"Your Weekly Approvals Digest - {period_label}",
+            "html": html,
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Digest sent to {user_email}")
+        return {"user_id": user_id, "sent": True, "email": user_email}
+    except Exception as e:
+        logger.error(f"Digest email failed for {user_email}: {e}")
+        return {"user_id": user_id, "sent": False, "reason": str(e)}
+
+
+async def run_weekly_digest():
+    """Background job: sends digest to all active users."""
+    logger.info("Running weekly digest job...")
+    # Find all unique user IDs from approvals
+    user_ids = set()
+    async for doc in db.approvals.find({}, {"sender_id": 1, "steps": 1, "_id": 0}):
+        if doc.get("sender_id"):
+            user_ids.add(doc["sender_id"])
+        for step in doc.get("steps", []):
+            if step.get("approver_id"):
+                user_ids.add(step["approver_id"])
+
+    results = []
+    for uid in user_ids:
+        user = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        if user and user.get("email"):
+            result = await send_digest_for_user(uid, user.get("name", "User"), user["email"])
+            results.append(result)
+
+    sent_count = sum(1 for r in results if r.get("sent"))
+    logger.info(f"Weekly digest complete: {sent_count}/{len(results)} emails sent")
+    return results
+
+
+# --- Digest API endpoints ---
+
+@router.get("/digest/preview", response_class=HTMLResponse)
+async def preview_digest(user_id: str = Query(...)):
+    """Preview the digest email HTML for a user."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    user_name = user.get("name", "User") if user else "User"
+    stats, bottlenecks, trend_dir, trend_pct, period_label = await compute_user_digest(user_id)
+    html = build_digest_html(user_name, stats, bottlenecks, trend_dir, trend_pct, period_label)
+    return HTMLResponse(content=html)
+
+
+@router.post("/digest/trigger")
+async def trigger_digest(user_id: str = Query(None)):
+    """Manually trigger digest. If user_id provided, send to that user only. Otherwise send to all."""
+    if user_id:
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        result = await send_digest_for_user(user_id, user.get("name", "User"), user.get("email", ""))
+        return {"success": True, "results": [result]}
+    else:
+        results = await run_weekly_digest()
+        return {"success": True, "results": results}
+
+
+@router.get("/digest/preferences")
+async def get_digest_preferences(user_id: str = Query(...)):
+    """Get digest email preferences for a user."""
+    pref = await db.approval_digest_prefs.find_one({"user_id": user_id}, {"_id": 0})
+    return {"enabled": pref.get("enabled", True) if pref else True}
+
+
+@router.post("/digest/preferences")
+async def set_digest_preferences(user_id: str = Query(...), enabled: bool = Query(True)):
+    """Toggle digest email preference for a user."""
+    await db.approval_digest_prefs.update_one(
+        {"user_id": user_id},
+        {"$set": {"user_id": user_id, "enabled": enabled, "updated_at": now_iso()}},
+        upsert=True,
+    )
+    return {"success": True, "enabled": enabled}

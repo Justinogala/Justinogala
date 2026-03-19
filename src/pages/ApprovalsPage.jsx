@@ -19,7 +19,7 @@ import {
   ChevronRight, ClipboardList, Calendar, Banknote, Package, Plane, Home,
   CreditCard, ShoppingCart, Receipt, Wrench, FolderKanban, TrendingUp, X,
   Inbox, SendHorizontal, BarChart3, Bell, Link2, Paperclip, Video,
-  Copy, TrendingDown, AlertTriangle, Zap, Activity
+  Copy, TrendingDown, AlertTriangle, Zap, Activity, Mail, Settings
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -784,6 +784,9 @@ const ApprovalsPage = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [approvalNotifs, setApprovalNotifs] = useState([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const [showDigestSettings, setShowDigestSettings] = useState(false);
+  const [digestEnabled, setDigestEnabled] = useState(true);
+  const [digestLoading, setDigestLoading] = useState(false);
 
   const fetchApprovals = useCallback(async () => {
     if (!user?.id) return;
@@ -818,6 +821,33 @@ const ApprovalsPage = () => {
   }, [user?.id]);
 
   useEffect(() => { fetchApprovals(); fetchStats(); fetchNotifications(); }, [fetchApprovals, fetchStats, fetchNotifications]);
+
+  // Fetch digest preference
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`${API_URL}/api/approvals/digest/preferences?user_id=${user.id}`)
+      .then(r => r.json()).then(d => setDigestEnabled(d.enabled)).catch(() => {});
+  }, [user?.id]);
+
+  const toggleDigest = async () => {
+    const newVal = !digestEnabled;
+    setDigestEnabled(newVal);
+    await fetch(`${API_URL}/api/approvals/digest/preferences?user_id=${user.id}&enabled=${newVal}`, { method: 'POST' });
+    toast({ title: newVal ? 'Weekly digest enabled' : 'Weekly digest disabled' });
+  };
+
+  const sendTestDigest = async () => {
+    setDigestLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/approvals/digest/trigger?user_id=${user.id}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const sent = data.results?.find(r => r.sent);
+        toast({ title: sent ? 'Digest email sent!' : 'No activity to report — email skipped' });
+      }
+    } catch { toast({ variant: 'destructive', title: 'Failed to send digest' }); }
+    finally { setDigestLoading(false); }
+  };
 
   const markNotifsRead = async () => {
     if (!user?.id) return;
@@ -912,6 +942,10 @@ const ApprovalsPage = () => {
           <p className="text-sm text-slate-500">Manage your approval requests and workflows</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Settings (Digest) */}
+          <Button variant="outline" size="sm" onClick={() => setShowDigestSettings(true)} data-testid="digest-settings-btn">
+            <Mail className="w-4 h-4" />
+          </Button>
           {/* Notification Bell */}
           <div className="relative">
             <Button variant="outline" size="sm" onClick={() => { setShowNotifPanel(!showNotifPanel); if (!showNotifPanel) markNotifsRead(); }} data-testid="approval-notif-btn">
@@ -1054,6 +1088,38 @@ const ApprovalsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Digest Settings Dialog */}
+      <Dialog open={showDigestSettings} onOpenChange={setShowDigestSettings}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Mail className="w-4 h-4 text-violet-500" /> Weekly Digest</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">Receive a weekly email summary every Monday with your approval stats, bottleneck alerts, and trend insights.</p>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+              <div>
+                <p className="text-sm font-medium">Email Digest</p>
+                <p className="text-xs text-slate-400">Sent every Monday at 9 AM UTC</p>
+              </div>
+              <button
+                onClick={toggleDigest}
+                className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', digestEnabled ? 'bg-violet-600' : 'bg-slate-300 dark:bg-slate-600')}
+                data-testid="digest-toggle"
+              >
+                <span className={cn('inline-block h-4 w-4 rounded-full bg-white transition-transform', digestEnabled ? 'translate-x-6' : 'translate-x-1')} />
+              </button>
+            </div>
+            <Button variant="outline" size="sm" className="w-full" onClick={sendTestDigest} disabled={digestLoading} data-testid="send-test-digest-btn">
+              {digestLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+              Send Test Digest Now
+            </Button>
+            <a href={`${API_URL}/api/approvals/digest/preview?user_id=${user?.id}`} target="_blank" rel="noopener noreferrer" className="block text-center text-xs text-violet-500 hover:underline" data-testid="preview-digest-link">
+              Preview digest email
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
