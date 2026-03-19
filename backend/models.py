@@ -121,6 +121,8 @@ class UserCreate(BaseModel):
     role: str = "User"
     status: str = "Active"
     plan: str = "Free"
+    account_type: str = "personal"  # "personal" or "business"
+    organization_id: Optional[str] = None
     permissions: Optional[Dict] = None  # If not provided, defaults based on role
 
 class UserUpdate(BaseModel):
@@ -131,6 +133,8 @@ class UserUpdate(BaseModel):
     status: Optional[str] = None
     plan: Optional[str] = None
     avatar: Optional[str] = None
+    account_type: Optional[str] = None
+    organization_id: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str

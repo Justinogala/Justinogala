@@ -106,6 +106,7 @@ from routes.approvals import run_weekly_digest
 from routes.admin_reports import router as admin_reports_router
 from routes.esignature import router as esignature_router
 from routes.approvals import router as approvals_router
+from routes.organizations import router as organizations_router
 
 
 # ============== Include All Routers ==============
@@ -169,6 +170,7 @@ api_router.include_router(reports_router)
 api_router.include_router(admin_reports_router)
 api_router.include_router(esignature_router)
 api_router.include_router(approvals_router)
+api_router.include_router(organizations_router)
 
 
 # ============== Include Main Router ==============

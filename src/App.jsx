@@ -213,6 +213,7 @@ const AdminMeetingAnalytics = lazy(() => import('@/pages/admin/AdminMeetingAnaly
 const AdminCloudStoragePage = lazy(() => import('@/pages/admin/AdminCloudStoragePage'));
 const AdminVideoHistoryPage = lazy(() => import('@/pages/admin/AdminVideoHistoryPage'));
 const AdminApprovalTemplatesPage = lazy(() => import('@/pages/admin/AdminApprovalTemplatesPage'));
+const AdminOrganizationsPage = lazy(() => import('@/pages/admin/AdminOrganizationsPage'));
 const AdminShiftsPage = lazy(() => import('@/pages/admin/AdminShiftsPage'));
 const AdminWorkspaceDetailPage = lazy(() => import('@/pages/admin/AdminWorkspaceDetailPage'));
 const AdminWorkspacesPage = lazy(() => import('@/pages/admin/AdminWorkspacesPage'));
@@ -502,6 +503,7 @@ function App() {
                                 <Route path="cloud-storage" element={<AdminCloudStoragePage />} />
                                 <Route path="video-history" element={<AdminVideoHistoryPage />} />
                                 <Route path="approval-templates" element={<AdminApprovalTemplatesPage />} />
+                                <Route path="organizations" element={<AdminOrganizationsPage />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>

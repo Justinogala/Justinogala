@@ -148,6 +148,8 @@ async def create_user(user: UserCreate):
         "role": user.role,
         "status": user.status,
         "plan": user.plan,
+        "account_type": user.account_type or "personal",
+        "organization_id": user.organization_id,
         "permissions": permissions,
         "avatar": None,
         "created_at": datetime.now(timezone.utc),

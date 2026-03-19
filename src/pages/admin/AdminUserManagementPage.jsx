@@ -343,6 +343,15 @@ const AdminUserManagementPage = () => {
                               {user.plan}
                             </span>
                           )}
+                          {user.account_type === 'business' ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-200 dark:border-violet-800" data-testid={`user-business-badge-${index}`}>
+                              Business
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700" data-testid={`user-personal-badge-${index}`}>
+                              Personal
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
                           <span className="flex items-center gap-1 truncate">

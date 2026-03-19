@@ -116,6 +116,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
   // Management links with permissions
   const allManagementLinks = [
     { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500', permission: ['users', 'view'] },
+    { icon: Building2, label: 'Organizations', path: '/admin/organizations', gradient: 'from-violet-500 to-purple-500', permission: ['users', 'view'] },
     { icon: Building2, label: 'Workspaces', path: '/admin/workspaces', gradient: 'from-indigo-500 to-violet-500', permission: ['workspaces', 'view'] },
     { icon: FileWarning, label: 'IR / SOR Reports', path: '/admin/reports', gradient: 'from-red-500 to-orange-500', permission: ['workspaces', 'view'] },
     { icon: MessageSquare, label: 'Chat Moderation', path: '/admin/chat-moderation', gradient: 'from-emerald-500 to-green-500', permission: ['chat_moderation', 'view'] },

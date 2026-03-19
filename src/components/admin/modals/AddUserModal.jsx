@@ -110,7 +110,9 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
     role: 'User',
     plan: 'Free',
     status: 'Active',
-    password: ''
+    password: '',
+    account_type: 'personal',
+    organization_id: null,
   });
   
   const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS.User);
@@ -119,6 +121,21 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [organizations, setOrganizations] = useState([]);
+
+  // Fetch organizations for the dropdown
+  useEffect(() => {
+    const fetchOrgs = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/organizations`);
+        if (res.ok) {
+          const data = await res.json();
+          setOrganizations(data.organizations || []);
+        }
+      } catch (err) { console.error('Failed to fetch orgs', err); }
+    };
+    if (isOpen) fetchOrgs();
+  }, [isOpen]);
 
   // Update permissions when role changes
   useEffect(() => {
@@ -220,7 +237,8 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
       // Include permissions in the submission
       const submitData = {
         ...formData,
-        permissions: formData.role !== 'User' ? permissions : null
+        permissions: formData.role !== 'User' ? permissions : null,
+        organization_id: formData.account_type === 'business' ? formData.organization_id : null,
       };
       
       const success = await onAddUser(submitData);
@@ -231,7 +249,9 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
           role: 'User',
           plan: 'Free',
           status: 'Active',
-          password: ''
+          password: '',
+          account_type: 'personal',
+          organization_id: null,
         });
         setPermissions(DEFAULT_PERMISSIONS.User);
         setErrors({});
@@ -386,6 +406,38 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
                     <SelectItem value="Enterprise">Enterprise</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Account Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Account Type</Label>
+                  <Select value={formData.account_type} onValueChange={(value) => handleSelectChange('account_type', value)}>
+                    <SelectTrigger className="bg-white dark:bg-slate-950" data-testid="add-user-account-type-select">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="personal">Personal</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.account_type === 'business' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Organization</Label>
+                    <Select value={formData.organization_id || ''} onValueChange={(value) => handleSelectChange('organization_id', value)}>
+                      <SelectTrigger className="bg-white dark:bg-slate-950" data-testid="add-user-org-select">
+                        <SelectValue placeholder="Select org" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {organizations.map(org => (
+                          <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               {/* Permissions Section - Only for Admin/Manager */}
