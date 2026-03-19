@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import PageTransition from '@/components/PageTransition';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
+import ESignatureTermsOfService from '@/components/ESignatureTermsOfService';
 
 // Set PDF.js worker - use unpkg CDN with exact version for reliability
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -767,6 +768,7 @@ const ESignaturePage = () => {
             <p className="text-sm text-slate-500 mt-1">Upload, sign, and download PDF documents</p>
           </div>
           <div className="flex items-center gap-2">
+            <ESignatureTermsOfService />
             <Button variant="outline" size="sm" onClick={() => setViewMode('wordtopdf')} className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40" data-testid="word-to-pdf-btn">
               <FileOutput className="w-3.5 h-3.5 mr-1.5" /> Word to PDF
             </Button>

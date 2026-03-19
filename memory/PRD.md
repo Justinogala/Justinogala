@@ -21,15 +21,21 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Dynamic Stats from DB, Tab navigation (Home/News/Members/Activity/Settings)
 
 ### Workspace Templates (Complete - Mar 2026)
-- **6 Pre-built Blueprints**: Project Team, HR Department, Finance, Engineering, Marketing, General
-- **Auto-seeding on creation**: Welcome announcements (pinned), department-specific approval templates, custom quick links
-- **Template Selection Step**: Step 0 in Create Workspace modal with card grid, "Start from Scratch" option
+- 6 Pre-built Blueprints: Project Team, HR Department, Finance, Engineering, Marketing, General
+- Auto-seeding on creation: Welcome announcements (pinned), department-specific approval templates, custom quick links
+- Template Selection Step: Step 0 in Create Workspace modal with card grid, "Start from Scratch" option
 
 ### Workspace Dashboard Widget (Complete - Mar 2026)
-- **Backend**: `GET /api/workspaces/dashboard/summary?user_id=xxx` aggregates workspace data with pending approvals, announcements, member counts
-- **Frontend**: `WorkspaceDashboardWidget` component in right sidebar of UserDashboard
-- **Features**: Color-coded workspace icons, scope indicators (globe/lock), pending approval badges, "ALL CLEAR" status, max 4 items with "View all" link, navigation to workspace detail on click
-- **Tested**: 100% pass rate (12/12 backend, all frontend verified)
+- Backend: `GET /api/workspaces/dashboard/summary?user_id=xxx` aggregates workspace data
+- Frontend: `WorkspaceDashboardWidget` in right sidebar of UserDashboard
+- Features: Color-coded icons, scope indicators, pending approval badges, "ALL CLEAR" status
+- Tested: 100% pass rate (iteration_49)
+
+### eSignature Terms of Service (Complete - Mar 2026)
+- Full TOS rewritten for Munal AI powered by Jiffix Inc (replacing Microsoft)
+- Accessible via "Terms of Service" button in top-right of eSignature page
+- Opens as a scrollable dialog with all sections: Service, Users (Senders/Recipients), Access & Use Rights, Confidential Information, Document Storage, Warranty, Privacy, Suspension/Termination, Limitation of Liability, Dispute Resolution, Miscellaneous
+- Component: `/app/src/components/ESignatureTermsOfService.jsx`
 
 ### Other Features (Complete)
 - User/Admin auth (JWT + refresh tokens), Workspace management
@@ -51,16 +57,14 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ### P3
 - Consolidate AuthContext/AdminAuthContext
 - 2FA for admin accounts
-- Scheduled rotation for external API keys
 
 ## Key API Endpoints
 ### Workspace Dashboard
-- `GET /api/workspaces/dashboard/summary?user_id=xxx` - Aggregated workspace summary with pending actions
+- `GET /api/workspaces/dashboard/summary?user_id=xxx`
 
 ### Workspace Templates
-- `GET /api/workspaces/templates` - List 6 templates (summary)
-- `GET /api/workspaces/templates/{id}` - Full template with announcements & approval templates
-- `POST /api/workspaces` - Create workspace (with template_id for auto-seeding)
+- `GET /api/workspaces/templates`, `GET /api/workspaces/templates/{id}`
+- `POST /api/workspaces` (with template_id for auto-seeding)
 
 ### Workspaces
 - `GET/PUT/DELETE /api/workspaces/{id}`
@@ -71,11 +75,12 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Templates, CRUD, Actions, Comments, Stats, Export, Analytics, Duplicate, Notifications, Digest
 
 ## DB Collections
-- `workspaces` (with settings.quick_links, settings.template_id)
-- `workspace_members`, `workspace_announcements`
+- `workspaces`, `workspace_members`, `workspace_announcements`
 - `approvals`, `approval_templates`, `approval_comments`, `approval_audit`, `approval_notifications`, `approval_digest_prefs`
 
 ## Key Files
+- `/app/src/components/ESignatureTermsOfService.jsx` (NEW)
+- `/app/src/pages/ESignaturePage.jsx` (MODIFIED - added TOS button)
 - `/app/src/components/user/WorkspaceDashboardWidget.jsx` (NEW)
 - `/app/src/pages/user/UserDashboard.jsx` (MODIFIED - added widget)
 - `/app/backend/routes/workspaces.py` (MODIFIED - added dashboard/summary endpoint)
