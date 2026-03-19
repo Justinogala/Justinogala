@@ -184,12 +184,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (email, password, name) => {
+  const signup = async (email, password, name, inviteToken = null) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const url = inviteToken 
+        ? `${API_URL}/api/auth/register?invite_token=${encodeURIComponent(inviteToken)}`
+        : `${API_URL}/api/auth/register`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })

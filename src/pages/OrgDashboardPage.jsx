@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Building2, Users, Shield, Briefcase, FileCheck, Clock,
   CheckCircle2, XCircle, Bell, Globe, Lock, Loader2,
-  ArrowUpRight, ChevronRight, UserPlus, BarChart3, Activity
+  ArrowUpRight, ChevronRight, UserPlus, BarChart3, Activity,
+  Mail, Copy, Check, Link2, Plus
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -17,23 +23,92 @@ const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
 const OrgDashboardPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+  const [showDirectCreate, setShowDirectCreate] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
+  const [inviteLink, setInviteLink] = useState('');
+  const [inviteSent, setInviteSent] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'member', plan: 'Free' });
 
-  useEffect(() => {
+  const fetchDashboard = useCallback(async () => {
     if (!user?.organization_id || !user?.id) return;
-    const fetchDashboard = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/organizations/${user.organization_id}/dashboard?user_id=${user.id}`);
-        if (res.ok) setData(await res.json());
-      } catch (err) {
-        console.error('Failed to load org dashboard', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
+    try {
+      const res = await fetch(`${API_URL}/api/organizations/${user.organization_id}/dashboard?user_id=${user.id}`);
+      if (res.ok) setData(await res.json());
+    } catch (err) {
+      console.error('Failed to load org dashboard', err);
+    } finally {
+      setLoading(false);
+    }
   }, [user?.organization_id, user?.id]);
+
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return toast({ title: 'Email is required', variant: 'destructive' });
+    setFormLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/organizations/${user.organization_id}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail, invited_by: user.id, role: inviteRole })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.detail || 'Failed');
+      setInviteLink(result.invite_link);
+      setInviteSent(true);
+      toast({ title: result.email_sent ? `Invite sent to ${inviteEmail}` : 'Invite link created (email delivery may be delayed)' });
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const resetInvite = () => {
+    setShowInvite(false);
+    setInviteEmail('');
+    setInviteRole('member');
+    setInviteLink('');
+    setInviteSent(false);
+    setCopied(false);
+  };
+
+  const handleDirectCreate = async () => {
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      return toast({ title: 'Name, email, and password are required', variant: 'destructive' });
+    }
+    setFormLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/organizations/${user.organization_id}/direct-create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.detail || 'Failed');
+      toast({ title: `Account created for ${createForm.email}` });
+      setShowDirectCreate(false);
+      setCreateForm({ name: '', email: '', password: '', role: 'member', plan: 'Free' });
+      fetchDashboard();
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -93,6 +168,14 @@ const OrgDashboardPage = () => {
               </Badge>
             </div>
           </div>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowInvite(true)} className="gap-1.5" data-testid="org-dash-invite-btn">
+            <Mail className="w-3.5 h-3.5" /> Invite Team
+          </Button>
+          <Button size="sm" onClick={() => setShowDirectCreate(true)} className="gap-1.5 bg-violet-600 hover:bg-violet-700 text-white" data-testid="org-dash-create-btn">
+            <UserPlus className="w-3.5 h-3.5" /> Create Account
+          </Button>
         </div>
       </motion.div>
 
@@ -291,6 +374,150 @@ const OrgDashboardPage = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Invite Team Dialog */}
+      <Dialog open={showInvite} onOpenChange={(open) => { if (!open) resetInvite(); else setShowInvite(true); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-violet-500" /> Invite Team Member
+            </DialogTitle>
+            <p className="text-xs text-slate-500 mt-1">
+              Send an email invite or share the link. They&apos;ll join {org.name} automatically.
+            </p>
+          </DialogHeader>
+
+          {!inviteSent ? (
+            <div className="space-y-4 py-2">
+              <Input
+                placeholder="Email address"
+                type="email"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                data-testid="invite-email-input"
+              />
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">Role</label>
+                <select
+                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                  value={inviteRole}
+                  onChange={e => setInviteRole(e.target.value)}
+                  data-testid="invite-role-select"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="member">Member</option>
+                </select>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={resetInvite}>Cancel</Button>
+                <Button onClick={handleInvite} disabled={formLoading} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="invite-send-btn">
+                  {formLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Mail className="w-4 h-4 mr-1" />}
+                  Send Invite
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2" data-testid="invite-success">
+              <div className="text-center py-2">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                </div>
+                <p className="text-sm font-medium text-slate-800 dark:text-white">Invite sent to {inviteEmail}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1.5 flex items-center gap-1">
+                  <Link2 className="w-3 h-3" /> Shareable Invite Link
+                </label>
+                <div className="flex gap-2">
+                  <Input value={inviteLink} readOnly className="text-xs bg-slate-50 dark:bg-slate-800" data-testid="invite-link-input" />
+                  <Button size="sm" variant="outline" onClick={handleCopyLink} className="shrink-0 px-3" data-testid="invite-copy-btn">
+                    {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">Share this link with your team member. Expires in 7 days.</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={resetInvite}>Close</Button>
+                <Button onClick={() => { setInviteSent(false); setInviteEmail(''); setInviteLink(''); }} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="invite-another-btn">
+                  <Plus className="w-4 h-4 mr-1" /> Invite Another
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Direct Create Account Dialog */}
+      <Dialog open={showDirectCreate} onOpenChange={setShowDirectCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-violet-500" /> Create Team Account
+            </DialogTitle>
+            <p className="text-xs text-slate-500 mt-1">
+              Create an account directly — no invite needed. They can log in immediately.
+            </p>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Input
+              placeholder="Full Name"
+              value={createForm.name}
+              onChange={e => setCreateForm(p => ({ ...p, name: e.target.value }))}
+              data-testid="direct-create-name"
+            />
+            <Input
+              placeholder={`Email (e.g. user@${org.domain || 'company.com'})`}
+              type="email"
+              value={createForm.email}
+              onChange={e => setCreateForm(p => ({ ...p, email: e.target.value }))}
+              data-testid="direct-create-email"
+            />
+            <Input
+              placeholder="Password"
+              type="password"
+              value={createForm.password}
+              onChange={e => setCreateForm(p => ({ ...p, password: e.target.value }))}
+              data-testid="direct-create-password"
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">Role</label>
+                <select
+                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                  value={createForm.role}
+                  onChange={e => setCreateForm(p => ({ ...p, role: e.target.value }))}
+                  data-testid="direct-create-role"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="member">Member</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">Plan</label>
+                <select
+                  className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                  value={createForm.plan}
+                  onChange={e => setCreateForm(p => ({ ...p, plan: e.target.value }))}
+                  data-testid="direct-create-plan"
+                >
+                  <option value="Free">Free</option>
+                  <option value="Business">Business</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDirectCreate(false)}>Cancel</Button>
+            <Button onClick={handleDirectCreate} disabled={formLoading} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="direct-create-submit">
+              {formLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <UserPlus className="w-4 h-4 mr-1" />}
+              Create Account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

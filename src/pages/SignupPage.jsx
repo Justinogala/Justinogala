@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { Loader2, Eye, EyeOff, AlertCircle, ArrowRight, Check, Chrome, Mail, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,29 @@ const SignupPage = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [accountType, setAccountType] = useState('personal'); // 'personal' or 'organization'
+  const [accountType, setAccountType] = useState('personal');
+  const [inviteData, setInviteData] = useState(null);
+
+  // Validate invite token if present
+  useEffect(() => {
+    if (!inviteToken) return;
+    const validate = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/organizations/invite/validate?token=${inviteToken}`, { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          setInviteData(data);
+          setAccountType('invite');
+        }
+      } catch (err) { console.error('Invalid invite token', err); }
+    };
+    validate();
+  }, [inviteToken]); // 'personal' or 'organization'
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
   
@@ -68,15 +87,18 @@ const SignupPage = () => {
           navigate('/login');
         }
       } else {
-        // Standard personal signup
+        // Standard personal signup (or invite-based signup)
         const fullName = `${data.firstName} ${data.lastName}`.trim();
-        const result = await signup(data.email, data.password, fullName);
+        const result = await signup(data.email, data.password, fullName, inviteToken || null);
         
         if (result.requires_verification) {
           toast({ title: "Verification required", description: "Check your email for the verification code." });
           navigate('/verify-email', { state: { email: data.email, name: fullName, token: result.token } });
         } else if (result.success) {
-          toast({ title: "Account created!", description: "Welcome to Munal AI. Your intelligent workspace is ready." });
+          const desc = inviteData 
+            ? `Welcome to ${inviteData.organization.name}!` 
+            : "Welcome to Munal AI. Your intelligent workspace is ready.";
+          toast({ title: "Account created!", description: desc });
           navigate('/dashboard');
         } else {
           setAuthError(result.error || 'Failed to create account');
@@ -132,7 +154,25 @@ const SignupPage = () => {
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Account Type Toggle */}
+          {/* Invite Banner */}
+          {inviteData && (
+            <div className="flex items-center gap-3 p-4 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/40 rounded-xl" data-testid="invite-banner">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white font-bold shrink-0">
+                {inviteData.organization.name.charAt(0)}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-violet-800 dark:text-violet-200">
+                  Join {inviteData.organization.name}
+                </p>
+                <p className="text-[11px] text-violet-600 dark:text-violet-400">
+                  Create your account to join the team as {inviteData.role}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Account Type Toggle (hidden when invite) */}
+          {!inviteData && (
           <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl" data-testid="account-type-toggle">
             <button
               type="button"
@@ -161,6 +201,7 @@ const SignupPage = () => {
               <Building2 className="w-4 h-4" /> Organization
             </button>
           </div>
+          )}
 
           {/* Organization Fields (only when org selected) */}
           {accountType === 'organization' && (

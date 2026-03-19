@@ -1,7 +1,8 @@
 """
 Authentication routes - login, register, password reset, email verification.
 """
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
+from typing import Optional
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -211,7 +212,7 @@ async def send_password_reset_email(email: str, temp_password: str, user_name: s
 
 @router.post("/register")
 @limiter.limit("5/minute")
-async def register_user(request: Request, user: UserCreate):
+async def register_user(request: Request, user: UserCreate, invite_token: Optional[str] = Query(None)):
     """Register a new user - no email verification required"""
     # Sanitize inputs
     email = guard_mongo_query(user.email.lower())
@@ -231,20 +232,33 @@ async def register_user(request: Request, user: UserCreate):
     
     user_id = str(uuid.uuid4())
     
-    # Check if email domain matches any organization for auto-enrollment
-    email_domain = email.split("@")[1] if "@" in email else ""
+    # Check invite token first, then domain auto-enrollment
     account_type = "personal"
     organization_id = None
     org_role = None
-    if email_domain:
-        matching_org = await db.organizations.find_one(
-            {"domain": {"$regex": f"^{email_domain}$", "$options": "i"}},
-            {"_id": 0, "id": 1, "name": 1}
-        )
-        if matching_org:
-            account_type = "business"
-            organization_id = matching_org["id"]
-            org_role = "member"
+
+    if invite_token:
+        invite = await db.org_invites.find_one({"token": invite_token, "status": "pending"})
+        if invite:
+            org = await db.organizations.find_one({"id": invite["org_id"]}, {"_id": 0, "id": 1})
+            if org:
+                account_type = "business"
+                organization_id = org["id"]
+                org_role = invite.get("role", "member")
+                # Mark invite as accepted
+                await db.org_invites.update_one({"token": invite_token}, {"$set": {"status": "accepted", "accepted_at": datetime.now(timezone.utc).isoformat()}})
+
+    if account_type == "personal":
+        email_domain = email.split("@")[1] if "@" in email else ""
+        if email_domain:
+            matching_org = await db.organizations.find_one(
+                {"domain": {"$regex": f"^{email_domain}$", "$options": "i"}},
+                {"_id": 0, "id": 1, "name": 1}
+            )
+            if matching_org:
+                account_type = "business"
+                organization_id = matching_org["id"]
+                org_role = "member"
 
     user_doc = {
         "id": user_id,

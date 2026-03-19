@@ -1,14 +1,15 @@
 """
-Organization management routes - CRUD, members, stats.
+Organization management routes - CRUD, members, stats, invites.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 import uuid
 import bcrypt
+import resend
 
-from config import db, logger
+from config import db, logger, SENDER_EMAIL
 
 router = APIRouter(prefix="/organizations", tags=["Organizations"])
 
@@ -49,6 +50,18 @@ class OrgSignup(BaseModel):
     admin_name: str
     admin_email: str
     admin_password: str
+
+class OrgInvite(BaseModel):
+    email: str
+    invited_by: str
+    role: str = "member"
+
+class OrgDirectCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str = "member"
+    plan: str = "Free"
 
 
 # ============== Organization CRUD ==============
@@ -151,6 +164,31 @@ async def org_signup(data: OrgSignup):
 
     logger.info(f"Organization self-signup: '{data.org_name}' by {email}")
     return {"success": True, "organization": org_doc, "user": user_doc}
+
+
+# ============== Invites ==============
+
+@router.post("/invite/validate")
+async def validate_invite(token: str = Query(...)):
+    """Validate an invite token and return org info."""
+    invite = await db.org_invites.find_one({"token": token}, {"_id": 0})
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invalid invite link")
+    if invite.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="This invite has already been used or expired")
+    if invite.get("expires_at") and invite["expires_at"] < datetime.now(timezone.utc).isoformat():
+        raise HTTPException(status_code=400, detail="This invite has expired")
+
+    org = await db.organizations.find_one({"id": invite["org_id"]}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization no longer exists")
+
+    return {
+        "valid": True,
+        "organization": {"id": org["id"], "name": org["name"], "domain": org.get("domain")},
+        "email": invite.get("email"),
+        "role": invite.get("role", "member"),
+    }
 
 
 @router.get("/{org_id}")
@@ -279,6 +317,157 @@ async def remove_org_member(org_id: str, user_id: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Member not found in this organization")
     return {"success": True, "message": "Member removed from organization and converted to personal account"}
+
+
+# ============== Invite & Direct Create from Org Dashboard ==============
+
+@router.post("/{org_id}/invite")
+async def send_org_invite(org_id: str, invite: OrgInvite, request: Request):
+    """Send an email invite to join the organization. Returns invite link."""
+    org = await db.organizations.find_one({"id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    email = invite.email.lower().strip()
+
+    # Check if user already exists in this org
+    existing = await db.users.find_one({"email": email, "organization_id": org_id})
+    if existing:
+        raise HTTPException(status_code=400, detail="This user is already a member of the organization")
+
+    # Check for pending invite
+    pending = await db.org_invites.find_one({"email": email, "org_id": org_id, "status": "pending"})
+    if pending:
+        # Resend existing invite
+        token = pending["token"]
+    else:
+        # Create new invite
+        token = str(uuid.uuid4())
+        invite_doc = {
+            "id": str(uuid.uuid4()),
+            "org_id": org_id,
+            "email": email,
+            "token": token,
+            "role": invite.role,
+            "invited_by": invite.invited_by,
+            "status": "pending",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+        }
+        await db.org_invites.insert_one(invite_doc)
+
+    # Build invite link using the request origin (frontend URL)
+    # Use the Referer or Origin header if available, otherwise fall back to base_url
+    frontend_origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
+    if not frontend_origin:
+        frontend_origin = str(request.base_url).rstrip("/")
+    # Strip any path from referer
+    if "/api/" in frontend_origin:
+        frontend_origin = frontend_origin.split("/api/")[0]
+    invite_link = f"{frontend_origin}/signup?invite={token}"
+
+    # Send email via Resend
+    inviter = await db.users.find_one({"id": invite.invited_by}, {"name": 1})
+    inviter_name = inviter.get("name", "A team member") if inviter else "A team member"
+
+    try:
+        resend.Emails.send({
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": f"You're invited to join {org['name']} on Munal AI",
+            "html": f"""
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px;">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <h1 style="font-size: 24px; font-weight: 700; color: #1e293b; margin: 0;">Munal AI</h1>
+              </div>
+              <div style="background: #f8fafc; border-radius: 12px; padding: 28px; border: 1px solid #e2e8f0;">
+                <h2 style="font-size: 18px; font-weight: 600; color: #1e293b; margin: 0 0 12px;">You've been invited!</h2>
+                <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 8px;">
+                  <strong>{inviter_name}</strong> has invited you to join <strong>{org['name']}</strong> on Munal AI.
+                </p>
+                <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 24px;">
+                  Click the button below to create your account and join the team.
+                </p>
+                <div style="text-align: center;">
+                  <a href="{invite_link}" style="display: inline-block; background: #7c3aed; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                    Join {org['name']}
+                  </a>
+                </div>
+                <p style="color: #94a3b8; font-size: 11px; margin-top: 20px; text-align: center;">
+                  This invite expires in 7 days.
+                </p>
+              </div>
+              <p style="color: #94a3b8; font-size: 11px; text-align: center; margin-top: 20px;">
+                Munal AI &mdash; Your intelligent workspace
+              </p>
+            </div>
+            """
+        })
+        email_sent = True
+    except Exception as e:
+        logger.error(f"Failed to send invite email to {email}: {e}")
+        email_sent = False
+
+    logger.info(f"Org invite: {email} → {org['name']} (email_sent={email_sent})")
+
+    return {
+        "success": True,
+        "invite_link": invite_link,
+        "email_sent": email_sent,
+        "email": email,
+        "token": token,
+    }
+
+
+@router.get("/{org_id}/invites")
+async def list_org_invites(org_id: str):
+    """List all pending invites for an organization."""
+    invites = await db.org_invites.find(
+        {"org_id": org_id, "status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return {"invites": invites}
+
+
+@router.post("/{org_id}/direct-create")
+async def direct_create_member(org_id: str, data: OrgDirectCreate):
+    """Create a member account directly from org dashboard (no invite needed)."""
+    org = await db.organizations.find_one({"id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    email = data.email.lower().strip()
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=400, detail="A user with this email already exists")
+
+    from models import DEFAULT_PERMISSIONS
+    permissions = DEFAULT_PERMISSIONS.get("User", {})
+
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": email,
+        "password": bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+        "name": data.name.strip(),
+        "role": "User",
+        "status": "Active",
+        "plan": data.plan,
+        "account_type": "business",
+        "organization_id": org_id,
+        "org_role": data.role,
+        "permissions": permissions,
+        "avatar": None,
+        "email_verified": True,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
+    await db.users.insert_one(user_doc)
+    user_doc.pop("password")
+    user_doc.pop("_id", None)
+
+    logger.info(f"Direct member creation: {email} → org {org_id}")
+    return {"success": True, "member": user_doc}
 
 
 # ============== Stats ==============
