@@ -77,6 +77,7 @@ const WorkspaceDetailPage = lazy(() => import('@/pages/WorkspaceDetailPage'));
 const ShiftManagementPage = lazy(() => import('@/pages/ShiftManagementPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
 const ESignaturePage = lazy(() => import('@/pages/ESignaturePage'));
+const ApprovalsPage = lazy(() => import('@/pages/ApprovalsPage'));
 
 // AI Pages
 const TranscriptionPage = lazy(() => import('@/pages/TranscriptionPage'));
@@ -373,6 +374,7 @@ function App() {
                                 <Route path="/video-call" element={<VideoCallPage />} />
                                 <Route path="/files" element={<FileManagementPage />} />
                                 <Route path="/esignature" element={<ESignaturePage />} />
+                                <Route path="/approvals" element={<ApprovalsPage />} />
                                 
                                 <Route path="/workspaces" element={<WorkspacesPage />} />
                                 <Route path="/workspace/chat" element={<WorkspaceChatPage />} />

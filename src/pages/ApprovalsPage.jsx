@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { API_URL } from '@/lib/api';
 import {
   Plus, Search, Filter, Download, ArrowLeft, Send, Clock, CheckCircle2,
   XCircle, AlertCircle, MoreHorizontal, MessageSquare, FileText, Loader2,
@@ -18,8 +19,6 @@ import {
   CreditCard, ShoppingCart, Receipt, Wrench, FolderKanban, TrendingUp, X,
   Inbox, SendHorizontal, BarChart3
 } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300', icon: FileText },
