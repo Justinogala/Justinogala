@@ -10,79 +10,81 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## What's Been Implemented
 
-### Organization-Managed Accounts (Complete - Mar 2026)
-- **Backend**: Full CRUD for organizations (`/api/organizations`), member management, stats, assign/remove members
-- **Frontend**: Admin Organizations page (`AdminOrganizationsPage.jsx`) with list/detail views, create org dialog, add member dialog
-- **Account Types**: Users are tagged as `personal` (self-registered) or `business` (org-managed)
-- **Business badges** displayed on User Management page
-- **AddUserModal** updated with Account Type and Organization dropdown
-- **Tested**: 100% pass rate (17/17 backend, all frontend verified - iteration_50)
+### Organization Management (Complete - Mar 2026)
+
+#### Core Org CRUD (iteration_50)
+- Full CRUD for organizations (`/api/organizations`)
+- Member management: create/assign/remove business accounts
+- Org stats: member_count, active_members, workspace_count, approval_count
+- Admin Organizations page with list/detail views, stats, member table
+
+#### Domain Auto-Enrollment (iteration_51)
+- User registration checks email domain against `organizations.domain`
+- Matching domain (e.g. `@munal.com`) auto-sets `account_type: "business"` + `organization_id`
+- Non-matching domains stay `account_type: "personal"`
+
+#### Edit Org Member Info (iteration_51)
+- `PUT /api/organizations/{org_id}/members/{user_id}` — update name, email, org_role, plan, status
+- Edit button on each member row in admin detail view
+- Dialog with all editable fields + validation (duplicate email check)
+
+#### Organization Self-Registration (iteration_51)
+- `POST /api/organizations/signup` — creates org + admin user in one step
+- Signup page has Personal/Organization toggle
+- Organization tab shows: Org Name, Domain, Description fields + "Your Admin Account" section
+- Button changes to "Create Organization" — creates org then logs user in
 
 ### eSignature Terms of Service (Complete - Mar 2026)
-- Full TOS for Munal AI powered by Jiffix Inc
-- Accessible via "Terms of Service" button on eSignature page
-- Component: `/app/src/components/ESignatureTermsOfService.jsx`
+- Full TOS for Munal AI / Jiffix Inc, accessible from eSignature page
 
 ### Workspace Dashboard Widget (Complete - Mar 2026)
-- `GET /api/workspaces/dashboard/summary` endpoint
-- Widget in dashboard right sidebar with workspace cards, pending action badges
-- Tested: 100% (iteration_49)
+- Aggregated workspace summary endpoint + sidebar widget with pending action badges
 
 ### Approvals Module (Complete)
-- Phase 1 & 2: Dashboard, Template Store, Workflow Engine, Analytics, AI Insights, Notifications, Weekly Digest
+- Phase 1 & 2: Dashboard, Templates, Workflows, Analytics, AI Insights, Notifications, Weekly Digest
 
 ### SharePoint-Style Workspace Hub (Complete)
 - Dynamic homepages, activity feed, announcements, real-time stats, workspace templates
 
 ### Other Features (Complete)
-- User/Admin auth (JWT + refresh), Workspace management, File manager, AI messaging
-- Text-to-Video (Sora 2), Text-to-Audio, IR/SOR, eSignature, Security, Notifications
+- Auth (JWT + refresh), Workspaces, File Manager, AI Messaging, Sora 2, TTS, IR/SOR, eSignature, SSE Notifications
 
 ## Credentials
 - **Admin**: admin@munal.com / Admin@123456
 - **Test Business User**: justin.ogala@munal.com / Justin@123456
+- **Test Org Signup**: admin@jiffix.com / Test@12345678
 
 ## Key API Endpoints
 
 ### Organizations
-- `GET/POST /api/organizations` - List/Create organizations
-- `GET/PUT/DELETE /api/organizations/{id}` - Single org CRUD
-- `GET/POST /api/organizations/{org_id}/members` - List/Add members
-- `DELETE /api/organizations/{org_id}/members/{user_id}` - Remove member
-- `POST /api/organizations/{org_id}/members/assign` - Assign existing user
-- `GET /api/organizations/{org_id}/stats` - Org statistics
+- `GET/POST /api/organizations` — List/Create
+- `POST /api/organizations/signup` — Self-registration (org + admin user)
+- `GET/PUT/DELETE /api/organizations/{id}` — Single org CRUD
+- `GET/POST /api/organizations/{org_id}/members` — List/Add members
+- `PUT /api/organizations/{org_id}/members/{user_id}` — Edit member
+- `DELETE /api/organizations/{org_id}/members/{user_id}` — Remove member
+- `POST /api/organizations/{org_id}/members/assign` — Assign existing user
+- `GET /api/organizations/{org_id}/stats` — Org statistics
 
-### Workspace Dashboard
-- `GET /api/workspaces/dashboard/summary?user_id=xxx`
-
-### Workspaces, Approvals, eSignature - (See previous PRD entries)
+### Auth (Updated)
+- `POST /api/auth/register` — Now with domain auto-enrollment
 
 ## DB Collections
-- `organizations` (NEW): id, name, domain, description, created_by
-- `users` (UPDATED): added account_type, organization_id, org_role fields
-- `workspaces`, `workspace_members`, `workspace_announcements`
-- `approvals`, `approval_templates`, `approval_comments`, `approval_audit`, `approval_notifications`
+- `organizations`: id, name, domain, description, created_by
+- `users` (UPDATED): account_type (personal/business), organization_id, org_role
 
 ## Key Files
-- `/app/backend/routes/organizations.py` (NEW)
-- `/app/src/pages/admin/AdminOrganizationsPage.jsx` (NEW)
-- `/app/src/components/ESignatureTermsOfService.jsx` (NEW)
-- `/app/src/components/user/WorkspaceDashboardWidget.jsx` (NEW)
-- `/app/backend/models.py` (MODIFIED - added account_type, organization_id)
-- `/app/backend/routes/users.py` (MODIFIED - account_type in user creation)
-- `/app/src/components/admin/modals/AddUserModal.jsx` (MODIFIED - org/type selection)
-- `/app/src/pages/admin/AdminUserManagementPage.jsx` (MODIFIED - account type badges)
-- `/app/src/components/AdminSidebar.jsx` (MODIFIED - Organizations link)
-- `/app/src/App.jsx` (MODIFIED - /admin/organizations route)
+- `/app/backend/routes/organizations.py` — All org endpoints
+- `/app/backend/routes/auth.py` — Updated register with domain check
+- `/app/src/pages/SignupPage.jsx` — Personal/Organization toggle
+- `/app/src/pages/admin/AdminOrganizationsPage.jsx` — Admin org management + edit member
 
 ## Prioritized Backlog
 ### P1
-- Implement "Delegate" feature for approvals (assign pending requests to a substitute)
+- Implement "Delegate" feature for approvals
 ### P2
-- Approvals Module Phase 2: Further AI insights, advanced analytics, bottleneck detection
-- End-to-End test cloud storage migration
+- Approvals Phase 2: Further AI insights, advanced analytics
 - Refactor AdminStripeSettingsPage.jsx
-- Clean up orphaned workspace_members data
 ### P3
 - Consolidate AuthContext/AdminAuthContext
 - 2FA for admin accounts
