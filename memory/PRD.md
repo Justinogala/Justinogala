@@ -1,7 +1,7 @@
 # Munal/EchoNote AI - Product Requirements Document
 
 ## Original Problem Statement
-Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, and SharePoint-style Workspace Hubs with templates.
+Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, SharePoint-style Workspace Hubs, and Organization-Managed Business Accounts.
 
 ## Tech Stack
 - **Frontend**: Vite/React, Tailwind CSS, Shadcn/UI, Recharts, Framer Motion
@@ -10,41 +10,70 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## What's Been Implemented
 
-### Approvals Module (Complete)
-- Phase 1: Dashboard, Template Store (23 templates), Workflow Engine, CRUD, CSV Export
-- P1: Admin Template CRUD, In-App Notifications, Meetings/Files/Chat Integration
-- Phase 2: Analytics (4 charts), AI Insights, Bottleneck Detection, Duplicate Request
-- Weekly Digest: Resend email, APScheduler cron (Monday 9AM), user preferences
-
-### SharePoint-Style Workspace Hub (Complete)
-- Hero Banner with scope badge, Quick Access grid, Activity feed, Announcements CRUD
-- Dynamic Stats from DB, Tab navigation (Home/News/Members/Activity/Settings)
-
-### Workspace Templates (Complete - Mar 2026)
-- 6 Pre-built Blueprints: Project Team, HR Department, Finance, Engineering, Marketing, General
-- Auto-seeding on creation: Welcome announcements (pinned), department-specific approval templates, custom quick links
-- Template Selection Step: Step 0 in Create Workspace modal with card grid, "Start from Scratch" option
-
-### Workspace Dashboard Widget (Complete - Mar 2026)
-- Backend: `GET /api/workspaces/dashboard/summary?user_id=xxx` aggregates workspace data
-- Frontend: `WorkspaceDashboardWidget` in right sidebar of UserDashboard
-- Features: Color-coded icons, scope indicators, pending approval badges, "ALL CLEAR" status
-- Tested: 100% pass rate (iteration_49)
+### Organization-Managed Accounts (Complete - Mar 2026)
+- **Backend**: Full CRUD for organizations (`/api/organizations`), member management, stats, assign/remove members
+- **Frontend**: Admin Organizations page (`AdminOrganizationsPage.jsx`) with list/detail views, create org dialog, add member dialog
+- **Account Types**: Users are tagged as `personal` (self-registered) or `business` (org-managed)
+- **Business badges** displayed on User Management page
+- **AddUserModal** updated with Account Type and Organization dropdown
+- **Tested**: 100% pass rate (17/17 backend, all frontend verified - iteration_50)
 
 ### eSignature Terms of Service (Complete - Mar 2026)
-- Full TOS rewritten for Munal AI powered by Jiffix Inc (replacing Microsoft)
-- Accessible via "Terms of Service" button in top-right of eSignature page
-- Opens as a scrollable dialog with all sections: Service, Users (Senders/Recipients), Access & Use Rights, Confidential Information, Document Storage, Warranty, Privacy, Suspension/Termination, Limitation of Liability, Dispute Resolution, Miscellaneous
+- Full TOS for Munal AI powered by Jiffix Inc
+- Accessible via "Terms of Service" button on eSignature page
 - Component: `/app/src/components/ESignatureTermsOfService.jsx`
 
+### Workspace Dashboard Widget (Complete - Mar 2026)
+- `GET /api/workspaces/dashboard/summary` endpoint
+- Widget in dashboard right sidebar with workspace cards, pending action badges
+- Tested: 100% (iteration_49)
+
+### Approvals Module (Complete)
+- Phase 1 & 2: Dashboard, Template Store, Workflow Engine, Analytics, AI Insights, Notifications, Weekly Digest
+
+### SharePoint-Style Workspace Hub (Complete)
+- Dynamic homepages, activity feed, announcements, real-time stats, workspace templates
+
 ### Other Features (Complete)
-- User/Admin auth (JWT + refresh tokens), Workspace management
-- Full file manager, AI messaging, Text-to-Video (Sora 2), Text-to-Audio
-- IR/SOR system, Admin reports, eSignature with PDF signing
-- Security hardening, Real-time notifications (SSE), Password complexity, Audit logging
+- User/Admin auth (JWT + refresh), Workspace management, File manager, AI messaging
+- Text-to-Video (Sora 2), Text-to-Audio, IR/SOR, eSignature, Security, Notifications
 
 ## Credentials
 - **Admin**: admin@munal.com / Admin@123456
+- **Test Business User**: justin.ogala@munal.com / Justin@123456
+
+## Key API Endpoints
+
+### Organizations
+- `GET/POST /api/organizations` - List/Create organizations
+- `GET/PUT/DELETE /api/organizations/{id}` - Single org CRUD
+- `GET/POST /api/organizations/{org_id}/members` - List/Add members
+- `DELETE /api/organizations/{org_id}/members/{user_id}` - Remove member
+- `POST /api/organizations/{org_id}/members/assign` - Assign existing user
+- `GET /api/organizations/{org_id}/stats` - Org statistics
+
+### Workspace Dashboard
+- `GET /api/workspaces/dashboard/summary?user_id=xxx`
+
+### Workspaces, Approvals, eSignature - (See previous PRD entries)
+
+## DB Collections
+- `organizations` (NEW): id, name, domain, description, created_by
+- `users` (UPDATED): added account_type, organization_id, org_role fields
+- `workspaces`, `workspace_members`, `workspace_announcements`
+- `approvals`, `approval_templates`, `approval_comments`, `approval_audit`, `approval_notifications`
+
+## Key Files
+- `/app/backend/routes/organizations.py` (NEW)
+- `/app/src/pages/admin/AdminOrganizationsPage.jsx` (NEW)
+- `/app/src/components/ESignatureTermsOfService.jsx` (NEW)
+- `/app/src/components/user/WorkspaceDashboardWidget.jsx` (NEW)
+- `/app/backend/models.py` (MODIFIED - added account_type, organization_id)
+- `/app/backend/routes/users.py` (MODIFIED - account_type in user creation)
+- `/app/src/components/admin/modals/AddUserModal.jsx` (MODIFIED - org/type selection)
+- `/app/src/pages/admin/AdminUserManagementPage.jsx` (MODIFIED - account type badges)
+- `/app/src/components/AdminSidebar.jsx` (MODIFIED - Organizations link)
+- `/app/src/App.jsx` (MODIFIED - /admin/organizations route)
 
 ## Prioritized Backlog
 ### P1
@@ -57,30 +86,3 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ### P3
 - Consolidate AuthContext/AdminAuthContext
 - 2FA for admin accounts
-
-## Key API Endpoints
-### Workspace Dashboard
-- `GET /api/workspaces/dashboard/summary?user_id=xxx`
-
-### Workspace Templates
-- `GET /api/workspaces/templates`, `GET /api/workspaces/templates/{id}`
-- `POST /api/workspaces` (with template_id for auto-seeding)
-
-### Workspaces
-- `GET/PUT/DELETE /api/workspaces/{id}`
-- `GET /api/workspaces/{id}/stats`, `GET /api/workspaces/{id}/activity`
-- `GET/POST/PUT/DELETE /api/workspaces/{id}/announcements`
-
-### Approvals
-- Templates, CRUD, Actions, Comments, Stats, Export, Analytics, Duplicate, Notifications, Digest
-
-## DB Collections
-- `workspaces`, `workspace_members`, `workspace_announcements`
-- `approvals`, `approval_templates`, `approval_comments`, `approval_audit`, `approval_notifications`, `approval_digest_prefs`
-
-## Key Files
-- `/app/src/components/ESignatureTermsOfService.jsx` (NEW)
-- `/app/src/pages/ESignaturePage.jsx` (MODIFIED - added TOS button)
-- `/app/src/components/user/WorkspaceDashboardWidget.jsx` (NEW)
-- `/app/src/pages/user/UserDashboard.jsx` (MODIFIED - added widget)
-- `/app/backend/routes/workspaces.py` (MODIFIED - added dashboard/summary endpoint)
