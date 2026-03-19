@@ -5,7 +5,7 @@ import {
   ChevronRight, User, HardDrive, CreditCard, DollarSign, MessageSquare,
   CircleDot, ExternalLink, ChevronDown, ChevronUp, Coins, Tag, Receipt, Volume2,
   Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar, Video,
-  FileWarning, PenLine, FileCheck2
+  FileWarning, PenLine, FileCheck2, Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [paymentsOpen, setPaymentsOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
+
+  const isOrgAdmin = user?.account_type === 'business' && user?.organization_id;
 
   const handleLogout = () => {
     localStorage.removeItem('munal_sessions');
@@ -43,6 +45,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: FileText, label: 'Transcriptions', path: '/transcriptions', gradient: 'from-amber-500 to-orange-500' },
     { icon: Mic, label: 'Voice Chat', path: '/voice-chat', gradient: 'from-indigo-500 to-blue-500' },
     { icon: Briefcase, label: 'Workspaces', path: '/workspaces', gradient: 'from-teal-500 to-cyan-500' },
+    ...(isOrgAdmin ? [{ icon: Building2, label: 'My Organization', path: '/org-dashboard', gradient: 'from-violet-500 to-purple-500' }] : []),
     { icon: MessageSquare, label: 'Chat', path: '/workspace/chat', gradient: 'from-pink-500 to-rose-500' },
     { icon: MessageSquare, label: 'Messages', path: '/messages', gradient: 'from-sky-500 to-blue-500' },
     { icon: HardDrive, label: 'Files', path: '/files', gradient: 'from-slate-500 to-gray-500' },

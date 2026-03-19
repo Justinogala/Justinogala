@@ -2,7 +2,7 @@
 Organization management routes - CRUD, members, stats.
 """
 from fastapi import APIRouter, HTTPException, Query
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 import uuid
@@ -338,3 +338,119 @@ async def update_org_member(org_id: str, user_id: str, updates: OrgMemberUpdate)
     return {"success": True, "member": updated}
 
 
+
+
+# ============== Organization Dashboard ==============
+
+@router.get("/{org_id}/dashboard")
+async def get_org_dashboard(org_id: str, user_id: str = Query(...)):
+    """Get full dashboard data for an org admin."""
+    org = await db.organizations.find_one({"id": org_id}, {"_id": 0})
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    # Verify user is a business member of this org
+    requester = await db.users.find_one({"id": user_id, "organization_id": org_id}, {"_id": 0, "password": 0})
+    if not requester:
+        raise HTTPException(status_code=403, detail="Not a member of this organization")
+
+    # Members
+    members = await db.users.find(
+        {"organization_id": org_id, "account_type": "business"},
+        {"_id": 0, "password": 0}
+    ).to_list(500)
+
+    member_ids = [m["id"] for m in members]
+    active_count = sum(1 for m in members if m.get("status") == "Active")
+
+    # Role distribution
+    role_dist = {}
+    for m in members:
+        r = m.get("org_role", "member")
+        role_dist[r] = role_dist.get(r, 0) + 1
+
+    # Workspaces owned by org members
+    workspaces = []
+    if member_ids:
+        workspaces = await db.workspaces.find(
+            {"owner_id": {"$in": member_ids}},
+            {"_id": 0, "id": 1, "name": 1, "color": 1, "icon": 1, "scope": 1, "owner_id": 1, "created_at": 1}
+        ).to_list(100)
+
+    ws_ids = [w["id"] for w in workspaces]
+
+    # Approval stats for org members
+    pending_approvals = 0
+    completed_approvals = 0
+    rejected_approvals = 0
+    if member_ids:
+        pending_approvals = await db.approvals.count_documents({"sender_id": {"$in": member_ids}, "status": "pending"})
+        completed_approvals = await db.approvals.count_documents({"sender_id": {"$in": member_ids}, "status": "approved"})
+        rejected_approvals = await db.approvals.count_documents({"sender_id": {"$in": member_ids}, "status": "rejected"})
+
+    # Recent announcements across org workspaces
+    recent_announcements = []
+    if ws_ids:
+        recent_announcements = await db.workspace_announcements.find(
+            {"workspace_id": {"$in": ws_ids}},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(10)
+
+    # Recent activity: approvals created/actioned by org members (last 14 days)
+    now = datetime.now(timezone.utc)
+    two_weeks_ago = (now - timedelta(days=14)).isoformat()
+    recent_approvals = []
+    if member_ids:
+        recent_approvals = await db.approvals.find(
+            {"sender_id": {"$in": member_ids}, "created_at": {"$gte": two_weeks_ago}},
+            {"_id": 0, "id": 1, "title": 1, "status": 1, "sender_id": 1, "sender_name": 1, "created_at": 1}
+        ).sort("created_at", -1).to_list(10)
+
+    # Map member IDs to names for display
+    member_map = {m["id"]: m["name"] for m in members}
+
+    # Build activity feed
+    activity = []
+    for ann in recent_announcements:
+        activity.append({
+            "type": "announcement",
+            "title": ann.get("title", "Announcement"),
+            "workspace_id": ann.get("workspace_id"),
+            "created_at": ann.get("created_at"),
+            "pinned": ann.get("pinned", False),
+        })
+    for appr in recent_approvals:
+        activity.append({
+            "type": "approval",
+            "title": appr.get("title", "Approval Request"),
+            "status": appr.get("status"),
+            "sender": member_map.get(appr.get("sender_id"), appr.get("sender_name", "Unknown")),
+            "created_at": appr.get("created_at"),
+        })
+
+    # Sort by date descending
+    activity.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+
+    # Serialize members (convert datetime to iso)
+    for m in members:
+        if hasattr(m.get("created_at"), "isoformat"):
+            m["created_at"] = m["created_at"].isoformat()
+        if hasattr(m.get("updated_at"), "isoformat"):
+            m["updated_at"] = m["updated_at"].isoformat()
+
+    return {
+        "organization": org,
+        "stats": {
+            "total_members": len(members),
+            "active_members": active_count,
+            "workspace_count": len(workspaces),
+            "pending_approvals": pending_approvals,
+            "completed_approvals": completed_approvals,
+            "rejected_approvals": rejected_approvals,
+            "total_approvals": pending_approvals + completed_approvals + rejected_approvals,
+        },
+        "role_distribution": role_dist,
+        "members": members[:20],
+        "workspaces": workspaces[:10],
+        "activity": activity[:15],
+    }

@@ -78,6 +78,7 @@ const ShiftManagementPage = lazy(() => import('@/pages/ShiftManagementPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
 const ESignaturePage = lazy(() => import('@/pages/ESignaturePage'));
 const ApprovalsPage = lazy(() => import('@/pages/ApprovalsPage'));
+const OrgDashboardPage = lazy(() => import('@/pages/OrgDashboardPage'));
 
 // AI Pages
 const TranscriptionPage = lazy(() => import('@/pages/TranscriptionPage'));
@@ -377,6 +378,7 @@ function App() {
                                 <Route path="/files" element={<FileManagementPage />} />
                                 <Route path="/esignature" element={<ESignaturePage />} />
                                 <Route path="/approvals" element={<ApprovalsPage />} />
+                                <Route path="/org-dashboard" element={<OrgDashboardPage />} />
                                 
                                 <Route path="/workspaces" element={<WorkspacesPage />} />
                                 <Route path="/workspace/chat" element={<WorkspaceChatPage />} />
