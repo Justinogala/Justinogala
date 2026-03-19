@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Check, Loader2, ArrowRight, ArrowLeft, 
-  UserPlus, Sparkles, Palette
+  UserPlus, Sparkles, Palette, Globe, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,13 +47,14 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
     description: '',
     color: '#6366f1',
     icon: '🚀',
+    scope: 'team',
   });
   const [inviteEmails, setInviteEmails] = useState(['']);
   const [errors, setErrors] = useState({});
 
   const resetForm = () => {
     setStep(1);
-    setFormData({ name: '', description: '', color: '#6366f1', icon: '🚀' });
+    setFormData({ name: '', description: '', color: '#6366f1', icon: '🚀', scope: 'team' });
     setInviteEmails(['']);
     setErrors({});
     setShowSuccess(false);
@@ -93,7 +94,7 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
       const validEmails = inviteEmails.filter(e => e.trim() && e.includes('@'));
       const newWs = await createWorkspace(
         user.id, formData.name, formData.description, 
-        'Free', formData.color, formData.icon, validEmails
+        'Free', formData.color, formData.icon, validEmails, formData.scope
       );
       
       setShowSuccess(true);
@@ -239,6 +240,43 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
                       className="mt-1.5 resize-none rounded-lg bg-gray-50 dark:bg-slate-800 text-sm" />
                     <div className="flex justify-end text-xs text-gray-400 mt-1">{formData.description.length}/200</div>
+                  </div>
+
+                  {/* Scope Selection */}
+                  <div>
+                    <Label className="text-sm mb-2 block">Workspace Type</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({...formData, scope: 'team'})}
+                        className={cn(
+                          "p-3 rounded-xl border-2 text-left transition-all",
+                          formData.scope === 'team'
+                            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/20"
+                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                        )}
+                        data-testid="scope-team-btn"
+                      >
+                        <Users className={cn("w-5 h-5 mb-1.5", formData.scope === 'team' ? "text-indigo-600" : "text-gray-400")} />
+                        <p className={cn("text-sm font-semibold", formData.scope === 'team' ? "text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300")}>Team</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">Private to invited members only</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({...formData, scope: 'org'})}
+                        className={cn(
+                          "p-3 rounded-xl border-2 text-left transition-all",
+                          formData.scope === 'org'
+                            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/20"
+                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                        )}
+                        data-testid="scope-org-btn"
+                      >
+                        <Globe className={cn("w-5 h-5 mb-1.5", formData.scope === 'org' ? "text-indigo-600" : "text-gray-400")} />
+                        <p className={cn("text-sm font-semibold", formData.scope === 'org' ? "text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-300")}>Organisation</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">Visible to all org members</p>
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Users, HardDrive, Settings, MessageSquare, ArrowRight, MoreVertical } from 'lucide-react';
+import { Users, HardDrive, Settings, MessageSquare, ArrowRight, MoreVertical, Globe, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -54,6 +54,9 @@ const WorkspaceCard = ({ workspace }) => {
               </CardTitle>
               <Badge variant="outline" className={cn("mt-1 text-xs font-semibold border", getPlanColor(workspace.plan))}>
                 {workspace.plan || 'Free'}
+              </Badge>
+              <Badge variant="outline" className="mt-1 text-[10px] py-0 border-slate-200 dark:border-slate-700">
+                {workspace.scope === 'org' ? <><Globe className="w-2.5 h-2.5 mr-0.5" /> Org</> : <><Lock className="w-2.5 h-2.5 mr-0.5" /> Team</>}
               </Badge>
             </div>
           </div>
