@@ -24,15 +24,12 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - **6 Pre-built Blueprints**: Project Team, HR Department, Finance, Engineering, Marketing, General
 - **Auto-seeding on creation**: Welcome announcements (pinned), department-specific approval templates, custom quick links
 - **Template Selection Step**: Step 0 in Create Workspace modal with card grid, "Start from Scratch" option
-- **Auto-fill**: Selecting template pre-fills name, description, color, icon, scope
-- **Template Badge**: Shows "Using: {name} template" in Step 1 with "Change" link
-- **Custom Quick Links**: Template-specific links stored in workspace.settings and rendered in hub
-- **Approval Templates**: Seeded as is_custom=true with team_id=workspace_id
-  - HR: Leave Request, New Hire Onboarding, Performance Review
-  - Finance: Expense Report, Budget Request, Invoice Approval
-  - Engineering: Deployment Request, Incident Report
-  - Marketing: Campaign Proposal, Content Review
-  - Project Team: Sprint Sign-off, Change Request
+
+### Workspace Dashboard Widget (Complete - Mar 2026)
+- **Backend**: `GET /api/workspaces/dashboard/summary?user_id=xxx` aggregates workspace data with pending approvals, announcements, member counts
+- **Frontend**: `WorkspaceDashboardWidget` component in right sidebar of UserDashboard
+- **Features**: Color-coded workspace icons, scope indicators (globe/lock), pending approval badges, "ALL CLEAR" status, max 4 items with "View all" link, navigation to workspace detail on click
+- **Tested**: 100% pass rate (12/12 backend, all frontend verified)
 
 ### Other Features (Complete)
 - User/Admin auth (JWT + refresh tokens), Workspace management
@@ -44,7 +41,10 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - **Admin**: admin@munal.com / Admin@123456
 
 ## Prioritized Backlog
+### P1
+- Implement "Delegate" feature for approvals (assign pending requests to a substitute)
 ### P2
+- Approvals Module Phase 2: Further AI insights, advanced analytics, bottleneck detection
 - End-to-End test cloud storage migration
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned workspace_members data
@@ -54,6 +54,9 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Scheduled rotation for external API keys
 
 ## Key API Endpoints
+### Workspace Dashboard
+- `GET /api/workspaces/dashboard/summary?user_id=xxx` - Aggregated workspace summary with pending actions
+
 ### Workspace Templates
 - `GET /api/workspaces/templates` - List 6 templates (summary)
 - `GET /api/workspaces/templates/{id}` - Full template with announcements & approval templates
@@ -71,3 +74,8 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - `workspaces` (with settings.quick_links, settings.template_id)
 - `workspace_members`, `workspace_announcements`
 - `approvals`, `approval_templates`, `approval_comments`, `approval_audit`, `approval_notifications`, `approval_digest_prefs`
+
+## Key Files
+- `/app/src/components/user/WorkspaceDashboardWidget.jsx` (NEW)
+- `/app/src/pages/user/UserDashboard.jsx` (MODIFIED - added widget)
+- `/app/backend/routes/workspaces.py` (MODIFIED - added dashboard/summary endpoint)
