@@ -15,9 +15,9 @@ const AuthSidebar = ({ title, subtitle, features = [], showPartners = true }) =>
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div>
           <Link to="/" className="flex items-center gap-3 mb-16 hover:opacity-90 transition-opacity w-fit">
-             <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 shadow-lg p-2">
+             <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 shadow-lg p-1.5">
                <img 
-                 src="https://horizons-cdn.hostinger.com/1a826ed3-a150-41db-a308-d89a5e18a935/cb8c28207f2dc7615e604a05e68dc85b.png" 
+                 src="https://static.prod-images.emergentagent.com/jobs/0ff6213d-4a2a-4c94-9f92-a5cedc3a17d4/images/c66837e8355d2f7fb390996083b9cb7c8e4765b7bb7762754d0a7568ffe65bb5.png" 
                  alt="Munal AI Logo" 
                  className="w-full h-full object-contain"
                />
