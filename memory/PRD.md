@@ -19,7 +19,7 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 8. Functional admin report system
 9. eSignature module with PDF signing
 10. Security hardening (rate limiting, input sanitization, CORS, CSP, audit logging, field-level encryption)
-11. Approvals & Workflow Management Module (Phase 1 + P1 enhancements)
+11. Approvals & Workflow Management Module (Phase 1 + P1 + Phase 2)
 
 ## What's Been Implemented
 
@@ -34,25 +34,34 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Approve/Reject/Cancel actions with workflow step progression
 - Comments system, Immutable audit trail, CSV export
 
-### Approvals Module - P1 Enhancements (Complete - Mar 2026)
-- **Admin Template Management**: Full CRUD page at /admin/approval-templates
-  - 23 default templates (read-only, locked with badge)
-  - Create/Edit/Delete custom templates with fields builder
-  - Search and category filter
-  - Preview template fields dialog
-  - Scope setting (org-wide or team-specific)
-- **In-App Notifications**:
-  - Backend `approval_notifications` collection
-  - Notifications on: create (to approvers), approve/reject/cancel (to sender), comment (to all participants)
-  - Notification bell icon on Approvals dashboard with unread count badge
-  - Notification panel dropdown with message list
-  - Mark as read functionality
-  - In-app notification via NotificationContext on approval creation
-- **Integration with Meetings/Files/Chat**:
-  - "Link Meeting" button with meeting picker dialog in Create form
-  - "Attach File" button with file picker dialog in Create form
-  - linked_meeting and linked_files stored in approval document
-  - Linked items shown in Approval Detail view
+### Approvals Module - P1 Enhancements (Complete)
+- Admin Template Management at /admin/approval-templates (full CRUD)
+- In-App Notifications (create, approve, reject, cancel, comment triggers)
+- Bell icon with unread badge, notification panel
+- Integration with Meetings/Files/Chat (Link Meeting, Attach File pickers)
+
+### Approvals Module - Phase 2 (Complete - Mar 2026)
+- **Analytics Dashboard**: 
+  - Summary cards (Total Requests, Approval Rate %, Avg Resolution Time, Most Active Category)
+  - Request Volume area chart (30 days, created vs resolved)
+  - Status Distribution donut chart
+  - Requests by Category bar chart
+  - Avg Resolution Time by Category bar chart
+- **AI Insights** (data-driven, no LLM cost):
+  - Trend detection (volume increase/decrease week-over-week)
+  - High rejection rate alerts by category
+  - Approval rate health check
+  - Peak activity patterns (busiest day of week)
+  - Bottleneck alert summaries
+- **Bottleneck Detection**:
+  - Slow approvers (avg response > 24h, severity: medium/high)
+  - Stuck requests (pending > 3 days, severity escalation)
+  - Actionable messages with severity badges
+- **Duplicate Request**:
+  - "Duplicate" button in approval detail view
+  - One-click cloning preserving form_data, approvers, priority, category, description
+  - New approval created with "(Copy)" suffix, status: pending, source: "Duplicated"
+  - Notifications sent to approvers on duplicate
 
 ### Other Features (Complete)
 - Voice selection for Text-to-Video, PDF/Word converters, File conversion history
@@ -67,7 +76,6 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ## Prioritized Backlog
 
 ### P2
-- Approvals Phase 2: AI insights, analytics dashboard, bottleneck detection
 - End-to-End test cloud storage migration
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned workspace_members data
@@ -77,33 +85,24 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Implement 2FA for admin accounts
 - Scheduled rotation for external API keys
 
-## Key Architecture Files
-- Backend: `/app/backend/server.py`, `/app/backend/routes/approvals.py`
-- Frontend: `/app/src/pages/ApprovalsPage.jsx`, `/app/src/pages/admin/AdminApprovalTemplatesPage.jsx`
-- Sidebar: `/app/src/components/UserSidebar.jsx`, `/app/src/components/AdminSidebar.jsx`
-- Routes: `/app/src/App.jsx`
-- Tests: `/app/backend/tests/test_approvals_api.py`, `/app/backend/tests/test_approvals_p1_features.py`
-
 ## Key API Endpoints (Approvals)
 - `GET /api/approvals/templates` - List all templates
-- `GET /api/approvals/templates/{id}` - Get specific template
-- `POST /api/approvals/templates` - Create custom template
-- `PUT /api/approvals/templates/{id}` - Update custom template
-- `DELETE /api/approvals/templates/{id}` - Delete custom template
-- `POST /api/approvals/create` - Create approval (with linked_meeting, linked_files)
+- `POST/PUT/DELETE /api/approvals/templates/{id}` - Template CRUD
+- `POST /api/approvals/create` - Create approval (with linked items)
 - `GET /api/approvals/list` - List approvals (filtered)
-- `GET /api/approvals/detail/{id}` - Full detail with comments and audit
-- `POST /api/approvals/action/{id}` - Approve/reject/cancel/reassign
+- `GET /api/approvals/detail/{id}` - Full detail
+- `POST /api/approvals/action/{id}` - Approve/reject/cancel
 - `POST /api/approvals/comments/{id}` - Add comment
 - `GET /api/approvals/stats` - Dashboard statistics
 - `GET /api/approvals/export` - CSV export
-- `GET /api/approvals/notifications` - Get user notifications
-- `POST /api/approvals/notifications/read` - Mark all read
-- `POST /api/approvals/notifications/{id}/read` - Mark single read
+- `GET /api/approvals/notifications` - User notifications
+- `POST /api/approvals/notifications/read` - Mark read
+- `GET /api/approvals/analytics` - Full analytics (charts, insights, bottlenecks)
+- `POST /api/approvals/duplicate/{id}` - Clone existing approval
 
 ## DB Collections (Approvals)
-- `approvals` - Main approval requests (with linked_meeting, linked_files, linked_chat_message)
-- `approval_templates` - Custom templates (is_custom=true)
-- `approval_comments` - Comments on approvals
+- `approvals` - Main requests (with linked_meeting, linked_files, linked_chat_message)
+- `approval_templates` - Custom templates
+- `approval_comments` - Comments
 - `approval_audit` - Immutable audit trail
-- `approval_notifications` - Per-user notification records
+- `approval_notifications` - Per-user notifications
