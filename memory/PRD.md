@@ -1,7 +1,7 @@
 # Munal/EchoNote AI - Product Requirements Document
 
 ## Original Problem Statement
-Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, SharePoint-style Workspace Hubs, and Organization-Managed Business Accounts with self-service dashboards.
+Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, SharePoint-style Workspace Hubs, and Organization-Managed Business Accounts with self-service dashboards and team invitations.
 
 ## Tech Stack
 - **Frontend**: Vite/React, Tailwind CSS, Shadcn/UI, Recharts, Framer Motion
@@ -13,68 +13,54 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ### Organization Management (Complete - Mar 2026)
 
 #### Core Org CRUD + Admin Page (iteration_50)
-- Full CRUD at `/api/organizations`, member management, org stats
-- Admin Organizations page with list/detail views
+- Full CRUD, member management, org stats, admin Organizations page
 
-#### Domain Auto-Enrollment (iteration_51)
-- Registration checks email domain → auto-assigns to matching org as business account
+#### Domain Auto-Enrollment + Edit Member + Self-Registration (iteration_51)
+- Auto-assign on register by email domain, edit member from admin, org signup from registration page
 
-#### Edit Org Member Info (iteration_51)
-- `PUT /api/organizations/{org_id}/members/{user_id}` — update name, email, role, plan, status
-- Edit button on each member row in admin detail view
+#### Organization Dashboard (iteration_52)
+- Full dashboard at `/org-dashboard` with stats, members, workspaces, activity, role distribution
+- Sidebar "My Organization" link for business users
 
-#### Organization Self-Registration (iteration_51)
-- `POST /api/organizations/signup` — creates org + admin user in one step
-- Signup page Personal/Organization toggle
-
-#### Organization Dashboard (iteration_52) — NEW
-- `GET /api/organizations/{org_id}/dashboard` — aggregated endpoint with stats, members, workspaces, activity, role distribution
-- Full dashboard page at `/org-dashboard` with:
-  - 6 stat cards (members, active, workspaces, pending/completed/total approvals)
-  - Team Members table with roles and status indicators
-  - Role Breakdown with progress bars
-  - Approval Overview (pending/approved/rejected)
-  - Organization Workspaces list with navigation
-  - Recent Activity feed (announcements + approvals)
-- Sidebar "My Organization" link — only visible to business users with org_id
+#### Team Invites + Direct Create (iteration_53) — NEW
+- **Invite by Email**: `POST /api/organizations/{org_id}/invite` — sends styled HTML email via Resend + generates shareable invite link (7-day expiry)
+- **Invite Validation**: `POST /api/organizations/invite/validate?token=xxx` — validates token, returns org info
+- **Direct Account Creation**: `POST /api/organizations/{org_id}/direct-create` — creates user immediately under org
+- **Invite Token in Registration**: `POST /api/auth/register?invite_token=xxx` — auto-assigns to org, marks invite accepted
+- **Frontend**: Two buttons on Org Dashboard — "Invite Team" (email + copyable link) and "Create Account" (instant)
+- **Signup Page**: Invite banner when `?invite=token` in URL, hides account type toggle
+- **Tested**: 100% (12/12 backend, all frontend verified)
 
 ### eSignature Terms of Service (Complete)
-- Full TOS for Munal AI / Jiffix Inc on eSignature page
-
 ### Workspace Dashboard Widget (Complete)
-- Aggregated workspace summary in user dashboard sidebar
-
 ### Approvals Module (Complete)
-- Phase 1 & 2: Dashboard, Templates, Workflows, Analytics, AI Insights, Notifications, Weekly Digest
-
 ### SharePoint-Style Workspace Hub (Complete)
-- Dynamic homepages, activity feed, announcements, workspace templates
-
-### Other Features (Complete)
-- Auth, Workspaces, File Manager, AI Messaging, Sora 2, TTS, IR/SOR, eSignature, SSE Notifications
+### Other Features (Auth, Files, AI, Sora 2, TTS, IR/SOR, eSignature, SSE)
 
 ## Credentials
 - **Admin**: admin@munal.com / Admin@123456
-- **Business User**: justin.ogala@munal.com / Justin@123456 (Munal Inc, org_role: manager)
+- **Business User**: justin.ogala@munal.com / Justin@123456
 
 ## Key API Endpoints
 
-### Organization Dashboard
-- `GET /api/organizations/{org_id}/dashboard?user_id=xxx` — Full org dashboard
+### Organization Invites
+- `POST /api/organizations/{org_id}/invite` — Send email invite + get link
+- `POST /api/organizations/invite/validate?token=xxx` — Validate invite token
+- `GET /api/organizations/{org_id}/invites` — List pending invites
+- `POST /api/organizations/{org_id}/direct-create` — Create member account directly
+- `POST /api/auth/register?invite_token=xxx` — Register with invite auto-assignment
 
-### Organizations
-- `GET/POST /api/organizations` — List/Create
-- `POST /api/organizations/signup` — Self-registration
-- `GET/PUT/DELETE /api/organizations/{id}` — CRUD
-- `GET/POST /api/organizations/{org_id}/members` — List/Add
-- `PUT /api/organizations/{org_id}/members/{user_id}` — Edit member
-- `DELETE /api/organizations/{org_id}/members/{user_id}` — Remove
+### Organization Dashboard + CRUD (see previous)
+
+## DB Collections
+- `organizations`, `org_invites` (NEW: id, org_id, email, token, status, role, expires_at)
+- `users` (account_type, organization_id, org_role)
 
 ## Key Files
-- `/app/src/pages/OrgDashboardPage.jsx` (NEW)
-- `/app/backend/routes/organizations.py` (dashboard endpoint added)
-- `/app/src/components/UserSidebar.jsx` (My Organization link)
-- `/app/src/App.jsx` (/org-dashboard route)
+- `/app/backend/routes/organizations.py` — invite, validate, direct-create, dashboard
+- `/app/src/pages/OrgDashboardPage.jsx` — invite + create dialogs
+- `/app/src/pages/SignupPage.jsx` — invite banner + token handling
+- `/app/src/context/AuthContext.jsx` — signup with invite token
 
 ## Prioritized Backlog
 ### P1
