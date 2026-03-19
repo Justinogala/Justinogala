@@ -1,7 +1,7 @@
 # Munal/EchoNote AI - Product Requirements Document
 
 ## Original Problem Statement
-Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, and Approvals & Workflow Management.
+Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, and SharePoint-style Workspace Hubs.
 
 ## Tech Stack
 - **Frontend**: Vite/React, Tailwind CSS, Shadcn/UI, Recharts
@@ -10,36 +10,27 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## What's Been Implemented
 
-### Approvals Module - Phase 1 (Complete)
-- Sidebar navigation, Dashboard with stats, Received/Sent tabs, search/filters
-- Template Store (23 templates, 6 categories), Create Approval form
-- Workflow Engine (single/sequential/parallel), Detail view, Comments, Audit trail, CSV export
+### Approvals Module (Complete)
+- Phase 1: Dashboard, Template Store (23 templates), Workflow Engine, CRUD, CSV Export
+- P1: Admin Template CRUD, In-App Notifications, Meetings/Files/Chat Integration
+- Phase 2: Analytics Dashboard (4 charts), AI Insights, Bottleneck Detection, Duplicate Request
+- Weekly Digest: Resend email, APScheduler cron (Monday 9AM), user preferences toggle
 
-### Approvals Module - P1 Enhancements (Complete)
-- Admin Template Management (/admin/approval-templates) - full CRUD
-- In-App Notifications (create/approve/reject/cancel/comment triggers)
-- Integration with Meetings/Files/Chat (Link Meeting, Attach File pickers)
-
-### Approvals Module - Phase 2 (Complete)
-- Analytics Dashboard (4 summary cards + 4 Recharts charts)
-- AI Insights (trend detection, rejection rates, approval health, peak patterns, bottleneck alerts)
-- Bottleneck Detection (slow approvers >24h, stuck requests >3 days)
-- Duplicate Request (one-click clone preserving all data)
-
-### Weekly Digest Email (Complete - Mar 2026)
-- **Scheduler**: APScheduler cron job runs every Monday 9 AM UTC
-- **Resend Integration**: Real email delivery via noreply@munal.ai
-- **HTML Template**: Styled email with stats grid (Sent/Received/Approved/Rejected), "Awaiting Your Action" pending count, trend indicator, bottleneck alerts, "View Dashboard" CTA
-- **User Preferences**: Toggle to enable/disable digest per user (default: enabled)
-- **Manual Trigger**: Admin API to send digest on-demand for testing
-- **Preview**: Endpoint to view email HTML before sending
-- **Frontend**: Mail icon in dashboard header opens settings dialog with toggle, send test, preview link
+### SharePoint-Style Workspace Hub (Complete - Mar 2026)
+- **Hero Banner**: Workspace icon, name, scope badge (Org/Team), description, quick actions (Shifts, Chat)
+- **Dynamic Stats**: Real member count, file count, pending approvals, announcement count, weekly activity — all from DB
+- **Quick Access Grid**: Chat, Files, Approvals, Calendar cards with gradient icons
+- **Announcements (News)**: Full CRUD — create, pin to top, delete. Shown in Home + News tabs
+- **Activity Feed**: Real activities from DB — member joins, approvals created, announcements posted
+- **Workspace Scope**: Organisation-wide vs Team-specific during creation. Scope badge on cards & hub
+- **Tab Navigation**: Home, News, Members, Activity, Settings — each fully functional
+- **Settings Tab**: Edit name/description, scope display, danger zone with workspace delete
 
 ### Other Features (Complete)
-- Voice selection for Text-to-Video, PDF/Word converters, File conversion history
-- Features mega-menu, Reply toolbar with attachments, CC/BCC in messaging
-- Meeting history, Admin role management, Incident analytics
-- Real-time notifications (SSE), Password complexity, Refresh tokens, Audit logging, Encryption
+- User/Admin auth (JWT + refresh tokens), Workspace management
+- Full file manager, AI messaging, Text-to-Video (Sora 2), Text-to-Audio
+- IR/SOR system, Admin reports, eSignature with PDF signing
+- Security hardening, Real-time notifications (SSE), Password complexity, Audit logging
 
 ## Credentials
 - **Admin**: admin@munal.com / Admin@123456
@@ -54,15 +45,21 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - 2FA for admin accounts
 - Scheduled rotation for external API keys
 
-## Key API Endpoints (Approvals)
-- Templates: `GET/POST/PUT/DELETE /api/approvals/templates[/{id}]`
-- CRUD: `POST /api/approvals/create`, `GET /api/approvals/list`, `GET /api/approvals/detail/{id}`
-- Actions: `POST /api/approvals/action/{id}`, `POST /api/approvals/comments/{id}`
-- Stats: `GET /api/approvals/stats`, `GET /api/approvals/export`
-- Analytics: `GET /api/approvals/analytics`
-- Duplicate: `POST /api/approvals/duplicate/{id}`
-- Notifications: `GET /api/approvals/notifications`, `POST /api/approvals/notifications/read`
-- Digest: `GET /api/approvals/digest/preview`, `POST /api/approvals/digest/trigger`, `GET/POST /api/approvals/digest/preferences`
+## Key API Endpoints
+### Workspaces
+- `POST /api/workspaces` (with scope: team|org)
+- `GET/PUT/DELETE /api/workspaces/{id}`
+- `GET /api/workspaces/{id}/stats` - Real-time stats
+- `GET /api/workspaces/{id}/activity` - Activity feed
+- `GET/POST/PUT/DELETE /api/workspaces/{id}/announcements` - Announcements CRUD
 
-## DB Collections (Approvals)
+### Approvals
+- Templates: `GET/POST/PUT/DELETE /api/approvals/templates[/{id}]`
+- CRUD: `POST create`, `GET list`, `GET detail/{id}`, `POST action/{id}`, `POST comments/{id}`
+- Analytics: `GET analytics`, `POST duplicate/{id}`, `GET stats`, `GET export`
+- Notifications: `GET/POST notifications`, Digest: `GET preview`, `POST trigger`, `GET/POST preferences`
+
+## DB Collections
+- `workspaces`, `workspace_members`, `workspace_announcements`
 - `approvals`, `approval_templates`, `approval_comments`, `approval_audit`, `approval_notifications`, `approval_digest_prefs`
+- `users`, `messages`, `files`, `meetings`, `conversion_history`
