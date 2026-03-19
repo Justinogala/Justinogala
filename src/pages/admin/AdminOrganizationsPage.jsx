@@ -26,12 +26,16 @@ const AdminOrganizationsPage = () => {
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [showEditOrg, setShowEditOrg] = useState(false);
+  const [showEditMember, setShowEditMember] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
 
   // Create org form
   const [orgForm, setOrgForm] = useState({ name: '', domain: '', description: '' });
   // Add member form
   const [memberForm, setMemberForm] = useState({ name: '', email: '', password: '', role: 'member', org_role: 'User', plan: 'Free' });
+  // Edit member form
+  const [editMemberForm, setEditMemberForm] = useState({ name: '', email: '', org_role: '', plan: '', status: '' });
 
   const fetchOrgs = useCallback(async () => {
     try {
@@ -156,6 +160,40 @@ const AdminOrganizationsPage = () => {
     }
   };
 
+  const openEditMember = (member) => {
+    setEditingMember(member);
+    setEditMemberForm({
+      name: member.name || '',
+      email: member.email || '',
+      org_role: member.org_role || 'member',
+      plan: member.plan || 'Free',
+      status: member.status || 'Active',
+    });
+    setShowEditMember(true);
+  };
+
+  const handleEditMember = async () => {
+    if (!editingMember) return;
+    setFormLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/organizations/${selectedOrg.id}/members/${editingMember.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editMemberForm)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed');
+      toast({ title: `${editMemberForm.name} updated` });
+      setShowEditMember(false);
+      setEditingMember(null);
+      selectOrg(selectedOrg);
+    } catch (err) {
+      toast({ title: err.message, variant: 'destructive' });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const filtered = orgs.filter(o =>
     o.name.toLowerCase().includes(search.toLowerCase()) ||
     (o.domain || '').toLowerCase().includes(search.toLowerCase())
@@ -253,6 +291,9 @@ const AdminOrganizationsPage = () => {
                     <Badge className={`text-[10px] px-2 ${m.status === 'Active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-red-100 text-red-700'}`}>
                       {m.status}
                     </Badge>
+                    <Button variant="ghost" size="sm" className="text-slate-400 hover:text-violet-600 hover:bg-violet-50" onClick={() => openEditMember(m)} data-testid={`org-edit-member-${i}`}>
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
                     <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleRemoveMember(m.id, m.name)} data-testid={`org-remove-member-${i}`}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
@@ -316,6 +357,58 @@ const AdminOrganizationsPage = () => {
               <Button onClick={handleAddMember} disabled={formLoading} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="add-member-submit">
                 {formLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <UserPlus className="w-4 h-4 mr-1" />}
                 Create Account
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Member Dialog */}
+        <Dialog open={showEditMember} onOpenChange={setShowEditMember}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Member Account</DialogTitle>
+              <p className="text-xs text-slate-500 mt-1">Update account info for {editingMember?.name}</p>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">Full Name</label>
+                <Input value={editMemberForm.name} onChange={e => setEditMemberForm(p => ({ ...p, name: e.target.value }))} data-testid="edit-member-name" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">Email</label>
+                <Input type="email" value={editMemberForm.email} onChange={e => setEditMemberForm(p => ({ ...p, email: e.target.value }))} data-testid="edit-member-email" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">Org Role</label>
+                  <select className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm" value={editMemberForm.org_role} onChange={e => setEditMemberForm(p => ({ ...p, org_role: e.target.value }))} data-testid="edit-member-role">
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="member">Member</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">Plan</label>
+                  <select className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm" value={editMemberForm.plan} onChange={e => setEditMemberForm(p => ({ ...p, plan: e.target.value }))} data-testid="edit-member-plan">
+                    <option value="Free">Free</option>
+                    <option value="Business">Business</option>
+                    <option value="Enterprise">Enterprise</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-1 block">Status</label>
+                  <select className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm" value={editMemberForm.status} onChange={e => setEditMemberForm(p => ({ ...p, status: e.target.value }))} data-testid="edit-member-status">
+                    <option value="Active">Active</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditMember(false)}>Cancel</Button>
+              <Button onClick={handleEditMember} disabled={formLoading} className="bg-violet-600 hover:bg-violet-700 text-white" data-testid="edit-member-save">
+                {formLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
               </Button>
             </DialogFooter>
           </DialogContent>

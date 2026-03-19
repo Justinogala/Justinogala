@@ -34,6 +34,22 @@ class OrgMemberAdd(BaseModel):
     org_role: str = "User"
     plan: str = "Free"
 
+class OrgMemberUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    org_role: Optional[str] = None
+    role: Optional[str] = None
+    plan: Optional[str] = None
+    status: Optional[str] = None
+
+class OrgSignup(BaseModel):
+    org_name: str
+    domain: Optional[str] = None
+    description: Optional[str] = None
+    admin_name: str
+    admin_email: str
+    admin_password: str
+
 
 # ============== Organization CRUD ==============
 
@@ -69,6 +85,72 @@ async def create_organization(org: OrgCreate):
     org_doc.pop("_id", None)
     logger.info(f"Organization '{org.name}' created by {org.created_by}")
     return {"success": True, "organization": org_doc}
+
+
+# ============== Organization Self-Registration ==============
+
+@router.post("/signup")
+async def org_signup(data: OrgSignup):
+    """Public endpoint: Register a new organization + admin user in one step."""
+    if not data.org_name.strip():
+        raise HTTPException(status_code=400, detail="Organization name is required")
+    if not data.admin_email or not data.admin_password or not data.admin_name:
+        raise HTTPException(status_code=400, detail="Admin name, email, and password are required")
+
+    email = data.admin_email.lower()
+
+    existing_org = await db.organizations.find_one({"name": {"$regex": f"^{data.org_name}$", "$options": "i"}})
+    if existing_org:
+        raise HTTPException(status_code=400, detail="Organization with this name already exists")
+
+    existing_user = await db.users.find_one({"email": email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Create organization
+    org_id = str(uuid.uuid4())
+    org_doc = {
+        "id": org_id,
+        "name": data.org_name.strip(),
+        "domain": data.domain.strip() if data.domain else None,
+        "description": data.description,
+        "created_by": "self-signup",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.organizations.insert_one(org_doc)
+    org_doc.pop("_id", None)
+
+    # Create admin user under the org
+    from models import DEFAULT_PERMISSIONS
+    permissions = DEFAULT_PERMISSIONS.get("User", {})
+
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": email,
+        "password": bcrypt.hashpw(data.admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+        "name": data.admin_name.strip(),
+        "role": "User",
+        "status": "Active",
+        "plan": "Business",
+        "account_type": "business",
+        "organization_id": org_id,
+        "org_role": "admin",
+        "permissions": permissions,
+        "avatar": None,
+        "email_verified": True,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
+    await db.users.insert_one(user_doc)
+    user_doc.pop("password")
+    user_doc.pop("_id", None)
+    user_doc["created_at"] = user_doc["created_at"].isoformat()
+    user_doc["updated_at"] = user_doc["updated_at"].isoformat()
+
+    logger.info(f"Organization self-signup: '{data.org_name}' by {email}")
+    return {"success": True, "organization": org_doc, "user": user_doc}
 
 
 @router.get("/{org_id}")
@@ -227,3 +309,32 @@ async def get_org_stats(org_id: str):
         "workspace_count": workspace_count,
         "approval_count": approval_count,
     }
+
+
+# ============== Edit Member ==============
+
+@router.put("/{org_id}/members/{user_id}")
+async def update_org_member(org_id: str, user_id: str, updates: OrgMemberUpdate):
+    """Update an org member's account info."""
+    user = await db.users.find_one({"id": user_id, "organization_id": org_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Member not found in this organization")
+
+    update_data = {k: v for k, v in updates.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    # If email is changing, check for duplicates
+    if "email" in update_data:
+        update_data["email"] = update_data["email"].lower()
+        existing = await db.users.find_one({"email": update_data["email"], "id": {"$ne": user_id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already in use by another user")
+
+    update_data["updated_at"] = datetime.now(timezone.utc)
+    await db.users.update_one({"id": user_id}, {"$set": update_data})
+
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    return {"success": True, "member": updated}
+
+
