@@ -23,7 +23,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    window.location.href = '/';
   };
 
   const toggleCollapse = () => {

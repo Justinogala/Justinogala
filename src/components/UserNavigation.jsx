@@ -40,7 +40,7 @@ const UserNavigation = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    window.location.href = '/';
   };
 
   const navItems = [

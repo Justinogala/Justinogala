@@ -86,6 +86,11 @@ const AdminSidebar = ({ onClose, isMobile }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
 
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/';
+  };
+
   const toggleCollapse = () => {
     if (!isMobile) setCollapsed(!collapsed);
   };
@@ -381,7 +386,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
               variant="ghost" 
               size="icon" 
               className="h-9 w-9 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-              onClick={logout}
+              onClick={handleLogout}
               title="Logout"
             >
               <LogOut className="w-4 h-4" />

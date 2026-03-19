@@ -15,7 +15,7 @@ const AdminHeader = ({ onMenuClick }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/admin/login');
+    window.location.href = '/';
   };
 
   return (
