@@ -19,6 +19,7 @@ import APIStatus from '@/components/APIStatus';
 import UserPaymentDashboardWidget from '@/components/user/UserPaymentDashboardWidget';
 import TranscriptionWidget from '@/components/TranscriptionWidget';
 import UsageDashboard from '@/components/UsageDashboard';
+import WorkspaceDashboardWidget from '@/components/user/WorkspaceDashboardWidget';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -201,6 +202,7 @@ const UserDashboard = () => {
 
           {/* Right Column */}
           <motion.div variants={item} className="lg:col-span-4 space-y-6">
+            <WorkspaceDashboardWidget />
             <TranscriptionWidget />
             <UserPaymentDashboardWidget />
             

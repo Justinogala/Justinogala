@@ -421,6 +421,123 @@ async def create_workspace(workspace: WorkspaceCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============ Dashboard Summary ============
+
+@router.get("/dashboard/summary")
+async def get_dashboard_summary(user_id: str = Query(...)):
+    """Get a compact summary of all workspaces for a user with pending action counts."""
+    try:
+        # Get all workspace IDs for the user (owned + member)
+        owned = await db.workspaces.find({"owner_id": user_id}, {"_id": 0, "id": 1, "name": 1, "color": 1, "icon": 1, "scope": 1, "settings": 1}).to_list(50)
+        owned_ids = {w["id"] for w in owned}
+
+        memberships = await db.workspace_members.find({"user_id": user_id}, {"workspace_id": 1}).to_list(100)
+        member_ws_ids = [m["workspace_id"] for m in memberships if m["workspace_id"] not in owned_ids]
+
+        member_workspaces = []
+        if member_ws_ids:
+            member_workspaces = await db.workspaces.find(
+                {"id": {"$in": member_ws_ids}},
+                {"_id": 0, "id": 1, "name": 1, "color": 1, "icon": 1, "scope": 1, "settings": 1}
+            ).to_list(50)
+
+        all_workspaces = owned + member_workspaces
+
+        if not all_workspaces:
+            return {"workspaces": [], "total_pending_approvals": 0, "total_announcements": 0}
+
+        ws_ids = [w["id"] for w in all_workspaces]
+
+        # Batch: member counts per workspace
+        member_counts_cursor = db.workspace_members.aggregate([
+            {"$match": {"workspace_id": {"$in": ws_ids}}},
+            {"$group": {"_id": "$workspace_id", "count": {"$sum": 1}}}
+        ])
+        member_counts = {doc["_id"]: doc["count"] async for doc in member_counts_cursor}
+
+        # Batch: announcement counts per workspace
+        ann_counts_cursor = db.workspace_announcements.aggregate([
+            {"$match": {"workspace_id": {"$in": ws_ids}}},
+            {"$group": {"_id": "$workspace_id", "count": {"$sum": 1}}}
+        ])
+        ann_counts = {doc["_id"]: doc["count"] async for doc in ann_counts_cursor}
+
+        # Pending approvals where user is an approver
+        pending_approvals = await db.approvals.find(
+            {"steps.approver_id": user_id, "status": "pending"},
+            {"_id": 0, "sender_id": 1, "steps": 1}
+        ).to_list(200)
+
+        # Map approvals to workspaces via sender membership
+        all_member_docs = await db.workspace_members.find(
+            {"workspace_id": {"$in": ws_ids}},
+            {"_id": 0, "workspace_id": 1, "user_id": 1}
+        ).to_list(500)
+        user_to_workspaces = {}
+        for md in all_member_docs:
+            user_to_workspaces.setdefault(md["user_id"], set()).add(md["workspace_id"])
+
+        pending_per_ws = {}
+        for appr in pending_approvals:
+            sender = appr.get("sender_id", "")
+            ws_set = user_to_workspaces.get(sender, set())
+            for wid in ws_set:
+                if wid in ws_ids:
+                    pending_per_ws[wid] = pending_per_ws.get(wid, 0) + 1
+
+        # Recent activity (last 7 days) per workspace
+        now = datetime.now(timezone.utc)
+        week_ago = (now - timedelta(days=7)).isoformat()
+
+        recent_ann_cursor = db.workspace_announcements.aggregate([
+            {"$match": {"workspace_id": {"$in": ws_ids}, "created_at": {"$gte": week_ago}}},
+            {"$group": {"_id": "$workspace_id", "count": {"$sum": 1}}}
+        ])
+        recent_ann = {doc["_id"]: doc["count"] async for doc in recent_ann_cursor}
+
+        # Build summary
+        total_pending = 0
+        total_ann = 0
+        summaries = []
+        for w in all_workspaces:
+            wid = w["id"]
+            pending = pending_per_ws.get(wid, 0)
+            anns = ann_counts.get(wid, 0)
+            recent = recent_ann.get(wid, 0)
+            members = member_counts.get(wid, 0)
+            total_pending += pending
+            total_ann += anns
+
+            template_id = None
+            if w.get("settings") and isinstance(w["settings"], dict):
+                template_id = w["settings"].get("template_id")
+
+            summaries.append({
+                "id": wid,
+                "name": w.get("name", "Workspace"),
+                "color": w.get("color", "#6366f1"),
+                "icon": w.get("icon"),
+                "scope": w.get("scope", "team"),
+                "template_id": template_id,
+                "member_count": members,
+                "announcement_count": anns,
+                "recent_announcements": recent,
+                "pending_approvals": pending,
+            })
+
+        # Sort: workspaces with pending actions first, then by name
+        summaries.sort(key=lambda x: (-x["pending_approvals"], -x["recent_announcements"], x["name"]))
+
+        return {
+            "workspaces": summaries,
+            "total_pending_approvals": total_pending,
+            "total_announcements": total_ann,
+        }
+    except Exception as e:
+        logger.error(f"Error fetching dashboard summary: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{workspace_id}")
 async def get_workspace(workspace_id: str):
     """Get a single workspace"""
