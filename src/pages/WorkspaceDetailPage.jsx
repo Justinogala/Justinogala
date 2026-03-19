@@ -25,12 +25,18 @@ import { cn } from '@/lib/utils';
 import PageTransition from '@/components/PageTransition';
 import WorkspaceMemberManagement from '@/components/WorkspaceMemberManagement';
 
-const QUICK_LINKS = [
+const DEFAULT_QUICK_LINKS = [
   { icon: MessageSquare, label: 'Chat', path: '/workspace/chat', color: 'from-blue-500 to-cyan-500', desc: 'Team messaging' },
   { icon: FileText, label: 'Files', path: '/files', color: 'from-emerald-500 to-green-500', desc: 'Document library' },
   { icon: FileCheck2, label: 'Approvals', path: '/approvals', color: 'from-violet-500 to-purple-500', desc: 'Workflow requests' },
   { icon: Calendar, label: 'Calendar', path: '/calendar', color: 'from-orange-500 to-amber-500', desc: 'Team schedule' },
 ];
+
+const ICON_MAP = {
+  'message-square': MessageSquare, 'folder': FolderOpen, 'clipboard-list': FileCheck2,
+  'calendar': Calendar, 'file-text': FileText, 'users': Users, 'receipt': FileText,
+  'megaphone': Megaphone, 'rocket': ExternalLink, 'book': FileText, 'palette': FolderOpen,
+};
 
 const ACTIVITY_ICONS = {
   member_joined: UserPlus,
@@ -159,6 +165,17 @@ const WorkspaceDetailPage = () => {
 
   const isOwner = workspace.owner_id === user?.id;
 
+  // Resolve quick links from template settings or defaults
+  const COLORS = ['from-blue-500 to-cyan-500', 'from-emerald-500 to-green-500', 'from-violet-500 to-purple-500', 'from-orange-500 to-amber-500', 'from-rose-500 to-pink-500', 'from-teal-500 to-green-500'];
+  const savedLinks = workspace.settings?.quick_links;
+  const quickLinks = savedLinks ? savedLinks.map((ql, i) => ({
+    icon: ICON_MAP[ql.icon] || FileText,
+    label: ql.label,
+    path: ql.path,
+    color: COLORS[i % COLORS.length],
+    desc: ql.label,
+  })) : DEFAULT_QUICK_LINKS;
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-gray-50/50 dark:bg-slate-950" data-testid="workspace-detail">
@@ -246,7 +263,7 @@ const WorkspaceDetailPage = () => {
                   <div>
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Quick Access</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="quick-links">
-                      {QUICK_LINKS.map(link => (
+                      {quickLinks.map(link => (
                         <Card key={link.label} className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-0.5 group" onClick={() => navigate(link.path)}>
                           <CardContent className="p-4 text-center">
                             <div className={cn('w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center bg-gradient-to-br', link.color)}>

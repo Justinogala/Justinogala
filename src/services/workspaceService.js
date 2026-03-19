@@ -4,7 +4,7 @@ import { getApiUrl, API_URL } from '@/lib/api';
 
 // --- Workspace CRUD ---
 
-export const createWorkspace = async (userId, name, description = '', plan = 'Free', color = '#6366f1', icon = null, inviteEmails = [], scope = 'team') => {
+export const createWorkspace = async (userId, name, description = '', plan = 'Free', color = '#6366f1', icon = null, inviteEmails = [], scope = 'team', templateId = null) => {
   try {
     const response = await fetch(`${API_URL}/api/workspaces`, {
       method: 'POST',
@@ -16,7 +16,8 @@ export const createWorkspace = async (userId, name, description = '', plan = 'Fr
         owner_id: userId,
         color,
         icon,
-        scope
+        scope,
+        template_id: templateId
       })
     });
     

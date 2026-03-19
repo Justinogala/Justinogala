@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Check, Loader2, ArrowRight, ArrowLeft, 
-  UserPlus, Sparkles, Palette, Globe, Users
+  UserPlus, Sparkles, Palette, Globe, Users,
+  Target, Briefcase, Wrench, Megaphone, DollarSign, Rocket, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ import { useWorkspace } from '@/context/WorkspaceContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { API_URL } from '@/lib/api';
 
 const WORKSPACE_COLORS = [
   '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
@@ -29,9 +31,19 @@ const WORKSPACE_ICONS = [
 ];
 
 const STEPS = [
+  { id: 0, label: 'Template' },
   { id: 1, label: 'Details' },
   { id: 2, label: 'Invite' },
 ];
+
+const TEMPLATE_ICONS = {
+  'project-team': Target,
+  'hr-department': Users,
+  'finance': DollarSign,
+  'engineering': Wrench,
+  'marketing': Megaphone,
+  'general': Rocket,
+};
 
 const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
@@ -39,28 +51,62 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [wsTemplates, setWsTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     color: '#6366f1',
     icon: '🚀',
     scope: 'team',
+    template_id: null,
   });
   const [inviteEmails, setInviteEmails] = useState(['']);
   const [errors, setErrors] = useState({});
 
   const resetForm = () => {
-    setStep(1);
-    setFormData({ name: '', description: '', color: '#6366f1', icon: '🚀', scope: 'team' });
+    setStep(0);
+    setSelectedTemplate(null);
+    setFormData({ name: '', description: '', color: '#6366f1', icon: '🚀', scope: 'team', template_id: null });
     setInviteEmails(['']);
     setErrors({});
     setShowSuccess(false);
   };
 
   const handleClose = () => { resetForm(); onClose(); };
+
+  // Fetch workspace templates
+  useEffect(() => {
+    if (isOpen) {
+      fetch(`${API_URL}/api/workspaces/templates`)
+        .then(r => r.json())
+        .then(d => setWsTemplates(d.templates || []))
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
+  const selectTemplate = (tpl) => {
+    setSelectedTemplate(tpl);
+    setFormData({
+      ...formData,
+      name: tpl.id === 'general' ? '' : tpl.name,
+      description: tpl.description || '',
+      color: tpl.color || '#6366f1',
+      icon: tpl.icon || '🚀',
+      scope: tpl.scope || 'team',
+      template_id: tpl.id,
+    });
+    setStep(1);
+  };
+
+  const skipTemplate = () => {
+    setSelectedTemplate(null);
+    setFormData({ ...formData, template_id: null });
+    setStep(1);
+  };
 
   const validateStep1 = () => {
     const newErrors = {};
@@ -76,10 +122,10 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleNext = () => {
     if (step === 1 && !validateStep1()) return;
-    setStep(2);
+    setStep(step + 1);
   };
 
-  const handleBack = () => setStep(1);
+  const handleBack = () => setStep(step - 1);
 
   const addEmailField = () => setInviteEmails(prev => [...prev, '']);
   const updateEmail = (index, value) => setInviteEmails(prev => prev.map((e, i) => i === index ? value : e));
@@ -94,7 +140,7 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
       const validEmails = inviteEmails.filter(e => e.trim() && e.includes('@'));
       const newWs = await createWorkspace(
         user.id, formData.name, formData.description, 
-        'Free', formData.color, formData.icon, validEmails, formData.scope
+        'Free', formData.color, formData.icon, validEmails, formData.scope, formData.template_id
       );
       
       setShowSuccess(true);
@@ -154,6 +200,7 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
             <div>
               <h2 className="text-lg font-bold text-gray-900 dark:text-white">Create New Workspace</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                {step === 0 && 'Choose a template or start from scratch'}
                 {step === 1 && 'Name and personalize your workspace'}
                 {step === 2 && 'Invite your team members'}
               </p>
@@ -192,9 +239,58 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
           {/* Step content */}
           <div className="px-6 pb-2 min-h-[320px]">
             <AnimatePresence mode="wait">
+              {/* Step 0: Template Selection */}
+              {step === 0 && (
+                <motion.div key="step0" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.15 }} className="space-y-3">
+                  {/* Start from Scratch */}
+                  <button onClick={skipTemplate} className="w-full p-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 transition-all text-left flex items-center gap-3" data-testid="scratch-btn">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-lg">✨</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">Start from Scratch</p>
+                      <p className="text-[11px] text-gray-500">Empty workspace — set it up your way</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </button>
+
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">Or use a template</p>
+
+                  <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                    {wsTemplates.map(tpl => {
+                      const Icon = TEMPLATE_ICONS[tpl.id] || Rocket;
+                      return (
+                        <button key={tpl.id} onClick={() => selectTemplate(tpl)}
+                          className="p-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-400 hover:shadow-md transition-all text-left group"
+                          data-testid={`ws-tpl-${tpl.id}`}
+                        >
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: tpl.color + '18' }}>
+                            <span className="text-lg">{tpl.icon}</span>
+                          </div>
+                          <p className="text-sm font-semibold group-hover:text-indigo-600 transition-colors">{tpl.name}</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2">{tpl.description}</p>
+                          {tpl.includes && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {tpl.includes.slice(0, 2).map((inc, i) => (
+                                <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500">{inc}</span>
+                              ))}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Step 1: Details */}
               {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.15 }} className="space-y-4">
+                  {selectedTemplate && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800">
+                      <span className="text-lg">{selectedTemplate.icon}</span>
+                      <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex-1">Using: {selectedTemplate.name} template</span>
+                      <button className="text-xs text-indigo-500 hover:text-indigo-700 underline" onClick={() => { setSelectedTemplate(null); setFormData({...formData, template_id: null}); setStep(0); }}>Change</button>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 pb-2">
                     <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl shrink-0 shadow-sm transition-colors"
                       style={{ backgroundColor: formData.color + '20', borderColor: formData.color, borderWidth: '2px' }}>
@@ -330,8 +426,14 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
 
           {/* Footer */}
+          {step > 0 && (
           <div className="px-6 py-4 bg-gray-50/80 dark:bg-slate-950/50 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
             <div>
+              {step === 1 && (
+                <Button variant="ghost" onClick={() => setStep(0)} className="h-9 text-sm rounded-lg" data-testid="step-back-btn">
+                  <ArrowLeft className="w-4 h-4 mr-1.5" /> Templates
+                </Button>
+              )}
               {step > 1 && (
                 <Button variant="ghost" onClick={handleBack} className="h-9 text-sm rounded-lg" data-testid="step-back-btn">
                   <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
@@ -354,6 +456,7 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onSuccess }) => {
               )}
             </div>
           </div>
+          )}
         </motion.div>
       </div>
     </AnimatePresence>

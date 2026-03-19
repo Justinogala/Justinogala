@@ -22,6 +22,7 @@ class WorkspaceCreate(BaseModel):
     color: Optional[str] = None
     icon: Optional[str] = None
     scope: str = "team"  # "org" or "team"
+    template_id: Optional[str] = None
 
 class WorkspaceUpdate(BaseModel):
     name: Optional[str] = None
@@ -38,7 +39,293 @@ class WorkspaceMemberUpdate(BaseModel):
     role: str
 
 
+# ============== Workspace Templates ==============
+
+WORKSPACE_TEMPLATES = [
+    {
+        "id": "project-team",
+        "name": "Project Team",
+        "description": "Agile project workspace with sprint tracking, task approvals, and team updates",
+        "icon": "🎯",
+        "color": "#6366f1",
+        "scope": "team",
+        "category": "Projects",
+        "includes": ["Sprint approval templates", "Project update announcements", "Task review workflows"],
+        "announcements": [
+            {"title": "Welcome to the Project Hub", "content": "This workspace is set up for agile project management. Use Approvals for sprint sign-offs and task reviews. Post updates in News to keep the team aligned.", "pinned": True},
+            {"title": "Getting Started Guide", "content": "1. Add team members via the Members tab\n2. Create your first sprint approval\n3. Post project milestones in News\n4. Use Chat for daily standups", "pinned": False},
+        ],
+        "approval_templates": [
+            {"name": "Sprint Sign-off", "category": "Projects", "description": "Approve sprint completion and deliverables", "icon": "check-circle", "fields": [
+                {"name": "sprint_number", "label": "Sprint Number", "type": "number", "required": True},
+                {"name": "sprint_goal", "label": "Sprint Goal", "type": "text", "required": True},
+                {"name": "completed_items", "label": "Completed Items", "type": "textarea", "required": True},
+                {"name": "carry_over", "label": "Carry-over Items", "type": "textarea", "required": False},
+                {"name": "demo_link", "label": "Demo Link", "type": "text", "required": False},
+            ]},
+            {"name": "Change Request", "category": "Projects", "description": "Request scope or timeline changes", "icon": "edit", "fields": [
+                {"name": "change_type", "label": "Change Type", "type": "select", "required": True, "options": ["Scope", "Timeline", "Budget", "Resources"]},
+                {"name": "description", "label": "Change Description", "type": "textarea", "required": True},
+                {"name": "impact", "label": "Impact Assessment", "type": "textarea", "required": True},
+                {"name": "priority", "label": "Priority", "type": "select", "required": True, "options": ["Low", "Medium", "High", "Critical"]},
+            ]},
+        ],
+        "quick_links": [
+            {"label": "Sprint Board", "path": "/approvals", "icon": "clipboard-list"},
+            {"label": "Team Chat", "path": "/workspace/chat", "icon": "message-square"},
+            {"label": "Project Files", "path": "/files", "icon": "folder"},
+            {"label": "Meetings", "path": "/calendar", "icon": "calendar"},
+        ],
+    },
+    {
+        "id": "hr-department",
+        "name": "HR Department",
+        "description": "Human resources hub for leave management, onboarding, performance reviews, and policy updates",
+        "icon": "👥",
+        "color": "#ec4899",
+        "scope": "org",
+        "category": "HR",
+        "includes": ["Leave & attendance templates", "Onboarding checklists", "Policy announcements"],
+        "announcements": [
+            {"title": "Welcome to the HR Hub", "content": "This workspace centralises all HR processes. Submit leave requests, track onboarding, and stay updated on company policies — all in one place.", "pinned": True},
+            {"title": "Company Policies", "content": "All company policies are available in the Files section. Please review the updated remote work policy and code of conduct.", "pinned": True},
+        ],
+        "approval_templates": [
+            {"name": "Leave Request", "category": "Attendance", "description": "Submit annual, sick, or personal leave requests", "icon": "calendar", "fields": [
+                {"name": "leave_type", "label": "Leave Type", "type": "select", "required": True, "options": ["Annual Leave", "Sick Leave", "Personal Leave", "Maternity/Paternity", "Unpaid Leave"]},
+                {"name": "start_date", "label": "Start Date", "type": "date", "required": True},
+                {"name": "end_date", "label": "End Date", "type": "date", "required": True},
+                {"name": "reason", "label": "Reason", "type": "textarea", "required": False},
+                {"name": "handover_to", "label": "Handover To", "type": "text", "required": False},
+            ]},
+            {"name": "New Hire Onboarding", "category": "Administration", "description": "Onboarding checklist for new team members", "icon": "user-plus", "fields": [
+                {"name": "employee_name", "label": "Employee Name", "type": "text", "required": True},
+                {"name": "department", "label": "Department", "type": "text", "required": True},
+                {"name": "start_date", "label": "Start Date", "type": "date", "required": True},
+                {"name": "equipment_needed", "label": "Equipment Needed", "type": "textarea", "required": True},
+                {"name": "access_required", "label": "System Access Required", "type": "textarea", "required": True},
+            ]},
+            {"name": "Performance Review", "category": "Administration", "description": "Quarterly or annual performance review", "icon": "trending-up", "fields": [
+                {"name": "employee_name", "label": "Employee Name", "type": "text", "required": True},
+                {"name": "review_period", "label": "Review Period", "type": "text", "required": True},
+                {"name": "achievements", "label": "Key Achievements", "type": "textarea", "required": True},
+                {"name": "areas_improvement", "label": "Areas for Improvement", "type": "textarea", "required": False},
+                {"name": "rating", "label": "Overall Rating", "type": "select", "required": True, "options": ["Exceeds Expectations", "Meets Expectations", "Needs Improvement", "Below Expectations"]},
+            ]},
+        ],
+        "quick_links": [
+            {"label": "Leave Requests", "path": "/approvals", "icon": "calendar"},
+            {"label": "Team Directory", "path": "/workspace/chat", "icon": "users"},
+            {"label": "Policy Documents", "path": "/files", "icon": "file-text"},
+            {"label": "HR Calendar", "path": "/calendar", "icon": "calendar"},
+        ],
+    },
+    {
+        "id": "finance",
+        "name": "Finance",
+        "description": "Financial operations hub for expense reports, budget approvals, invoice processing, and fiscal planning",
+        "icon": "💰",
+        "color": "#22c55e",
+        "scope": "team",
+        "category": "Finance",
+        "includes": ["Expense & budget templates", "Invoice processing workflows", "Quarter-end reminders"],
+        "announcements": [
+            {"title": "Finance Hub - Getting Started", "content": "Welcome to the Finance workspace. Use this hub to submit expense reports, process invoices, and manage budget approvals. All financial documents are stored in Files.", "pinned": True},
+            {"title": "Expense Policy Reminder", "content": "All expenses over $500 require manager approval. Receipts must be attached to every expense report. Submit reports within 30 days of purchase.", "pinned": False},
+        ],
+        "approval_templates": [
+            {"name": "Expense Report", "category": "Finance", "description": "Submit business expense reimbursement", "icon": "receipt", "fields": [
+                {"name": "expense_date", "label": "Expense Date", "type": "date", "required": True},
+                {"name": "amount", "label": "Amount ($)", "type": "number", "required": True},
+                {"name": "category", "label": "Category", "type": "select", "required": True, "options": ["Travel", "Meals", "Software", "Equipment", "Office Supplies", "Training", "Other"]},
+                {"name": "description", "label": "Description", "type": "textarea", "required": True},
+                {"name": "receipt_attached", "label": "Receipt Attached?", "type": "select", "required": True, "options": ["Yes", "No - will attach later"]},
+            ]},
+            {"name": "Budget Request", "category": "Finance", "description": "Request budget allocation or increase", "icon": "dollar-sign", "fields": [
+                {"name": "department", "label": "Department", "type": "text", "required": True},
+                {"name": "amount_requested", "label": "Amount Requested ($)", "type": "number", "required": True},
+                {"name": "purpose", "label": "Purpose", "type": "textarea", "required": True},
+                {"name": "timeline", "label": "Timeline", "type": "text", "required": True},
+                {"name": "roi_estimate", "label": "Expected ROI", "type": "textarea", "required": False},
+            ]},
+            {"name": "Invoice Approval", "category": "Finance", "description": "Approve vendor invoices for payment", "icon": "file-text", "fields": [
+                {"name": "vendor_name", "label": "Vendor Name", "type": "text", "required": True},
+                {"name": "invoice_number", "label": "Invoice Number", "type": "text", "required": True},
+                {"name": "amount", "label": "Invoice Amount ($)", "type": "number", "required": True},
+                {"name": "due_date", "label": "Due Date", "type": "date", "required": True},
+                {"name": "cost_center", "label": "Cost Center", "type": "text", "required": True},
+            ]},
+        ],
+        "quick_links": [
+            {"label": "Expense Reports", "path": "/approvals", "icon": "receipt"},
+            {"label": "Invoices", "path": "/approvals", "icon": "file-text"},
+            {"label": "Financial Docs", "path": "/files", "icon": "folder"},
+            {"label": "Budget Calendar", "path": "/calendar", "icon": "calendar"},
+        ],
+    },
+    {
+        "id": "engineering",
+        "name": "Engineering",
+        "description": "Software engineering hub for code reviews, deployment approvals, incident tracking, and technical discussions",
+        "icon": "⚙️",
+        "color": "#3b82f6",
+        "scope": "team",
+        "category": "Engineering",
+        "includes": ["Deployment & code review templates", "Incident tracking workflows", "Tech announcements"],
+        "announcements": [
+            {"title": "Engineering Hub", "content": "This workspace streamlines engineering workflows. Submit deployment requests, track incidents, and share technical updates. Use the Approvals module for code review sign-offs.", "pinned": True},
+            {"title": "Deployment Guidelines", "content": "All production deployments require approval from a senior engineer. Hotfixes follow the expedited approval path. Always update the changelog.", "pinned": False},
+        ],
+        "approval_templates": [
+            {"name": "Deployment Request", "category": "Projects", "description": "Request production deployment approval", "icon": "rocket", "fields": [
+                {"name": "service_name", "label": "Service/App Name", "type": "text", "required": True},
+                {"name": "version", "label": "Version", "type": "text", "required": True},
+                {"name": "changes", "label": "Changes Summary", "type": "textarea", "required": True},
+                {"name": "rollback_plan", "label": "Rollback Plan", "type": "textarea", "required": True},
+                {"name": "deployment_type", "label": "Type", "type": "select", "required": True, "options": ["Regular", "Hotfix", "Feature Flag", "Database Migration"]},
+            ]},
+            {"name": "Incident Report", "category": "Activity", "description": "Report and track production incidents", "icon": "alert-triangle", "fields": [
+                {"name": "severity", "label": "Severity", "type": "select", "required": True, "options": ["P0 - Critical", "P1 - High", "P2 - Medium", "P3 - Low"]},
+                {"name": "affected_service", "label": "Affected Service", "type": "text", "required": True},
+                {"name": "description", "label": "Incident Description", "type": "textarea", "required": True},
+                {"name": "root_cause", "label": "Root Cause (if known)", "type": "textarea", "required": False},
+                {"name": "mitigation", "label": "Mitigation Steps", "type": "textarea", "required": True},
+            ]},
+        ],
+        "quick_links": [
+            {"label": "Deployments", "path": "/approvals", "icon": "rocket"},
+            {"label": "Team Chat", "path": "/workspace/chat", "icon": "message-square"},
+            {"label": "Documentation", "path": "/files", "icon": "book"},
+            {"label": "Sprint Calendar", "path": "/calendar", "icon": "calendar"},
+        ],
+    },
+    {
+        "id": "marketing",
+        "name": "Marketing",
+        "description": "Marketing operations hub for campaign approvals, content reviews, brand guidelines, and launch coordination",
+        "icon": "📣",
+        "color": "#f97316",
+        "scope": "team",
+        "category": "Marketing",
+        "includes": ["Campaign & content approval templates", "Brand guidelines", "Launch coordination"],
+        "announcements": [
+            {"title": "Marketing Hub", "content": "Coordinate all marketing activities from this hub. Submit campaign proposals, get content approved, and track launches. Brand assets are in the Files section.", "pinned": True},
+            {"title": "Brand Guidelines", "content": "All external content must follow brand guidelines. Use approved colors, fonts, and messaging. Check the Files section for the latest brand kit.", "pinned": False},
+        ],
+        "approval_templates": [
+            {"name": "Campaign Proposal", "category": "Projects", "description": "Submit a new marketing campaign for approval", "icon": "megaphone", "fields": [
+                {"name": "campaign_name", "label": "Campaign Name", "type": "text", "required": True},
+                {"name": "objective", "label": "Campaign Objective", "type": "textarea", "required": True},
+                {"name": "target_audience", "label": "Target Audience", "type": "text", "required": True},
+                {"name": "budget", "label": "Budget ($)", "type": "number", "required": True},
+                {"name": "channels", "label": "Channels", "type": "select", "required": True, "options": ["Social Media", "Email", "PPC", "Content", "Events", "Multi-channel"]},
+                {"name": "timeline", "label": "Timeline", "type": "text", "required": True},
+            ]},
+            {"name": "Content Review", "category": "Activity", "description": "Submit content for editorial review", "icon": "file-text", "fields": [
+                {"name": "content_type", "label": "Content Type", "type": "select", "required": True, "options": ["Blog Post", "Social Media", "Email Newsletter", "Press Release", "Case Study", "Video Script"]},
+                {"name": "title", "label": "Content Title", "type": "text", "required": True},
+                {"name": "summary", "label": "Summary", "type": "textarea", "required": True},
+                {"name": "publish_date", "label": "Target Publish Date", "type": "date", "required": True},
+            ]},
+        ],
+        "quick_links": [
+            {"label": "Campaigns", "path": "/approvals", "icon": "megaphone"},
+            {"label": "Content Review", "path": "/approvals", "icon": "file-text"},
+            {"label": "Brand Assets", "path": "/files", "icon": "palette"},
+            {"label": "Launch Calendar", "path": "/calendar", "icon": "calendar"},
+        ],
+    },
+    {
+        "id": "general",
+        "name": "General",
+        "description": "A clean workspace to get started. Customise it to fit your team's needs.",
+        "icon": "🚀",
+        "color": "#6366f1",
+        "scope": "team",
+        "category": "General",
+        "includes": ["Getting started guide", "Basic workspace setup"],
+        "announcements": [
+            {"title": "Welcome!", "content": "Your workspace is ready. Start by adding team members, posting announcements, and exploring the quick links below.", "pinned": True},
+        ],
+        "approval_templates": [],
+        "quick_links": [
+            {"label": "Team Chat", "path": "/workspace/chat", "icon": "message-square"},
+            {"label": "Files", "path": "/files", "icon": "folder"},
+            {"label": "Approvals", "path": "/approvals", "icon": "clipboard-list"},
+            {"label": "Calendar", "path": "/calendar", "icon": "calendar"},
+        ],
+    },
+]
+
+WORKSPACE_TEMPLATES_MAP = {t["id"]: t for t in WORKSPACE_TEMPLATES}
+
+
+async def seed_workspace_from_template(workspace_id: str, template_id: str, owner_id: str, owner_name: str):
+    """Seed a workspace with template data: announcements, approval templates, quick links."""
+    template = WORKSPACE_TEMPLATES_MAP.get(template_id)
+    if not template:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Seed announcements
+    for ann in template.get("announcements", []):
+        await db.workspace_announcements.insert_one({
+            "id": str(uuid.uuid4()),
+            "workspace_id": workspace_id,
+            "title": ann["title"],
+            "content": ann["content"],
+            "pinned": ann.get("pinned", False),
+            "author_id": owner_id,
+            "author_name": owner_name,
+            "created_at": now,
+        })
+
+    # Seed approval templates
+    for tpl in template.get("approval_templates", []):
+        await db.approval_templates.insert_one({
+            "id": f"tpl-ws-{str(uuid.uuid4())[:8]}",
+            "name": tpl["name"],
+            "category": tpl["category"],
+            "description": tpl["description"],
+            "icon": tpl.get("icon", "file-text"),
+            "fields": tpl["fields"],
+            "default_workflow": "single",
+            "scope": "team",
+            "team_id": workspace_id,
+            "is_custom": True,
+            "created_at": now,
+        })
+
+    # Store quick links in workspace settings
+    quick_links = template.get("quick_links", [])
+    if quick_links:
+        await db.workspaces.update_one(
+            {"id": workspace_id},
+            {"$set": {"settings.quick_links": quick_links, "settings.template_id": template_id}}
+        )
+
+
 # ============== Routes ==============
+
+@router.get("/templates")
+async def get_workspace_templates():
+    """Get available workspace blueprint templates."""
+    templates = [
+        {k: v for k, v in t.items() if k not in ("announcements", "approval_templates")}
+        for t in WORKSPACE_TEMPLATES
+    ]
+    return {"templates": templates}
+
+
+@router.get("/templates/{template_id}")
+async def get_workspace_template(template_id: str):
+    """Get a specific workspace template with full details."""
+    template = WORKSPACE_TEMPLATES_MAP.get(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"template": template}
+
 
 @router.get("")
 async def get_workspaces(user_id: str = None):
@@ -112,6 +399,18 @@ async def create_workspace(workspace: WorkspaceCreate):
         }
         await db.workspace_members.insert_one(owner_member)
         
+        # Seed from template if provided
+        if workspace.template_id and workspace.template_id in WORKSPACE_TEMPLATES_MAP:
+            tpl = WORKSPACE_TEMPLATES_MAP[workspace.template_id]
+            # Apply template defaults if not overridden
+            if not workspace.color or workspace.color == "#6366f1":
+                workspace_doc["color"] = tpl["color"]
+                await db.workspaces.update_one({"id": workspace_id}, {"$set": {"color": tpl["color"]}})
+            # Get owner name
+            owner = await db.users.find_one({"id": workspace.owner_id}, {"_id": 0, "name": 1, "email": 1})
+            owner_name = owner.get("name", owner.get("email", "Admin")) if owner else "Admin"
+            await seed_workspace_from_template(workspace_id, workspace.template_id, workspace.owner_id, owner_name)
+
         if "_id" in workspace_doc:
             del workspace_doc["_id"]
         
