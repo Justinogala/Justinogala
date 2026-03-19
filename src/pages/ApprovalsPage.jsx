@@ -18,7 +18,8 @@ import {
   XCircle, AlertCircle, MoreHorizontal, MessageSquare, FileText, Loader2,
   ChevronRight, ClipboardList, Calendar, Banknote, Package, Plane, Home,
   CreditCard, ShoppingCart, Receipt, Wrench, FolderKanban, TrendingUp, X,
-  Inbox, SendHorizontal, BarChart3, Bell, Link2, Paperclip, Video
+  Inbox, SendHorizontal, BarChart3, Bell, Link2, Paperclip, Video,
+  Copy, TrendingDown, AlertTriangle, Zap, Activity
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -38,7 +39,7 @@ const PRIORITY_CONFIG = {
 };
 
 // ============ Approval Detail View ============
-const ApprovalDetail = ({ approval, onBack, onRefresh, user }) => {
+const ApprovalDetail = ({ approval, onBack, onRefresh, onDuplicate, user }) => {
   const { toast } = useToast();
   const [comments, setComments] = useState([]);
   const [audit, setAudit] = useState([]);
@@ -127,6 +128,11 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, user }) => {
           <X className="w-4 h-4 mr-1" /> Cancel Request
         </Button>
       )}
+
+      {/* Duplicate button - available on any completed/cancelled request */}
+      <Button variant="outline" size="sm" onClick={() => onDuplicate(approval)} data-testid="duplicate-btn">
+        <Copy className="w-4 h-4 mr-1" /> Duplicate
+      </Button>
 
       {/* Tabs */}
       <Tabs value={detailTab} onValueChange={setDetailTab}>
@@ -576,12 +582,197 @@ const CreateApprovalForm = ({ template, onBack, onCreated, user }) => {
   );
 };
 
+// ============ Analytics Dashboard ============
+const AnalyticsDashboard = ({ user }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`${API_URL}/api/approvals/analytics?user_id=${user.id}`)
+      .then(r => r.json()).then(setData).catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-violet-600" /></div>;
+  if (!data) return <div className="text-center py-20 text-slate-400">Failed to load analytics</div>;
+
+  const { summary, volume_trend, status_breakdown, category_breakdown, resolution_by_category, bottlenecks, insights } = data;
+
+  const STATUS_COLORS = { pending: '#f59e0b', approved: '#10b981', rejected: '#ef4444', cancelled: '#94a3b8', expired: '#f97316', draft: '#cbd5e1' };
+  const CATEGORY_COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
+  const SEVERITY_STYLES = {
+    success: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/15 dark:border-emerald-800',
+    warning: 'bg-amber-50 border-amber-200 dark:bg-amber-900/15 dark:border-amber-800',
+    info: 'bg-blue-50 border-blue-200 dark:bg-blue-900/15 dark:border-blue-800',
+  };
+  const SEVERITY_ICON_COLORS = { success: 'text-emerald-600', warning: 'text-amber-600', info: 'text-blue-600' };
+
+  return (
+    <div className="space-y-6" data-testid="analytics-dashboard">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Requests', value: summary.total_requests, icon: ClipboardList, color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/10' },
+          { label: 'Approval Rate', value: `${summary.approval_rate}%`, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
+          { label: 'Avg Resolution', value: summary.avg_resolution_hours < 24 ? `${summary.avg_resolution_hours}h` : `${(summary.avg_resolution_hours / 24).toFixed(1)}d`, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/10' },
+          { label: 'Most Active', value: summary.most_active_category, icon: TrendingUp, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/10' },
+        ].map(s => (
+          <Card key={s.label}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', s.bg)}>
+                <s.icon className={cn('w-5 h-5', s.color)} />
+              </div>
+              <div>
+                <p className="text-xl font-bold">{s.value}</p>
+                <p className="text-xs text-slate-500">{s.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* AI Insights */}
+      {insights.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Zap className="w-4 h-4 text-violet-500" /> AI Insights</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {insights.map((ins, i) => (
+              <div key={i} className={cn('flex items-start gap-3 p-3 rounded-lg border', SEVERITY_STYLES[ins.severity] || SEVERITY_STYLES.info)} data-testid={`insight-${ins.type}`}>
+                {ins.severity === 'warning' ? <AlertTriangle className={cn('w-4 h-4 mt-0.5 shrink-0', SEVERITY_ICON_COLORS[ins.severity])} /> :
+                 ins.severity === 'success' ? <CheckCircle2 className={cn('w-4 h-4 mt-0.5 shrink-0', SEVERITY_ICON_COLORS[ins.severity])} /> :
+                 <Activity className={cn('w-4 h-4 mt-0.5 shrink-0', SEVERITY_ICON_COLORS[ins.severity])} />}
+                <div>
+                  <p className="text-sm font-semibold">{ins.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{ins.detail}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Charts grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Volume Trend */}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Request Volume (30 days)</CardTitle></CardHeader>
+          <CardContent>
+            <AreaChartComponent data={volume_trend} />
+          </CardContent>
+        </Card>
+
+        {/* Status Breakdown */}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Status Distribution</CardTitle></CardHeader>
+          <CardContent>
+            <PieChartComponent data={status_breakdown} colors={STATUS_COLORS} nameKey="status" />
+          </CardContent>
+        </Card>
+
+        {/* Category Breakdown */}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Requests by Category</CardTitle></CardHeader>
+          <CardContent>
+            <BarChartComponent data={category_breakdown} dataKey="count" nameKey="category" colors={CATEGORY_COLORS} />
+          </CardContent>
+        </Card>
+
+        {/* Resolution Time */}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Avg Resolution Time by Category</CardTitle></CardHeader>
+          <CardContent>
+            <BarChartComponent data={resolution_by_category} dataKey="avg_hours" nameKey="category" colors={CATEGORY_COLORS} label="Hours" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottlenecks */}
+      {bottlenecks.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Bottlenecks ({bottlenecks.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {bottlenecks.map((b, i) => (
+              <div key={i} className={cn('flex items-start gap-3 p-3 rounded-lg border', b.severity === 'high' ? 'bg-red-50 border-red-200 dark:bg-red-900/15 dark:border-red-800' : 'bg-amber-50 border-amber-200 dark:bg-amber-900/15 dark:border-amber-800')} data-testid={`bottleneck-${b.type}`}>
+                {b.type === 'slow_approver' ? <Clock className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 text-red-600 shrink-0" />}
+                <div>
+                  <p className="text-sm font-medium">{b.message}</p>
+                  <Badge variant="outline" className="mt-1 text-[10px]">{b.type === 'slow_approver' ? 'Slow Response' : 'Stuck Request'}</Badge>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+// ============ Chart Components (Recharts) ============
+import {
+  AreaChart, Area, BarChart as RechartsBarChart, Bar, PieChart as RechartsPieChart, Pie,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell
+} from 'recharts';
+
+const AreaChartComponent = ({ data }) => (
+  <ResponsiveContainer width="100%" height={220}>
+    <AreaChart data={data}>
+      <defs>
+        <linearGradient id="colorCreated" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+        </linearGradient>
+        <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+        </linearGradient>
+      </defs>
+      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+      <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} />
+      <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+      <Area type="monotone" dataKey="created" stroke="#8b5cf6" fill="url(#colorCreated)" strokeWidth={2} name="Created" />
+      <Area type="monotone" dataKey="resolved" stroke="#10b981" fill="url(#colorResolved)" strokeWidth={2} name="Resolved" />
+    </AreaChart>
+  </ResponsiveContainer>
+);
+
+const PieChartComponent = ({ data, colors, nameKey }) => (
+  <ResponsiveContainer width="100%" height={220}>
+    <RechartsPieChart>
+      <Pie data={data} dataKey="count" nameKey={nameKey} cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={2}>
+        {data.map((entry, i) => <Cell key={i} fill={colors[entry[nameKey]] || Object.values(colors)[i % Object.values(colors).length]} />)}
+      </Pie>
+      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+      <Legend wrapperStyle={{ fontSize: 11 }} />
+    </RechartsPieChart>
+  </ResponsiveContainer>
+);
+
+const BarChartComponent = ({ data, dataKey, nameKey, colors, label }) => (
+  <ResponsiveContainer width="100%" height={220}>
+    <RechartsBarChart data={data}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+      <XAxis dataKey={nameKey} tick={{ fontSize: 10 }} />
+      <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+      <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+      <Bar dataKey={dataKey} radius={[4, 4, 0, 0]} name={label || dataKey}>
+        {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+      </Bar>
+    </RechartsBarChart>
+  </ResponsiveContainer>
+);
+
 // ============ Main Approvals Page ============
 const ApprovalsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { createNotification } = useNotifications();
-  const [view, setView] = useState('dashboard'); // dashboard, detail, templates, create
+  const [view, setView] = useState('dashboard'); // dashboard, detail, templates, create, analytics
   const [tab, setTab] = useState('received');
   const [approvals, setApprovals] = useState([]);
   const [stats, setStats] = useState({});
@@ -638,6 +829,36 @@ const ApprovalsPage = () => {
     window.open(`${API_URL}/api/approvals/export?user_id=${user?.id}&format=csv`, '_blank');
   };
 
+  const handleDuplicate = async (approval) => {
+    try {
+      const res = await fetch(`${API_URL}/api/approvals/duplicate/${approval.id}?user_id=${user.id}&user_name=${encodeURIComponent(user.name || user.email)}&user_email=${encodeURIComponent(user.email || '')}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Request duplicated!' });
+        createNotification({ type: 'system', title: 'Request Duplicated', message: `"${data.approval.title}" created as a copy`, actionUrl: '/approvals', icon: 'Copy', color: 'bg-violet-500' });
+        setView('dashboard');
+        setSelectedApproval(null);
+        fetchApprovals();
+        fetchStats();
+      }
+    } catch { toast({ variant: 'destructive', title: 'Failed to duplicate' }); }
+  };
+
+  if (view === 'analytics') {
+    return (
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setView('dashboard')} data-testid="back-from-analytics"><ArrowLeft className="w-4 h-4" /></Button>
+          <div>
+            <h1 className="text-2xl font-bold">Analytics & Insights</h1>
+            <p className="text-sm text-slate-500">AI-powered analytics for your approval workflows</p>
+          </div>
+        </div>
+        <AnalyticsDashboard user={user} />
+      </div>
+    );
+  }
+
   if (view === 'detail' && selectedApproval) {
     return (
       <div className="p-6 max-w-5xl mx-auto">
@@ -645,6 +866,7 @@ const ApprovalsPage = () => {
           approval={selectedApproval}
           user={user}
           onBack={() => { setView('dashboard'); setSelectedApproval(null); }}
+          onDuplicate={handleDuplicate}
           onRefresh={async () => {
             const res = await fetch(`${API_URL}/api/approvals/detail/${selectedApproval.id}`);
             const data = await res.json();
@@ -726,6 +948,7 @@ const ApprovalsPage = () => {
             )}
           </div>
           <Button variant="outline" size="sm" onClick={handleExport} data-testid="export-btn"><Download className="w-4 h-4 mr-1" /> Export</Button>
+          <Button variant="outline" size="sm" onClick={() => setView('analytics')} data-testid="analytics-btn"><BarChart3 className="w-4 h-4 mr-1" /> Analytics</Button>
           <Button size="sm" onClick={() => setView('templates')} className="bg-violet-600 hover:bg-violet-700" data-testid="new-approval-btn">
             <Plus className="w-4 h-4 mr-1" /> New Approval Request
           </Button>

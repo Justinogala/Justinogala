@@ -553,3 +553,337 @@ async def mark_notification_read(notification_id: str):
         {"$set": {"read": True}}
     )
     return {"success": True}
+
+
+# ============ Analytics & AI Insights ============
+
+@router.get("/analytics")
+async def get_analytics(user_id: str = Query(...)):
+    """Full analytics: volume trends, category breakdown, resolution times, bottlenecks, AI insights."""
+    all_approvals = await db.approvals.find(
+        {"$or": [{"sender_id": user_id}, {"steps.approver_id": user_id}]}, {"_id": 0}
+    ).to_list(5000)
+
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+
+    # --- Volume over time (last 30 days) ---
+    daily_volume = {}
+    for i in range(30):
+        day = (thirty_days_ago + timedelta(days=i)).strftime("%Y-%m-%d")
+        daily_volume[day] = {"date": day, "created": 0, "resolved": 0}
+
+    for a in all_approvals:
+        created = a.get("created_at", "")
+        if created:
+            day = created[:10]
+            if day in daily_volume:
+                daily_volume[day]["created"] += 1
+        completed = a.get("completed_at")
+        if completed:
+            day = completed[:10] if isinstance(completed, str) else ""
+            if day in daily_volume:
+                daily_volume[day]["resolved"] += 1
+    volume_trend = list(daily_volume.values())
+
+    # --- Status breakdown ---
+    status_counts = {}
+    for a in all_approvals:
+        s = a.get("status", "unknown")
+        status_counts[s] = status_counts.get(s, 0) + 1
+    status_breakdown = [{"status": k, "count": v} for k, v in status_counts.items()]
+
+    # --- Category breakdown ---
+    category_counts = {}
+    for a in all_approvals:
+        c = a.get("category", "Other")
+        category_counts[c] = category_counts.get(c, 0) + 1
+    category_breakdown = [{"category": k, "count": v} for k, v in category_counts.items()]
+
+    # --- Resolution times by category ---
+    cat_times = {}
+    for a in all_approvals:
+        if a.get("completed_at") and a.get("created_at"):
+            try:
+                created_dt = datetime.fromisoformat(a["created_at"].replace("Z", "+00:00"))
+                completed_dt = datetime.fromisoformat(a["completed_at"].replace("Z", "+00:00"))
+                hours = (completed_dt - created_dt).total_seconds() / 3600
+                c = a.get("category", "Other")
+                cat_times.setdefault(c, []).append(hours)
+            except Exception:
+                pass
+    resolution_by_category = [
+        {"category": k, "avg_hours": round(sum(v) / len(v), 1), "count": len(v)}
+        for k, v in cat_times.items()
+    ]
+
+    # --- Summary stats ---
+    total = len(all_approvals)
+    approved_count = sum(1 for a in all_approvals if a.get("status") == "approved")
+    rejected_count = sum(1 for a in all_approvals if a.get("status") == "rejected")
+    pending_count = sum(1 for a in all_approvals if a.get("status") == "pending")
+    approval_rate = round((approved_count / max(approved_count + rejected_count, 1)) * 100, 1)
+    all_times = [h for v in cat_times.values() for h in v]
+    avg_resolution = round(sum(all_times) / max(len(all_times), 1), 1) if all_times else 0
+    most_active = max(category_counts, key=category_counts.get) if category_counts else "N/A"
+
+    summary = {
+        "total_requests": total,
+        "approved": approved_count,
+        "rejected": rejected_count,
+        "pending": pending_count,
+        "approval_rate": approval_rate,
+        "avg_resolution_hours": avg_resolution,
+        "most_active_category": most_active,
+    }
+
+    # --- Bottleneck detection ---
+    bottlenecks = []
+
+    # Slow approvers
+    approver_times = {}
+    for a in all_approvals:
+        for step in a.get("steps", []):
+            if step.get("status") in ("approved", "rejected") and step.get("acted_at") and a.get("created_at"):
+                try:
+                    created_dt = datetime.fromisoformat(a["created_at"].replace("Z", "+00:00"))
+                    acted_dt = datetime.fromisoformat(step["acted_at"].replace("Z", "+00:00"))
+                    hours = (acted_dt - created_dt).total_seconds() / 3600
+                    aid = step.get("approver_id", "unknown")
+                    aname = step.get("approver_name", "Unknown")
+                    approver_times.setdefault(aid, {"name": aname, "times": []})["times"].append(hours)
+                except Exception:
+                    pass
+
+    for aid, data in approver_times.items():
+        avg = sum(data["times"]) / len(data["times"])
+        if avg > 24:  # More than 24h average
+            bottlenecks.append({
+                "type": "slow_approver",
+                "severity": "high" if avg > 72 else "medium",
+                "approver_name": data["name"],
+                "avg_hours": round(avg, 1),
+                "request_count": len(data["times"]),
+                "message": f'{data["name"]} takes {round(avg, 1)}h on average to respond ({len(data["times"])} requests)',
+            })
+
+    # Stuck requests (pending > 3 days)
+    for a in all_approvals:
+        if a.get("status") == "pending" and a.get("created_at"):
+            try:
+                created_dt = datetime.fromisoformat(a["created_at"].replace("Z", "+00:00"))
+                age_hours = (now - created_dt).total_seconds() / 3600
+                if age_hours > 72:
+                    bottlenecks.append({
+                        "type": "stuck_request",
+                        "severity": "high" if age_hours > 168 else "medium",
+                        "approval_id": a["id"],
+                        "title": a.get("title", ""),
+                        "age_hours": round(age_hours, 1),
+                        "age_days": round(age_hours / 24, 1),
+                        "message": f'"{a.get("title", "")}" has been pending for {round(age_hours / 24, 1)} days',
+                    })
+            except Exception:
+                pass
+
+    # --- AI Insights (data-driven, no LLM) ---
+    insights = []
+
+    # Trend
+    recent_7 = sum(d["created"] for d in volume_trend[-7:])
+    prev_7 = sum(d["created"] for d in volume_trend[-14:-7])
+    if prev_7 > 0:
+        change = round(((recent_7 - prev_7) / prev_7) * 100, 1)
+        if abs(change) > 10:
+            direction = "increased" if change > 0 else "decreased"
+            insights.append({
+                "type": "trend",
+                "icon": "trending-up" if change > 0 else "trending-down",
+                "title": f"Request volume {direction} {abs(change)}%",
+                "detail": f"Last 7 days: {recent_7} requests vs previous 7 days: {prev_7}",
+                "severity": "info" if change < 50 else "warning",
+            })
+    elif recent_7 > 0:
+        insights.append({
+            "type": "trend",
+            "icon": "trending-up",
+            "title": f"{recent_7} new requests in the last 7 days",
+            "detail": "Approval activity is active.",
+            "severity": "info",
+        })
+
+    # High rejection categories
+    cat_rejections = {}
+    cat_totals_for_rate = {}
+    for a in all_approvals:
+        c = a.get("category", "Other")
+        cat_totals_for_rate[c] = cat_totals_for_rate.get(c, 0) + 1
+        if a.get("status") == "rejected":
+            cat_rejections[c] = cat_rejections.get(c, 0) + 1
+    for c, rej in cat_rejections.items():
+        t = cat_totals_for_rate.get(c, 1)
+        rate = round((rej / t) * 100, 1)
+        if rate > 30 and t >= 3:
+            insights.append({
+                "type": "rejection_rate",
+                "icon": "alert-triangle",
+                "title": f"High rejection rate in {c} ({rate}%)",
+                "detail": f"{rej} of {t} requests rejected. Review template requirements or guidelines.",
+                "severity": "warning",
+            })
+
+    # Approval rate insight
+    if total >= 5:
+        if approval_rate >= 90:
+            insights.append({
+                "type": "approval_rate",
+                "icon": "check-circle",
+                "title": f"Excellent approval rate: {approval_rate}%",
+                "detail": "Your requests are well-prepared and consistently approved.",
+                "severity": "success",
+            })
+        elif approval_rate < 50:
+            insights.append({
+                "type": "approval_rate",
+                "icon": "alert-circle",
+                "title": f"Low approval rate: {approval_rate}%",
+                "detail": "Consider improving request details or discussing requirements with approvers.",
+                "severity": "warning",
+            })
+
+    # Bottleneck insight
+    if bottlenecks:
+        stuck = [b for b in bottlenecks if b["type"] == "stuck_request"]
+        slow = [b for b in bottlenecks if b["type"] == "slow_approver"]
+        if stuck:
+            insights.append({
+                "type": "bottleneck",
+                "icon": "alert-triangle",
+                "title": f"{len(stuck)} request{'s' if len(stuck) != 1 else ''} stuck for 3+ days",
+                "detail": "Consider following up with the assigned approvers.",
+                "severity": "warning",
+            })
+        if slow:
+            insights.append({
+                "type": "bottleneck",
+                "icon": "clock",
+                "title": f"{len(slow)} approver{'s' if len(slow) != 1 else ''} with slow response times",
+                "detail": "Average response time exceeds 24 hours.",
+                "severity": "info",
+            })
+
+    # Peak activity
+    day_counts = {}
+    for a in all_approvals:
+        created = a.get("created_at", "")
+        if created:
+            try:
+                dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                day_name = dt.strftime("%A")
+                day_counts[day_name] = day_counts.get(day_name, 0) + 1
+            except Exception:
+                pass
+    if day_counts:
+        peak_day = max(day_counts, key=day_counts.get)
+        insights.append({
+            "type": "pattern",
+            "icon": "calendar",
+            "title": f"Peak activity on {peak_day}s",
+            "detail": f"{day_counts[peak_day]} requests created on {peak_day}s historically.",
+            "severity": "info",
+        })
+
+    return {
+        "volume_trend": volume_trend,
+        "status_breakdown": status_breakdown,
+        "category_breakdown": category_breakdown,
+        "resolution_by_category": resolution_by_category,
+        "summary": summary,
+        "bottlenecks": bottlenecks,
+        "insights": insights,
+    }
+
+
+@router.post("/duplicate/{approval_id}")
+async def duplicate_approval(
+    approval_id: str,
+    user_id: str = Query(...),
+    user_name: str = Query(""),
+    user_email: str = Query(""),
+):
+    """Duplicate an existing approval as a new draft-like pending request."""
+    original = await db.approvals.find_one({"id": approval_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Approval not found")
+
+    new_id = str(uuid.uuid4())
+    now = now_iso()
+
+    # Rebuild steps from original approvers
+    steps = []
+    for s in original.get("steps", []):
+        steps.append({
+            "step": s.get("step", 1),
+            "approver_id": s.get("approver_id"),
+            "approver_name": s.get("approver_name"),
+            "approver_email": s.get("approver_email"),
+            "type": s.get("type", "individual"),
+            "status": "pending" if s.get("step", 1) == 1 else "waiting",
+            "acted_at": None,
+            "comment": None,
+        })
+
+    new_approval = {
+        "id": new_id,
+        "title": f"{original.get('title', '')} (Copy)",
+        "template_id": original.get("template_id"),
+        "category": original.get("category", "General"),
+        "priority": original.get("priority", "Medium"),
+        "status": "pending",
+        "workflow_type": original.get("workflow_type", "single"),
+        "conditions": original.get("conditions"),
+        "form_data": original.get("form_data", {}),
+        "steps": steps,
+        "description": original.get("description", ""),
+        "attachments": [],
+        "linked_meeting": original.get("linked_meeting"),
+        "linked_files": original.get("linked_files", []),
+        "linked_chat_message": original.get("linked_chat_message"),
+        "deadline": None,
+        "sender_id": user_id,
+        "sender_name": user_name,
+        "sender_email": user_email,
+        "created_at": now,
+        "updated_at": now,
+        "completed_at": None,
+        "source": "Duplicated",
+    }
+
+    await db.approvals.insert_one(new_approval)
+
+    audit = {
+        "id": str(uuid.uuid4()),
+        "approval_id": new_id,
+        "action": "created",
+        "actor_id": user_id,
+        "actor_name": user_name,
+        "details": f"Duplicated from request: {original.get('title', '')}",
+        "timestamp": now,
+    }
+    await db.approval_audit.insert_one(audit)
+
+    # Notify approvers
+    for step in steps:
+        if step["approver_id"]:
+            await db.approval_notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": step["approver_id"],
+                "type": "approval_request",
+                "title": "New Approval Request",
+                "message": f"{user_name} sent you an approval request: {new_approval['title']}",
+                "approval_id": new_id,
+                "read": False,
+                "created_at": now,
+            })
+
+    return {"success": True, "approval": {k: v for k, v in new_approval.items() if k != "_id"}}
