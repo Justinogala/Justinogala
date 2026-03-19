@@ -104,6 +104,7 @@ from routes.admin_shifts import router as admin_shifts_router
 from routes.reports import router as reports_router, check_escalations
 from routes.admin_reports import router as admin_reports_router
 from routes.esignature import router as esignature_router
+from routes.approvals import router as approvals_router
 
 
 # ============== Include All Routers ==============
@@ -166,6 +167,7 @@ api_router.include_router(admin_shifts_router)
 api_router.include_router(reports_router)
 api_router.include_router(admin_reports_router)
 api_router.include_router(esignature_router)
+api_router.include_router(approvals_router)
 
 
 # ============== Include Main Router ==============

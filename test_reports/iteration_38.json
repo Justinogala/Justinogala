@@ -46,7 +46,7 @@
   "test_credentials": {
     "user": "admin@munal.com",
     "password": "Admin@123456",
-    "app_url": "https://voice-video-gen-6.preview.emergentagent.com"
+    "app_url": "https://approval-center-5.preview.emergentagent.com"
   },
   "seed_data_creation": "None required",
   "retest_needed": false,
