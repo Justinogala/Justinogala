@@ -6,7 +6,10 @@ import {
   Menu, X, ChevronDown, LogOut, Shield, Plus, Check,
   Mic, Video, Search, MessageSquare, Users, FileText, 
   BarChart, Calendar, Zap, LayoutGrid, Heart, Code, 
-  Briefcase, GraduationCap 
+  Briefcase, GraduationCap, AudioLines, Clapperboard,
+  PenLine, FileOutput, AlertTriangle, CreditCard,
+  Clock, Headphones, LayoutDashboard, CircleDot,
+  FolderOpen, Bell
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll } from 'framer-motion';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
@@ -82,17 +85,31 @@ const Header = () => {
 
   const navStructure = {
     'Features': [
-      { label: 'Overview', href: '/features/overview', icon: LayoutGrid },
-      { label: 'Meetings', href: '/features/meetings', icon: Calendar },
-      { label: 'Transcriptions', href: '/features/transcriptions', icon: FileText },
-      { label: 'Video Conferencing', href: '/features/video-conferencing', icon: Video },
-      { label: 'Search', href: '/features/search', icon: Search },
-      { label: 'Chat & Messaging', href: '/features/chat-messaging', icon: MessageSquare },
-      { label: 'Teams', href: '/features/teams', icon: Users },
-      { label: 'File Management', href: '/features/file-management', icon: FileText },
-      { label: 'Analytics', href: '/features/analytics', icon: BarChart },
-      { label: 'Voice Chat', href: '/features/voice-chat', icon: Mic },
-      { label: 'Calendar Integration', href: '/features/calendar-integration', icon: Calendar },
+      // Column 1: AI & Media
+      { label: 'Overview', href: '/features', icon: LayoutGrid, col: 0 },
+      { label: 'Text to Audio', href: '/text-to-audio', icon: AudioLines, col: 0, badge: 'NEW' },
+      { label: 'Text to Video', href: '/text-to-video', icon: Clapperboard, col: 0, badge: 'NEW' },
+      { label: 'AI Transcriptions', href: '/features/transcriptions', icon: FileText, col: 0 },
+      { label: 'Quick Record', href: '/quick-record', icon: CircleDot, col: 0 },
+      { label: 'Voice Chat', href: '/features/voice-chat', icon: Headphones, col: 0 },
+      // Column 2: Communication
+      { label: 'Messages', href: '/features/chat-messaging', icon: MessageSquare, col: 1 },
+      { label: 'Chat', href: '/features/chat-messaging', icon: MessageSquare, col: 1 },
+      { label: 'Meetings', href: '/features/meetings', icon: Video, col: 1 },
+      { label: 'Calendar', href: '/features/calendar-integration', icon: Calendar, col: 1 },
+      { label: 'Notifications', href: '/features/meetings', icon: Bell, col: 1 },
+      { label: 'Search', href: '/features/search', icon: Search, col: 1 },
+      // Column 3: Workspace & Docs
+      { label: 'Workspaces', href: '/features/teams', icon: Users, col: 2 },
+      { label: 'Shifts', href: '/features/meetings', icon: Clock, col: 2 },
+      { label: 'File Management', href: '/features/file-management', icon: FolderOpen, col: 2 },
+      { label: 'eSignature', href: '/esignature', icon: PenLine, col: 2, badge: 'NEW' },
+      { label: 'Doc Conversion', href: '/esignature', icon: FileOutput, col: 2, badge: 'NEW' },
+      // Column 4: Admin & Reporting
+      { label: 'IR / SOR Reports', href: '/ir-sor', icon: AlertTriangle, col: 3, badge: 'NEW' },
+      { label: 'Analytics', href: '/features/analytics', icon: BarChart, col: 3 },
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, col: 3 },
+      { label: 'Billing', href: '/pricing', icon: CreditCard, col: 3 },
     ],
     'Use Cases': [
       { label: 'Overview', href: '/use-cases', icon: Zap },
@@ -243,38 +260,78 @@ const Header = () => {
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center space-x-6 shrink-0">
           {!isAuthenticated && Object.entries(navStructure).map(([title, items]) => (
-            <div key={title} className="relative group">
+            <div key={title} className="relative" onMouseLeave={() => setActiveDropdown(null)}>
               <button
                 onMouseEnter={() => setActiveDropdown(title)}
-                className="flex items-center space-x-1 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-violet-600 dark:hover:text-violet-400 py-2 transition-colors touch-target"
+                onClick={() => setActiveDropdown(activeDropdown === title ? null : title)}
+                className={cn(
+                  "flex items-center space-x-1 text-sm font-semibold py-2 transition-colors touch-target",
+                  activeDropdown === title ? "text-violet-600 dark:text-violet-400" : "text-gray-700 dark:text-gray-200 hover:text-violet-600 dark:hover:text-violet-400"
+                )}
               >
                 <span>{title}</span>
-                <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+                <ChevronDown className={cn("w-4 h-4 transition-transform", activeDropdown === title && "rotate-180")} />
               </button>
-              {/* Dropdown content */}
               <AnimatePresence>
                 {activeDropdown === title && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    onMouseLeave={() => setActiveDropdown(null)}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
                     className={cn(
-                      "absolute top-full left-0 mt-2 bg-white dark:bg-slate-900 border border-violet-100 dark:border-violet-700 rounded-xl shadow-xl shadow-violet-500/10 py-2 z-40 overflow-hidden",
-                      title === 'Features' ? 'w-64' : 'w-56'
+                      "absolute top-full z-50",
+                      title === 'Features' ? 'right-0' : 'left-0'
                     )}
                   >
-                    {items.map((item) => (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        onClick={() => setActiveDropdown(null)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 transition-colors border-l-2 border-transparent hover:border-violet-500"
-                      >
-                        {item.icon && <item.icon className="w-4 h-4" />}
-                        {item.label}
-                      </Link>
-                    ))}
+                    {/* Bridge gap */}
+                    <div className="h-2" />
+                    <div className={cn(
+                      "bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-2xl",
+                      title === 'Features' ? 'w-[700px] p-5' : 'w-56 py-2'
+                    )}>
+                    {title === 'Features' ? (
+                      <>
+                        <div className="grid grid-cols-4 gap-x-5 gap-y-0">
+                          {['AI & Media', 'Communication', 'Workspace & Docs', 'Admin & Reports'].map((colTitle, i) => (
+                            <div key={colTitle}>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-violet-500 mb-2 px-2">{colTitle}</p>
+                              {items.filter(item => item.col === i).map((item) => (
+                                <Link
+                                  key={item.href + item.label}
+                                  to={item.href}
+                                  onClick={() => setActiveDropdown(null)}
+                                  className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-gray-600 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 rounded-md transition-colors group"
+                                >
+                                  <item.icon className="w-3.5 h-3.5 text-gray-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                                  <span>{item.label}</span>
+                                  {item.badge && <span className="text-[9px] font-bold bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 px-1 py-0.5 rounded leading-none">{item.badge}</span>}
+                                </Link>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-violet-100 dark:border-violet-800 flex items-center justify-between">
+                          <p className="text-xs text-gray-400">Explore all 24+ features</p>
+                          <Link to="/features" onClick={() => setActiveDropdown(null)} className="text-xs font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-400 flex items-center gap-1">
+                            View all features <ChevronDown className="w-3 h-3 -rotate-90" />
+                          </Link>
+                        </div>
+                      </>
+                    ) : (
+                      items.map((item) => (
+                        <Link
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setActiveDropdown(null)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 transition-colors border-l-2 border-transparent hover:border-violet-500"
+                        >
+                          {item.icon && <item.icon className="w-4 h-4" />}
+                          {item.label}
+                        </Link>
+                      ))
+                    )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
