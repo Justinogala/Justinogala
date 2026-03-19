@@ -1,7 +1,7 @@
 # Munal/EchoNote AI - Product Requirements Document
 
 ## Original Problem Statement
-Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, SharePoint-style Workspace Hubs, and Organization-Managed Business Accounts.
+Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collaboration platform with AI-powered features including text-to-audio, text-to-video, transcriptions, messaging, eSignature, IR/SOR system, admin management, Approvals & Workflow Management, SharePoint-style Workspace Hubs, and Organization-Managed Business Accounts with self-service dashboards.
 
 ## Tech Stack
 - **Frontend**: Vite/React, Tailwind CSS, Shadcn/UI, Recharts, Framer Motion
@@ -12,72 +12,69 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ### Organization Management (Complete - Mar 2026)
 
-#### Core Org CRUD (iteration_50)
-- Full CRUD for organizations (`/api/organizations`)
-- Member management: create/assign/remove business accounts
-- Org stats: member_count, active_members, workspace_count, approval_count
-- Admin Organizations page with list/detail views, stats, member table
+#### Core Org CRUD + Admin Page (iteration_50)
+- Full CRUD at `/api/organizations`, member management, org stats
+- Admin Organizations page with list/detail views
 
 #### Domain Auto-Enrollment (iteration_51)
-- User registration checks email domain against `organizations.domain`
-- Matching domain (e.g. `@munal.com`) auto-sets `account_type: "business"` + `organization_id`
-- Non-matching domains stay `account_type: "personal"`
+- Registration checks email domain → auto-assigns to matching org as business account
 
 #### Edit Org Member Info (iteration_51)
-- `PUT /api/organizations/{org_id}/members/{user_id}` — update name, email, org_role, plan, status
+- `PUT /api/organizations/{org_id}/members/{user_id}` — update name, email, role, plan, status
 - Edit button on each member row in admin detail view
-- Dialog with all editable fields + validation (duplicate email check)
 
 #### Organization Self-Registration (iteration_51)
 - `POST /api/organizations/signup` — creates org + admin user in one step
-- Signup page has Personal/Organization toggle
-- Organization tab shows: Org Name, Domain, Description fields + "Your Admin Account" section
-- Button changes to "Create Organization" — creates org then logs user in
+- Signup page Personal/Organization toggle
 
-### eSignature Terms of Service (Complete - Mar 2026)
-- Full TOS for Munal AI / Jiffix Inc, accessible from eSignature page
+#### Organization Dashboard (iteration_52) — NEW
+- `GET /api/organizations/{org_id}/dashboard` — aggregated endpoint with stats, members, workspaces, activity, role distribution
+- Full dashboard page at `/org-dashboard` with:
+  - 6 stat cards (members, active, workspaces, pending/completed/total approvals)
+  - Team Members table with roles and status indicators
+  - Role Breakdown with progress bars
+  - Approval Overview (pending/approved/rejected)
+  - Organization Workspaces list with navigation
+  - Recent Activity feed (announcements + approvals)
+- Sidebar "My Organization" link — only visible to business users with org_id
 
-### Workspace Dashboard Widget (Complete - Mar 2026)
-- Aggregated workspace summary endpoint + sidebar widget with pending action badges
+### eSignature Terms of Service (Complete)
+- Full TOS for Munal AI / Jiffix Inc on eSignature page
+
+### Workspace Dashboard Widget (Complete)
+- Aggregated workspace summary in user dashboard sidebar
 
 ### Approvals Module (Complete)
 - Phase 1 & 2: Dashboard, Templates, Workflows, Analytics, AI Insights, Notifications, Weekly Digest
 
 ### SharePoint-Style Workspace Hub (Complete)
-- Dynamic homepages, activity feed, announcements, real-time stats, workspace templates
+- Dynamic homepages, activity feed, announcements, workspace templates
 
 ### Other Features (Complete)
-- Auth (JWT + refresh), Workspaces, File Manager, AI Messaging, Sora 2, TTS, IR/SOR, eSignature, SSE Notifications
+- Auth, Workspaces, File Manager, AI Messaging, Sora 2, TTS, IR/SOR, eSignature, SSE Notifications
 
 ## Credentials
 - **Admin**: admin@munal.com / Admin@123456
-- **Test Business User**: justin.ogala@munal.com / Justin@123456
-- **Test Org Signup**: admin@jiffix.com / Test@12345678
+- **Business User**: justin.ogala@munal.com / Justin@123456 (Munal Inc, org_role: manager)
 
 ## Key API Endpoints
 
+### Organization Dashboard
+- `GET /api/organizations/{org_id}/dashboard?user_id=xxx` — Full org dashboard
+
 ### Organizations
 - `GET/POST /api/organizations` — List/Create
-- `POST /api/organizations/signup` — Self-registration (org + admin user)
-- `GET/PUT/DELETE /api/organizations/{id}` — Single org CRUD
-- `GET/POST /api/organizations/{org_id}/members` — List/Add members
+- `POST /api/organizations/signup` — Self-registration
+- `GET/PUT/DELETE /api/organizations/{id}` — CRUD
+- `GET/POST /api/organizations/{org_id}/members` — List/Add
 - `PUT /api/organizations/{org_id}/members/{user_id}` — Edit member
-- `DELETE /api/organizations/{org_id}/members/{user_id}` — Remove member
-- `POST /api/organizations/{org_id}/members/assign` — Assign existing user
-- `GET /api/organizations/{org_id}/stats` — Org statistics
-
-### Auth (Updated)
-- `POST /api/auth/register` — Now with domain auto-enrollment
-
-## DB Collections
-- `organizations`: id, name, domain, description, created_by
-- `users` (UPDATED): account_type (personal/business), organization_id, org_role
+- `DELETE /api/organizations/{org_id}/members/{user_id}` — Remove
 
 ## Key Files
-- `/app/backend/routes/organizations.py` — All org endpoints
-- `/app/backend/routes/auth.py` — Updated register with domain check
-- `/app/src/pages/SignupPage.jsx` — Personal/Organization toggle
-- `/app/src/pages/admin/AdminOrganizationsPage.jsx` — Admin org management + edit member
+- `/app/src/pages/OrgDashboardPage.jsx` (NEW)
+- `/app/backend/routes/organizations.py` (dashboard endpoint added)
+- `/app/src/components/UserSidebar.jsx` (My Organization link)
+- `/app/src/App.jsx` (/org-dashboard route)
 
 ## Prioritized Backlog
 ### P1
