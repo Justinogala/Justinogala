@@ -175,23 +175,21 @@ app.include_router(api_router)
 
 # ============== CORS Middleware ==============
 
-ALLOWED_ORIGINS = [
-    os.environ.get("FRONTEND_URL", ""),
-    "https://munal.ai",
-    "https://www.munal.ai",
-    "http://localhost:3000",
-    "http://localhost:5173",
-]
-# Also allow the preview URL pattern
-ALLOWED_ORIGINS = [o for o in ALLOWED_ORIGINS if o] + [
-    f"https://{h}" for h in [os.environ.get("ALLOWED_HOST", "")]
-    if h
-]
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
+if CORS_ORIGINS == "*":
+    origins_list = ["*"]
+else:
+    origins_list = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+
+# Also include any explicitly configured origins
+for extra in [os.environ.get("FRONTEND_URL", ""), "https://munal.ai", "https://www.munal.ai"]:
+    if extra and extra not in origins_list and origins_list != ["*"]:
+        origins_list.append(extra)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=ALLOWED_ORIGINS if any(ALLOWED_ORIGINS) else ["*"],
+    allow_credentials=True if origins_list != ["*"] else False,
+    allow_origins=origins_list,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
