@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useNotifications } from '@/context/NotificationContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,7 @@ import {
   XCircle, AlertCircle, MoreHorizontal, MessageSquare, FileText, Loader2,
   ChevronRight, ClipboardList, Calendar, Banknote, Package, Plane, Home,
   CreditCard, ShoppingCart, Receipt, Wrench, FolderKanban, TrendingUp, X,
-  Inbox, SendHorizontal, BarChart3
+  Inbox, SendHorizontal, BarChart3, Bell, Link2, Paperclip, Video
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -146,6 +147,25 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, user }) => {
                   <span className="text-sm">{String(val)}</span>
                 </div>
               ))}
+
+              {/* Linked Items */}
+              {(approval.linked_meeting || (approval.linked_files && approval.linked_files.length > 0)) && (
+                <div className="border-t pt-4 space-y-2">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Linked Items</p>
+                  {approval.linked_meeting && (
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                      <Video className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm">{approval.linked_meeting.title}</span>
+                    </div>
+                  )}
+                  {(approval.linked_files || []).map((f, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+                      <Paperclip className="w-4 h-4 text-emerald-500" />
+                      <span className="text-sm">{f.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -296,6 +316,7 @@ const TemplateStore = ({ onSelect, onBack }) => {
 // ============ Create Approval Form ============
 const CreateApprovalForm = ({ template, onBack, onCreated, user }) => {
   const { toast } = useToast();
+  const { createNotification } = useNotifications();
   const [title, setTitle] = useState(template ? template.name : '');
   const [priority, setPriority] = useState('Medium');
   const [description, setDescription] = useState('');
@@ -305,8 +326,38 @@ const CreateApprovalForm = ({ template, onBack, onCreated, user }) => {
   const [approverEmail, setApproverEmail] = useState('');
   const [approvers, setApprovers] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  // Integration state
+  const [linkedMeeting, setLinkedMeeting] = useState(null);
+  const [linkedFiles, setLinkedFiles] = useState([]);
+  const [meetingSearch, setMeetingSearch] = useState('');
+  const [meetings, setMeetings] = useState([]);
+  const [showMeetingPicker, setShowMeetingPicker] = useState(false);
+  const [showFilePicker, setShowFilePicker] = useState(false);
+  const [files, setFiles] = useState([]);
 
   const fields = template?.fields || [];
+
+  // Fetch meetings for linking
+  const fetchMeetings = async (q) => {
+    try {
+      const res = await fetch(`${API_URL}/api/meetings?user_id=${user.id}&search=${encodeURIComponent(q || '')}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMeetings(data.meetings || data || []);
+      }
+    } catch { setMeetings([]); }
+  };
+
+  // Fetch files for linking
+  const fetchFiles = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/files?user_id=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data.files || data || []);
+      }
+    } catch { setFiles([]); }
+  };
 
   const addApprover = () => {
     if (!approverName.trim()) return;
@@ -326,11 +377,22 @@ const CreateApprovalForm = ({ template, onBack, onCreated, user }) => {
           title, template_id: template?.id, category: template?.category || 'General',
           priority, approvers, form_data: formData, workflow_type: workflowType,
           description, deadline: null, attachments: [],
+          linked_meeting: linkedMeeting,
+          linked_files: linkedFiles,
         }),
       });
       const data = await res.json();
       if (data.success) {
         toast({ title: 'Approval request created!' });
+        // Fire in-app notification
+        createNotification({
+          type: 'system',
+          title: 'Approval Sent',
+          message: `Your request "${title}" has been sent for approval`,
+          actionUrl: '/approvals',
+          icon: 'FileCheck2',
+          color: 'bg-violet-500',
+        });
         onCreated();
       }
     } catch { toast({ variant: 'destructive', title: 'Failed to create request' }); }
@@ -423,6 +485,39 @@ const CreateApprovalForm = ({ template, onBack, onCreated, user }) => {
               <Button variant="outline" size="sm" onClick={addApprover} data-testid="add-approver-btn"><Plus className="w-4 h-4" /></Button>
             </div>
           </div>
+
+          {/* Linked Items (Meetings, Files) */}
+          <div className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-semibold">Linked Items</h3>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => { fetchMeetings(''); setShowMeetingPicker(true); }} data-testid="link-meeting-btn">
+                <Video className="w-3.5 h-3.5 mr-1" /> Link Meeting
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => { fetchFiles(); setShowFilePicker(true); }} data-testid="link-file-btn">
+                <Paperclip className="w-3.5 h-3.5 mr-1" /> Attach File
+              </Button>
+            </div>
+
+            {linkedMeeting && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <Video className="w-4 h-4 text-blue-500 shrink-0" />
+                <span className="text-sm flex-1 truncate">{linkedMeeting.title}</span>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setLinkedMeeting(null)}><X className="w-3 h-3" /></Button>
+              </div>
+            )}
+
+            {linkedFiles.length > 0 && (
+              <div className="space-y-1">
+                {linkedFiles.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                    <Paperclip className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="text-sm flex-1 truncate">{f.name}</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setLinkedFiles(prev => prev.filter((_, j) => j !== i))}><X className="w-3 h-3" /></Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -432,6 +527,51 @@ const CreateApprovalForm = ({ template, onBack, onCreated, user }) => {
           {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />} Submit Request
         </Button>
       </div>
+
+      {/* Meeting Picker Dialog */}
+      <Dialog open={showMeetingPicker} onOpenChange={setShowMeetingPicker}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Link a Meeting</DialogTitle></DialogHeader>
+          <Input value={meetingSearch} onChange={e => { setMeetingSearch(e.target.value); fetchMeetings(e.target.value); }} placeholder="Search meetings..." data-testid="meeting-search" />
+          <div className="max-h-60 overflow-y-auto space-y-1 mt-2">
+            {meetings.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-4">No meetings found</p>
+            ) : meetings.slice(0, 20).map(m => (
+              <div key={m.id || m._id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => { setLinkedMeeting({ meeting_id: m.id || m._id, title: m.title || m.name || 'Meeting' }); setShowMeetingPicker(false); }}>
+                <Video className="w-4 h-4 text-blue-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{m.title || m.name || 'Untitled Meeting'}</p>
+                  {m.date && <p className="text-xs text-slate-400">{new Date(m.date).toLocaleDateString()}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* File Picker Dialog */}
+      <Dialog open={showFilePicker} onOpenChange={setShowFilePicker}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Attach a File</DialogTitle></DialogHeader>
+          <div className="max-h-60 overflow-y-auto space-y-1 mt-2">
+            {files.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-4">No files found</p>
+            ) : files.slice(0, 30).map(f => (
+              <div key={f.id || f._id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => {
+                const fileEntry = { file_id: f.id || f._id, name: f.name || f.filename || 'File', url: f.url || '' };
+                if (!linkedFiles.some(lf => lf.file_id === fileEntry.file_id)) setLinkedFiles(prev => [...prev, fileEntry]);
+                setShowFilePicker(false);
+              }}>
+                <FileText className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{f.name || f.filename || 'Untitled'}</p>
+                  {f.size && <p className="text-xs text-slate-400">{(f.size / 1024).toFixed(1)} KB</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -440,6 +580,7 @@ const CreateApprovalForm = ({ template, onBack, onCreated, user }) => {
 const ApprovalsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { createNotification } = useNotifications();
   const [view, setView] = useState('dashboard'); // dashboard, detail, templates, create
   const [tab, setTab] = useState('received');
   const [approvals, setApprovals] = useState([]);
@@ -450,6 +591,8 @@ const ApprovalsPage = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [approvalNotifs, setApprovalNotifs] = useState([]);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
 
   const fetchApprovals = useCallback(async () => {
     if (!user?.id) return;
@@ -474,7 +617,22 @@ const ApprovalsPage = () => {
     } catch { /* silent */ }
   }, [user?.id]);
 
-  useEffect(() => { fetchApprovals(); fetchStats(); }, [fetchApprovals, fetchStats]);
+  const fetchNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/approvals/notifications?user_id=${user.id}`);
+      const data = await res.json();
+      setApprovalNotifs(data.notifications || []);
+    } catch { /* silent */ }
+  }, [user?.id]);
+
+  useEffect(() => { fetchApprovals(); fetchStats(); fetchNotifications(); }, [fetchApprovals, fetchStats, fetchNotifications]);
+
+  const markNotifsRead = async () => {
+    if (!user?.id) return;
+    await fetch(`${API_URL}/api/approvals/notifications/read?user_id=${user.id}`, { method: 'POST' });
+    setApprovalNotifs(prev => prev.map(n => ({ ...n, read: true })));
+  };
 
   const handleExport = () => {
     window.open(`${API_URL}/api/approvals/export?user_id=${user?.id}&format=csv`, '_blank');
@@ -532,6 +690,41 @@ const ApprovalsPage = () => {
           <p className="text-sm text-slate-500">Manage your approval requests and workflows</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Notification Bell */}
+          <div className="relative">
+            <Button variant="outline" size="sm" onClick={() => { setShowNotifPanel(!showNotifPanel); if (!showNotifPanel) markNotifsRead(); }} data-testid="approval-notif-btn">
+              <Bell className="w-4 h-4" />
+              {approvalNotifs.filter(n => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+                  {approvalNotifs.filter(n => !n.read).length}
+                </span>
+              )}
+            </Button>
+            {showNotifPanel && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border z-50 max-h-96 overflow-y-auto" data-testid="notif-panel">
+                <div className="px-4 py-3 border-b">
+                  <p className="text-sm font-semibold">Approval Notifications</p>
+                </div>
+                {approvalNotifs.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-slate-400">No notifications</div>
+                ) : (
+                  approvalNotifs.slice(0, 20).map(n => (
+                    <div key={n.id} className={cn('px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors', !n.read && 'bg-violet-50/50 dark:bg-violet-900/10')} onClick={() => {
+                      if (n.approval_id) {
+                        const a = approvals.find(ap => ap.id === n.approval_id);
+                        if (a) { setSelectedApproval(a); setView('detail'); }
+                      }
+                      setShowNotifPanel(false);
+                    }}>
+                      <p className="text-sm font-medium">{n.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{n.message}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={handleExport} data-testid="export-btn"><Download className="w-4 h-4 mr-1" /> Export</Button>
           <Button size="sm" onClick={() => setView('templates')} className="bg-violet-600 hover:bg-violet-700" data-testid="new-approval-btn">
             <Plus className="w-4 h-4 mr-1" /> New Approval Request

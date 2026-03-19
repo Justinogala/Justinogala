@@ -101,6 +101,9 @@ class CreateApprovalRequest(BaseModel):
     deadline: Optional[str] = None
     description: Optional[str] = ""
     attachments: Optional[List[dict]] = None
+    linked_meeting: Optional[dict] = None  # {meeting_id, title}
+    linked_files: Optional[List[dict]] = None  # [{file_id, name, url}]
+    linked_chat_message: Optional[dict] = None  # {message_id, preview}
 
 class UpdateApprovalAction(BaseModel):
     action: str  # approve, reject, cancel, reassign
@@ -134,7 +137,7 @@ def now_iso():
 async def get_templates(category: Optional[str] = None):
     """Get all available templates (default + custom)."""
     templates = list(DEFAULT_TEMPLATES)
-    custom = await db.approval_templates.find({"_id": 0}).to_list(500)
+    custom = await db.approval_templates.find({}, {"_id": 0}).to_list(500)
     templates.extend([{k: v for k, v in t.items() if k != "_id"} for t in custom])
     if category:
         templates = [t for t in templates if t.get("category") == category]
@@ -171,6 +174,28 @@ async def create_template(request: CreateTemplateRequest):
     }
     await db.approval_templates.insert_one(template)
     return {"success": True, "template": {k: v for k, v in template.items() if k != "_id"}}
+
+
+@router.put("/templates/{template_id}")
+async def update_template(template_id: str, request: CreateTemplateRequest):
+    """Update a custom template."""
+    existing = await db.approval_templates.find_one({"id": template_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Custom template not found")
+    update = {
+        "name": request.name,
+        "category": request.category,
+        "description": request.description,
+        "icon": request.icon,
+        "fields": request.fields,
+        "default_workflow": request.default_workflow,
+        "scope": request.scope,
+        "team_id": request.team_id,
+        "updated_at": now_iso(),
+    }
+    await db.approval_templates.update_one({"id": template_id}, {"$set": update})
+    updated = await db.approval_templates.find_one({"id": template_id}, {"_id": 0})
+    return {"success": True, "template": updated}
 
 
 @router.delete("/templates/{template_id}")
@@ -216,6 +241,9 @@ async def create_approval(req: CreateApprovalRequest, user_id: str = Query(...),
         "steps": steps,
         "description": req.description or "",
         "attachments": req.attachments or [],
+        "linked_meeting": req.linked_meeting,
+        "linked_files": req.linked_files or [],
+        "linked_chat_message": req.linked_chat_message,
         "deadline": req.deadline,
         "sender_id": user_id,
         "sender_name": user_name,
@@ -239,6 +267,20 @@ async def create_approval(req: CreateApprovalRequest, user_id: str = Query(...),
 
     await db.approvals.insert_one(approval)
     await db.approval_audit.insert_one(audit)
+
+    # Create notifications for all approvers
+    for step in steps:
+        if step["approver_id"]:
+            await db.approval_notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "user_id": step["approver_id"],
+                "type": "approval_request",
+                "title": "New Approval Request",
+                "message": f"{user_name} sent you an approval request: {req.title}",
+                "approval_id": approval_id,
+                "read": False,
+                "created_at": now_iso(),
+            })
 
     return {"success": True, "approval": {k: v for k, v in approval.items() if k != "_id"}}
 
@@ -374,6 +416,20 @@ async def take_action(approval_id: str, req: UpdateApprovalAction, user_id: str 
     }
     await db.approval_audit.insert_one(audit)
 
+    # Notification to sender on approve/reject/cancel
+    if action in ("approve", "reject", "cancel"):
+        action_label = {"approve": "approved", "reject": "rejected", "cancel": "cancelled"}[action]
+        await db.approval_notifications.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": approval["sender_id"],
+            "type": f"approval_{action_label}",
+            "title": f"Request {action_label.capitalize()}",
+            "message": f'Your request "{approval["title"]}" was {action_label} by {user_name}',
+            "approval_id": approval_id,
+            "read": False,
+            "created_at": now,
+        })
+
     updated = await db.approvals.find_one({"id": approval_id}, {"_id": 0})
     return {"success": True, "approval": updated}
 
@@ -393,6 +449,28 @@ async def add_comment(approval_id: str, req: AddCommentRequest, user_id: str = Q
         "created_at": now_iso(),
     }
     await db.approval_comments.insert_one(comment)
+
+    # Notify other participants about the comment
+    approval = await db.approvals.find_one({"id": approval_id}, {"_id": 0})
+    if approval:
+        notify_ids = set()
+        notify_ids.add(approval.get("sender_id", ""))
+        for step in approval.get("steps", []):
+            notify_ids.add(step.get("approver_id", ""))
+        notify_ids.discard(user_id)  # Don't notify the commenter
+        for nid in notify_ids:
+            if nid:
+                await db.approval_notifications.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "user_id": nid,
+                    "type": "approval_comment",
+                    "title": "New Comment",
+                    "message": f'{user_name} commented on "{approval.get("title", "")}"',
+                    "approval_id": approval_id,
+                    "read": False,
+                    "created_at": now_iso(),
+                })
+
     return {"success": True, "comment": {k: v for k, v in comment.items() if k != "_id"}}
 
 
@@ -443,3 +521,35 @@ async def export_approvals(user_id: str = Query(...), format: str = Query("csv")
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=approvals_export.csv"},
     )
+
+
+# ============ Notifications ============
+
+@router.get("/notifications")
+async def get_notifications(user_id: str = Query(...)):
+    """Get approval notifications for a user."""
+    notifs = await db.approval_notifications.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    unread = sum(1 for n in notifs if not n.get("read"))
+    return {"notifications": notifs, "unread_count": unread}
+
+
+@router.post("/notifications/read")
+async def mark_notifications_read(user_id: str = Query(...)):
+    """Mark all approval notifications as read for a user."""
+    await db.approval_notifications.update_many(
+        {"user_id": user_id, "read": False},
+        {"$set": {"read": True}}
+    )
+    return {"success": True}
+
+
+@router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str):
+    """Mark a single notification as read."""
+    await db.approval_notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"read": True}}
+    )
+    return {"success": True}
