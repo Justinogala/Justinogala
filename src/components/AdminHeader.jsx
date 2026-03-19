@@ -14,7 +14,10 @@ const AdminHeader = ({ onMenuClick }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem('munal_sessions');
+    localStorage.removeItem('munal_auth');
+    localStorage.removeItem('munal_refresh');
+    localStorage.removeItem('munal_last_activity');
     window.location.href = '/';
   };
 

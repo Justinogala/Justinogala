@@ -93,7 +93,11 @@ export const AuthProvider = ({ children }) => {
     const interval = setInterval(() => {
       const last = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY) || '0', 10);
       if (Date.now() - last > INACTIVITY_TIMEOUT) {
-        logout();
+        localStorage.removeItem(SESSIONS_KEY);
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(REFRESH_KEY);
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        window.location.href = '/';
       }
     }, 60_000); // check every minute
 

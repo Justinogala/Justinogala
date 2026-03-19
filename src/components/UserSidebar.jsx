@@ -21,8 +21,11 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
   const [paymentsOpen, setPaymentsOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
 
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    localStorage.removeItem('munal_sessions');
+    localStorage.removeItem('munal_auth');
+    localStorage.removeItem('munal_refresh');
+    localStorage.removeItem('munal_last_activity');
     window.location.href = '/';
   };
 

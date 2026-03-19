@@ -17,7 +17,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   // Determine which loading state to check based on route type
   const isLoading = adminOnly ? adminLoading : loading;
   const isAuth = adminOnly ? isAdminAuthenticated : isAuthenticated;
-  const redirectPath = adminOnly ? '/admin/login' : '/login';
+  const redirectPath = adminOnly ? '/admin/login' : '/';
 
   if (isLoading) {
     return (

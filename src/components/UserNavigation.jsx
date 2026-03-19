@@ -38,8 +38,11 @@ const UserNavigation = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    localStorage.removeItem('munal_sessions');
+    localStorage.removeItem('munal_auth');
+    localStorage.removeItem('munal_refresh');
+    localStorage.removeItem('munal_last_activity');
     window.location.href = '/';
   };
 
