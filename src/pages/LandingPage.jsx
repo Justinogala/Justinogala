@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import HeroBackground from '@/components/HeroBackground';
 import HeroThemeToggle from '@/components/HeroThemeToggle';
+import DemoVideoModal from '@/components/DemoVideoModal';
 
 // Import Section Components
 import BenefitsSection from '@/components/landing/BenefitsSection';
@@ -19,6 +20,7 @@ import StatsSection from '@/components/landing/StatsSection';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [demoOpen, setDemoOpen] = useState(false);
 
   return (
     <PageTransition>
@@ -72,7 +74,8 @@ const LandingPage = () => {
                   <Button 
                     size="lg" 
                     variant="outline"
-                    onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                    data-testid="watch-demo-btn"
+                    onClick={() => setDemoOpen(true)}
                     className="h-14 px-8 text-lg border-white text-white hover:bg-white/10 rounded-full backdrop-blur-sm"
                   >
                     <PlayCircle className="mr-2 w-5 h-5" /> Watch Demo
@@ -135,6 +138,7 @@ const LandingPage = () => {
 
         <Footer />
         <HeroThemeToggle />
+        <DemoVideoModal isOpen={demoOpen} onClose={() => setDemoOpen(false)} />
       </div>
     </PageTransition>
   );
