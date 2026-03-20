@@ -19,7 +19,8 @@ import {
   ChevronRight, ClipboardList, Calendar, Banknote, Package, Plane, Home,
   CreditCard, ShoppingCart, Receipt, Wrench, FolderKanban, TrendingUp, X,
   Inbox, SendHorizontal, BarChart3, Bell, Link2, Paperclip, Video,
-  Copy, TrendingDown, AlertTriangle, Zap, Activity, Mail, Settings
+  Copy, TrendingDown, AlertTriangle, Zap, Activity, Mail, Settings,
+  UserCheck, ArrowRightLeft
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -46,6 +47,14 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, onDuplicate, user }) => {
   const [newComment, setNewComment] = useState('');
   const [actionLoading, setActionLoading] = useState('');
   const [detailTab, setDetailTab] = useState('details');
+  // Delegation state
+  const [showDelegateModal, setShowDelegateModal] = useState(false);
+  const [delegateSearch, setDelegateSearch] = useState('');
+  const [delegateResults, setDelegateResults] = useState([]);
+  const [selectedDelegate, setSelectedDelegate] = useState(null);
+  const [delegateReason, setDelegateReason] = useState('');
+  const [delegating, setDelegating] = useState(false);
+  const [searchingUsers, setSearchingUsers] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/api/approvals/detail/${approval.id}`)
@@ -71,6 +80,53 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, onDuplicate, user }) => {
     finally { setActionLoading(''); }
   };
 
+  const searchUsers = async (q) => {
+    if (!q || q.length < 2) { setDelegateResults([]); return; }
+    setSearchingUsers(true);
+    try {
+      const res = await fetch(`${API_URL}/api/users/search?q=${encodeURIComponent(q)}&limit=10`);
+      if (res.ok) {
+        const data = await res.json();
+        // Exclude current user from results
+        setDelegateResults((data || []).filter(u => u.id !== user.id));
+      }
+    } catch { setDelegateResults([]); }
+    finally { setSearchingUsers(false); }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => searchUsers(delegateSearch), 300);
+    return () => clearTimeout(timer);
+  }, [delegateSearch]);
+
+  const handleDelegate = async () => {
+    if (!selectedDelegate) return;
+    setDelegating(true);
+    try {
+      const res = await fetch(`${API_URL}/api/approvals/delegate/${approval.id}?user_id=${user.id}&user_name=${encodeURIComponent(user.name || user.email)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          delegate_to_id: selectedDelegate.id,
+          delegate_to_name: selectedDelegate.name || selectedDelegate.email,
+          delegate_to_email: selectedDelegate.email || '',
+          reason: delegateReason,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: 'Approval delegated', description: `Delegated to ${selectedDelegate.name || selectedDelegate.email}` });
+        setShowDelegateModal(false);
+        setSelectedDelegate(null);
+        setDelegateReason('');
+        setDelegateSearch('');
+        onRefresh();
+      } else {
+        toast({ variant: 'destructive', title: 'Delegation failed', description: data.detail || 'Unknown error' });
+      }
+    } catch { toast({ variant: 'destructive', title: 'Delegation failed' }); }
+    finally { setDelegating(false); }
+  };
+
   const addComment = async () => {
     if (!newComment.trim()) return;
     const res = await fetch(`${API_URL}/api/approvals/comments/${approval.id}?user_id=${user.id}&user_name=${encodeURIComponent(user.name || user.email)}`, {
@@ -87,7 +143,12 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, onDuplicate, user }) => {
   const st = STATUS_CONFIG[approval.status] || STATUS_CONFIG.pending;
   const StIcon = st.icon;
   const isApprover = approval.steps?.some(s => s.approver_id === user?.id && s.status === 'pending');
+  const isDelegatedTo = approval.steps?.some(s => s.delegated_to_id === user?.id && s.status === 'pending');
+  const canAct = isApprover || isDelegatedTo;
   const isSender = approval.sender_id === user?.id;
+  // Check if current user's step is already delegated
+  const myStep = approval.steps?.find(s => s.approver_id === user?.id && s.status === 'pending');
+  const alreadyDelegated = myStep?.delegated_to_id ? true : false;
 
   return (
     <div className="space-y-5" data-testid="approval-detail">
@@ -113,15 +174,30 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, onDuplicate, user }) => {
       </div>
 
       {/* Action buttons */}
-      {isApprover && approval.status === 'pending' && (
-        <div className="flex gap-2">
+      {canAct && approval.status === 'pending' && (
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={() => handleAction('approve')} disabled={!!actionLoading} className="bg-emerald-600 hover:bg-emerald-700" data-testid="approve-btn">
             {actionLoading === 'approve' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />} Approve
           </Button>
           <Button onClick={() => handleAction('reject')} disabled={!!actionLoading} variant="destructive" data-testid="reject-btn">
             {actionLoading === 'reject' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <XCircle className="w-4 h-4 mr-1" />} Reject
           </Button>
+          {isApprover && !alreadyDelegated && (
+            <Button onClick={() => setShowDelegateModal(true)} variant="outline" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50" data-testid="delegate-btn">
+              <ArrowRightLeft className="w-4 h-4 mr-1" /> Delegate
+            </Button>
+          )}
+          {alreadyDelegated && (
+            <Badge variant="outline" className="text-indigo-600 border-indigo-200 gap-1 py-1.5 px-3">
+              <UserCheck className="w-3.5 h-3.5" /> Delegated to {myStep?.delegated_to_name}
+            </Badge>
+          )}
         </div>
+      )}
+      {isDelegatedTo && approval.status === 'pending' && !isApprover && (
+        <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 gap-1 py-1.5 px-3">
+          <ArrowRightLeft className="w-3.5 h-3.5" /> Delegated to you by {approval.steps?.find(s => s.delegated_to_id === user?.id)?.delegated_by_name}
+        </Badge>
       )}
       {isSender && approval.status === 'pending' && (
         <Button onClick={() => handleAction('cancel')} disabled={!!actionLoading} variant="outline" className="text-red-600">
@@ -191,6 +267,18 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, onDuplicate, user }) => {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{step.approver_name || step.approver_email}</p>
                         <p className="text-xs text-slate-500">Step {step.step} &bull; {step.type}</p>
+                        {step.delegated_to_name && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <ArrowRightLeft className="w-3 h-3 text-indigo-500" />
+                            <span className="text-xs text-indigo-600 dark:text-indigo-400">
+                              Delegated to {step.delegated_to_name}
+                              {step.delegation_reason && <span className="text-slate-400"> — {step.delegation_reason}</span>}
+                            </span>
+                          </div>
+                        )}
+                        {step.acted_by_delegate && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">Acted by delegate: {step.delegate_actor_name}</p>
+                        )}
                       </div>
                       <Badge className={cn('text-xs', ss.color)}>{ss.label}</Badge>
                       {step.action_at && <span className="text-xs text-slate-400">{new Date(step.action_at).toLocaleDateString()}</span>}
@@ -241,6 +329,84 @@ const ApprovalDetail = ({ approval, onBack, onRefresh, onDuplicate, user }) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delegate Modal */}
+      <Dialog open={showDelegateModal} onOpenChange={setShowDelegateModal}>
+        <DialogContent className="max-w-md" data-testid="delegate-modal">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 text-indigo-500" /> Delegate Approval
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-slate-500 mb-1">Search for a user to delegate to</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  value={delegateSearch}
+                  onChange={e => setDelegateSearch(e.target.value)}
+                  placeholder="Type name or email..."
+                  className="pl-8"
+                  data-testid="delegate-search-input"
+                />
+              </div>
+              {searchingUsers && <p className="text-xs text-slate-400 mt-1">Searching...</p>}
+              {delegateResults.length > 0 && !selectedDelegate && (
+                <div className="mt-2 border rounded-lg max-h-40 overflow-y-auto" data-testid="delegate-user-list">
+                  {delegateResults.map(u => (
+                    <div
+                      key={u.id}
+                      className="flex items-center gap-3 p-2.5 cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/10 border-b last:border-0 transition-colors"
+                      onClick={() => { setSelectedDelegate(u); setDelegateSearch(u.name || u.email); setDelegateResults([]); }}
+                      data-testid={`delegate-user-${u.id}`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-xs font-bold text-indigo-600">
+                        {(u.name || u.email || '?')[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{u.name || 'No name'}</p>
+                        <p className="text-xs text-slate-400 truncate">{u.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedDelegate && (
+                <div className="mt-2 flex items-center gap-2 p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800" data-testid="selected-delegate">
+                  <UserCheck className="w-4 h-4 text-indigo-600" />
+                  <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">{selectedDelegate.name || selectedDelegate.email}</span>
+                  <Button variant="ghost" size="sm" className="ml-auto h-6 w-6 p-0" onClick={() => { setSelectedDelegate(null); setDelegateSearch(''); }}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs text-slate-500 mb-1">Reason (optional)</Label>
+              <Textarea
+                value={delegateReason}
+                onChange={e => setDelegateReason(e.target.value)}
+                placeholder="Why are you delegating this approval?"
+                rows={2}
+                data-testid="delegate-reason-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDelegateModal(false)}>Cancel</Button>
+            <Button
+              onClick={handleDelegate}
+              disabled={!selectedDelegate || delegating}
+              className="bg-indigo-600 hover:bg-indigo-700"
+              data-testid="confirm-delegate-btn"
+            >
+              {delegating ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <ArrowRightLeft className="w-4 h-4 mr-1" />}
+              Delegate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -1017,6 +1183,7 @@ const ApprovalsPage = () => {
           <TabsList>
             <TabsTrigger value="received" data-testid="received-tab"><Inbox className="w-3.5 h-3.5 mr-1" /> Received</TabsTrigger>
             <TabsTrigger value="sent" data-testid="sent-tab"><SendHorizontal className="w-3.5 h-3.5 mr-1" /> Sent</TabsTrigger>
+            <TabsTrigger value="delegated" data-testid="delegated-tab"><ArrowRightLeft className="w-3.5 h-3.5 mr-1" /> Delegated{stats.delegated_pending > 0 ? ` (${stats.delegated_pending})` : ''}</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="flex items-center gap-2">
@@ -1073,7 +1240,14 @@ const ApprovalsPage = () => {
                     return (
                       <tr key={a.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors" onClick={() => { setSelectedApproval(a); setView('detail'); }} data-testid={`approval-row-${a.id}`}>
                         <td className="px-4 py-3"><Badge className={cn('text-xs', PRIORITY_CONFIG[a.priority])}>{a.priority}</Badge></td>
-                        <td className="px-4 py-3 font-medium max-w-[250px] truncate">{a.title}</td>
+                        <td className="px-4 py-3 font-medium max-w-[250px]">
+                          <span className="truncate block">{a.title}</span>
+                          {a.steps?.some(s => s.delegated_to_id) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 mt-0.5">
+                              <ArrowRightLeft className="w-2.5 h-2.5" /> Delegated
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3"><Badge className={cn('gap-1 text-xs', st.color)}><StIcon className="w-3 h-3" />{st.label}</Badge></td>
                         <td className="px-4 py-3 text-slate-500">{a.category}</td>
                         <td className="px-4 py-3 text-slate-500">{new Date(a.created_at).toLocaleDateString()}</td>

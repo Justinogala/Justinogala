@@ -113,6 +113,12 @@ class UpdateApprovalAction(BaseModel):
     comment: Optional[str] = ""
     reassign_to: Optional[dict] = None
 
+class DelegateRequest(BaseModel):
+    delegate_to_id: str
+    delegate_to_name: str
+    delegate_to_email: str = ""
+    reason: str = ""
+
 class AddCommentRequest(BaseModel):
     content: str
     attachments: Optional[List[dict]] = None
@@ -290,13 +296,19 @@ async def create_approval(req: CreateApprovalRequest, user_id: str = Query(...),
 
 @router.get("/list")
 async def list_approvals(user_id: str = Query(...), tab: str = Query("received"), status: Optional[str] = None, priority: Optional[str] = None, search: Optional[str] = None):
-    """List approvals for a user (received or sent)."""
+    """List approvals for a user (received, sent, or delegated)."""
     query = {}
 
     if tab == "sent":
         query["sender_id"] = user_id
+    elif tab == "delegated":
+        query["steps.delegated_to_id"] = user_id
     else:
-        query["steps.approver_id"] = user_id
+        # received: show both direct approvals AND delegated ones
+        query["$or"] = [
+            {"steps.approver_id": user_id},
+            {"steps.delegated_to_id": user_id},
+        ]
 
     if status and status != "all":
         query["status"] = status
@@ -337,13 +349,19 @@ async def take_action(approval_id: str, req: UpdateApprovalAction, user_id: str 
     if action == "cancel":
         await db.approvals.update_one({"id": approval_id}, {"$set": {"status": "cancelled", "updated_at": now, "completed_at": now}})
     elif action in ("approve", "reject"):
-        # Find the step for this user
+        # Find the step for this user OR for a step delegated to this user
         step_updated = False
         for step in steps:
-            if step["approver_id"] == user_id and step["status"] == "pending":
+            is_direct = step["approver_id"] == user_id and step["status"] == "pending"
+            is_delegate = step.get("delegated_to_id") == user_id and step["status"] == "pending"
+            if is_direct or is_delegate:
                 step["status"] = "approved" if action == "approve" else "rejected"
                 step["action_at"] = now
                 step["comment"] = req.comment or ""
+                if is_delegate:
+                    step["acted_by_delegate"] = True
+                    step["delegate_actor_id"] = user_id
+                    step["delegate_actor_name"] = user_name
                 step_updated = True
                 break
 
@@ -437,7 +455,87 @@ async def take_action(approval_id: str, req: UpdateApprovalAction, user_id: str 
     return {"success": True, "approval": updated}
 
 
-# ============ Comments ============
+# ============ Delegation ============
+
+@router.post("/delegate/{approval_id}")
+async def delegate_approval(approval_id: str, req: DelegateRequest, user_id: str = Query(...), user_name: str = Query("")):
+    """Delegate a pending approval step to another user."""
+    approval = await db.approvals.find_one({"id": approval_id}, {"_id": 0})
+    if not approval:
+        raise HTTPException(status_code=404, detail="Approval not found")
+
+    if approval["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Can only delegate pending approvals")
+
+    steps = approval.get("steps", [])
+    now = now_iso()
+
+    # Find the pending step for the current user
+    step_found = False
+    for step in steps:
+        if step["approver_id"] == user_id and step["status"] == "pending":
+            step["delegated_to_id"] = req.delegate_to_id
+            step["delegated_to_name"] = req.delegate_to_name
+            step["delegated_to_email"] = req.delegate_to_email
+            step["delegated_by_id"] = user_id
+            step["delegated_by_name"] = user_name
+            step["delegation_reason"] = req.reason
+            step["delegation_timestamp"] = now
+            step_found = True
+            break
+
+    if not step_found:
+        raise HTTPException(status_code=400, detail="No pending step found for this user to delegate")
+
+    await db.approvals.update_one({"id": approval_id}, {"$set": {"steps": steps, "updated_at": now}})
+
+    # Audit trail
+    await db.approval_audit.insert_one({
+        "id": str(uuid.uuid4()),
+        "approval_id": approval_id,
+        "action": "delegated",
+        "actor_id": user_id,
+        "actor_name": user_name,
+        "details": f"Delegated to {req.delegate_to_name}" + (f" — Reason: {req.reason}" if req.reason else ""),
+        "timestamp": now,
+    })
+
+    # Notify the delegate
+    await db.approval_notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": req.delegate_to_id,
+        "type": "approval_delegated",
+        "title": "Approval Delegated to You",
+        "message": f'{user_name} delegated an approval to you: "{approval["title"]}"',
+        "approval_id": approval_id,
+        "read": False,
+        "created_at": now,
+    })
+
+    # Notify the sender
+    await db.approval_notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": approval["sender_id"],
+        "type": "approval_delegated",
+        "title": "Approval Delegated",
+        "message": f'{user_name} delegated your request "{approval["title"]}" to {req.delegate_to_name}',
+        "approval_id": approval_id,
+        "read": False,
+        "created_at": now,
+    })
+
+    updated = await db.approvals.find_one({"id": approval_id}, {"_id": 0})
+    return {"success": True, "approval": updated}
+
+
+@router.get("/delegated-to-me")
+async def delegated_to_me(user_id: str = Query(...)):
+    """List approvals delegated to a user."""
+    approvals = await db.approvals.find(
+        {"steps.delegated_to_id": user_id, "status": "pending"},
+        {"_id": 0},
+    ).sort("updated_at", -1).to_list(200)
+    return {"approvals": approvals}
 
 @router.post("/comments/{approval_id}")
 async def add_comment(approval_id: str, req: AddCommentRequest, user_id: str = Query(...), user_name: str = Query("")):
@@ -483,6 +581,7 @@ async def add_comment(approval_id: str, req: AddCommentRequest, user_id: str = Q
 async def get_stats(user_id: str = Query(...)):
     """Get approval statistics for dashboard."""
     received_pending = await db.approvals.count_documents({"steps.approver_id": user_id, "status": "pending"})
+    delegated_pending = await db.approvals.count_documents({"steps.delegated_to_id": user_id, "status": "pending"})
     sent_pending = await db.approvals.count_documents({"sender_id": user_id, "status": "pending"})
     approved = await db.approvals.count_documents({"sender_id": user_id, "status": "approved"})
     rejected = await db.approvals.count_documents({"sender_id": user_id, "status": "rejected"})
@@ -491,6 +590,7 @@ async def get_stats(user_id: str = Query(...)):
 
     return {
         "received_pending": received_pending,
+        "delegated_pending": delegated_pending,
         "sent_pending": sent_pending,
         "approved": approved,
         "rejected": rejected,
