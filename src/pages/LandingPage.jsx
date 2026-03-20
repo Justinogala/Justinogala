@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
-import FloatingOrbs from '@/components/FloatingOrbs';
-import MouseParticleTrail from '@/components/MouseParticleTrail';
+import HeroBackground from '@/components/HeroBackground';
 import HeroThemeToggle from '@/components/HeroThemeToggle';
 
 // Import Section Components
@@ -43,13 +42,8 @@ const LandingPage = () => {
               <div className="absolute inset-0 bg-slate-900/80 bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-violet-900/50 backdrop-blur-sm" />
             </div>
 
-            {/* Floating Orbs Animation */}
-            <div className="absolute inset-0 z-[1]">
-              <FloatingOrbs />
-            </div>
-
-            {/* Mouse Particle Trail */}
-            <MouseParticleTrail />
+            {/* Combined Hero Background: Orbs + Particles + Waves */}
+            <HeroBackground />
 
             <div className="container mx-auto px-6 relative z-10 pt-20 pb-24 text-center">
               <motion.div
