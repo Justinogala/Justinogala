@@ -19,6 +19,7 @@ db = client[os.environ['DB_NAME']]
 # GridFS buckets for file storage
 fs_recordings = AsyncIOMotorGridFSBucket(db, bucket_name="recordings")
 fs_chat_files = AsyncIOMotorGridFSBucket(db, bucket_name="chat_files")
+fs_workspace_files = AsyncIOMotorGridFSBucket(db, bucket_name="workspace_files")
 
 # JWT Configuration
 JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-secret-key-change-in-production')

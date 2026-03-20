@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { 
@@ -8,7 +8,8 @@ import {
   Clock, Calendar, MessageSquare, FileCheck2,
   FileText, Plus, Pin, MoreHorizontal, Megaphone,
   Globe, Lock, Send, X, Loader2, FolderOpen, ChevronRight,
-  UserPlus, ExternalLink, Pencil
+  UserPlus, ExternalLink, Pencil, Upload, Download,
+  File, Image, Music, Video, Eye, FileArchive
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,237 @@ const ACTIVITY_ICONS = {
   announcement: Megaphone,
   file_uploaded: FileText,
   message_sent: MessageSquare,
+};
+
+// ===== File type helpers =====
+const FILE_TYPE_META = {
+  image: { icon: Image, color: 'text-pink-600', bg: 'bg-pink-50 dark:bg-pink-900/10' },
+  video: { icon: Video, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/10' },
+  audio: { icon: Music, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/10' },
+  pdf: { icon: FileText, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/10' },
+  archive: { icon: FileArchive, color: 'text-slate-600', bg: 'bg-slate-100 dark:bg-slate-800' },
+  default: { icon: File, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/10' },
+};
+
+function getFileTypeMeta(contentType) {
+  if (!contentType) return FILE_TYPE_META.default;
+  if (contentType.startsWith('image/')) return FILE_TYPE_META.image;
+  if (contentType.startsWith('video/')) return FILE_TYPE_META.video;
+  if (contentType.startsWith('audio/')) return FILE_TYPE_META.audio;
+  if (contentType === 'application/pdf') return FILE_TYPE_META.pdf;
+  if (contentType.includes('zip') || contentType.includes('tar') || contentType.includes('rar')) return FILE_TYPE_META.archive;
+  return FILE_TYPE_META.default;
+}
+
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// ===== Workspace File Manager Sub-component =====
+const WorkspaceFileManager = ({ workspaceId }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const fileInputRef = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
+
+  const fetchFiles = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/files`);
+      if (res.ok) {
+        const data = await res.json();
+        setFiles(data.files || []);
+      }
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, [workspaceId]);
+
+  useEffect(() => { fetchFiles(); }, [fetchFiles]);
+
+  const uploadFiles = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    setUploading(true);
+    let successCount = 0;
+    for (const file of fileList) {
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+        });
+        const formData = new FormData();
+        formData.append('user_id', user.id);
+        formData.append('file_name', file.name);
+        formData.append('file_data', base64);
+        formData.append('content_type', file.type || 'application/octet-stream');
+        const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/files/upload`, { method: 'POST', body: formData });
+        if (res.ok) successCount++;
+      } catch (err) {
+        console.error('Upload error:', err);
+      }
+    }
+    setUploading(false);
+    if (successCount > 0) {
+      toast({ title: 'Upload complete', description: `${successCount} file(s) uploaded` });
+      fetchFiles();
+    }
+  };
+
+  const handleDrop = (e) => { e.preventDefault(); setDragOver(false); uploadFiles(e.dataTransfer.files); };
+  const handleDragOver = (e) => { e.preventDefault(); setDragOver(true); };
+  const handleDragLeave = () => setDragOver(false);
+
+  const handleDelete = async (fileId) => {
+    if (!confirm('Delete this file permanently?')) return;
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/files/${fileId}`, { method: 'DELETE' });
+    if (res.ok) {
+      toast({ title: 'File deleted' });
+      setFiles(prev => prev.filter(f => f.id !== fileId));
+    }
+  };
+
+  const handleDownload = (file) => {
+    const a = document.createElement('a');
+    a.href = `${API_URL}/api/workspaces/${workspaceId}/files/${file.id}`;
+    a.download = file.file_name;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const timeAgo = (ts) => {
+    if (!ts) return '';
+    const diff = (Date.now() - new Date(ts).getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return new Date(ts).toLocaleDateString();
+  };
+
+  return (
+    <div className="space-y-4" data-testid="workspace-files">
+      {/* Upload Drop Zone */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => fileInputRef.current?.click()}
+        className={cn(
+          "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+          dragOver
+            ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10"
+            : "border-slate-200 dark:border-slate-700 hover:border-indigo-300 hover:bg-slate-50 dark:hover:bg-slate-800/30"
+        )}
+        data-testid="workspace-file-drop-zone"
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => uploadFiles(e.target.files)}
+        />
+        {uploading ? (
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Uploading...</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
+              <Upload className="w-6 h-6 text-indigo-500" />
+            </div>
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              Drop files here or <span className="text-indigo-600 underline">browse</span>
+            </p>
+            <p className="text-xs text-slate-400">Documents, images, audio, video — any file type</p>
+          </div>
+        )}
+      </div>
+
+      {/* File List */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />)}
+        </div>
+      ) : files.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="p-10 text-center text-slate-400">
+            <FolderOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">No files yet</p>
+            <p className="text-sm mt-1">Upload files to share with your workspace team</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2" data-testid="workspace-file-list">
+          <div className="flex items-center justify-between px-1 mb-1">
+            <p className="text-xs text-slate-500 font-medium">{files.length} file{files.length !== 1 ? 's' : ''}</p>
+          </div>
+          {files.map(file => {
+            const meta = getFileTypeMeta(file.content_type);
+            const Icon = meta.icon;
+            return (
+              <div
+                key={file.id}
+                className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group"
+                data-testid={`workspace-file-${file.id}`}
+              >
+                <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center shrink-0', meta.bg)}>
+                  <Icon className={cn('w-5 h-5', meta.color)} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{file.file_name}</p>
+                  <p className="text-[11px] text-slate-400">
+                    {formatFileSize(file.size)} &bull; {file.uploader_name} &bull; {timeAgo(file.uploaded_at)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  {file.content_type?.startsWith('image/') && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewFile(file)} data-testid={`preview-file-${file.id}`}>
+                      <Eye className="w-4 h-4 text-slate-500" />
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(file)} data-testid={`download-file-${file.id}`}>
+                    <Download className="w-4 h-4 text-slate-500" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-500" onClick={() => handleDelete(file.id)} data-testid={`delete-file-${file.id}`}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
+        <DialogContent className="max-w-2xl p-2">
+          <DialogHeader className="px-4 pt-3 pb-1">
+            <DialogTitle className="text-sm truncate">{previewFile?.file_name}</DialogTitle>
+          </DialogHeader>
+          {previewFile && (
+            <img
+              src={`${API_URL}/api/workspaces/${workspaceId}/files/${previewFile.id}`}
+              alt={previewFile.file_name}
+              className="w-full rounded-lg object-contain max-h-[70vh]"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 };
 
 const WorkspaceDetailPage = () => {
@@ -221,6 +453,7 @@ const WorkspaceDetailPage = () => {
             <TabsList className="bg-white dark:bg-slate-900 p-1 rounded-xl border shadow-sm h-auto flex-wrap">
               {[
                 { val: 'home', label: 'Home', icon: Activity },
+                { val: 'files', label: 'Files', icon: FolderOpen },
                 { val: 'news', label: 'News', icon: Megaphone },
                 { val: 'members', label: 'Members', icon: Users },
                 { val: 'activity', label: 'Activity', icon: Clock },
@@ -351,6 +584,11 @@ const WorkspaceDetailPage = () => {
                   </Card>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Files Tab */}
+            <TabsContent value="files" className="animate-in fade-in-50">
+              <WorkspaceFileManager workspaceId={workspaceId} />
             </TabsContent>
 
             {/* News Tab */}

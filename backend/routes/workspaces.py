@@ -1,13 +1,15 @@
 """
-Workspace routes - workspace CRUD, members, announcements, stats, activity.
+Workspace routes - workspace CRUD, members, announcements, stats, activity, files.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Form
+from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from pydantic import BaseModel
 import uuid
+import base64
 
-from config import db, logger
+from config import db, fs_workspace_files, logger
 
 router = APIRouter(prefix="/workspaces", tags=["Workspaces"])
 
@@ -588,6 +590,17 @@ async def delete_workspace(workspace_id: str):
         
         await db.workspace_members.delete_many({"workspace_id": workspace_id})
         
+        # Clean up workspace files from GridFS
+        ws_files = await db.workspace_files.find({"workspace_id": workspace_id}, {"grid_id": 1}).to_list(500)
+        if ws_files:
+            from bson import ObjectId
+            for wf in ws_files:
+                try:
+                    await fs_workspace_files.delete(ObjectId(wf["grid_id"]))
+                except Exception:
+                    pass
+            await db.workspace_files.delete_many({"workspace_id": workspace_id})
+        
         return {"success": True, "message": "Workspace deleted"}
     except HTTPException:
         raise
@@ -770,7 +783,7 @@ async def get_workspace_stats(workspace_id: str):
     week_ago = (now - timedelta(days=7)).isoformat()
 
     member_count = await db.workspace_members.count_documents({"workspace_id": workspace_id})
-    file_count = await db.files.count_documents({"workspace_id": workspace_id})
+    file_count = await db.workspace_files.count_documents({"workspace_id": workspace_id})
     announcement_count = await db.workspace_announcements.count_documents({"workspace_id": workspace_id})
 
     # Gather member user_ids
@@ -787,7 +800,7 @@ async def get_workspace_stats(workspace_id: str):
     recent_messages = await db.messages.count_documents({
         "sender_id": {"$in": member_ids}, "created_at": {"$gte": week_ago}
     })
-    recent_files = await db.files.count_documents({
+    recent_files = await db.workspace_files.count_documents({
         "workspace_id": workspace_id, "uploaded_at": {"$gte": week_ago}
     })
     recent_approvals = await db.approvals.count_documents({
@@ -865,3 +878,141 @@ async def get_workspace_activity(workspace_id: str, limit: int = Query(30, le=10
     activities.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
 
     return {"activities": activities[:limit]}
+
+
+# ============ Workspace Files ============
+
+@router.post("/{workspace_id}/files/upload")
+async def upload_workspace_file(
+    workspace_id: str,
+    user_id: str = Form(...),
+    file_name: str = Form(...),
+    file_data: str = Form(...),
+    content_type: str = Form(...),
+):
+    """Upload a file to a workspace."""
+    try:
+        # Verify workspace exists
+        ws = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "id": 1})
+        if not ws:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+
+        file_bytes = base64.b64decode(file_data)
+        file_id = str(uuid.uuid4())
+
+        grid_id = await fs_workspace_files.upload_from_stream(
+            file_name,
+            file_bytes,
+            metadata={
+                "file_id": file_id,
+                "workspace_id": workspace_id,
+                "user_id": user_id,
+                "content_type": content_type,
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        file_doc = {
+            "id": file_id,
+            "grid_id": str(grid_id),
+            "workspace_id": workspace_id,
+            "user_id": user_id,
+            "file_name": file_name,
+            "content_type": content_type,
+            "size": len(file_bytes),
+            "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.workspace_files.insert_one(file_doc)
+
+        # Get uploader name for response
+        uploader = await db.users.find_one({"id": user_id}, {"_id": 0, "name": 1, "email": 1})
+        uploader_name = (uploader.get("name") or uploader.get("email", "Unknown")) if uploader else "Unknown"
+
+        return {
+            "success": True,
+            "file": {
+                "id": file_id,
+                "workspace_id": workspace_id,
+                "user_id": user_id,
+                "uploader_name": uploader_name,
+                "file_name": file_name,
+                "content_type": content_type,
+                "size": len(file_bytes),
+                "uploaded_at": file_doc["uploaded_at"],
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading workspace file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{workspace_id}/files")
+async def list_workspace_files(workspace_id: str, limit: int = Query(100, le=500)):
+    """List all files in a workspace."""
+    try:
+        files = await db.workspace_files.find(
+            {"workspace_id": workspace_id},
+            {"_id": 0, "grid_id": 0},
+        ).sort("uploaded_at", -1).to_list(limit)
+
+        # Enrich with uploader names
+        user_ids = list({f["user_id"] for f in files})
+        users = await db.users.find({"id": {"$in": user_ids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}).to_list(len(user_ids))
+        user_map = {u["id"]: u.get("name") or u.get("email", "Unknown") for u in users}
+
+        for f in files:
+            f["uploader_name"] = user_map.get(f.get("user_id"), "Unknown")
+
+        return {"files": files, "count": len(files)}
+    except Exception as e:
+        logger.error(f"Error listing workspace files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{workspace_id}/files/{file_id}")
+async def download_workspace_file(workspace_id: str, file_id: str):
+    """Download/stream a workspace file."""
+    file_doc = await db.workspace_files.find_one({"id": file_id, "workspace_id": workspace_id})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        from bson import ObjectId
+
+        grid_out = await fs_workspace_files.open_download_stream(ObjectId(file_doc["grid_id"]))
+
+        async def file_iterator():
+            while True:
+                chunk = await grid_out.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+
+        return StreamingResponse(
+            file_iterator(),
+            media_type=file_doc.get("content_type", "application/octet-stream"),
+            headers={"Content-Disposition": f'inline; filename="{file_doc["file_name"]}"'},
+        )
+    except Exception as e:
+        logger.error(f"Error downloading workspace file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{workspace_id}/files/{file_id}")
+async def delete_workspace_file(workspace_id: str, file_id: str):
+    """Delete a file from a workspace."""
+    file_doc = await db.workspace_files.find_one({"id": file_id, "workspace_id": workspace_id})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        from bson import ObjectId
+
+        await fs_workspace_files.delete(ObjectId(file_doc["grid_id"]))
+        await db.workspace_files.delete_one({"id": file_id, "workspace_id": workspace_id})
+        return {"success": True, "message": "File deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting workspace file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
