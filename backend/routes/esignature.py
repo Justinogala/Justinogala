@@ -428,6 +428,16 @@ async def get_signing_history(user_id: str):
     return {"history": history}
 
 
+@router.delete("/history/{entry_id}")
+async def delete_signing_history(entry_id: str):
+    """Delete a signing history entry."""
+    result = await db.esignature_history.delete_one({"id": entry_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="History entry not found")
+    return {"success": True}
+
+
+
 # ============ Conversion History ============
 
 @router.get("/conversion-history")

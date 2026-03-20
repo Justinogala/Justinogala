@@ -1013,7 +1013,7 @@ const ESignaturePage = () => {
                 ) : (
                   <div className="space-y-2">
                     {history.map(h => (
-                      <div key={h.id} className="flex items-center justify-between border rounded-lg p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <div key={h.id} className="flex items-center justify-between border rounded-lg p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                         <div className="flex items-center gap-3">
                           <FileText className="w-8 h-8 text-indigo-500" />
                           <div>
@@ -1021,16 +1021,30 @@ const ESignaturePage = () => {
                             <p className="text-xs text-slate-500">{h.page_count} pages &bull; {h.placements_count} signatures &bull; {new Date(h.signed_at).toLocaleDateString()}</p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => {
-                          const a = document.createElement('a');
-                          a.href = `${API_URL}/api/esignature/documents/${h.doc_id}/signed`;
-                          a.download = h.signed_filename;
-                          document.body.appendChild(a);
-                          a.click();
-                          a.remove();
-                        }} data-testid={`download-history-${h.id}`}>
-                          <Download className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = `${API_URL}/api/esignature/documents/${h.doc_id}/signed`;
+                            a.download = h.signed_filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                          }} data-testid={`download-history-${h.id}`}>
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={async () => {
+                            if (!confirm('Delete this history entry?')) return;
+                            try {
+                              const res = await fetch(`${API_URL}/api/esignature/history/${h.id}`, { method: 'DELETE' });
+                              if (res.ok) {
+                                setHistory(prev => prev.filter(x => x.id !== h.id));
+                                toast({ title: 'History entry deleted' });
+                              }
+                            } catch { toast({ variant: 'destructive', title: 'Delete failed' }); }
+                          }} data-testid={`delete-history-${h.id}`}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
