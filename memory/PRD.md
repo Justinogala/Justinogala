@@ -20,7 +20,8 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Option D (All Combined) hero background: Floating gradient orbs + particle field + animated waves
 - Pure CSS animations via `HeroBackground.jsx` + `HeroBackground.css` — zero JS overhead
 - Floating theme toggle: Fixed-position pill toggle with animated thumb, sun/moon icons (`HeroThemeToggle.jsx`)
-- Tested: Visual verification via screenshots — all effects render, theme toggle works
+- Sora 2 demo video: Generated AI promo video, served via `/api/demo-video`, opens in modal on "Watch Demo" click
+- Tested: Visual verification via screenshots — all effects render, theme toggle works, video modal plays
 
 ### Approvals Phase 2: AI Insights & Analytics (Complete - Mar 2026)
 - Analytics tab in Approvals page with comprehensive dashboard

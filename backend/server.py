@@ -3,7 +3,7 @@ Munal AI API Server
 Main application entry point with modular route imports.
 """
 from fastapi import FastAPI, APIRouter, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
@@ -76,6 +76,15 @@ async def health_check():
         "version": "2.0.0",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+
+@api_router.get("/demo-video")
+async def get_demo_video():
+    """Serve the pre-generated Sora 2 demo video"""
+    video_path = ROOT_DIR / "static" / "demo_video.mp4"
+    if not video_path.exists():
+        raise HTTPException(status_code=404, detail="Demo video not available yet")
+    return FileResponse(str(video_path), media_type="video/mp4", filename="munal-demo.mp4")
 
 
 # ============== Import Modular Routes ==============
