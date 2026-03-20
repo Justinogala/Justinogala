@@ -10,30 +10,31 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## What's Been Implemented
 
+### Workspace File Manager (Complete - Mar 2026)
+- Independent file manager per workspace (separate from account-level file manager)
+- Backend: `POST/GET/DELETE /api/workspaces/{id}/files` with GridFS storage (`workspace_files` bucket)
+- Frontend: "Files" tab in WorkspaceDetailPage with drag-and-drop upload, file list, preview, download, delete
+- File isolation: files scoped to workspace_id, not visible across workspaces
+- Stats integration: workspace file counts in stats endpoint
+- Tested: 100% (11/11 backend, all frontend verified) — iteration_54
+
+### eSignature TOS Canadian Law Update (Complete - Mar 2026)
+- Updated all legal references to Canadian law (PIPEDA, UECA, provincial E-Commerce Acts)
+- Governing law: Province of Ontario + federal laws of Canada
+- Dispute resolution: Ontario courts / Federal Court of Canada
+- Trade laws: Export and Import Permits Act, Special Economic Measures Act
+- Consumer protection: Consumer Protection Act, 2002 (Ontario)
+- Dates updated to March 19, 2026
+
 ### Organization Management (Complete - Mar 2026)
-
 #### Core Org CRUD + Admin Page (iteration_50)
-- Full CRUD, member management, org stats, admin Organizations page
-
 #### Domain Auto-Enrollment + Edit Member + Self-Registration (iteration_51)
-- Auto-assign on register by email domain, edit member from admin, org signup from registration page
-
 #### Organization Dashboard (iteration_52)
-- Full dashboard at `/org-dashboard` with stats, members, workspaces, activity, role distribution
-- Sidebar "My Organization" link for business users
-
-#### Team Invites + Direct Create (iteration_53) — NEW
-- **Invite by Email**: `POST /api/organizations/{org_id}/invite` — sends styled HTML email via Resend + generates shareable invite link (7-day expiry)
-- **Invite Validation**: `POST /api/organizations/invite/validate?token=xxx` — validates token, returns org info
-- **Direct Account Creation**: `POST /api/organizations/{org_id}/direct-create` — creates user immediately under org
-- **Invite Token in Registration**: `POST /api/auth/register?invite_token=xxx` — auto-assigns to org, marks invite accepted
-- **Frontend**: Two buttons on Org Dashboard — "Invite Team" (email + copyable link) and "Create Account" (instant)
-- **Signup Page**: Invite banner when `?invite=token` in URL, hides account type toggle
-- **Tested**: 100% (12/12 backend, all frontend verified)
+#### Team Invites + Direct Create (iteration_53)
 
 ### eSignature Terms of Service (Complete)
 ### Workspace Dashboard Widget (Complete)
-### Approvals Module (Complete)
+### Approvals Module Phase 1 (Complete)
 ### SharePoint-Style Workspace Hub (Complete)
 ### Other Features (Auth, Files, AI, Sora 2, TTS, IR/SOR, eSignature, SSE)
 
@@ -43,6 +44,12 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## Key API Endpoints
 
+### Workspace Files (NEW)
+- `POST /api/workspaces/{id}/files/upload` — Upload file (FormData: user_id, file_name, file_data, content_type)
+- `GET /api/workspaces/{id}/files` — List workspace files
+- `GET /api/workspaces/{id}/files/{file_id}` — Download/stream file
+- `DELETE /api/workspaces/{id}/files/{file_id}` — Delete file
+
 ### Organization Invites
 - `POST /api/organizations/{org_id}/invite` — Send email invite + get link
 - `POST /api/organizations/invite/validate?token=xxx` — Validate invite token
@@ -50,23 +57,24 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - `POST /api/organizations/{org_id}/direct-create` — Create member account directly
 - `POST /api/auth/register?invite_token=xxx` — Register with invite auto-assignment
 
-### Organization Dashboard + CRUD (see previous)
-
 ## DB Collections
-- `organizations`, `org_invites` (NEW: id, org_id, email, token, status, role, expires_at)
+- `workspace_files` (NEW: id, grid_id, workspace_id, user_id, file_name, content_type, size, uploaded_at)
+- `organizations`, `org_invites`
 - `users` (account_type, organization_id, org_role)
 
 ## Key Files
+- `/app/backend/routes/workspaces.py` — workspace CRUD, members, files, stats
+- `/app/backend/config.py` — fs_workspace_files GridFS bucket
+- `/app/src/pages/WorkspaceDetailPage.jsx` — WorkspaceFileManager component + Files tab
+- `/app/src/components/ESignatureTermsOfService.jsx` — Canadian law TOS
 - `/app/backend/routes/organizations.py` — invite, validate, direct-create, dashboard
 - `/app/src/pages/OrgDashboardPage.jsx` — invite + create dialogs
-- `/app/src/pages/SignupPage.jsx` — invite banner + token handling
-- `/app/src/context/AuthContext.jsx` — signup with invite token
 
 ## Prioritized Backlog
 ### P1
 - Implement "Delegate" feature for approvals
 ### P2
-- Approvals Phase 2: Further AI insights, advanced analytics
+- Approvals Phase 2: AI insights, advanced analytics
 - Refactor AdminStripeSettingsPage.jsx
 ### P3
 - Consolidate AuthContext/AdminAuthContext
