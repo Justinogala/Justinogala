@@ -20,8 +20,9 @@ import {
   CreditCard, ShoppingCart, Receipt, Wrench, FolderKanban, TrendingUp, X,
   Inbox, SendHorizontal, BarChart3, Bell, Link2, Paperclip, Video,
   Copy, TrendingDown, AlertTriangle, Zap, Activity, Mail, Settings,
-  UserCheck, ArrowRightLeft
+  UserCheck, ArrowRightLeft, Sparkles, Users, Timer, PieChart
 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RPieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300', icon: FileText },
@@ -879,10 +880,6 @@ const AnalyticsDashboard = ({ user }) => {
 };
 
 // ============ Chart Components (Recharts) ============
-import {
-  AreaChart, Area, BarChart as RechartsBarChart, Bar, PieChart as RechartsPieChart, Pie,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell
-} from 'recharts';
 
 const AreaChartComponent = ({ data }) => (
   <ResponsiveContainer width="100%" height={220}>
@@ -909,19 +906,19 @@ const AreaChartComponent = ({ data }) => (
 
 const PieChartComponent = ({ data, colors, nameKey }) => (
   <ResponsiveContainer width="100%" height={220}>
-    <RechartsPieChart>
+    <RPieChart>
       <Pie data={data} dataKey="count" nameKey={nameKey} cx="50%" cy="50%" outerRadius={80} innerRadius={45} paddingAngle={2}>
         {data.map((entry, i) => <Cell key={i} fill={colors[entry[nameKey]] || Object.values(colors)[i % Object.values(colors).length]} />)}
       </Pie>
       <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
       <Legend wrapperStyle={{ fontSize: 11 }} />
-    </RechartsPieChart>
+    </RPieChart>
   </ResponsiveContainer>
 );
 
 const BarChartComponent = ({ data, dataKey, nameKey, colors, label }) => (
   <ResponsiveContainer width="100%" height={220}>
-    <RechartsBarChart data={data}>
+    <BarChart data={data}>
       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
       <XAxis dataKey={nameKey} tick={{ fontSize: 10 }} />
       <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
@@ -929,9 +926,252 @@ const BarChartComponent = ({ data, dataKey, nameKey, colors, label }) => (
       <Bar dataKey={dataKey} radius={[4, 4, 0, 0]} name={label || dataKey}>
         {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
       </Bar>
-    </RechartsBarChart>
+    </BarChart>
   </ResponsiveContainer>
 );
+
+
+// ============ Analytics Dashboard ============
+const CHART_COLORS = ['#6366f1', '#22c55e', '#ef4444', '#f59e0b', '#06b6d4', '#ec4899', '#8b5cf6', '#14b8a6'];
+
+const ApprovalAnalytics = ({ userId }) => {
+  const [data, setData] = useState(null);
+  const [aiInsights, setAiInsights] = useState('');
+  const [loadingData, setLoadingData] = useState(true);
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/approvals/analytics?user_id=${userId}`);
+        if (res.ok) setData(await res.json());
+      } catch { /* silent */ }
+      finally { setLoadingData(false); }
+    };
+    fetchAnalytics();
+  }, [userId]);
+
+  const fetchAIInsights = async () => {
+    setLoadingAI(true);
+    try {
+      const res = await fetch(`${API_URL}/api/approvals/ai-insights?user_id=${userId}`);
+      if (res.ok) {
+        const d = await res.json();
+        setAiInsights(d.insights || 'No insights available.');
+      }
+    } catch { setAiInsights('Failed to generate insights.'); }
+    finally { setLoadingAI(false); }
+  };
+
+  if (loadingData) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+    </div>
+  );
+
+  if (!data) return <p className="text-center text-slate-400 py-12">No analytics data available.</p>;
+
+  const { summary, by_category, by_priority, by_month, bottlenecks, delegation_stats } = data;
+
+  return (
+    <div className="space-y-6" data-testid="approval-analytics">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Approvals', value: summary.total, icon: ClipboardList, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
+          { label: 'Approval Rate', value: `${summary.approval_rate}%`, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+          { label: 'Avg Time', value: summary.avg_time_hours < 24 ? `${summary.avg_time_hours}h` : `${Math.round(summary.avg_time_hours / 24)}d`, icon: Timer, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+          { label: 'Delegation Rate', value: `${summary.delegation_rate}%`, icon: ArrowRightLeft, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+        ].map((card, i) => (
+          <Card key={i} className="border-none shadow-sm">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', card.bg)}>
+                <card.icon className={cn('w-5 h-5', card.color)} />
+              </div>
+              <div>
+                <p className="text-xl font-bold">{card.value}</p>
+                <p className="text-xs text-slate-500">{card.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Status Breakdown */}
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { label: 'Pending', value: summary.pending, color: 'bg-amber-500' },
+          { label: 'Approved', value: summary.approved, color: 'bg-emerald-500' },
+          { label: 'Rejected', value: summary.rejected, color: 'bg-red-500' },
+          { label: 'Cancelled', value: summary.cancelled, color: 'bg-slate-400' },
+        ].map((s, i) => (
+          <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+            <div className={cn('w-2.5 h-2.5 rounded-full', s.color)} />
+            <span className="text-xs text-slate-500">{s.label}</span>
+            <span className="text-sm font-bold ml-auto">{s.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Monthly Trend */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-indigo-500" /> Monthly Trend
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={by_month} barGap={2}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="approved" name="Approved" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="rejected" name="Rejected" fill="#ef4444" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Category Breakdown */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <PieChart className="w-4 h-4 text-indigo-500" /> By Category
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            {by_category.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <RPieChart>
+                  <Pie data={by_category} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                    {by_category.map((_, idx) => <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                </RPieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-center text-slate-400 py-16 text-sm">No category data</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Priority Distribution + Delegation Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" /> Priority Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={by_priority} layout="vertical" barSize={18}>
+                <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={70} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Bar dataKey="value" name="Count" radius={[0, 4, 4, 0]}>
+                  {by_priority.map((_, idx) => <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 text-purple-500" /> Delegation Stats
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-3">
+            {[
+              { label: 'Total Delegated', value: delegation_stats.total_delegated },
+              { label: 'Acted by Delegate', value: delegation_stats.delegate_acted },
+              { label: 'Delegation Rate', value: `${delegation_stats.delegation_rate}%` },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                <span className="text-sm text-slate-600 dark:text-slate-400">{s.label}</span>
+                <span className="text-sm font-bold">{s.value}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottleneck Detection */}
+      {bottlenecks.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Users className="w-4 h-4 text-red-500" /> Approver Response Times
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <div className="space-y-2">
+              {bottlenecks.map((b, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{b.name}</p>
+                    <p className="text-[11px] text-slate-400">{b.total_actions} actions &bull; {b.pending_count} pending</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={cn("text-sm font-bold", b.avg_response_hours > 48 ? "text-red-500" : b.avg_response_hours > 24 ? "text-amber-500" : "text-emerald-500")}>
+                      {b.avg_response_hours < 24 ? `${b.avg_response_hours}h` : `${Math.round(b.avg_response_hours / 24)}d`}
+                    </p>
+                    <p className="text-[10px] text-slate-400">avg response</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Insights */}
+      <Card className="border-indigo-100 dark:border-indigo-900/30 bg-gradient-to-r from-indigo-50/30 to-purple-50/30 dark:from-indigo-900/5 dark:to-purple-900/5">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-indigo-500" /> AI Insights
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0">GPT-5.2</Badge>
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={fetchAIInsights} disabled={loadingAI} className="h-7 text-xs" data-testid="generate-ai-insights-btn">
+              {loadingAI ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+              {aiInsights ? 'Regenerate' : 'Generate Insights'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          {!aiInsights && !loadingAI && (
+            <p className="text-sm text-slate-400 py-6 text-center">Click &ldquo;Generate Insights&rdquo; to get AI-powered analysis of your approval workflows</p>
+          )}
+          {loadingAI && (
+            <div className="flex items-center gap-2 py-6 justify-center text-indigo-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Analyzing approval patterns...</span>
+            </div>
+          )}
+          {aiInsights && !loadingAI && (
+            <div className="prose prose-sm dark:prose-invert max-w-none" data-testid="ai-insights-content">
+              {aiInsights.split('\n').map((line, i) => (
+                <p key={i} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-1">{line}</p>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
 // ============ Main Approvals Page ============
 const ApprovalsPage = () => {
@@ -1184,8 +1424,10 @@ const ApprovalsPage = () => {
             <TabsTrigger value="received" data-testid="received-tab"><Inbox className="w-3.5 h-3.5 mr-1" /> Received</TabsTrigger>
             <TabsTrigger value="sent" data-testid="sent-tab"><SendHorizontal className="w-3.5 h-3.5 mr-1" /> Sent</TabsTrigger>
             <TabsTrigger value="delegated" data-testid="delegated-tab"><ArrowRightLeft className="w-3.5 h-3.5 mr-1" /> Delegated{stats.delegated_pending > 0 ? ` (${stats.delegated_pending})` : ''}</TabsTrigger>
+            <TabsTrigger value="analytics" data-testid="analytics-tab"><BarChart3 className="w-3.5 h-3.5 mr-1" /> Analytics</TabsTrigger>
           </TabsList>
         </Tabs>
+        {tab !== 'analytics' && (
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -1206,9 +1448,13 @@ const ApprovalsPage = () => {
             </SelectContent>
           </Select>
         </div>
+        )}
       </div>
 
-      {/* Table */}
+      {/* Table or Analytics */}
+      {tab === 'analytics' ? (
+        <ApprovalAnalytics userId={user?.id} />
+      ) : (
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -1262,6 +1508,7 @@ const ApprovalsPage = () => {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Digest Settings Dialog */}
       <Dialog open={showDigestSettings} onOpenChange={setShowDigestSettings}>

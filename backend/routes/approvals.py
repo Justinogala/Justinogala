@@ -896,13 +896,87 @@ async def get_analytics(user_id: str = Query(...)):
             "severity": "info",
         })
 
+    # --- Delegation stats ---
+    delegated_count = sum(1 for a in all_approvals if any(s.get("delegated_to_id") for s in a.get("steps", [])))
+    delegate_acted = sum(1 for a in all_approvals if any(s.get("acted_by_delegate") for s in a.get("steps", [])))
+    delegation_rate = round((delegated_count / max(total, 1)) * 100, 1)
+
+    cancelled_count = sum(1 for a in all_approvals if a.get("status") == "cancelled")
+
+    # --- Monthly trend (last 6 months) ---
+    by_month = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+        month_label = month_start.strftime("%b %Y")
+        m_approved = 0
+        m_rejected = 0
+        m_total = 0
+        for a in all_approvals:
+            try:
+                created_dt = datetime.fromisoformat(a["created_at"].replace("Z", "+00:00"))
+                if month_start.replace(tzinfo=timezone.utc) <= created_dt < month_end.replace(tzinfo=timezone.utc):
+                    m_total += 1
+                    if a["status"] == "approved":
+                        m_approved += 1
+                    elif a["status"] == "rejected":
+                        m_rejected += 1
+            except Exception:
+                pass
+        by_month.append({"month": month_label, "total": m_total, "approved": m_approved, "rejected": m_rejected})
+
+    # --- Priority breakdown ---
+    pri_counts = {}
+    for a in all_approvals:
+        pri = a.get("priority", "Medium")
+        pri_counts[pri] = pri_counts.get(pri, 0) + 1
+    by_priority = [{"name": k, "value": v} for k, v in pri_counts.items()]
+
+    # --- Approver response leaderboard ---
+    approver_stats_list = []
+    for aid, data in approver_times.items():
+        avg = round(sum(data["times"]) / len(data["times"]), 1) if data["times"] else 0
+        approver_stats_list.append({
+            "name": data["name"],
+            "avg_response_hours": avg,
+            "total_actions": len(data["times"]),
+            "pending_count": 0,
+        })
+    # Count pending per approver
+    for a in all_approvals:
+        if a.get("status") == "pending":
+            for step in a.get("steps", []):
+                if step.get("status") == "pending":
+                    name = step.get("approver_name") or step.get("approver_email", "Unknown")
+                    for entry in approver_stats_list:
+                        if entry["name"] == name:
+                            entry["pending_count"] += 1
+                            break
+                    else:
+                        approver_stats_list.append({"name": name, "avg_response_hours": 0, "total_actions": 0, "pending_count": 1})
+    approver_stats_list.sort(key=lambda x: -x["avg_response_hours"])
+
     return {
         "volume_trend": volume_trend,
         "status_breakdown": status_breakdown,
         "category_breakdown": category_breakdown,
         "resolution_by_category": resolution_by_category,
-        "summary": summary,
-        "bottlenecks": bottlenecks,
+        "summary": {
+            **summary,
+            "cancelled": cancelled_count,
+            "delegation_rate": delegation_rate,
+            "avg_time_hours": avg_resolution,
+            "total": total,
+        },
+        "by_category": [{"name": c["category"], "value": c["count"]} for c in category_breakdown],
+        "by_priority": by_priority,
+        "by_month": by_month,
+        "bottlenecks": approver_stats_list[:10],
+        "delegation_stats": {
+            "total_delegated": delegated_count,
+            "delegate_acted": delegate_acted,
+            "delegation_rate": delegation_rate,
+        },
         "insights": insights,
     }
 
@@ -1272,3 +1346,80 @@ async def set_digest_preferences(user_id: str = Query(...), enabled: bool = Quer
         upsert=True,
     )
     return {"success": True, "enabled": enabled}
+
+
+@router.get("/ai-insights")
+async def get_ai_insights(user_id: str = Query(...)):
+    """Generate AI-powered insights from approval data using GPT-5.2."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="LLM key not configured")
+
+        # Gather data for AI analysis
+        all_approvals = await db.approvals.find({}, {"_id": 0, "form_data": 0, "attachments": 0}).to_list(500)
+
+        if not all_approvals:
+            return {"insights": "No approval data available yet. Start creating approvals to get AI-powered insights."}
+
+        total = len(all_approvals)
+        pending = sum(1 for a in all_approvals if a["status"] == "pending")
+        approved = sum(1 for a in all_approvals if a["status"] == "approved")
+        rejected = sum(1 for a in all_approvals if a["status"] == "rejected")
+
+        # Build approver stats
+        approver_pending = {}
+        for a in all_approvals:
+            if a["status"] == "pending":
+                for s in a.get("steps", []):
+                    if s["status"] == "pending":
+                        name = s.get("approver_name") or s.get("approver_email", "Unknown")
+                        approver_pending[name] = approver_pending.get(name, 0) + 1
+
+        # Category distribution
+        cats = {}
+        for a in all_approvals:
+            c = a.get("category", "Other")
+            cats[c] = cats.get(c, 0) + 1
+
+        # Delegations
+        delegated = sum(1 for a in all_approvals if any(s.get("delegated_to_id") for s in a.get("steps", [])))
+
+        # Old pending (>3 days)
+        old_pending = []
+        now = datetime.now(timezone.utc)
+        for a in all_approvals:
+            if a["status"] == "pending":
+                try:
+                    created = datetime.fromisoformat(a["created_at"].replace("Z", "+00:00"))
+                    age_days = (now - created).days
+                    if age_days >= 3:
+                        old_pending.append({"title": a["title"], "age_days": age_days, "sender": a.get("sender_name", "")})
+                except Exception:
+                    pass
+
+        data_summary = f"""Approval System Data:
+- Total: {total} approvals ({pending} pending, {approved} approved, {rejected} rejected)
+- Categories: {', '.join(f'{k}: {v}' for k, v in cats.items())}
+- Delegated: {delegated} approvals have been delegated
+- Approvers with pending items: {', '.join(f'{k}: {v} pending' for k, v in approver_pending.items()) or 'None'}
+- Stale pending (>3 days old): {len(old_pending)} items"""
+        if old_pending:
+            data_summary += "\n  Stale items: " + "; ".join(f'"{p["title"]}" ({p["age_days"]}d old, by {p["sender"]})' for p in old_pending[:5])
+
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"approval-insights-{user_id}",
+            system_message="You are an AI analyst for a workplace approval management system. Provide concise, actionable insights based on the approval data. Use bullet points. Focus on: 1) Workflow health 2) Bottlenecks 3) Recommendations. Keep it under 200 words. Be specific with names and numbers."
+        ).with_model("openai", "gpt-5.2")
+
+        response = await chat.send_message(UserMessage(text=data_summary))
+
+        return {"insights": response}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI insights error: {e}")
+        return {"insights": f"Unable to generate AI insights at this time. Error: {str(e)}"}
