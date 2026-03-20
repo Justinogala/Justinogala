@@ -8,6 +8,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import FloatingOrbs from '@/components/FloatingOrbs';
+import MouseParticleTrail from '@/components/MouseParticleTrail';
+import HeroThemeToggle from '@/components/HeroThemeToggle';
 
 // Import Section Components
 import BenefitsSection from '@/components/landing/BenefitsSection';
@@ -45,6 +47,9 @@ const LandingPage = () => {
             <div className="absolute inset-0 z-[1]">
               <FloatingOrbs />
             </div>
+
+            {/* Mouse Particle Trail */}
+            <MouseParticleTrail />
 
             <div className="container mx-auto px-6 relative z-10 pt-20 pb-24 text-center">
               <motion.div
@@ -135,6 +140,7 @@ const LandingPage = () => {
         </main>
 
         <Footer />
+        <HeroThemeToggle />
       </div>
     </PageTransition>
   );

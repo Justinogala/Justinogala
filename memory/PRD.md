@@ -16,6 +16,11 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Added Floating Orbs animation to hero section background (`FloatingOrbs.jsx`)
 - Tested: Verified via screenshot — login→dashboard→logout→login redirect works correctly
 
+### Hero Modern Interactivity (Complete - Mar 2026)
+- Mouse particle trail: Canvas-based violet particle system follows cursor on hero section (`MouseParticleTrail.jsx`)
+- Floating theme toggle: Fixed-position pill toggle with animated thumb, sun/moon icons, dark/light labels (`HeroThemeToggle.jsx`)
+- Tested: Theme toggle switches between dark/light modes correctly
+
 ### Approvals Phase 2: AI Insights & Analytics (Complete - Mar 2026)
 - Analytics tab in Approvals page with comprehensive dashboard
 - Summary cards: Total Approvals, Approval Rate, Avg Time, Delegation Rate
