@@ -10,20 +10,28 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## What's Been Implemented
 
+### Workspace File Sharing Permissions (Complete - Mar 2026)
+- Permission model: Owner/Admin > Member > Viewer
+- Admin: upload, download, delete any file
+- Member: upload, download, delete own files only
+- Viewer: download/view files only — no upload or delete
+- Backend: `GET/PUT /api/workspaces/{id}/file-permissions`, `PUT /api/workspaces/{id}/members/{uid}/file-role`
+- Frontend: File Permissions card (admin-only), toggle between "All members can upload" / "View only"
+- Upload drop zone hidden for viewers with "View-only access" notice
+- Delete buttons conditionally shown based on ownership + role
+- Per-member file role overrides supported
+- Tested: 100% (20/20 backend, all frontend verified) — iteration_55
+
 ### Workspace File Manager (Complete - Mar 2026)
-- Independent file manager per workspace (separate from account-level file manager)
-- Backend: `POST/GET/DELETE /api/workspaces/{id}/files` with GridFS storage (`workspace_files` bucket)
+- Independent file manager per workspace with GridFS storage (`workspace_files` bucket)
+- Backend: `POST/GET/DELETE /api/workspaces/{id}/files` endpoints
 - Frontend: "Files" tab in WorkspaceDetailPage with drag-and-drop upload, file list, preview, download, delete
-- File isolation: files scoped to workspace_id, not visible across workspaces
-- Stats integration: workspace file counts in stats endpoint
+- File isolation: files scoped to workspace_id
 - Tested: 100% (11/11 backend, all frontend verified) — iteration_54
 
 ### eSignature TOS Canadian Law Update (Complete - Mar 2026)
 - Updated all legal references to Canadian law (PIPEDA, UECA, provincial E-Commerce Acts)
 - Governing law: Province of Ontario + federal laws of Canada
-- Dispute resolution: Ontario courts / Federal Court of Canada
-- Trade laws: Export and Import Permits Act, Special Economic Measures Act
-- Consumer protection: Consumer Protection Act, 2002 (Ontario)
 - Dates updated to March 19, 2026
 
 ### Organization Management (Complete - Mar 2026)
@@ -44,31 +52,33 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## Key API Endpoints
 
-### Workspace Files (NEW)
-- `POST /api/workspaces/{id}/files/upload` — Upload file (FormData: user_id, file_name, file_data, content_type)
+### Workspace File Permissions (NEW)
+- `GET /api/workspaces/{id}/file-permissions?user_id=X` — Get default role + user's effective permission
+- `PUT /api/workspaces/{id}/file-permissions?user_id=X` — Set default_file_role (admin only)
+- `PUT /api/workspaces/{id}/members/{uid}/file-role?user_id=X` — Override specific member's file role
+
+### Workspace Files
+- `POST /api/workspaces/{id}/files/upload` — Upload file (permission enforced)
 - `GET /api/workspaces/{id}/files` — List workspace files
 - `GET /api/workspaces/{id}/files/{file_id}` — Download/stream file
-- `DELETE /api/workspaces/{id}/files/{file_id}` — Delete file
+- `DELETE /api/workspaces/{id}/files/{file_id}?user_id=X` — Delete file (permission enforced)
 
 ### Organization Invites
-- `POST /api/organizations/{org_id}/invite` — Send email invite + get link
+- `POST /api/organizations/{org_id}/invite` — Send email invite
 - `POST /api/organizations/invite/validate?token=xxx` — Validate invite token
-- `GET /api/organizations/{org_id}/invites` — List pending invites
 - `POST /api/organizations/{org_id}/direct-create` — Create member account directly
-- `POST /api/auth/register?invite_token=xxx` — Register with invite auto-assignment
 
 ## DB Collections
-- `workspace_files` (NEW: id, grid_id, workspace_id, user_id, file_name, content_type, size, uploaded_at)
-- `organizations`, `org_invites`
-- `users` (account_type, organization_id, org_role)
+- `workspace_files` (id, grid_id, workspace_id, user_id, file_name, content_type, size, uploaded_at)
+- `workspace_members` (+ file_role field for per-member overrides)
+- `workspaces` (settings.default_file_role: "member" | "viewer")
+- `organizations`, `org_invites`, `users`
 
 ## Key Files
-- `/app/backend/routes/workspaces.py` — workspace CRUD, members, files, stats
+- `/app/backend/routes/workspaces.py` — workspace CRUD, members, files, permissions, stats
 - `/app/backend/config.py` — fs_workspace_files GridFS bucket
-- `/app/src/pages/WorkspaceDetailPage.jsx` — WorkspaceFileManager component + Files tab
+- `/app/src/pages/WorkspaceDetailPage.jsx` — WorkspaceFileManager with permissions UI
 - `/app/src/components/ESignatureTermsOfService.jsx` — Canadian law TOS
-- `/app/backend/routes/organizations.py` — invite, validate, direct-create, dashboard
-- `/app/src/pages/OrgDashboardPage.jsx` — invite + create dialogs
 
 ## Prioritized Backlog
 ### P1
