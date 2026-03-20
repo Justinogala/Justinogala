@@ -9,7 +9,7 @@ import {
   FileText, Plus, Pin, MoreHorizontal, Megaphone,
   Globe, Lock, Send, X, Loader2, FolderOpen, ChevronRight,
   UserPlus, ExternalLink, Pencil, Upload, Download,
-  File, Image, Music, Video, Eye, FileArchive
+  File, Image, Music, Video, Eye, FileArchive, Shield, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,7 +76,7 @@ function formatFileSize(bytes) {
 }
 
 // ===== Workspace File Manager Sub-component =====
-const WorkspaceFileManager = ({ workspaceId }) => {
+const WorkspaceFileManager = ({ workspaceId, isOwner }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef(null);
@@ -85,6 +85,12 @@ const WorkspaceFileManager = ({ workspaceId }) => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
+  const [permission, setPermission] = useState('member'); // admin | member | viewer
+  const [defaultRole, setDefaultRole] = useState('member');
+  const [savingPerm, setSavingPerm] = useState(false);
+
+  const canUpload = permission === 'admin' || permission === 'member';
+  const canDeleteAny = permission === 'admin';
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -98,12 +104,24 @@ const WorkspaceFileManager = ({ workspaceId }) => {
     finally { setLoading(false); }
   }, [workspaceId]);
 
-  useEffect(() => { fetchFiles(); }, [fetchFiles]);
+  const fetchPermissions = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/file-permissions?user_id=${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPermission(data.user_permission || 'member');
+        setDefaultRole(data.default_file_role || 'member');
+      }
+    } catch { /* silent */ }
+  }, [workspaceId, user.id]);
+
+  useEffect(() => { fetchFiles(); fetchPermissions(); }, [fetchFiles, fetchPermissions]);
 
   const uploadFiles = async (fileList) => {
-    if (!fileList || fileList.length === 0) return;
+    if (!fileList || fileList.length === 0 || !canUpload) return;
     setUploading(true);
     let successCount = 0;
+    let failMsg = '';
     for (const file of fileList) {
       try {
         const base64 = await new Promise((resolve, reject) => {
@@ -119,6 +137,10 @@ const WorkspaceFileManager = ({ workspaceId }) => {
         formData.append('content_type', file.type || 'application/octet-stream');
         const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/files/upload`, { method: 'POST', body: formData });
         if (res.ok) successCount++;
+        else {
+          const err = await res.json().catch(() => ({}));
+          failMsg = err.detail || 'Upload failed';
+        }
       } catch (err) {
         console.error('Upload error:', err);
       }
@@ -127,19 +149,24 @@ const WorkspaceFileManager = ({ workspaceId }) => {
     if (successCount > 0) {
       toast({ title: 'Upload complete', description: `${successCount} file(s) uploaded` });
       fetchFiles();
+    } else if (failMsg) {
+      toast({ variant: 'destructive', title: 'Upload failed', description: failMsg });
     }
   };
 
-  const handleDrop = (e) => { e.preventDefault(); setDragOver(false); uploadFiles(e.dataTransfer.files); };
-  const handleDragOver = (e) => { e.preventDefault(); setDragOver(true); };
+  const handleDrop = (e) => { e.preventDefault(); setDragOver(false); if (canUpload) uploadFiles(e.dataTransfer.files); };
+  const handleDragOver = (e) => { e.preventDefault(); if (canUpload) setDragOver(true); };
   const handleDragLeave = () => setDragOver(false);
 
   const handleDelete = async (fileId) => {
     if (!confirm('Delete this file permanently?')) return;
-    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/files/${fileId}`, { method: 'DELETE' });
+    const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/files/${fileId}?user_id=${user.id}`, { method: 'DELETE' });
     if (res.ok) {
       toast({ title: 'File deleted' });
       setFiles(prev => prev.filter(f => f.id !== fileId));
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast({ variant: 'destructive', title: 'Cannot delete', description: err.detail || 'Delete failed' });
     }
   };
 
@@ -153,6 +180,22 @@ const WorkspaceFileManager = ({ workspaceId }) => {
     document.body.removeChild(a);
   };
 
+  const handleSaveDefaultRole = async (newRole) => {
+    setSavingPerm(true);
+    try {
+      const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/file-permissions?user_id=${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ default_file_role: newRole }),
+      });
+      if (res.ok) {
+        setDefaultRole(newRole);
+        toast({ title: 'Permissions updated', description: newRole === 'viewer' ? 'Only admins can upload files now' : 'All members can upload files' });
+      }
+    } catch { toast({ variant: 'destructive', title: 'Failed to update permissions' }); }
+    finally { setSavingPerm(false); }
+  };
+
   const timeAgo = (ts) => {
     if (!ts) return '';
     const diff = (Date.now() - new Date(ts).getTime()) / 1000;
@@ -163,46 +206,103 @@ const WorkspaceFileManager = ({ workspaceId }) => {
     return new Date(ts).toLocaleDateString();
   };
 
+  const canDeleteFile = (file) => canDeleteAny || (permission === 'member' && file.user_id === user.id);
+
   return (
     <div className="space-y-4" data-testid="workspace-files">
-      {/* Upload Drop Zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
-        className={cn(
-          "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
-          dragOver
-            ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10"
-            : "border-slate-200 dark:border-slate-700 hover:border-indigo-300 hover:bg-slate-50 dark:hover:bg-slate-800/30"
-        )}
-        data-testid="workspace-file-drop-zone"
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => uploadFiles(e.target.files)}
-        />
-        {uploading ? (
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Uploading...</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
-              <Upload className="w-6 h-6 text-indigo-500" />
+      {/* Permission Settings — visible only to owner/admin */}
+      {permission === 'admin' && (
+        <Card className="border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/30 dark:bg-indigo-900/5" data-testid="file-permissions-card">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <ShieldCheck className="w-4.5 h-4.5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">File Permissions</p>
+                  <p className="text-xs text-slate-500">Control who can upload files to this workspace</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleSaveDefaultRole('member')}
+                  disabled={savingPerm}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    defaultRole === 'member'
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                  )}
+                  data-testid="perm-btn-member"
+                >
+                  All members can upload
+                </button>
+                <button
+                  onClick={() => handleSaveDefaultRole('viewer')}
+                  disabled={savingPerm}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    defaultRole === 'viewer'
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300"
+                  )}
+                  data-testid="perm-btn-viewer"
+                >
+                  View only (admins upload)
+                </button>
+              </div>
             </div>
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-              Drop files here or <span className="text-indigo-600 underline">browse</span>
-            </p>
-            <p className="text-xs text-slate-400">Documents, images, audio, video — any file type</p>
-          </div>
-        )}
-      </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upload Drop Zone — hidden for viewers */}
+      {canUpload ? (
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+            dragOver
+              ? "border-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10"
+              : "border-slate-200 dark:border-slate-700 hover:border-indigo-300 hover:bg-slate-50 dark:hover:bg-slate-800/30"
+          )}
+          data-testid="workspace-file-drop-zone"
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => uploadFiles(e.target.files)}
+          />
+          {uploading ? (
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Uploading...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-indigo-500" />
+              </div>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Drop files here or <span className="text-indigo-600 underline">browse</span>
+              </p>
+              <p className="text-xs text-slate-400">Documents, images, audio, video — any file type</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-6 text-center bg-slate-50/50 dark:bg-slate-800/20" data-testid="view-only-notice">
+          <Shield className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">View-only access</p>
+          <p className="text-xs text-slate-400 mt-1">You can download files but uploading is restricted by the workspace admin</p>
+        </div>
+      )}
 
       {/* File List */}
       {loading ? (
@@ -214,17 +314,23 @@ const WorkspaceFileManager = ({ workspaceId }) => {
           <CardContent className="p-10 text-center text-slate-400">
             <FolderOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="font-medium">No files yet</p>
-            <p className="text-sm mt-1">Upload files to share with your workspace team</p>
+            <p className="text-sm mt-1">{canUpload ? 'Upload files to share with your workspace team' : 'No files have been shared in this workspace yet'}</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2" data-testid="workspace-file-list">
           <div className="flex items-center justify-between px-1 mb-1">
             <p className="text-xs text-slate-500 font-medium">{files.length} file{files.length !== 1 ? 's' : ''}</p>
+            {!canUpload && (
+              <Badge variant="outline" className="text-[10px] gap-1 text-slate-400">
+                <Eye className="w-3 h-3" /> View only
+              </Badge>
+            )}
           </div>
           {files.map(file => {
             const meta = getFileTypeMeta(file.content_type);
             const Icon = meta.icon;
+            const showDelete = canDeleteFile(file);
             return (
               <div
                 key={file.id}
@@ -249,9 +355,11 @@ const WorkspaceFileManager = ({ workspaceId }) => {
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(file)} data-testid={`download-file-${file.id}`}>
                     <Download className="w-4 h-4 text-slate-500" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-500" onClick={() => handleDelete(file.id)} data-testid={`delete-file-${file.id}`}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {showDelete && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-500" onClick={() => handleDelete(file.id)} data-testid={`delete-file-${file.id}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -588,7 +696,7 @@ const WorkspaceDetailPage = () => {
 
             {/* Files Tab */}
             <TabsContent value="files" className="animate-in fade-in-50">
-              <WorkspaceFileManager workspaceId={workspaceId} />
+              <WorkspaceFileManager workspaceId={workspaceId} isOwner={isOwner} />
             </TabsContent>
 
             {/* News Tab */}

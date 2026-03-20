@@ -882,6 +882,101 @@ async def get_workspace_activity(workspace_id: str, limit: int = Query(30, le=10
 
 # ============ Workspace Files ============
 
+# Permission levels: owner/admin > member > viewer
+# owner/admin: upload, download, delete any file
+# member: upload, download, delete own files only
+# viewer: download only
+
+async def get_user_file_permission(workspace_id: str, user_id: str) -> str:
+    """Return the effective file permission for a user in a workspace: 'admin', 'member', or 'viewer'."""
+    ws = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1, "settings": 1})
+    if not ws:
+        return "viewer"
+
+    # Owner always has admin
+    if ws.get("owner_id") == user_id:
+        return "admin"
+
+    # Check workspace membership
+    membership = await db.workspace_members.find_one(
+        {"workspace_id": workspace_id, "user_id": user_id},
+        {"_id": 0, "role": 1, "file_role": 1},
+    )
+    if not membership:
+        return "viewer"
+
+    # Per-member override takes priority
+    if membership.get("file_role"):
+        return membership["file_role"]
+
+    # Workspace-level role mapping
+    ws_role = membership.get("role", "member")
+    if ws_role in ("owner", "admin"):
+        return "admin"
+
+    # Fall back to workspace default_file_role setting
+    default_role = (ws.get("settings") or {}).get("default_file_role", "member")
+    return default_role
+
+
+class FilePermissionUpdate(BaseModel):
+    default_file_role: str  # "member" or "viewer"
+
+
+class MemberFileRoleUpdate(BaseModel):
+    file_role: str  # "admin", "member", or "viewer"
+
+
+@router.get("/{workspace_id}/file-permissions")
+async def get_file_permissions(workspace_id: str, user_id: str = Query(...)):
+    """Get workspace file permission settings + the requesting user's effective permission."""
+    ws = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1, "settings": 1})
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    default_role = (ws.get("settings") or {}).get("default_file_role", "member")
+    effective = await get_user_file_permission(workspace_id, user_id)
+
+    return {"default_file_role": default_role, "user_permission": effective}
+
+
+@router.put("/{workspace_id}/file-permissions")
+async def update_file_permissions(workspace_id: str, body: FilePermissionUpdate, user_id: str = Query(...)):
+    """Update workspace default file role. Only workspace owner/admin can do this."""
+    perm = await get_user_file_permission(workspace_id, user_id)
+    if perm != "admin":
+        raise HTTPException(status_code=403, detail="Only workspace admins can change file permissions")
+
+    if body.default_file_role not in ("member", "viewer"):
+        raise HTTPException(status_code=400, detail="default_file_role must be 'member' or 'viewer'")
+
+    await db.workspaces.update_one(
+        {"id": workspace_id},
+        {"$set": {"settings.default_file_role": body.default_file_role}},
+    )
+    return {"success": True, "default_file_role": body.default_file_role}
+
+
+@router.put("/{workspace_id}/members/{member_user_id}/file-role")
+async def update_member_file_role(workspace_id: str, member_user_id: str, body: MemberFileRoleUpdate, user_id: str = Query(...)):
+    """Override a specific member's file role. Only workspace owner/admin can do this."""
+    perm = await get_user_file_permission(workspace_id, user_id)
+    if perm != "admin":
+        raise HTTPException(status_code=403, detail="Only workspace admins can change member file roles")
+
+    if body.file_role not in ("admin", "member", "viewer"):
+        raise HTTPException(status_code=400, detail="file_role must be 'admin', 'member', or 'viewer'")
+
+    result = await db.workspace_members.update_one(
+        {"workspace_id": workspace_id, "user_id": member_user_id},
+        {"$set": {"file_role": body.file_role}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    return {"success": True, "file_role": body.file_role}
+
+
 @router.post("/{workspace_id}/files/upload")
 async def upload_workspace_file(
     workspace_id: str,
@@ -890,8 +985,13 @@ async def upload_workspace_file(
     file_data: str = Form(...),
     content_type: str = Form(...),
 ):
-    """Upload a file to a workspace."""
+    """Upload a file to a workspace. Requires 'admin' or 'member' permission."""
     try:
+        # Check permission
+        perm = await get_user_file_permission(workspace_id, user_id)
+        if perm == "viewer":
+            raise HTTPException(status_code=403, detail="You don't have permission to upload files in this workspace")
+
         # Verify workspace exists
         ws = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "id": 1})
         if not ws:
@@ -1001,11 +1101,17 @@ async def download_workspace_file(workspace_id: str, file_id: str):
 
 
 @router.delete("/{workspace_id}/files/{file_id}")
-async def delete_workspace_file(workspace_id: str, file_id: str):
-    """Delete a file from a workspace."""
+async def delete_workspace_file(workspace_id: str, file_id: str, user_id: str = Query(...)):
+    """Delete a file from a workspace. Admin can delete any file; members can delete only their own."""
     file_doc = await db.workspace_files.find_one({"id": file_id, "workspace_id": workspace_id})
     if not file_doc:
         raise HTTPException(status_code=404, detail="File not found")
+
+    perm = await get_user_file_permission(workspace_id, user_id)
+    if perm == "viewer":
+        raise HTTPException(status_code=403, detail="You don't have permission to delete files")
+    if perm == "member" and file_doc.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="You can only delete your own files")
 
     try:
         from bson import ObjectId
