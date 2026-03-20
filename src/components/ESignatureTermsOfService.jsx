@@ -30,7 +30,7 @@ const ESignatureTermsOfService = () => {
             eSignature Terms of Service
           </DialogTitle>
           <p className="text-xs text-slate-500 mt-1">
-            Munal AI &mdash; Powered by Jiffix Inc &bull; Effective as of: July 15, 2025
+            Munal AI &mdash; Powered by Jiffix Inc &bull; Effective as of: March 19, 2026
           </p>
         </DialogHeader>
         <ScrollArea className="h-[65vh] px-6 py-4">
@@ -233,7 +233,7 @@ const ESignatureTermsOfService = () => {
             {/* Footer */}
             <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-6">
               <p className="text-xs text-slate-400 dark:text-slate-500 text-center">
-                Munal AI eSignature &mdash; Powered by Jiffix Inc &bull; Last updated: July 15, 2025
+                Munal AI eSignature &mdash; Powered by Jiffix Inc &bull; Last updated: March 19, 2026
               </p>
             </div>
 
