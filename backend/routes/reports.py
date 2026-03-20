@@ -19,6 +19,216 @@ from routes.chat import sse_manager
 router = APIRouter(prefix="/reports", tags=["Incident Reports"])
 
 
+# ============== IR/SOR Templates ==============
+
+DEFAULT_IR_TEMPLATES = [
+    {
+        "id": "ir-tpl-workplace-injury",
+        "name": "Workplace Injury",
+        "category": "Injury",
+        "description": "Report a physical injury sustained at the workplace",
+        "icon": "hard-hat",
+        "default_severity": "moderate",
+        "is_default": True,
+        "fields": [
+            {"name": "injury_type", "label": "Type of Injury", "type": "select", "required": True, "options": ["Laceration", "Fracture", "Burn", "Sprain/Strain", "Concussion", "Chemical Exposure", "Other"]},
+            {"name": "body_part", "label": "Body Part Affected", "type": "text", "required": True},
+            {"name": "treatment_given", "label": "Treatment Given On-Site", "type": "textarea", "required": False},
+            {"name": "medical_attention", "label": "Medical Attention Required", "type": "select", "required": True, "options": ["None", "First Aid", "Hospital Visit", "Ongoing Treatment"]},
+            {"name": "equipment_involved", "label": "Equipment Involved", "type": "text", "required": False},
+        ],
+    },
+    {
+        "id": "ir-tpl-medication-error",
+        "name": "Medication Error",
+        "category": "Medical",
+        "description": "Report a medication administration or dispensing error",
+        "icon": "pill",
+        "default_severity": "major",
+        "is_default": True,
+        "fields": [
+            {"name": "medication_name", "label": "Medication Name", "type": "text", "required": True},
+            {"name": "error_type", "label": "Error Type", "type": "select", "required": True, "options": ["Wrong Dose", "Wrong Medication", "Wrong Patient", "Wrong Route", "Wrong Time", "Omission", "Other"]},
+            {"name": "prescribed_dose", "label": "Prescribed Dose", "type": "text", "required": True},
+            {"name": "administered_dose", "label": "Dose Actually Given", "type": "text", "required": True},
+            {"name": "adverse_effects", "label": "Adverse Effects Observed", "type": "textarea", "required": False},
+            {"name": "physician_notified", "label": "Physician Notified", "type": "select", "required": True, "options": ["Yes", "No", "N/A"]},
+        ],
+    },
+    {
+        "id": "ir-tpl-property-damage",
+        "name": "Property Damage",
+        "category": "Property",
+        "description": "Report damage to facility property or equipment",
+        "icon": "building",
+        "default_severity": "moderate",
+        "is_default": True,
+        "fields": [
+            {"name": "property_type", "label": "Property Type", "type": "select", "required": True, "options": ["Building/Structure", "Equipment", "Vehicle", "Furniture", "IT/Electronics", "Other"]},
+            {"name": "damage_description", "label": "Damage Description", "type": "textarea", "required": True},
+            {"name": "estimated_cost", "label": "Estimated Repair Cost", "type": "number", "required": False},
+            {"name": "insurance_claim", "label": "Insurance Claim Required", "type": "select", "required": True, "options": ["Yes", "No", "Undetermined"]},
+        ],
+    },
+    {
+        "id": "ir-tpl-behavioural",
+        "name": "Behavioural Incident",
+        "category": "Behavioural",
+        "description": "Report aggressive, disruptive, or threatening behaviour",
+        "icon": "alert-triangle",
+        "default_severity": "moderate",
+        "is_default": True,
+        "fields": [
+            {"name": "behaviour_type", "label": "Behaviour Type", "type": "select", "required": True, "options": ["Verbal Aggression", "Physical Aggression", "Self-Harm", "Elopement", "Property Destruction", "Disruptive Behaviour", "Other"]},
+            {"name": "trigger", "label": "Known Trigger / Antecedent", "type": "textarea", "required": False},
+            {"name": "intervention_used", "label": "Intervention Used", "type": "textarea", "required": True},
+            {"name": "restraint_used", "label": "Restraint Used", "type": "select", "required": True, "options": ["None", "Physical", "Chemical", "Mechanical", "Seclusion"]},
+            {"name": "outcome", "label": "Outcome", "type": "textarea", "required": True},
+        ],
+    },
+    {
+        "id": "ir-tpl-safeguarding",
+        "name": "Safeguarding Concern",
+        "category": "Safeguarding",
+        "description": "Report a safeguarding or child/adult protection concern",
+        "icon": "shield",
+        "default_severity": "major",
+        "is_default": True,
+        "fields": [
+            {"name": "concern_type", "label": "Type of Concern", "type": "select", "required": True, "options": ["Physical Abuse", "Emotional Abuse", "Sexual Abuse", "Neglect", "Financial Exploitation", "Self-Neglect", "Other"]},
+            {"name": "vulnerable_person", "label": "Vulnerable Person Category", "type": "select", "required": True, "options": ["Child", "Elderly Adult", "Adult with Disabilities", "Other"]},
+            {"name": "disclosure", "label": "Was There a Disclosure?", "type": "select", "required": True, "options": ["Yes — verbal", "Yes — written", "No, observed signs", "Third party report"]},
+            {"name": "authority_notified", "label": "Authority Notified", "type": "select", "required": True, "options": ["Not yet", "CAS/CPS", "Police", "Adult Protection", "Other"]},
+            {"name": "safety_plan", "label": "Immediate Safety Plan", "type": "textarea", "required": True},
+        ],
+    },
+    {
+        "id": "ir-tpl-near-miss",
+        "name": "Near Miss",
+        "category": "Safety",
+        "description": "Report an event that could have caused harm but did not",
+        "icon": "zap",
+        "default_severity": "minor",
+        "is_default": True,
+        "fields": [
+            {"name": "hazard_type", "label": "Hazard Type", "type": "select", "required": True, "options": ["Slip/Trip/Fall", "Equipment Malfunction", "Chemical Spill", "Electrical", "Fire Risk", "Ergonomic", "Other"]},
+            {"name": "potential_outcome", "label": "Potential Outcome If Not Caught", "type": "textarea", "required": True},
+            {"name": "contributing_factors", "label": "Contributing Factors", "type": "textarea", "required": True},
+            {"name": "recommended_action", "label": "Recommended Preventive Action", "type": "textarea", "required": True},
+        ],
+    },
+    {
+        "id": "ir-tpl-serious-occurrence",
+        "name": "Serious Occurrence",
+        "category": "SOR",
+        "description": "Report a serious occurrence requiring mandatory regulatory notification",
+        "icon": "alert-octagon",
+        "default_severity": "serious_occurrence",
+        "is_default": True,
+        "fields": [
+            {"name": "sor_category", "label": "SOR Category", "type": "select", "required": True, "options": ["Death", "Serious Injury", "Abuse/Neglect", "Missing Person", "Disaster", "Outbreak", "Unauthorized Absence", "Complaint with Regulatory Body", "Other"]},
+            {"name": "regulatory_body", "label": "Regulatory Body to Notify", "type": "text", "required": True},
+            {"name": "notification_deadline", "label": "Notification Deadline", "type": "text", "required": True},
+            {"name": "notification_sent", "label": "Notification Sent", "type": "select", "required": True, "options": ["Yes", "No", "In progress"]},
+            {"name": "family_notified", "label": "Family/Guardian Notified", "type": "select", "required": True, "options": ["Yes", "No", "N/A"]},
+            {"name": "immediate_actions", "label": "Immediate Actions Taken", "type": "textarea", "required": True},
+        ],
+    },
+]
+
+IR_TEMPLATE_CATEGORIES = ["Injury", "Medical", "Property", "Behavioural", "Safeguarding", "Safety", "SOR", "Custom"]
+
+
+class CreateIRTemplate(BaseModel):
+    name: str
+    category: str
+    description: str = ""
+    icon: str = "file-text"
+    default_severity: str = "moderate"
+    fields: List[dict] = []
+
+
+@router.get("/templates")
+async def get_ir_templates(category: Optional[str] = None):
+    """Get all IR/SOR templates (default + custom)."""
+    templates = list(DEFAULT_IR_TEMPLATES)
+    custom = await db.ir_sor_templates.find({}, {"_id": 0}).to_list(500)
+    templates.extend(custom)
+    if category:
+        templates = [t for t in templates if t.get("category") == category]
+    return {"templates": templates, "categories": IR_TEMPLATE_CATEGORIES}
+
+
+@router.get("/templates/{template_id}")
+async def get_ir_template(template_id: str):
+    """Get a specific IR/SOR template by ID."""
+    for t in DEFAULT_IR_TEMPLATES:
+        if t["id"] == template_id:
+            return t
+    custom = await db.ir_sor_templates.find_one({"id": template_id}, {"_id": 0})
+    if custom:
+        return custom
+    raise HTTPException(status_code=404, detail="Template not found")
+
+
+@router.post("/templates")
+async def create_ir_template(req: CreateIRTemplate):
+    """Create a custom IR/SOR template (superadmin only)."""
+    template = {
+        "id": f"ir-tpl-custom-{uuid.uuid4().hex[:8]}",
+        "name": req.name,
+        "category": req.category,
+        "description": req.description,
+        "icon": req.icon,
+        "default_severity": req.default_severity,
+        "is_default": False,
+        "fields": req.fields,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.ir_sor_templates.insert_one(template)
+    return {"success": True, "template": {k: v for k, v in template.items() if k != "_id"}}
+
+
+@router.put("/templates/{template_id}")
+async def update_ir_template(template_id: str, req: CreateIRTemplate):
+    """Update a custom IR/SOR template."""
+    # Block editing default templates
+    for t in DEFAULT_IR_TEMPLATES:
+        if t["id"] == template_id:
+            raise HTTPException(status_code=400, detail="Cannot edit default templates")
+
+    result = await db.ir_sor_templates.update_one(
+        {"id": template_id},
+        {"$set": {
+            "name": req.name,
+            "category": req.category,
+            "description": req.description,
+            "icon": req.icon,
+            "default_severity": req.default_severity,
+            "fields": req.fields,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    updated = await db.ir_sor_templates.find_one({"id": template_id}, {"_id": 0})
+    return {"success": True, "template": updated}
+
+
+@router.delete("/templates/{template_id}")
+async def delete_ir_template(template_id: str):
+    """Delete a custom IR/SOR template."""
+    for t in DEFAULT_IR_TEMPLATES:
+        if t["id"] == template_id:
+            raise HTTPException(status_code=400, detail="Cannot delete default templates")
+
+    result = await db.ir_sor_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"success": True}
+
+
 # ============== Models ==============
 
 class PersonInvolved(BaseModel):
@@ -29,6 +239,9 @@ class PersonInvolved(BaseModel):
 class ReportCreate(BaseModel):
     workspace_id: str
     submitted_by: str  # user ID
+    template_id: Optional[str] = None
+    template_name: Optional[str] = None
+    custom_fields: Optional[dict] = None  # template-specific fields
     # Section A - Incident Details
     incident_date: str
     incident_time: str
@@ -123,6 +336,9 @@ async def create_report(report: ReportCreate):
             "investigation_notes": None,
             "status": "open",
             # Metadata
+            "template_id": report.template_id,
+            "template_name": report.template_name,
+            "custom_fields": report.custom_fields,
             "created_at": now,
             "updated_at": now,
             "audit_log": [{

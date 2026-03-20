@@ -119,6 +119,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: Building2, label: 'Organizations', path: '/admin/organizations', gradient: 'from-violet-500 to-purple-500', permission: ['users', 'view'] },
     { icon: Building2, label: 'Workspaces', path: '/admin/workspaces', gradient: 'from-indigo-500 to-violet-500', permission: ['workspaces', 'view'] },
     { icon: FileWarning, label: 'IR / SOR Reports', path: '/admin/reports', gradient: 'from-red-500 to-orange-500', permission: ['workspaces', 'view'] },
+    { icon: FileCheck2, label: 'IR/SOR Templates', path: '/admin/ir-sor-templates', gradient: 'from-orange-500 to-amber-500', permission: ['workspaces', 'view'] },
     { icon: MessageSquare, label: 'Chat Moderation', path: '/admin/chat-moderation', gradient: 'from-emerald-500 to-green-500', permission: ['chat_moderation', 'view'] },
     { icon: Clock, label: 'Shifts', path: '/admin/shifts', gradient: 'from-orange-500 to-amber-500', permission: ['shifts', 'view'] },
     { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-pink-500 to-rose-500', permission: ['support', 'view'] },

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileWarning, Plus, Search, Filter, ChevronDown, ChevronRight,
   Clock, AlertTriangle, Shield, Eye, Edit3, Upload, X, Check,
   Loader2, ArrowLeft, User, MapPin, Calendar, FileText, Users,
   Phone, MessageSquare, Paperclip, Activity, Download, Table2,
-  BarChart3
+  BarChart3, HardHat, Pill, Building, Zap, AlertOctagon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,17 +66,112 @@ const defaultForm = {
   assigned_investigator: '',
 };
 
+const TPL_ICON_MAP = {
+  'hard-hat': HardHat, 'pill': Pill, 'building': Building, 'alert-triangle': AlertTriangle,
+  'shield': Shield, 'zap': Zap, 'alert-octagon': AlertOctagon, 'file-text': FileText,
+};
+
+// ========= Template Picker Component =========
+const TemplatePicker = ({ onSelect, onSkip }) => {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterCat, setFilterCat] = useState('');
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/reports/templates`);
+        if (res.ok) {
+          const data = await res.json();
+          setTemplates(data.templates || []);
+          setCategories(data.categories || []);
+        }
+      } catch { /* silent */ }
+      finally { setLoading(false); }
+    };
+    fetchTemplates();
+  }, []);
+
+  const filtered = filterCat ? templates.filter(t => t.category === filterCat) : templates;
+
+  return (
+    <div className="max-w-3xl mx-auto" data-testid="ir-template-picker">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Choose a Template</h2>
+          <p className="text-sm text-gray-500">Select a report template to pre-fill fields, or skip to use a blank form</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onSkip} data-testid="skip-template-btn">
+          Blank Form <ChevronRight className="w-3.5 h-3.5 ml-1" />
+        </Button>
+      </div>
+
+      {/* Category filter */}
+      <div className="flex gap-2 flex-wrap mb-4">
+        <button onClick={() => setFilterCat('')}
+          className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+            !filterCat ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+          )}>All</button>
+        {categories.map(c => (
+          <button key={c} onClick={() => setFilterCat(c)}
+            className={cn("px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+              filterCat === c ? "bg-indigo-600 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+            )}>{c}</button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {filtered.map(tpl => {
+            const Icon = TPL_ICON_MAP[tpl.icon] || FileText;
+            return (
+              <Card
+                key={tpl.id}
+                className="cursor-pointer hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-600 transition-all"
+                onClick={() => onSelect(tpl)}
+                data-testid={`pick-tpl-${tpl.id}`}
+              >
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold">{tpl.name}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{tpl.description}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Badge variant="outline" className="text-[10px]">{tpl.category}</Badge>
+                      <span className="text-[10px] text-slate-400">{(tpl.fields || []).length} fields</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ========= Report Form Component =========
-const ReportForm = ({ onSubmit, onCancel, loading, workspaceId, userId }) => {
-  const [form, setForm] = useState({ ...defaultForm });
+const ReportForm = ({ onSubmit, onCancel, loading, workspaceId, userId, selectedTemplate }) => {
+  const [form, setForm] = useState({ ...defaultForm, severity: selectedTemplate?.default_severity || '' });
+  const [customFields, setCustomFields] = useState({});
   const [step, setStep] = useState(1);
   const [files, setFiles] = useState([]);
   const fileRef = useRef(null);
 
-  const totalSteps = 5;
-  const stepLabels = ['Incident Details', 'Person(s) Involved', 'Description', 'Severity', 'Attachments & Submit'];
+  const hasCustomFields = selectedTemplate?.fields?.length > 0;
+  const totalSteps = hasCustomFields ? 6 : 5;
+  const stepLabels = hasCustomFields
+    ? ['Incident Details', 'Person(s) Involved', 'Description', `${selectedTemplate?.name || 'Template'} Fields`, 'Severity', 'Attachments & Submit']
+    : ['Incident Details', 'Person(s) Involved', 'Description', 'Severity', 'Attachments & Submit'];
 
   const updateField = (field, value) => setForm(p => ({ ...p, [field]: value }));
+  const updateCustom = (name, value) => setCustomFields(p => ({ ...p, [name]: value }));
 
   const addPerson = () => setForm(p => ({ ...p, persons_involved: [...p.persons_involved, { ...emptyPerson }] }));
   const updatePerson = (idx, field, value) => {
@@ -101,12 +196,27 @@ const ReportForm = ({ onSubmit, onCancel, loading, workspaceId, userId }) => {
     if (step === 1) return form.incident_date && form.incident_time && form.location && form.incident_type;
     if (step === 2) return form.persons_involved[0]?.full_name;
     if (step === 3) return form.description;
-    if (step === 4) return form.severity;
+    if (hasCustomFields) {
+      if (step === 4) {
+        // Check required custom fields
+        return selectedTemplate.fields.filter(f => f.required).every(f => customFields[f.name]);
+      }
+      if (step === 5) return form.severity;
+    } else {
+      if (step === 4) return form.severity;
+    }
     return true;
   };
 
   const handleSubmit = () => {
-    onSubmit({ ...form, workspace_id: workspaceId, submitted_by: userId }, files);
+    onSubmit({
+      ...form,
+      workspace_id: workspaceId,
+      submitted_by: userId,
+      template_id: selectedTemplate?.id || null,
+      template_name: selectedTemplate?.name || null,
+      custom_fields: hasCustomFields ? customFields : null,
+    }, files);
   };
 
   return (
@@ -249,8 +359,42 @@ const ReportForm = ({ onSubmit, onCancel, loading, workspaceId, userId }) => {
           </motion.div>
         )}
 
-        {/* Step 4: Severity */}
-        {step === 4 && (
+        {/* Step 4 (or Template Custom Fields): */}
+        {hasCustomFields && step === 4 && (
+          <motion.div key="s4-custom" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-4">
+            <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mb-1">
+              {selectedTemplate?.name} — Additional Fields
+            </p>
+            {selectedTemplate.fields.map(field => (
+              <div key={field.name} className="space-y-1.5">
+                <Label className="text-sm">{field.label} {field.required && '*'}</Label>
+                {field.type === 'text' && (
+                  <Input value={customFields[field.name] || ''} onChange={e => updateCustom(field.name, e.target.value)} data-testid={`custom-${field.name}`} />
+                )}
+                {field.type === 'textarea' && (
+                  <Textarea value={customFields[field.name] || ''} onChange={e => updateCustom(field.name, e.target.value)} rows={3} data-testid={`custom-${field.name}`} />
+                )}
+                {field.type === 'number' && (
+                  <Input type="number" value={customFields[field.name] || ''} onChange={e => updateCustom(field.name, e.target.value)} data-testid={`custom-${field.name}`} />
+                )}
+                {field.type === 'date' && (
+                  <Input type="date" value={customFields[field.name] || ''} onChange={e => updateCustom(field.name, e.target.value)} data-testid={`custom-${field.name}`} />
+                )}
+                {field.type === 'select' && (
+                  <Select value={customFields[field.name] || ''} onValueChange={v => updateCustom(field.name, v)}>
+                    <SelectTrigger data-testid={`custom-${field.name}`}><SelectValue placeholder="Select..." /></SelectTrigger>
+                    <SelectContent>
+                      {(field.options || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Severity Step (step 4 without template, step 5 with template) */}
+        {step === (hasCustomFields ? 5 : 4) && (
           <motion.div key="s4" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-3">
             <Label className="flex items-center gap-1.5 mb-2"><AlertTriangle className="w-3.5 h-3.5" /> Severity Classification *</Label>
             {SEVERITY_LEVELS.map(sev => (
@@ -285,8 +429,8 @@ const ReportForm = ({ onSubmit, onCancel, loading, workspaceId, userId }) => {
           </motion.div>
         )}
 
-        {/* Step 5: Attachments & Submit */}
-        {step === 5 && (
+        {/* Attachments & Submit Step (step 5 without template, step 6 with template) */}
+        {step === (hasCustomFields ? 6 : 5) && (
           <motion.div key="s5" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-4">
             <div>
               <Label className="flex items-center gap-1.5 mb-2"><Paperclip className="w-3.5 h-3.5" /> Attachments (Optional)</Label>
@@ -593,7 +737,7 @@ const ReportDetail = ({ report, onBack, onUpdate, userRole, userId }) => {
 const ReportsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [view, setView] = useState('list'); // list, create, detail, analytics
+  const [view, setView] = useState('list'); // list, pick-template, create, detail, analytics
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -601,6 +745,7 @@ const ReportsPage = () => {
   const [exportingExcel, setExportingExcel] = useState(false);
   const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({ report_type: '', severity: '', status: '' });
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -705,7 +850,7 @@ const ReportsPage = () => {
                     {exportingExcel ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Table2 className="w-3.5 h-3.5 mr-1.5" />}
                     Export Excel
                   </Button>
-                  <Button onClick={() => setView('create')} className="bg-indigo-600 hover:bg-indigo-700" data-testid="new-report-btn">
+                  <Button onClick={() => setView('pick-template')} className="bg-indigo-600 hover:bg-indigo-700" data-testid="new-report-btn">
                     <Plus className="w-4 h-4 mr-1.5" /> New Report
                   </Button>
                 </div>
@@ -809,18 +954,41 @@ const ReportsPage = () => {
             </motion.div>
           )}
 
+          {view === 'pick-template' && (
+            <motion.div key="pick-template" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="flex items-center gap-2 mb-6">
+                <Button variant="ghost" onClick={() => setView('list')}><ArrowLeft className="w-4 h-4 mr-1.5" /> Back</Button>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">New Incident Report</h1>
+              </div>
+              <TemplatePicker
+                onSelect={(tpl) => { setSelectedTemplate(tpl); setView('create'); }}
+                onSkip={() => { setSelectedTemplate(null); setView('create'); }}
+              />
+            </motion.div>
+          )}
+
           {view === 'create' && (
             <motion.div key="create" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">File New Report</h1>
-                <p className="text-sm text-gray-500 mt-1">Complete all sections to submit an incident or serious occurrence report</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setView('pick-template')}><ArrowLeft className="w-4 h-4 mr-1" /> Templates</Button>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-2">
+                  {selectedTemplate ? `${selectedTemplate.name} Report` : 'File New Report'}
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedTemplate
+                    ? `Using template: ${selectedTemplate.name} — ${selectedTemplate.description || ''}`
+                    : 'Complete all sections to submit an incident or serious occurrence report'}
+                </p>
               </div>
               <ReportForm
                 onSubmit={handleSubmitReport}
-                onCancel={() => setView('list')}
+                onCancel={() => { setView('list'); setSelectedTemplate(null); }}
                 loading={submitting}
                 workspaceId={user?.workspace_id || 'default'}
                 userId={user?.id}
+                selectedTemplate={selectedTemplate}
               />
             </motion.div>
           )}
