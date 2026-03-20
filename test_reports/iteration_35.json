@@ -58,7 +58,7 @@
   "test_credentials": {
     "user": "admin@munal.com / Admin@123456",
     "test_user_id": "3fe4c41c-4f43-4683-98dc-db6de39b842c",
-    "app_url": "https://approval-delegate.preview.emergentagent.com"
+    "app_url": "https://incident-hub-44.preview.emergentagent.com"
   },
   "seed_data_creation": "Test PDFs created via reportlab and python-docx for API testing",
   "retest_needed": false,

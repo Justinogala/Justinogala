@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
+import FloatingOrbs from '@/components/FloatingOrbs';
 
 // Import Section Components
 import BenefitsSection from '@/components/landing/BenefitsSection';
@@ -38,6 +39,11 @@ const LandingPage = () => {
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-slate-900/80 bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-violet-900/50 backdrop-blur-sm" />
+            </div>
+
+            {/* Floating Orbs Animation */}
+            <div className="absolute inset-0 z-[1]">
+              <FloatingOrbs />
             </div>
 
             <div className="container mx-auto px-6 relative z-10 pt-20 pb-24 text-center">

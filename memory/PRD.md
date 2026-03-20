@@ -10,6 +10,12 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## What's Been Implemented
 
+### Admin Logout Fix + Hero Floating Orbs (Complete - Mar 2026)
+- Fixed P0 admin logout bug: `handleLogout` now calls context `logout()` and navigates to `/admin/login`
+- Fixed collapsed sidebar referencing undefined `adminLogout`
+- Added Floating Orbs animation to hero section background (`FloatingOrbs.jsx`)
+- Tested: Verified via screenshot — login→dashboard→logout→login redirect works correctly
+
 ### Approvals Phase 2: AI Insights & Analytics (Complete - Mar 2026)
 - Analytics tab in Approvals page with comprehensive dashboard
 - Summary cards: Total Approvals, Approval Rate, Avg Time, Delegation Rate
@@ -60,6 +66,7 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ## Prioritized Backlog
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
+- Clean up orphaned data from workspace_members table
 ### P3
 - Consolidate AuthContext/AdminAuthContext
 - 2FA for admin accounts

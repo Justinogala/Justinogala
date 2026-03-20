@@ -86,12 +86,9 @@ const AdminSidebar = ({ onClose, isMobile }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
 
-  const handleLogout = () => {
-    localStorage.removeItem('munal_sessions');
-    localStorage.removeItem('munal_auth');
-    localStorage.removeItem('munal_refresh');
-    localStorage.removeItem('munal_last_activity');
-    window.location.href = '/';
+  const handleLogout = async () => {
+    await logout();
+    navigate('/admin/login');
   };
 
   const toggleCollapse = () => {
@@ -405,7 +402,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
             variant="ghost" 
             size="icon" 
             className="w-full h-8 mt-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-            onClick={adminLogout}
+            onClick={handleLogout}
             title="Logout"
           >
             <LogOut className="w-4 h-4" />
