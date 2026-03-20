@@ -10,81 +10,77 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 
 ## What's Been Implemented
 
+### Approval Delegate Feature (Complete - Mar 2026)
+- Backend: `POST /api/approvals/delegate/{id}` delegates pending step to another user
+- Backend: Action endpoint allows delegate to approve/reject with audit trail
+- Backend: `GET /api/approvals/delegated-to-me` lists delegated approvals
+- Backend: Stats include `delegated_pending` count
+- Backend: List endpoint uses `$or` to show delegated approvals in received tab
+- Frontend: Delegate button on pending approvals, delegate modal with user search + reason
+- Frontend: Delegated tab in approvals dashboard
+- Frontend: Delegation badges on table rows and in workflow view
+- Frontend: Delegate actions recorded in audit trail (acted_by_delegate flag)
+- Tested: 100% — 9/9 backend + 15/15 frontend (iterations 56, 57)
+
+### IR/SOR Template System (Complete - Mar 2026)
+- Backend: 7 default templates (Workplace Injury, Medication Error, Property Damage, Behavioural Incident, Safeguarding Concern, Near Miss, Serious Occurrence)
+- Backend: CRUD endpoints for custom templates (`GET/POST/PUT/DELETE /api/reports/templates`)
+- Backend: Default templates protected from edit/delete
+- Backend: Templates define custom fields (text, textarea, number, date, select)
+- Frontend (Admin): `/admin/ir-sor-templates` page with template grid, category filters, editor dialog with field builder
+- Frontend (User): Template picker on `/reports` when creating new report
+- Frontend: Custom fields rendered as extra form step between Description and Severity
+- Frontend: Skip to blank form option preserved
+- Tested: 100% — 9/9 backend + all frontend verified (iteration 57)
+
 ### Workspace File Sharing Permissions (Complete - Mar 2026)
 - Permission model: Owner/Admin > Member > Viewer
-- Admin: upload, download, delete any file
-- Member: upload, download, delete own files only
-- Viewer: download/view files only — no upload or delete
-- Backend: `GET/PUT /api/workspaces/{id}/file-permissions`, `PUT /api/workspaces/{id}/members/{uid}/file-role`
-- Frontend: File Permissions card (admin-only), toggle between "All members can upload" / "View only"
-- Upload drop zone hidden for viewers with "View-only access" notice
-- Delete buttons conditionally shown based on ownership + role
-- Per-member file role overrides supported
-- Tested: 100% (20/20 backend, all frontend verified) — iteration_55
+- Tested: 100% (iteration 55)
 
 ### Workspace File Manager (Complete - Mar 2026)
-- Independent file manager per workspace with GridFS storage (`workspace_files` bucket)
-- Backend: `POST/GET/DELETE /api/workspaces/{id}/files` endpoints
-- Frontend: "Files" tab in WorkspaceDetailPage with drag-and-drop upload, file list, preview, download, delete
-- File isolation: files scoped to workspace_id
-- Tested: 100% (11/11 backend, all frontend verified) — iteration_54
+- Independent file manager per workspace with GridFS storage
+- Tested: 100% (iteration 54)
 
 ### eSignature TOS Canadian Law Update (Complete - Mar 2026)
-- Updated all legal references to Canadian law (PIPEDA, UECA, provincial E-Commerce Acts)
-- Governing law: Province of Ontario + federal laws of Canada
-- Dates updated to March 19, 2026
+- PIPEDA, UECA, Ontario courts jurisdiction, provincial E-Commerce Acts
+- Dates: March 19, 2026
 
-### Organization Management (Complete - Mar 2026)
-#### Core Org CRUD + Admin Page (iteration_50)
-#### Domain Auto-Enrollment + Edit Member + Self-Registration (iteration_51)
-#### Organization Dashboard (iteration_52)
-#### Team Invites + Direct Create (iteration_53)
-
-### eSignature Terms of Service (Complete)
-### Workspace Dashboard Widget (Complete)
+### Organization Management (Complete)
 ### Approvals Module Phase 1 (Complete)
 ### SharePoint-Style Workspace Hub (Complete)
 ### Other Features (Auth, Files, AI, Sora 2, TTS, IR/SOR, eSignature, SSE)
 
 ## Credentials
 - **Admin**: admin@munal.com / Admin@123456
-- **Business User**: justin.ogala@munal.com / Justin@123456
 
 ## Key API Endpoints
 
-### Workspace File Permissions (NEW)
-- `GET /api/workspaces/{id}/file-permissions?user_id=X` — Get default role + user's effective permission
-- `PUT /api/workspaces/{id}/file-permissions?user_id=X` — Set default_file_role (admin only)
-- `PUT /api/workspaces/{id}/members/{uid}/file-role?user_id=X` — Override specific member's file role
+### Approval Delegation (NEW)
+- `POST /api/approvals/delegate/{id}?user_id=X&user_name=Y` — Delegate pending step
+- `GET /api/approvals/delegated-to-me?user_id=X` — List delegated approvals
+- `GET /api/approvals/list?tab=delegated&user_id=X` — Delegated tab
 
-### Workspace Files
-- `POST /api/workspaces/{id}/files/upload` — Upload file (permission enforced)
-- `GET /api/workspaces/{id}/files` — List workspace files
-- `GET /api/workspaces/{id}/files/{file_id}` — Download/stream file
-- `DELETE /api/workspaces/{id}/files/{file_id}?user_id=X` — Delete file (permission enforced)
+### IR/SOR Templates (NEW)
+- `GET /api/reports/templates` — List all templates (default + custom)
+- `GET /api/reports/templates/{id}` — Get specific template
+- `POST /api/reports/templates` — Create custom template
+- `PUT /api/reports/templates/{id}` — Update custom template
+- `DELETE /api/reports/templates/{id}` — Delete custom template
 
-### Organization Invites
-- `POST /api/organizations/{org_id}/invite` — Send email invite
-- `POST /api/organizations/invite/validate?token=xxx` — Validate invite token
-- `POST /api/organizations/{org_id}/direct-create` — Create member account directly
-
-## DB Collections
-- `workspace_files` (id, grid_id, workspace_id, user_id, file_name, content_type, size, uploaded_at)
-- `workspace_members` (+ file_role field for per-member overrides)
-- `workspaces` (settings.default_file_role: "member" | "viewer")
-- `organizations`, `org_invites`, `users`
+### Workspace File Permissions
+- `GET/PUT /api/workspaces/{id}/file-permissions`
+- `PUT /api/workspaces/{id}/members/{uid}/file-role`
 
 ## Key Files
-- `/app/backend/routes/workspaces.py` — workspace CRUD, members, files, permissions, stats
-- `/app/backend/config.py` — fs_workspace_files GridFS bucket
-- `/app/src/pages/WorkspaceDetailPage.jsx` — WorkspaceFileManager with permissions UI
-- `/app/src/components/ESignatureTermsOfService.jsx` — Canadian law TOS
+- `/app/backend/routes/approvals.py` — Delegate endpoints + models
+- `/app/backend/routes/reports.py` — IR/SOR template CRUD + default templates
+- `/app/src/pages/ApprovalsPage.jsx` — Delegate modal, Delegated tab, badges
+- `/app/src/pages/admin/AdminIRTemplatesPage.jsx` — Admin template management
+- `/app/src/pages/ReportsPage.jsx` — TemplatePicker + custom fields step
 
 ## Prioritized Backlog
-### P1
-- Implement "Delegate" feature for approvals
 ### P2
-- Approvals Phase 2: AI insights, advanced analytics
+- Approvals Phase 2: AI insights, advanced analytics, bottleneck detection
 - Refactor AdminStripeSettingsPage.jsx
 ### P3
 - Consolidate AuthContext/AdminAuthContext
