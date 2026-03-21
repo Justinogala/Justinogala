@@ -8,7 +8,7 @@ const FeatureVideoCallsPage = () => {
       title="Video Calls"
       subtitle="Crystal-Clear Video Conferencing"
       description="Connect face-to-face with your team anywhere in the world. High-quality video calls with screen sharing, recording, and real-time collaboration built right in."
-      heroImage="https://images.unsplash.com/photo-1609619385002-f40f1df9b5a4"
+      heroImage="https://images.pexels.com/photos/4226140/pexels-photo-4226140.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
       benefits={[
         { icon: Video, title: "HD Video & Audio", description: "Crystal-clear video with adaptive quality that adjusts to your bandwidth." },
         { icon: Users, title: "Group Calls", description: "Host meetings with up to 100 participants with gallery and speaker views." },

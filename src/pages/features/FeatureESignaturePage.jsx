@@ -8,7 +8,7 @@ const FeatureESignaturePage = () => {
       title="eSignature"
       subtitle="Legally Binding Digital Signatures"
       description="Sign documents digitally with full legal compliance under Canadian law. Send, track, and manage electronic signatures with complete audit trails and secure storage."
-      heroImage="https://images.unsplash.com/photo-1450101499163-c8848c66ca85"
+      heroImage="https://images.pexels.com/photos/48195/document-agreement-documents-sign-48195.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
       benefits={[
         { icon: PenLine, title: "Draw or Type", description: "Sign with your mouse, touchscreen, or type your name for instant signatures." },
         { icon: Shield, title: "Legally Compliant", description: "Fully compliant with Canadian PIPEDA and provincial electronic commerce acts." },
