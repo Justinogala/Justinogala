@@ -87,6 +87,54 @@ async def get_demo_video():
     return FileResponse(str(video_path), media_type="video/mp4", filename="munal-demo.mp4")
 
 
+from pydantic import BaseModel as PydanticBaseModel
+
+class ContactFormRequest(PydanticBaseModel):
+    name: str
+    email: str
+    subject: str
+    message: str
+
+@api_router.post("/contact")
+async def submit_contact_form(request: ContactFormRequest):
+    """Save contact form submission as an admin internal message"""
+    import uuid
+    try:
+        message_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        msg = {
+            "id": message_id,
+            "thread_id": message_id,
+            "parent_id": None,
+            "sender_id": f"contact_{message_id[:8]}",
+            "sender_name": request.name,
+            "sender_email": request.email,
+            "recipient_id": "admin",
+            "recipient_name": "Admin",
+            "subject": request.subject,
+            "content": request.message,
+            "is_read": False,
+            "is_starred": False,
+            "is_draft": False,
+            "is_junk": False,
+            "in_trash": False,
+            "is_contact_form": True,
+            "deleted_by_sender": False,
+            "deleted_by_recipient": False,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        await db.user_messages.insert_one(msg)
+        msg.pop("_id", None)
+
+        return {"success": True, "message_id": message_id}
+    except Exception as e:
+        logger.error(f"Contact form error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============== Import Modular Routes ==============
 
 from routes.auth import router as auth_router
