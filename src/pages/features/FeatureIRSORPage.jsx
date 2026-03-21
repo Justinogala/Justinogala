@@ -8,7 +8,7 @@ const FeatureIRSORPage = () => {
       title="IR / SOR Reports"
       subtitle="Incident & Safety Occurrence Reporting"
       description="Report, track, and resolve workplace incidents and safety occurrences with customizable templates, escalation workflows, and compliance-ready documentation."
-      heroImage="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40"
+      heroImage="https://images.pexels.com/photos/5583617/pexels-photo-5583617.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
       benefits={[
         { icon: AlertTriangle, title: "Quick Reporting", description: "File incident reports in minutes with guided form templates." },
         { icon: Shield, title: "Compliance Ready", description: "Meet regulatory requirements with standardized reporting formats." },
