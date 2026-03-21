@@ -75,7 +75,7 @@ const FeaturePageLayout = ({
                     <Button size="lg" onClick={() => navigate('/signup')} className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25">
                       Get Started Free
                     </Button>
-                    <Button size="lg" variant="outline" className="border-gray-300 dark:border-gray-700">
+                    <Button size="lg" variant="outline" className="border-gray-300 dark:border-gray-700" onClick={() => window.open('https://munal.ai/api/demo-video', '_blank')}>
                       View Demo
                     </Button>
                   </div>
