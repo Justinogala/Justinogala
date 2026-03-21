@@ -2,9 +2,10 @@ import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
-const DemoVideoModal = ({ isOpen, onClose }) => {
+const DemoVideoModal = ({ isOpen, onClose, videoUrl }) => {
   const videoRef = useRef(null);
   const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+  const src = videoUrl || `${API_URL}/api/demo-video`;
 
   useEffect(() => {
     if (!isOpen && videoRef.current) {
@@ -59,7 +60,7 @@ const DemoVideoModal = ({ isOpen, onClose }) => {
                 controls
                 autoPlay
                 playsInline
-                src={`${API_URL}/api/demo-video`}
+                src={src}
               >
                 Your browser does not support the video tag.
               </video>

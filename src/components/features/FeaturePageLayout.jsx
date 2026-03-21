@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
+import DemoVideoModal from '@/components/DemoVideoModal';
 import { cn } from '@/lib/utils';
 
 const FeaturePageLayout = ({
@@ -26,6 +27,7 @@ const FeaturePageLayout = ({
   nextFeature
 }) => {
   const navigate = useNavigate();
+  const [demoOpen, setDemoOpen] = useState(false);
 
   return (
     <PageTransition>
@@ -75,7 +77,7 @@ const FeaturePageLayout = ({
                     <Button size="lg" onClick={() => navigate('/signup')} className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25">
                       Get Started Free
                     </Button>
-                    <Button size="lg" variant="outline" className="border-gray-300 dark:border-gray-700" onClick={() => window.open('https://munal.ai/api/demo-video', '_blank')}>
+                    <Button size="lg" variant="outline" className="border-gray-300 dark:border-gray-700" onClick={() => setDemoOpen(true)}>
                       View Demo
                     </Button>
                   </div>
@@ -240,6 +242,7 @@ const FeaturePageLayout = ({
         </main>
         
         <Footer />
+        <DemoVideoModal isOpen={demoOpen} onClose={() => setDemoOpen(false)} videoUrl="https://munal.ai/api/demo-video" />
       </div>
     </PageTransition>
   );
