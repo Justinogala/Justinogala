@@ -8,7 +8,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import HeroBackground from '@/components/HeroBackground';
-import HeroThemeToggle from '@/components/HeroThemeToggle';
 import DemoVideoModal from '@/components/DemoVideoModal';
 
 // Import Section Components
@@ -137,7 +136,6 @@ const LandingPage = () => {
         </main>
 
         <Footer />
-        <HeroThemeToggle />
         <DemoVideoModal isOpen={demoOpen} onClose={() => setDemoOpen(false)} />
       </div>
     </PageTransition>
