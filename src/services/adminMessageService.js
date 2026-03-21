@@ -4,6 +4,20 @@ import { useToast } from '@/components/ui/use-toast';
 import { getApiUrl, API_URL } from '@/lib/api';
 
 export const adminMessageService = {
+  // Save contact form message
+  saveContactFormMessage: async (data) => {
+    const response = await fetch(`${API_URL}/api/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.detail || 'Failed to submit message');
+    }
+    return result;
+  },
+
   // Get all internal messages
   getMessages: async ({ page = 1, limit = 20, search = '', status = 'all' }) => {
     try {
