@@ -1,31 +1,31 @@
 
 import React from 'react';
-import { Calendar, RefreshCw, Clock, Bell } from 'lucide-react';
+import { Calendar, Clock, Bell, Users } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
 
 const FeatureCalendarIntegrationPage = () => {
   return (
     <FeaturePageLayout
-      title="Calendar Integration"
-      subtitle="Unified Schedule Management"
-      description="Sync perfectly with Google Calendar and Outlook. Never miss a meeting and automate your scheduling workflow entirely."
-      heroImage="https://images.unsplash.com/photo-1649433391719-2e784576d044"
+      title="Calendar"
+      subtitle="Munal AI Smart Calendar"
+      description="Your all-in-one scheduling hub built right into Munal. Plan meetings, manage shifts, track availability, and stay on top of every event — all from one intelligent calendar."
+      heroImage="https://images.unsplash.com/photo-1734945620672-f130427acff7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwY2FsZW5kYXIlMjBhcHAlMjBkYXNoYm9hcmQlMjBzY2hlZHVsaW5nfGVufDB8fHx8MTc3NDExMTcxOXww&ixlib=rb-4.1.0&q=85"
       benefits={[
-        { icon: RefreshCw, title: "Two-Way Sync", description: "Changes reflect instantly across all platforms." },
-        { icon: Calendar, title: "Universal Support", description: "Works with Google, Outlook, and Office 365." },
-        { icon: Clock, title: "Time Zone Smart", description: "Handles global teams and time zones automatically." }
+        { icon: Calendar, title: "Unified View", description: "See meetings, shifts, approvals, and deadlines in one calendar." },
+        { icon: Clock, title: "Smart Scheduling", description: "AI suggests the best times based on your team's availability." },
+        { icon: Bell, title: "Timely Reminders", description: "Customizable notifications so you never miss an event." }
       ]}
       features={[
-        { title: "Meeting Reminders", description: "Customizable notifications before every call." },
-        { title: "Auto-Join", description: "Launch meetings directly from your calendar view." },
-        { title: "Availability Sharing", description: "Let others book slots based on your real schedule." },
-        { title: "Recurring Events", description: "Set up daily, weekly, or custom recurring meetings." }
+        { title: "Drag & Drop Events", description: "Create and reschedule events effortlessly with drag-and-drop." },
+        { title: "Team Availability", description: "View your entire team's free and busy slots at a glance." },
+        { title: "Recurring Events", description: "Set up daily, weekly, or custom recurring meetings and shifts." },
+        { title: "Auto-Join Meetings", description: "Launch video calls directly from your calendar with one click." }
       ]}
       useCases={[
-        { title: "Scheduling Automation", description: "Eliminate the 'when are you free' email tag." },
-        { title: "Conflict Resolution", description: "Prevent double-booking automatically." },
-        { title: "Global Coordination", description: "Schedule across 3+ time zones effortlessly." },
-        { title: "Meeting Prep", description: "Get nudges to review agendas before calls start." }
+        { title: "Meeting Planning", description: "Find the perfect time for team syncs without back-and-forth." },
+        { title: "Shift Coordination", description: "See shift schedules alongside meetings for full-day visibility." },
+        { title: "Deadline Tracking", description: "Track approval deadlines and project milestones on your calendar." },
+        { title: "Daily Overview", description: "Start each day with a clear view of everything on your plate." }
       ]}
       prevFeature={{ name: "Voice Chat", link: "/features/voice-chat" }}
       nextFeature={{ name: "Overview", link: "/features/overview" }}
