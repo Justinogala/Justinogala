@@ -1,4 +1,4 @@
-"""Generate Munal AI demo video using Sora 2"""
+"""Generate Munal AI demo video using Sora 2 Pro (12s, high quality)"""
 import os
 import sys
 sys.path.insert(0, os.path.abspath('/app/backend'))
@@ -20,16 +20,16 @@ prompt = (
     "Cinematic motion graphics style, 4K quality feel."
 )
 
-print("Starting Sora 2 video generation...")
+print("Starting Sora 2 Pro video generation (12s)...")
 print(f"Prompt: {prompt[:80]}...")
 
 video_gen = OpenAIVideoGeneration(api_key=os.environ['EMERGENT_LLM_KEY'])
 video_bytes = video_gen.text_to_video(
     prompt=prompt,
-    model="sora-2",
+    model="sora-2-pro",
     size="1280x720",
-    duration=8,
-    max_wait_time=600
+    duration=12,
+    max_wait_time=900
 )
 
 if video_bytes:

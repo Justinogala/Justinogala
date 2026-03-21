@@ -87,7 +87,7 @@ const WorkspaceDashboardWidget = () => {
             <motion.button
               key={ws.id}
               data-testid={`workspace-widget-item-${i}`}
-              onClick={() => navigate(`/workspaces/${ws.id}`)}
+              onClick={() => navigate(`/workspace/${ws.id}`)}
               className="w-full flex items-center gap-3 p-3 rounded-xl bg-gray-50/80 dark:bg-slate-800/50 hover:bg-gray-100 dark:hover:bg-slate-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-200 text-left group"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
