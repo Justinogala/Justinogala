@@ -16,7 +16,11 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Added Floating Orbs animation to hero section background (`FloatingOrbs.jsx`)
 - Tested: Verified via screenshot — login→dashboard→logout→login redirect works correctly
 
-### Hero Modern Interactivity (Complete - Mar 2026)
+### Feature Pages Expansion (Complete - Mar 2026)
+- Created 6 new feature pages: Video Calls, Approvals, eSignature, Shifts, IR/SOR Reports, Notifications
+- All use FeaturePageLayout with benefits, features, use cases, and navigation
+- Updated Header nav dropdown: added Video Calls + Approvals (NEW badges), fixed broken links for Notifications, Shifts, eSignature, IR/SOR
+- Routes registered in App.jsx with lazy loading
 - Option D (All Combined) hero background: Floating gradient orbs + particle field + animated waves
 - Pure CSS animations via `HeroBackground.jsx` + `HeroBackground.css` — zero JS overhead
 - Floating theme toggle: Fixed-position pill toggle with animated thumb, sun/moon icons (`HeroThemeToggle.jsx`)
