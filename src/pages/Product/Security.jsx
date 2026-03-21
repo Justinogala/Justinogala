@@ -129,10 +129,10 @@ const Security = () => {
             {[
               { icon: ShieldCheck, title: "Admin Security Policies", desc: "Configurable password policies (min length, complexity, expiry), session timeout settings, meeting security controls, and account lockout thresholds — all managed from the admin panel.", color: "from-violet-500 to-purple-600" },
               { icon: MonitorSmartphone, title: "Session Management", desc: "Active session tracking with device fingerprinting, automatic session expiry after 24 hours, forced logout on all devices, and session revocation controls.", color: "from-blue-500 to-cyan-600" },
-              { icon: FolderLock, title: "Workspace File Isolation", desc: "GridFS-based file storage with workspace-level isolation. Owner/Member/Viewer permissions control who can upload, download, and delete files.", color: "from-emerald-500 to-teal-600" },
+              { icon: FolderLock, title: "Workspace File Isolation", desc: "Secure file storage with workspace-level isolation. Owner/Member/Viewer permissions control who can upload, download, and delete files.", color: "from-emerald-500 to-teal-600" },
               { icon: AlertTriangle, title: "Incident & Safety Reporting", desc: "IR/SOR reports with admin-defined templates, auto-escalation workflows, and compliance-ready documentation for regulatory audits.", color: "from-amber-500 to-orange-600" },
               { icon: Database, title: "eSignature Legal Compliance", desc: "Electronic signatures comply with Canadian PIPEDA, UECA, and provincial Electronic Commerce Acts. Full signing history with audit trails.", color: "from-rose-500 to-pink-600" },
-              { icon: Zap, title: "Approval Workflow Security", desc: "Multi-step approval chains with delegation audit trails, substitute tracking, and GPT-powered anomaly detection in approval patterns.", color: "from-indigo-500 to-violet-600" },
+              { icon: Zap, title: "Approval Workflow Security", desc: "Multi-step approval chains with delegation audit trails, substitute tracking, and anomaly detection in approval patterns.", color: "from-indigo-500 to-violet-600" },
             ].map((item, i) => (
               <motion.div key={i} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
                 <Card className="h-full border-gray-200 dark:border-gray-800 hover:shadow-lg transition-shadow">
@@ -197,10 +197,10 @@ const Security = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
               { icon: Globe, title: "CORS Protection", desc: "Configurable Cross-Origin Resource Sharing policies with whitelist enforcement to prevent unauthorized API access." },
-              { icon: Server, title: "MongoDB Atlas", desc: "Cloud-hosted database with encryption at rest, network isolation, and automated backups with point-in-time recovery." },
+              { icon: Server, title: "Cloud Database", desc: "Cloud-hosted database with encryption at rest, network isolation, and automated backups with point-in-time recovery." },
               { icon: Shield, title: "Content Security Policy", desc: "Strict CSP headers prevent XSS attacks, clickjacking, and unauthorized script injection across the application." },
               { icon: Lock, title: "Field-Level Encryption", desc: "Sensitive data fields use Fernet encryption with 'enc::' prefix markers to prevent double-encryption." },
-              { icon: Database, title: "GridFS File Security", desc: "Binary file storage in MongoDB GridFS with workspace-level isolation and permission-gated access." },
+              { icon: Database, title: "Secure File Storage", desc: "Binary file storage with workspace-level isolation and permission-gated access controls." },
               { icon: Zap, title: "Kubernetes Deployment", desc: "Containerized infrastructure with automatic scaling, health checks, and zero-downtime deployments." },
             ].map((item, i) => (
               <SecurityBadge key={i} delay={i * 0.05} icon={item.icon} title={item.title} description={item.desc} />
