@@ -62,6 +62,12 @@ const FeatureFileManagementPage = lazy(() => import('@/pages/features/FeatureFil
 const FeatureAnalyticsPage = lazy(() => import('@/pages/features/FeatureAnalyticsPage'));
 const FeatureVoiceChatPage = lazy(() => import('@/pages/features/FeatureVoiceChatPage'));
 const FeatureCalendarIntegrationPage = lazy(() => import('@/pages/features/FeatureCalendarIntegrationPage'));
+const FeatureVideoCallsPage = lazy(() => import('@/pages/features/FeatureVideoCallsPage'));
+const FeatureApprovalsPage = lazy(() => import('@/pages/features/FeatureApprovalsPage'));
+const FeatureESignaturePage = lazy(() => import('@/pages/features/FeatureESignaturePage'));
+const FeatureShiftsPage = lazy(() => import('@/pages/features/FeatureShiftsPage'));
+const FeatureIRSORPage = lazy(() => import('@/pages/features/FeatureIRSORPage'));
+const FeatureNotificationsPage = lazy(() => import('@/pages/features/FeatureNotificationsPage'));
 
 // Payment Pages
 const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
@@ -330,6 +336,12 @@ function App() {
                               <Route path="/features/analytics" element={<FeatureAnalyticsPage />} />
                               <Route path="/features/voice-chat" element={<FeatureVoiceChatPage />} />
                               <Route path="/features/calendar-integration" element={<FeatureCalendarIntegrationPage />} />
+                              <Route path="/features/video-calls" element={<FeatureVideoCallsPage />} />
+                              <Route path="/features/approvals" element={<FeatureApprovalsPage />} />
+                              <Route path="/features/esignature" element={<FeatureESignaturePage />} />
+                              <Route path="/features/shifts" element={<FeatureShiftsPage />} />
+                              <Route path="/features/ir-sor" element={<FeatureIRSORPage />} />
+                              <Route path="/features/notifications" element={<FeatureNotificationsPage />} />
                               
                               <Route path="/login" element={<LoginPage />} />
                               <Route path="/login/otp" element={<OTPLoginPage />} />

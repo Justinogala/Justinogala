@@ -9,7 +9,7 @@ import {
   Briefcase, GraduationCap, AudioLines, Clapperboard,
   PenLine, FileOutput, AlertTriangle, CreditCard,
   Clock, Headphones, LayoutDashboard, CircleDot,
-  FolderOpen, Bell
+  FolderOpen, Bell, CheckCircle, Phone, GitBranch
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll } from 'framer-motion';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
@@ -94,19 +94,20 @@ const Header = () => {
       { label: 'Voice Chat', href: '/features/voice-chat', icon: Headphones, col: 0 },
       // Column 2: Communication
       { label: 'Messages', href: '/features/chat-messaging', icon: MessageSquare, col: 1 },
-      { label: 'Chat', href: '/features/chat-messaging', icon: MessageSquare, col: 1 },
+      { label: 'Video Calls', href: '/features/video-calls', icon: Phone, col: 1, badge: 'NEW' },
       { label: 'Meetings', href: '/features/meetings', icon: Video, col: 1 },
       { label: 'Calendar', href: '/features/calendar-integration', icon: Calendar, col: 1 },
-      { label: 'Notifications', href: '/features/meetings', icon: Bell, col: 1 },
+      { label: 'Notifications', href: '/features/notifications', icon: Bell, col: 1 },
       { label: 'Search', href: '/features/search', icon: Search, col: 1 },
       // Column 3: Workspace & Docs
       { label: 'Workspaces', href: '/features/teams', icon: Users, col: 2 },
-      { label: 'Shifts', href: '/features/meetings', icon: Clock, col: 2 },
+      { label: 'Shifts', href: '/features/shifts', icon: Clock, col: 2 },
       { label: 'File Management', href: '/features/file-management', icon: FolderOpen, col: 2 },
-      { label: 'eSignature', href: '/esignature', icon: PenLine, col: 2, badge: 'NEW' },
-      { label: 'Doc Conversion', href: '/esignature', icon: FileOutput, col: 2, badge: 'NEW' },
+      { label: 'eSignature', href: '/features/esignature', icon: PenLine, col: 2, badge: 'NEW' },
+      { label: 'Doc Conversion', href: '/features/esignature', icon: FileOutput, col: 2 },
       // Column 4: Admin & Reporting
-      { label: 'IR / SOR Reports', href: '/ir-sor', icon: AlertTriangle, col: 3, badge: 'NEW' },
+      { label: 'Approvals', href: '/features/approvals', icon: CheckCircle, col: 3, badge: 'NEW' },
+      { label: 'IR / SOR Reports', href: '/features/ir-sor', icon: AlertTriangle, col: 3 },
       { label: 'Analytics', href: '/features/analytics', icon: BarChart, col: 3 },
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, col: 3 },
       { label: 'Billing', href: '/pricing', icon: CreditCard, col: 3 },
