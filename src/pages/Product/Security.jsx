@@ -52,10 +52,11 @@ const Security = () => {
       <div className="container mx-auto px-6"><BreadcrumbNav /></div>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-violet-50/30 to-white dark:from-slate-950 dark:via-violet-950/10 dark:to-slate-900">
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-violet-200/30 dark:bg-violet-800/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-96 h-96 bg-indigo-200/20 dark:bg-indigo-800/10 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img src="https://images.unsplash.com/photo-1762279388956-1c098163a2a8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwxfHxjeWJlcnNlY3VyaXR5JTIwZGFyayUyMGFic3RyYWN0JTIwbmV0d29ya3xlbnwwfHx8fDE3NzQxMzg2MTR8MA&ixlib=rb-4.1.0&q=85" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-violet-50/85 to-white/95 dark:from-slate-950/92 dark:via-violet-950/80 dark:to-slate-900/95" />
         </div>
         <div className="container mx-auto px-6 py-24 text-center relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
