@@ -12,7 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 const Roadmap = () => {
   const roadmap = [
-    { quarter: 'Q2 2026', status: 'In Progress', items: ['Custom Vocabulary V2', 'Microsoft Teams App', 'Zapier Integration'] },
+    { quarter: 'Q2 2026', status: 'In Progress', items: ['Custom Vocabulary V2', 'AI Meeting Summarizer with Action Items', 'Smart Shift Auto-Scheduling'] },
     { quarter: 'Q3 2026', status: 'Planned', items: ['Sentiment Trends Dashboard', 'Multi-language Support (Asian)', 'Mobile App Redesign'] },
     { quarter: 'Q4 2026', status: 'Future', items: ['Real-time Coaching Assistant', 'API Webhooks V2', 'Enterprise On-premise'] },
   ];
