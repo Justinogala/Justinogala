@@ -100,8 +100,11 @@ const ContactFormPage = () => {
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="relative py-16 md:py-24 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 to-purple-600/10 dark:from-violet-900/20 dark:to-purple-900/20 -z-10" />
-          <div className="container mx-auto px-4 text-center">
+          <div className="absolute inset-0 z-0">
+            <img src="https://images.pexels.com/photos/594233/pexels-photo-594233.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-violet-50/93 to-white/97 dark:from-slate-950/95 dark:via-violet-950/90 dark:to-slate-900/97" />
+          </div>
+          <div className="container mx-auto px-4 text-center relative z-10">
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
