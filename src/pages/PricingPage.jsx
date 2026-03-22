@@ -239,7 +239,12 @@ const PricingPage = () => {
         <Header />
 
         {/* Hero Section */}
-        <section className="relative py-16 md:py-24 pt-header-mobile md:pt-header-tablet lg:pt-header-desktop overflow-hidden bg-gray-50 dark:bg-slate-900/50">
+        <section className="relative py-16 md:py-24 pt-header-mobile md:pt-header-tablet lg:pt-header-desktop overflow-hidden">
+          {/* Background Image */}
+          <div className="absolute inset-0 z-0">
+            <img src="https://images.pexels.com/photos/7293745/pexels-photo-7293745.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/92 via-gray-50/90 to-white/95 dark:from-slate-950/93 dark:via-slate-900/88 dark:to-slate-900/95" />
+          </div>
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
