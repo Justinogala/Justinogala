@@ -61,10 +61,11 @@ const Roadmap = () => {
       <div className="container mx-auto px-6"><BreadcrumbNav /></div>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-50 via-violet-50/30 to-white dark:from-slate-950 dark:via-violet-950/10 dark:to-slate-900">
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-20 right-20 w-80 h-80 bg-violet-200/25 dark:bg-violet-800/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 left-10 w-72 h-72 bg-indigo-200/20 dark:bg-indigo-800/10 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img src="https://images.unsplash.com/photo-1771875802948-0d0f3424fe6d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwxfHxmdXR1cmlzdGljJTIwdGVjaG5vbG9neSUyMGFic3RyYWN0JTIwZGFyayUyMHB1cnBsZXxlbnwwfHx8fDE3NzQxMzg2MTN8MA&ixlib=rb-4.1.0&q=85" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-violet-50/85 to-white/95 dark:from-slate-950/92 dark:via-violet-950/80 dark:to-slate-900/95" />
         </div>
         <div className="container mx-auto px-6 py-20 text-center relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
