@@ -98,6 +98,15 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Frontend: "Create Workspace" button hidden on WorkspacesPage, Dashboard, and WorkspaceDashboardWidget for non-admin users
 - Empty state shows "Contact your admin to be added" for regular users
 - Regular users can still view and access workspaces they are members of
+
+### Workspace Forms Module (Mar 2026)
+- New "Forms" tab in workspace detail page (between ICT Support and Members)
+- Backend: `/app/backend/routes/forms.py` — Full CRUD for form templates and submissions
+- Form template builder (admin only): supports Text, Textarea, Date, Number, Yes/No (radio), Dropdown field types
+- Form fill view: shows submitter name/email, renders all field types, validates required fields
+- Submissions: admins see all with submitter email; regular users see only their own
+- Auto-seeds "Maintenance Request Form" template with 6 fields (date, staff name, repair location, behavior concern, priority level, description)
+- Tested: 100% (12/12 backend + all frontend) — iteration_61
 ## Prioritized Backlog
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
