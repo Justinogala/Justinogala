@@ -238,6 +238,43 @@ WORKSPACE_TEMPLATES = [
         ],
     },
     {
+        "id": "ict-support",
+        "name": "ICT Support",
+        "description": "IT helpdesk hub for hardware, software, network, and access support requests with ticket tracking and resolution workflows",
+        "icon": "🖥️",
+        "color": "#0ea5e9",
+        "scope": "team",
+        "category": "IT",
+        "includes": ["ICT support request form", "Ticket tracking", "Resolution comments"],
+        "announcements": [
+            {"title": "ICT Support Hub", "content": "Submit IT support requests using the ICT Support tab. Track ticket status, view resolutions, and add comments. Only workspace members can view and interact with tickets.", "pinned": True},
+            {"title": "How to Submit a Request", "content": "1. Go to the ICT Support tab\n2. Click 'New Request'\n3. Fill in the category, priority, and description\n4. Submit — the IT team will be notified", "pinned": False},
+        ],
+        "approval_templates": [
+            {"name": "ICT Support Request", "category": "IT", "description": "Submit an IT support ticket", "icon": "monitor", "fields": [
+                {"name": "category", "label": "Category", "type": "select", "required": True, "options": ["Hardware", "Software", "Network", "Access/Permissions", "Email", "Printer", "Phone/VoIP", "Other"]},
+                {"name": "priority", "label": "Priority", "type": "select", "required": True, "options": ["Low", "Medium", "High", "Critical"]},
+                {"name": "affected_system", "label": "Affected System/Device", "type": "text", "required": True},
+                {"name": "description", "label": "Issue Description", "type": "textarea", "required": True},
+                {"name": "steps_to_reproduce", "label": "Steps to Reproduce (if applicable)", "type": "textarea", "required": False},
+                {"name": "impact", "label": "Business Impact", "type": "select", "required": True, "options": ["Individual", "Team", "Department", "Organisation-wide"]},
+            ]},
+            {"name": "Access Request", "category": "IT", "description": "Request new system access or permission changes", "icon": "key", "fields": [
+                {"name": "request_type", "label": "Request Type", "type": "select", "required": True, "options": ["New Access", "Modify Access", "Revoke Access"]},
+                {"name": "system_name", "label": "System/Application Name", "type": "text", "required": True},
+                {"name": "access_level", "label": "Access Level Needed", "type": "select", "required": True, "options": ["Read Only", "Read/Write", "Admin", "Custom"]},
+                {"name": "justification", "label": "Business Justification", "type": "textarea", "required": True},
+                {"name": "duration", "label": "Duration", "type": "select", "required": True, "options": ["Permanent", "30 Days", "90 Days", "Project-based"]},
+            ]},
+        ],
+        "quick_links": [
+            {"label": "Submit Ticket", "path": "/ict-support", "icon": "monitor"},
+            {"label": "My Tickets", "path": "/ict-support", "icon": "clipboard-list"},
+            {"label": "IT Docs", "path": "/files", "icon": "book"},
+            {"label": "Team Chat", "path": "/workspace/chat", "icon": "message-square"},
+        ],
+    },
+    {
         "id": "general",
         "name": "General",
         "description": "A clean workspace to get started. Customise it to fit your team's needs.",
@@ -1122,3 +1159,166 @@ async def delete_workspace_file(workspace_id: str, file_id: str, user_id: str = 
     except Exception as e:
         logger.error(f"Error deleting workspace file: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== ICT Support Request Models ==============
+
+class ICTRequestCreate(BaseModel):
+    workspace_id: str
+    title: str
+    category: str
+    priority: str
+    affected_system: str = ""
+    description: str
+    impact: str = "Individual"
+    submitted_by_id: str
+    submitted_by_name: str
+
+class ICTRequestUpdate(BaseModel):
+    status: Optional[str] = None
+    assigned_to_id: Optional[str] = None
+    assigned_to_name: Optional[str] = None
+    resolution_notes: Optional[str] = None
+
+class ICTCommentCreate(BaseModel):
+    user_id: str
+    user_name: str
+    content: str
+
+
+# ============== ICT Support Request Endpoints ==============
+
+@router.post("/{workspace_id}/ict-requests")
+async def create_ict_request(workspace_id: str, request: ICTRequestCreate):
+    """Create a new ICT support request. Only workspace members can submit."""
+    ws = await db.workspaces.find_one({"id": workspace_id})
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    member = await db.workspace_members.find_one({"workspace_id": workspace_id, "user_id": request.submitted_by_id})
+    if not member:
+        raise HTTPException(status_code=403, detail="Only workspace members can submit requests")
+
+    now = datetime.now(timezone.utc).isoformat()
+    ticket_id = str(uuid.uuid4())
+    ticket = {
+        "id": ticket_id,
+        "workspace_id": workspace_id,
+        "title": request.title,
+        "category": request.category,
+        "priority": request.priority,
+        "affected_system": request.affected_system,
+        "description": request.description,
+        "impact": request.impact,
+        "status": "Open",
+        "submitted_by_id": request.submitted_by_id,
+        "submitted_by_name": request.submitted_by_name,
+        "assigned_to_id": None,
+        "assigned_to_name": None,
+        "resolution_notes": None,
+        "comments": [],
+        "created_at": now,
+        "updated_at": now,
+        "resolved_at": None,
+    }
+    await db.ict_support_requests.insert_one(ticket)
+    ticket.pop("_id", None)
+    return {"success": True, "request": ticket}
+
+
+@router.get("/{workspace_id}/ict-requests")
+async def get_ict_requests(workspace_id: str, user_id: str = Query(...)):
+    """Get all ICT requests for a workspace. Only workspace members can view."""
+    member = await db.workspace_members.find_one({"workspace_id": workspace_id, "user_id": user_id})
+    if not member:
+        raise HTTPException(status_code=403, detail="Only workspace members can view requests")
+
+    cursor = db.ict_support_requests.find({"workspace_id": workspace_id}, {"_id": 0}).sort("created_at", -1)
+    requests = await cursor.to_list(500)
+    return {"requests": requests}
+
+
+@router.get("/{workspace_id}/ict-requests/{request_id}")
+async def get_ict_request(workspace_id: str, request_id: str, user_id: str = Query(...)):
+    """Get a single ICT request with comments. Only workspace members can view."""
+    member = await db.workspace_members.find_one({"workspace_id": workspace_id, "user_id": user_id})
+    if not member:
+        raise HTTPException(status_code=403, detail="Only workspace members can view requests")
+
+    ticket = await db.ict_support_requests.find_one({"id": request_id, "workspace_id": workspace_id}, {"_id": 0})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Request not found")
+    return ticket
+
+
+@router.put("/{workspace_id}/ict-requests/{request_id}")
+async def update_ict_request(workspace_id: str, request_id: str, update: ICTRequestUpdate, user_id: str = Query(...)):
+    """Update ICT request status/assignment. Only owner/admin can update."""
+    member = await db.workspace_members.find_one({"workspace_id": workspace_id, "user_id": user_id})
+    if not member or member.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Only workspace owner/admin can update requests")
+
+    ticket = await db.ict_support_requests.find_one({"id": request_id, "workspace_id": workspace_id})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update_fields = {"updated_at": now}
+    if update.status:
+        update_fields["status"] = update.status
+        if update.status == "Resolved":
+            update_fields["resolved_at"] = now
+    if update.assigned_to_id is not None:
+        update_fields["assigned_to_id"] = update.assigned_to_id
+        update_fields["assigned_to_name"] = update.assigned_to_name
+    if update.resolution_notes is not None:
+        update_fields["resolution_notes"] = update.resolution_notes
+
+    await db.ict_support_requests.update_one({"id": request_id}, {"$set": update_fields})
+    updated = await db.ict_support_requests.find_one({"id": request_id}, {"_id": 0})
+    return {"success": True, "request": updated}
+
+
+@router.post("/{workspace_id}/ict-requests/{request_id}/comments")
+async def add_ict_comment(workspace_id: str, request_id: str, comment: ICTCommentCreate):
+    """Add a comment to an ICT request. Members can comment after resolution; owner/admin anytime."""
+    member = await db.workspace_members.find_one({"workspace_id": workspace_id, "user_id": comment.user_id})
+    if not member:
+        raise HTTPException(status_code=403, detail="Only workspace members can comment")
+
+    ticket = await db.ict_support_requests.find_one({"id": request_id, "workspace_id": workspace_id})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Request not found")
+
+    is_admin = member.get("role") in ["owner", "admin"]
+    if not is_admin and ticket.get("status") not in ["Resolved", "Closed"]:
+        raise HTTPException(status_code=403, detail="Members can only comment after the ticket is resolved")
+
+    now = datetime.now(timezone.utc).isoformat()
+    new_comment = {
+        "id": str(uuid.uuid4()),
+        "user_id": comment.user_id,
+        "user_name": comment.user_name,
+        "content": comment.content,
+        "created_at": now,
+    }
+
+    await db.ict_support_requests.update_one(
+        {"id": request_id},
+        {"$push": {"comments": new_comment}, "$set": {"updated_at": now}}
+    )
+    return {"success": True, "comment": new_comment}
+
+
+@router.delete("/{workspace_id}/ict-requests/{request_id}")
+async def delete_ict_request(workspace_id: str, request_id: str, user_id: str = Query(...)):
+    """Delete an ICT request. Only owner/admin can delete."""
+    member = await db.workspace_members.find_one({"workspace_id": workspace_id, "user_id": user_id})
+    if not member or member.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Only workspace owner/admin can delete requests")
+
+    result = await db.ict_support_requests.delete_one({"id": request_id, "workspace_id": workspace_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found")
+    return {"success": True}

@@ -9,7 +9,7 @@ import {
   FileText, Plus, Pin, MoreHorizontal, Megaphone,
   Globe, Lock, Send, X, Loader2, FolderOpen, ChevronRight,
   UserPlus, ExternalLink, Pencil, Upload, Download,
-  File, Image, Music, Video, Eye, FileArchive, Shield, ShieldCheck
+  File, Image, Music, Video, Eye, FileArchive, Shield, ShieldCheck, Monitor
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getWorkspaceById, deleteWorkspace, updateWorkspace } from '@/services/workspaceService';
 import { API_URL } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import WorkspaceICTSupport from '@/components/workspace/WorkspaceICTSupport';
 import PageTransition from '@/components/PageTransition';
 import WorkspaceMemberManagement from '@/components/WorkspaceMemberManagement';
 
@@ -544,6 +545,9 @@ const WorkspaceDetailPage = () => {
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
+                <Button onClick={() => setActiveTab('ict-support')} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-9" data-testid="ict-support-btn">
+                  <Monitor className="w-4 h-4 mr-1" /> ICT Support
+                </Button>
                 <Button onClick={() => navigate(`/workspace/${workspaceId}/shifts`)} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-9" data-testid="shifts-btn">
                   <Clock className="w-4 h-4 mr-1" /> Shifts
                 </Button>
@@ -563,6 +567,7 @@ const WorkspaceDetailPage = () => {
                 { val: 'home', label: 'Home', icon: Activity },
                 { val: 'files', label: 'Files', icon: FolderOpen },
                 { val: 'news', label: 'News', icon: Megaphone },
+                { val: 'ict-support', label: 'ICT Support', icon: Monitor },
                 { val: 'members', label: 'Members', icon: Users },
                 { val: 'activity', label: 'Activity', icon: Clock },
                 { val: 'settings', label: 'Settings', icon: Settings },
@@ -743,6 +748,11 @@ const WorkspaceDetailPage = () => {
             {/* Members Tab */}
             <TabsContent value="members" className="animate-in fade-in-50">
               <WorkspaceMemberManagement workspaceId={workspaceId} />
+            </TabsContent>
+
+            {/* ICT Support Tab */}
+            <TabsContent value="ict-support" className="animate-in fade-in-50">
+              <WorkspaceICTSupport workspaceId={workspaceId} userId={user?.id} userName={user?.name || user?.email} userRole={isOwner ? 'owner' : 'member'} />
             </TabsContent>
 
             {/* Activity Tab */}
