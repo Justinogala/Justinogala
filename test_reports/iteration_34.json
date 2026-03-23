@@ -61,7 +61,7 @@
   },
   "test_credentials": {
     "user": "admin@munal.com / Admin@123456",
-    "app_url": "https://helpdesk-module.preview.emergentagent.com"
+    "app_url": "https://chat-attachments-fix.preview.emergentagent.com"
   },
   "seed_data_creation": "Injected test meetings into localStorage for testing action buttons",
   "retest_needed": true,
