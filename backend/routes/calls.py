@@ -45,6 +45,11 @@ def get_sse_manager():
 async def initiate_call(request: CallInitiateRequest, caller_id: str = None):
     """Initiate a call to another user"""
     sse_manager = get_sse_manager()
+    
+    # Check if target user is online
+    if not sse_manager.is_user_online(request.target_user_id):
+        return {"success": False, "error": "User is offline", "reason": "offline"}
+    
     call_id = request.call_id or str(uuid.uuid4())
     
     call_data = {

@@ -229,6 +229,14 @@ const WorkspaceChatPage = () => {
   const selectedUser = users.find(u => u.id === selectedUserId);
 
   // Call handlers
+  // Handle call errors from WebRTC hook (offline user, timeout, etc.)
+  useEffect(() => {
+    window.__callError = (message) => {
+      toast({ variant: "destructive", title: "Call failed", description: message });
+    };
+    return () => { delete window.__callError; };
+  }, [toast]);
+
   const handleStartAudioCall = useCallback(async () => {
     if (!selectedUserId || !selectedUser) return;
     
@@ -577,6 +585,30 @@ const WorkspaceChatPage = () => {
                                           </p>
                                         </div>
                                       </a>
+                                    )}
+                                    {att.type === 'voice' && att.url && (
+                                      <div className={cn(
+                                        "p-3 rounded-xl flex items-center gap-3",
+                                        isMine ? "bg-white/20" : "bg-gray-100 dark:bg-slate-700"
+                                      )}>
+                                        <div className={cn(
+                                          "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                                          isMine ? "bg-white/20" : "bg-purple-100 dark:bg-purple-900/30"
+                                        )}>
+                                          <Mic className={cn("w-5 h-5", isMine ? "text-white" : "text-purple-600 dark:text-purple-400")} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <audio 
+                                            controls 
+                                            src={att.url} 
+                                            className="w-full h-8" 
+                                            style={{ maxWidth: '240px' }}
+                                          />
+                                          <p className={cn("text-[10px] mt-1", isMine ? "text-white/60" : "text-gray-400")}>
+                                            Voice Message {att.duration ? `(${Math.floor(att.duration / 60)}:${String(att.duration % 60).padStart(2, '0')})` : ''}
+                                          </p>
+                                        </div>
+                                      </div>
                                     )}
                                     {att.type === 'location' && (
                                       <div className={cn(

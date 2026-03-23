@@ -75,6 +75,10 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Resend (Email Delivery) — RESEND_API_KEY
 - Emergent Object Storage — EMERGENT_LLM_KEY
 
+### Call & Voice Fixes (March 2026)
+- **Calls**: Backend now checks if target user is online before initiating call; returns immediate "User is offline" error instead of hanging in "connecting" forever. 30-second call timeout on frontend. Added TURN servers for better NAT traversal.
+- **Voice Messages**: Voice recordings now upload to object storage before attaching to messages. Audio player renders inline in chat for voice message playback.
+
 ## Backlog
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
