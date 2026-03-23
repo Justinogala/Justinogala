@@ -41,7 +41,7 @@ const FieldBuilder = ({ field, index, onChange, onRemove }) => {
         </Button>
       </div>
       <Input placeholder="Field label *" value={field.label} onChange={e => updateField('label', e.target.value)} className="font-medium" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Input placeholder="Placeholder text" value={field.placeholder} onChange={e => updateField('placeholder', e.target.value)} className="text-sm" />
         <Input placeholder="Help description" value={field.description} onChange={e => updateField('description', e.target.value)} className="text-sm" />
       </div>
@@ -215,7 +215,7 @@ export default function AdminFormsPage() {
   // ===== LIST VIEW =====
   if (view === 'list') {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-6 p-3 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -319,7 +319,7 @@ export default function AdminFormsPage() {
   // ===== BUILDER VIEW =====
   if (view === 'builder') {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-6 p-3 sm:p-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => setView('list')} className="gap-1">
             <ChevronLeft className="w-4 h-4" /> Back
@@ -415,7 +415,7 @@ export default function AdminFormsPage() {
   // ===== SUBMISSIONS VIEW =====
   if (view === 'submissions') {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-6 p-3 sm:p-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => setView('list')} className="gap-1">
             <ChevronLeft className="w-4 h-4" /> Back

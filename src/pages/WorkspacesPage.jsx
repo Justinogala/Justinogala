@@ -26,7 +26,7 @@ const WorkspacesPage = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gray-50/50 dark:bg-slate-950 p-6 lg:p-10 font-sans">
+      <div className="min-h-screen bg-gray-50/50 dark:bg-slate-950 p-4 sm:p-6 lg:p-10 font-sans">
         <Helmet>
           <title>Workspaces | Munal</title>
         </Helmet>
@@ -35,8 +35,8 @@ const WorkspacesPage = () => {
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
              <div>
-               <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">My Workspaces</h1>
-               <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl">
+               <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">My Workspaces</h1>
+               <p className="text-sm sm:text-lg text-gray-500 dark:text-gray-400 max-w-2xl">
                  Manage your teams, projects, and shared resources in one place.
                </p>
              </div>

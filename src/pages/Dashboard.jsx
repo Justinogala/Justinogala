@@ -135,17 +135,17 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-4">
                 {recentActivity.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-full ${item.type === 'meeting' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className={`p-2 rounded-full flex-shrink-0 ${item.type === 'meeting' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
                         {item.type === 'meeting' ? <Clock className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                       </div>
-                      <div>
-                        <h4 className="font-medium text-sm">{item.title}</h4>
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-sm truncate">{item.title}</h4>
                         <p className="text-xs text-gray-500">{item.date}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 ml-11 sm:ml-0 flex-shrink-0">
                       <Badge variant={item.status === 'Completed' ? 'default' : 'secondary'}>
                         {item.status}
                       </Badge>

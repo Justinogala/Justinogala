@@ -354,7 +354,7 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
 
       {/* ===== New Request Dialog ===== */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto mx-2 sm:mx-auto">
           <DialogHeader><DialogTitle>New ICT Support Request</DialogTitle></DialogHeader>
           <div className="space-y-3">
 
@@ -560,7 +560,7 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
 
       {/* ===== Request Detail Dialog ===== */}
       <Dialog open={!!selectedRequest} onOpenChange={open => { if (!open) setSelectedRequest(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto mx-2 sm:mx-auto">
           {selectedRequest && (
             <>
               <DialogHeader>
