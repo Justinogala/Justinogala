@@ -302,7 +302,7 @@ const AdminSystemHealthPage = () => {
                 </div>
               </div>
             ))}
-            <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-3 gap-4">
+            <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-4">
                {/* Charts */}
                <div>
                   <p className="text-xs text-gray-500 mb-2">Uptime Trend (30d)</p>

@@ -216,17 +216,17 @@ const WorkspaceFileManager = ({ workspaceId, isOwner }) => {
       {permission === 'admin' && (
         <Card className="border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/30 dark:bg-indigo-900/5" data-testid="file-permissions-card">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
                   <ShieldCheck className="w-4.5 h-4.5 text-indigo-600" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">File Permissions</p>
-                  <p className="text-xs text-slate-500">Control who can upload files to this workspace</p>
+                  <p className="text-xs text-slate-500">Control who can upload files</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-12 sm:ml-0">
                 <button
                   onClick={() => handleSaveDefaultRole('member')}
                   disabled={savingPerm}
@@ -526,33 +526,33 @@ const WorkspaceDetailPage = () => {
         {/* Hero Banner */}
         <div className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${workspace.color || '#6366f1'}dd, ${workspace.color || '#6366f1'}88)` }}>
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0aDR2MWgtNHptMC0yaDF2NGgtMXptLTIgMmg0djFoLTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
-          <div className="max-w-6xl mx-auto px-6 py-8 relative">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative">
             <Button variant="ghost" onClick={() => navigate('/workspaces')} className="mb-4 text-white/80 hover:text-white hover:bg-white/10 -ml-2">
               <ArrowLeft className="w-4 h-4 mr-2" /> All Workspaces
             </Button>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl shadow-lg border border-white/20">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl sm:text-3xl shadow-lg border border-white/20 flex-shrink-0">
                   {workspace.icon || workspace.name.substring(0, 2).toUpperCase()}
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-white flex items-center gap-3" data-testid="workspace-name">
-                    {workspace.name}
-                    <Badge className={cn("text-xs", workspace.scope === 'org' ? "bg-white/20 text-white border-white/30" : "bg-white/20 text-white border-white/30")}>
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-bold text-white flex flex-wrap items-center gap-2 sm:gap-3" data-testid="workspace-name">
+                    <span className="truncate">{workspace.name}</span>
+                    <Badge className={cn("text-[10px] sm:text-xs flex-shrink-0", workspace.scope === 'org' ? "bg-white/20 text-white border-white/30" : "bg-white/20 text-white border-white/30")}>
                       {workspace.scope === 'org' ? <><Globe className="w-3 h-3 mr-1" /> Organisation</> : <><Lock className="w-3 h-3 mr-1" /> Team</>}
                     </Badge>
                   </h1>
-                  <p className="text-white/70 mt-1 text-sm max-w-lg">{workspace.description || 'No description'}</p>
+                  <p className="text-white/70 mt-1 text-xs sm:text-sm max-w-lg truncate">{workspace.description || 'No description'}</p>
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <Button onClick={() => setActiveTab('ict-support')} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-9" data-testid="ict-support-btn">
+              <div className="flex gap-2 shrink-0 overflow-x-auto">
+                <Button onClick={() => setActiveTab('ict-support')} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-8 sm:h-9 text-xs sm:text-sm whitespace-nowrap" data-testid="ict-support-btn">
                   <Monitor className="w-4 h-4 mr-1" /> ICT Support
                 </Button>
-                <Button onClick={() => navigate(`/workspace/${workspaceId}/shifts`)} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-9" data-testid="shifts-btn">
+                <Button onClick={() => navigate(`/workspace/${workspaceId}/shifts`)} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-8 sm:h-9 text-xs sm:text-sm whitespace-nowrap" data-testid="shifts-btn">
                   <Clock className="w-4 h-4 mr-1" /> Shifts
                 </Button>
-                <Button onClick={() => navigate('/workspace/chat')} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-9">
+                <Button onClick={() => navigate('/workspace/chat')} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-8 sm:h-9 text-xs sm:text-sm whitespace-nowrap">
                   <MessageSquare className="w-4 h-4 mr-1" /> Chat
                 </Button>
               </div>
@@ -561,9 +561,9 @@ const WorkspaceDetailPage = () => {
         </div>
 
         {/* Tabs */}
-        <div className="max-w-6xl mx-auto px-6 -mt-4 relative z-10">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-4 relative z-10">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white dark:bg-slate-900 p-1 rounded-xl border shadow-sm h-auto flex-wrap">
+            <TabsList className="bg-white dark:bg-slate-900 p-1 rounded-xl border shadow-sm h-auto overflow-x-auto flex flex-nowrap md:flex-wrap scrollbar-hide">
               {[
                 { val: 'home', label: 'Home', icon: Activity },
                 { val: 'files', label: 'Files', icon: FolderOpen },
@@ -574,7 +574,7 @@ const WorkspaceDetailPage = () => {
                 { val: 'activity', label: 'Activity', icon: Clock },
                 { val: 'settings', label: 'Settings', icon: Settings },
               ].map(t => (
-                <TabsTrigger key={t.val} value={t.val} className="px-4 py-2.5 rounded-lg gap-1.5 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 dark:data-[state=active]:bg-indigo-900/20 dark:data-[state=active]:text-indigo-300" data-testid={`tab-${t.val}`}>
+                <TabsTrigger key={t.val} value={t.val} className="px-3 sm:px-4 py-2.5 rounded-lg gap-1.5 whitespace-nowrap flex-shrink-0 text-xs sm:text-sm data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 dark:data-[state=active]:bg-indigo-900/20 dark:data-[state=active]:text-indigo-300" data-testid={`tab-${t.val}`}>
                   <t.icon className="w-3.5 h-3.5" /> {t.label}
                 </TabsTrigger>
               ))}

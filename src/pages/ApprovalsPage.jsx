@@ -998,7 +998,7 @@ const ApprovalAnalytics = ({ userId }) => {
       </div>
 
       {/* Status Breakdown */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { label: 'Pending', value: summary.pending, color: 'bg-amber-500' },
           { label: 'Approved', value: summary.approved, color: 'bg-emerald-500' },

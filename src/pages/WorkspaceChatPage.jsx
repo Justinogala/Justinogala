@@ -19,7 +19,7 @@ import {
   Loader2, Search, MoreVertical, Phone, Video, Info, Send, Smile,
   Paperclip, Image, Mic, Hash, Users, Settings, Bell, Star, Pin,
   MessageSquare, Circle, CheckCheck, Clock, Sparkles, ChevronDown,
-  MapPin, BarChart3, User
+  MapPin, BarChart3, User, ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,6 +83,7 @@ const WorkspaceChatPage = () => {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -296,6 +297,17 @@ const WorkspaceChatPage = () => {
     };
   }, []);
 
+  // Helper to select user (and show chat on mobile)
+  const handleSelectUser = (userId) => {
+    setSelectedUserId(userId);
+    setShowMobileChat(true);
+  };
+
+  // Back to sidebar on mobile
+  const handleMobileBack = () => {
+    setShowMobileChat(false);
+  };
+
   const usersWithStatus = users.map(u => ({
     ...u,
     isOnline: isUserOnline(u.id)
@@ -331,8 +343,12 @@ const WorkspaceChatPage = () => {
       <div className="flex w-full overflow-hidden -m-4 sm:-m-6 lg:-m-8" style={{height: 'calc(100vh - 64px)'}}>
         <Helmet><title>Chat | Munal AI</title></Helmet>
 
-        {/* Sidebar */}
-        <div className="flex flex-col w-80 flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50">
+        {/* Sidebar - Full width on mobile, fixed width on desktop */}
+        <div className={cn(
+          "flex flex-col flex-shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-200/50 dark:border-gray-800/50",
+          "w-full md:w-80",
+          showMobileChat ? "hidden md:flex" : "flex"
+        )}>
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-200/50 dark:border-gray-800/50">
             <div className="flex items-center justify-between mb-4">
@@ -380,7 +396,7 @@ const WorkspaceChatPage = () => {
                         user={user} 
                         index={index}
                         isSelected={selectedUserId === user.id}
-                        onClick={() => setSelectedUserId(user.id)}
+                        onClick={() => handleSelectUser(user.id)}
                         gradient={getAvatarGradient(index)}
                       />
                     ))}
@@ -399,7 +415,7 @@ const WorkspaceChatPage = () => {
                     user={user} 
                     index={index + filteredUsers.filter(u => isUserOnline(u.id)).length}
                     isSelected={selectedUserId === user.id}
-                    onClick={() => setSelectedUserId(user.id)}
+                    onClick={() => handleSelectUser(user.id)}
                     gradient={getAvatarGradient(index + filteredUsers.filter(u => isUserOnline(u.id)).length)}
                   />
                 ))}
@@ -408,8 +424,11 @@ const WorkspaceChatPage = () => {
           </ScrollArea>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-b from-gray-50 to-white dark:from-slate-950 dark:to-slate-900 relative">
+        {/* Chat Area - Full width on mobile, flex on desktop */}
+        <div className={cn(
+          "flex-1 flex flex-col min-w-0 bg-gradient-to-b from-gray-50 to-white dark:from-slate-950 dark:to-slate-900 relative",
+          showMobileChat ? "flex" : "hidden md:flex"
+        )}>
           {/* Connection Status */}
           <AnimatePresence>
             {isConnected && connectionType === 'sse' && (
@@ -430,22 +449,32 @@ const WorkspaceChatPage = () => {
           {selectedUserId && selectedUser ? (
             <>
               {/* Chat Header */}
-              <div className="flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
-                <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  {/* Mobile back button */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="md:hidden h-9 w-9 rounded-xl"
+                    onClick={handleMobileBack}
+                    data-testid="chat-back-btn"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
                   <div className="relative">
-                    <Avatar className="h-12 w-12 ring-2 ring-white dark:ring-slate-800 shadow-lg">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-white dark:ring-slate-800 shadow-lg">
                       <AvatarFallback className={cn("text-white font-bold bg-gradient-to-br", getAvatarGradient(users.indexOf(selectedUser)))}>
                         {selectedUser.initials || selectedUser.name?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className={cn(
-                      "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900",
+                      "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-white dark:border-slate-900",
                       isUserOnline(selectedUserId) ? "bg-emerald-500" : "bg-gray-400"
                     )} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white">{selectedUser.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white truncate max-w-[140px] sm:max-w-none">{selectedUser.name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                       {isUserOnline(selectedUserId) ? (
                         <><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Active now</>
                       ) : (
@@ -455,30 +484,30 @@ const WorkspaceChatPage = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-10 w-10 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:text-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:text-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleStartAudioCall}
                     disabled={!isUserOnline(selectedUserId)}
                     data-testid="audio-call-btn"
                     title={!isUserOnline(selectedUserId) ? "User is offline" : "Start audio call"}
                   >
-                    <Phone className="w-5 h-5" />
+                    <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-10 w-10 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleStartVideoCall}
                     disabled={!isUserOnline(selectedUserId)}
                     data-testid="video-call-btn"
                     title={!isUserOnline(selectedUserId) ? "User is offline" : "Start video call"}
                   >
-                    <Video className="w-5 h-5" />
+                    <Video className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex h-10 w-10 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800">
                     <Info className="w-5 h-5 text-gray-500" />
                   </Button>
                   <DropdownMenu>
@@ -499,7 +528,7 @@ const WorkspaceChatPage = () => {
               </div>
               
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4">
                 {isLoadingMessages ? (
                   <div className="flex-1 flex items-center justify-center h-full">
                     <div className="flex flex-col items-center gap-3">
@@ -742,7 +771,7 @@ const WorkspaceChatPage = () => {
               </div>
 
               {/* Message Input */}
-              <div className="px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50">
+              <div className="px-3 sm:px-6 py-3 sm:py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50">
                 <EnhancedMessageInput 
                   onSendMessage={handleSendMessage}
                   disabled={isSending}
