@@ -109,8 +109,17 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
   - View all submissions across all workspaces with submitter name and email
 - Backend: `/app/backend/routes/forms.py` — workspace-level + admin-level CRUD
 - Admin routes: `/api/admin/form-templates`, `/api/admin/form-submissions`, `/api/admin/workspaces-list`
-- Auto-seeds "Maintenance Request Form" with 6 fields (date, staff name, repair location, behavior concern, priority level, description)
-- Tested: 100% (15/15 backend + all frontend) — iteration_62
+- Auto-seeds 8 healthcare form templates on first workspace access:
+  1. Maintenance Request Form (6 fields)
+  2. Daily Log Form (12 fields - shift, clients, activities, medications, incidents, handoff)
+  3. Incident Report Form (13 fields - type, persons involved, witnesses, injuries, action taken)
+  4. Medication Administration Record (11 fields - medication, dosage, route, adverse reactions)
+  5. Vehicle / Transportation Log (10 fields - driver, vehicle, odometer, passengers, condition)
+  6. Fire Drill / Emergency Drill Report (12 fields - drill type, evacuation time, compliance)
+  7. Visitor Sign-In / Sign-Out Form (9 fields - visitor, purpose, sign-in/out times)
+  8. Supply / Inventory Request Form (9 fields - category, items, urgency, estimated cost)
+- **Email Delivery**: Resend integration sends formatted HTML email to recipient_emails on each form submission (submitter info + all responses)
+- Tested: 100% (14/14 backend + all frontend + email delivery confirmed) — iteration_63
 ## Prioritized Backlog
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
