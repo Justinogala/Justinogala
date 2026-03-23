@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
-  Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2
+  Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -123,6 +123,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-rose-500 to-red-500', permission: ['messages', 'view'] },
     { icon: MessageSquare, label: 'Broadcasts', path: '/admin/broadcasts', gradient: 'from-violet-500 to-purple-500', permission: ['messages', 'broadcast'] },
     { icon: FileCheck2, label: 'Approval Templates', path: '/admin/approval-templates', gradient: 'from-teal-500 to-emerald-500', permission: ['settings', 'modify'] },
+    { icon: ClipboardList, label: 'Forms', path: '/admin/forms', gradient: 'from-indigo-500 to-blue-500', permission: ['workspaces', 'view'] },
   ];
 
   // Filter management links based on permissions

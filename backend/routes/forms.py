@@ -30,12 +30,14 @@ class FormTemplateCreate(BaseModel):
     fields: list  # List of FormField dicts
     created_by_id: str
     created_by_name: str
+    recipient_emails: list = []  # Emails that receive submissions
 
 class FormTemplateUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     fields: Optional[list] = None
     is_active: Optional[bool] = None
+    recipient_emails: Optional[list] = None
 
 class FormSubmissionCreate(BaseModel):
     template_id: str
@@ -110,6 +112,7 @@ MAINTENANCE_FORM_TEMPLATE = {
         }
     ],
     "is_system": True,
+    "recipient_emails": [],
 }
 
 
@@ -179,6 +182,7 @@ async def create_form_template(workspace_id: str, template: FormTemplateCreate):
         "fields": template.fields,
         "is_active": True,
         "is_system": False,
+        "recipient_emails": template.recipient_emails,
         "created_by_id": template.created_by_id,
         "created_by_name": template.created_by_name,
         "created_at": now,
@@ -209,6 +213,8 @@ async def update_form_template(workspace_id: str, template_id: str, update: Form
         fields["fields"] = update.fields
     if update.is_active is not None:
         fields["is_active"] = update.is_active
+    if update.recipient_emails is not None:
+        fields["recipient_emails"] = update.recipient_emails
     fields["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     await db.form_templates.update_one({"id": template_id}, {"$set": fields})
@@ -334,3 +340,109 @@ async def delete_form_submission(workspace_id: str, submission_id: str, user_id:
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Submission not found")
     return {"success": True}
+
+
+# ============== Admin-Level Endpoints (Org-Wide) ==============
+
+admin_router = APIRouter()
+
+
+@admin_router.get("/form-templates")
+async def admin_get_all_templates():
+    """Admin: Get ALL form templates across all workspaces."""
+    templates = await db.form_templates.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    # Enrich with workspace names
+    ws_ids = list({t.get("workspace_id") for t in templates if t.get("workspace_id")})
+    ws_map = {}
+    if ws_ids:
+        cursor = db.workspaces.find({"id": {"$in": ws_ids}}, {"_id": 0, "id": 1, "name": 1})
+        async for ws in cursor:
+            ws_map[ws["id"]] = ws.get("name", "Unknown")
+    for t in templates:
+        t["workspace_name"] = ws_map.get(t.get("workspace_id"), "Unknown")
+    return {"templates": templates}
+
+
+@admin_router.post("/form-templates")
+async def admin_create_template(template: FormTemplateCreate, workspace_id: str = Query(...)):
+    """Admin: Create a form template for a specific workspace."""
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "workspace_id": workspace_id,
+        "name": template.name,
+        "description": template.description,
+        "fields": template.fields,
+        "is_active": True,
+        "is_system": False,
+        "recipient_emails": template.recipient_emails,
+        "created_by_id": template.created_by_id,
+        "created_by_name": template.created_by_name,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.form_templates.insert_one(doc)
+    doc.pop("_id", None)
+    return {"success": True, "template": doc}
+
+
+@admin_router.put("/form-templates/{template_id}")
+async def admin_update_template(template_id: str, update: FormTemplateUpdate):
+    """Admin: Update any form template."""
+    template = await db.form_templates.find_one({"id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    fields = {}
+    if update.name is not None:
+        fields["name"] = update.name
+    if update.description is not None:
+        fields["description"] = update.description
+    if update.fields is not None:
+        fields["fields"] = update.fields
+    if update.is_active is not None:
+        fields["is_active"] = update.is_active
+    if update.recipient_emails is not None:
+        fields["recipient_emails"] = update.recipient_emails
+    fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    await db.form_templates.update_one({"id": template_id}, {"$set": fields})
+    updated = await db.form_templates.find_one({"id": template_id}, {"_id": 0})
+    return {"success": True, "template": updated}
+
+
+@admin_router.delete("/form-templates/{template_id}")
+async def admin_delete_template(template_id: str):
+    """Admin: Delete any form template and its submissions."""
+    result = await db.form_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    await db.form_submissions.delete_many({"template_id": template_id})
+    return {"success": True}
+
+
+@admin_router.get("/form-submissions")
+async def admin_get_all_submissions(template_id: str = Query(None)):
+    """Admin: Get ALL form submissions across all workspaces."""
+    query = {}
+    if template_id:
+        query["template_id"] = template_id
+    submissions = await db.form_submissions.find(query, {"_id": 0}).sort("submitted_at", -1).to_list(500)
+    return {"submissions": submissions}
+
+
+@admin_router.delete("/form-submissions/{submission_id}")
+async def admin_delete_submission(submission_id: str):
+    """Admin: Delete any form submission."""
+    result = await db.form_submissions.delete_one({"id": submission_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return {"success": True}
+
+
+@admin_router.get("/workspaces-list")
+async def admin_get_workspaces_list():
+    """Admin: Get all workspaces for dropdown selection when creating templates."""
+    cursor = db.workspaces.find({}, {"_id": 0, "id": 1, "name": 1}).sort("name", 1)
+    workspaces = await cursor.to_list(200)
+    return {"workspaces": workspaces}
