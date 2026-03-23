@@ -611,8 +611,29 @@ const WorkspaceDetailPage = () => {
                   <div>
                     <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Quick Access</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="quick-links">
-                      {quickLinks.map(link => (
-                        <Card key={link.label} className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-0.5 group" onClick={() => navigate(link.path)}>
+                      {quickLinks.map(link => {
+                        // Map common quick-link paths to internal workspace tabs
+                        const TAB_PATHS = {
+                          '/ict-support': 'ict-support',
+                          '/submit-ticket': 'ict-support',
+                          '/my-tickets': 'ict-support',
+                          '/forms': 'forms',
+                          '/files': 'files',
+                          '/members': 'members',
+                          '/activity': 'activity',
+                          '/settings': 'settings',
+                          '/news': 'news',
+                        };
+                        const tabKey = TAB_PATHS[link.path];
+                        const handleClick = () => {
+                          if (tabKey) {
+                            setActiveTab(tabKey);
+                          } else {
+                            navigate(link.path);
+                          }
+                        };
+                        return (
+                        <Card key={link.label} className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-0.5 group" onClick={handleClick}>
                           <CardContent className="p-4 text-center">
                             <div className={cn('w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center bg-gradient-to-br', link.color)}>
                               <link.icon className="w-5 h-5 text-white" />
@@ -621,7 +642,8 @@ const WorkspaceDetailPage = () => {
                             <p className="text-[10px] text-slate-400 mt-0.5">{link.desc}</p>
                           </CardContent>
                         </Card>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
