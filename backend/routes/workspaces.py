@@ -370,20 +370,25 @@ async def get_workspace_template(template_id: str):
 async def get_workspaces(user_id: str = None):
     """Get all workspaces for a user"""
     try:
+        # Exclude deleted workspaces for regular users
+        not_deleted = {"status": {"$ne": "deleted"}}
+        
         if user_id:
-            owned = await db.workspaces.find({"owner_id": user_id}, {"_id": 0}).to_list(100)
+            owned = await db.workspaces.find(
+                {"owner_id": user_id, **not_deleted}, {"_id": 0}
+            ).to_list(100)
             
             memberships = await db.workspace_members.find({"user_id": user_id}, {"workspace_id": 1}).to_list(100)
             member_workspace_ids = [m["workspace_id"] for m in memberships]
             
             member_workspaces = await db.workspaces.find(
-                {"id": {"$in": member_workspace_ids}, "owner_id": {"$ne": user_id}},
+                {"id": {"$in": member_workspace_ids}, "owner_id": {"$ne": user_id}, **not_deleted},
                 {"_id": 0}
             ).to_list(100)
             
             all_workspaces = owned + member_workspaces
         else:
-            all_workspaces = await db.workspaces.find({}, {"_id": 0}).to_list(100)
+            all_workspaces = await db.workspaces.find(not_deleted, {"_id": 0}).to_list(100)
         
         return {"workspaces": all_workspaces}
     except Exception as e:

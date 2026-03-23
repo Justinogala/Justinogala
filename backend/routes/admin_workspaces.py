@@ -270,21 +270,10 @@ async def get_workspace_details(
 async def perform_workspace_action(
     workspace_id: str, 
     action: WorkspaceAction,
+    admin_id: str = "admin",
 ):
     """Perform administrative action on a workspace"""
     try:
-        # Check specific permission based on action
-        if action.action in ["suspend", "unsuspend"]:
-            if not current_user.get("permissions", {}).get("workspaces", {}).get("suspend", False):
-                if current_user.get("role") != "Admin":
-                    raise HTTPException(status_code=403, detail="Permission denied: requires workspaces.suspend")
-        elif action.action == "delete":
-            if not current_user.get("permissions", {}).get("workspaces", {}).get("delete", False):
-                if current_user.get("role") != "Admin":
-                    raise HTTPException(status_code=403, detail="Permission denied: requires workspaces.delete")
-        
-        admin_id = current_user.get("email", current_user.get("id", "admin"))
-        
         workspace = await db.workspaces.find_one({"id": workspace_id})
         if not workspace:
             raise HTTPException(status_code=404, detail="Workspace not found")

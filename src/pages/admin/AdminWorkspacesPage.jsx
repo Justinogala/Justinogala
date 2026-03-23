@@ -148,7 +148,8 @@ const AdminWorkspacesPage = () => {
     const styles = {
       active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
       suspended: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-      archived: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+      archived: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+      deleted: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
     };
     return styles[status] || styles.active;
   };
