@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Monitor, Plus, Clock, AlertTriangle, CheckCircle, ArrowRight,
+  Monitor, Plus, Clock, AlertTriangle, CheckCircle,
   MessageSquare, Trash2, Loader2, User, Send, XCircle, Pause,
-  ChevronDown, ChevronUp, MapPin, Mail, Phone, Shield
+  ChevronDown, ChevronUp, MapPin, Mail, Phone, Shield,
+  Download, FileSpreadsheet, FileText, Table2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { API_URL } from '@/lib/api';
 
-// --- Config from Excel ---
 const STATUS_CONFIG = {
   Open: { color: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400', icon: Clock },
   Pending: { color: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400', icon: Pause },
@@ -43,23 +43,12 @@ const DEPARTMENTS = [
 ];
 
 const REQUEST_TYPES = [
-  'Email Password Reset',
-  'ADP Password Reset',
-  'ADP UserID Reset',
-  'Email Account Update',
-  'SharePoint Access or Update',
-  'Multifactor Authentication',
-  'Add/Delete Email from Distribution List',
-  'Add Member to SharePoint Site',
-  'Device/Hardware Issue',
-  'Network/Connectivity Issue',
-  'Software Issue',
-  'Printer Issue',
-  'Camera/Security System',
-  'Phone/VoIP Issue',
-  'Security Issue',
-  'Talent LMS Access',
-  'Other',
+  'Email Password Reset', 'ADP Password Reset', 'ADP UserID Reset',
+  'Email Account Update', 'SharePoint Access or Update', 'Multifactor Authentication',
+  'Add/Delete Email from Distribution List', 'Add Member to SharePoint Site',
+  'Device/Hardware Issue', 'Network/Connectivity Issue', 'Software Issue',
+  'Printer Issue', 'Camera/Security System', 'Phone/VoIP Issue',
+  'Security Issue', 'Talent LMS Access', 'Other',
 ];
 
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
@@ -73,6 +62,62 @@ const EMPTY_FORM = {
   error_messages: '', troubleshooting_attempted: 'No', troubleshooting_results: '',
   is_hr_related: 'No', hr_details: '', hr_email: '',
   contact_number: '', work_email: '', priority: 'Medium',
+  other_role_specify: '', other_department_specify: '', other_request_type_specify: '',
+};
+
+// --- Export helpers ---
+const getExportRows = (data) => data.map(r => ({
+  'Ticket #': r.ticket_number || '',
+  'Submitted By': r.submitted_by_name || '',
+  'Role': r.reporter_role || '',
+  'Department': r.department || '',
+  'Request Type': r.request_type || r.title || '',
+  'Location': r.location || '',
+  'Priority': r.priority || '',
+  'Status': r.status || '',
+  'Description': r.description || '',
+  'Device/Equipment': r.device_equipment || '',
+  'Who Affected': r.who_is_affected || '',
+  'Date Created': r.created_at ? new Date(r.created_at).toLocaleDateString() : '',
+  'Date Resolved': r.resolved_at ? new Date(r.resolved_at).toLocaleDateString() : '',
+  'Comments': r.comments?.length || 0,
+}));
+
+const exportCSV = (data) => {
+  const rows = getExportRows(data);
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ict_requests.csv'; a.click();
+  URL.revokeObjectURL(url);
+};
+
+const exportExcel = async (data) => {
+  const XLSX = await import('xlsx');
+  const rows = getExportRows(data);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ICT Requests');
+  XLSX.writeFile(wb, 'ict_requests.xlsx');
+};
+
+const exportPDF = async (data) => {
+  const { default: jsPDF } = await import('jspdf');
+  await import('jspdf-autotable');
+  const rows = getExportRows(data);
+  if (!rows.length) return;
+  const doc = new jsPDF({ orientation: 'landscape' });
+  doc.setFontSize(16);
+  doc.text('ICT Support Requests', 14, 15);
+  doc.setFontSize(9);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+  const headers = ['Ticket #', 'Submitted By', 'Request Type', 'Department', 'Location', 'Priority', 'Status', 'Date Created'];
+  const body = rows.map(r => headers.map(h => r[h]));
+  doc.autoTable({ head: [headers], body, startY: 28, styles: { fontSize: 7 }, headStyles: { fillColor: [99, 102, 241] } });
+  doc.save('ict_requests.pdf');
 };
 
 const SectionHeader = ({ label, sectionKey, icon: Icon, expanded, onToggle }) => (
@@ -95,9 +140,9 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
   const [backendAdmin, setBackendAdmin] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [expandedSections, setExpandedSections] = useState({ reporter: true, request: true, details: false, hr: false, contact: false });
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const isAdmin = userRole === 'owner' || userRole === 'admin' || backendAdmin;
-
   const toggleSection = (key) => setExpandedSections(p => ({ ...p, [key]: !p[key] }));
 
   const fetchRequests = useCallback(async () => {
@@ -123,11 +168,16 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
       return;
     }
     setSubmitting(true);
+    const payload = { ...form, workspace_id: workspaceId, submitted_by_id: userId, submitted_by_name: userName };
+    if (form.reporter_role === 'Other' && form.other_role_specify) payload.reporter_role = `Other - ${form.other_role_specify}`;
+    if (form.department === 'Other' && form.other_department_specify) payload.department = `Other - ${form.other_department_specify}`;
+    if (form.request_type === 'Other' && form.other_request_type_specify) payload.request_type = `Other - ${form.other_request_type_specify}`;
+    delete payload.other_role_specify;
+    delete payload.other_department_specify;
+    delete payload.other_request_type_specify;
     try {
       const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/ict-requests`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, workspace_id: workspaceId, submitted_by_id: userId, submitted_by_name: userName }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       });
       if (res.ok) {
         toast({ title: 'Request Submitted', description: 'Your ICT support ticket has been created.' });
@@ -145,9 +195,7 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
   const handleStatusChange = async (requestId, newStatus) => {
     try {
       const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/ict-requests/${requestId}?user_id=${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
         toast({ title: 'Status Updated', description: `Ticket marked as ${newStatus}.` });
@@ -162,24 +210,11 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
     }
   };
 
-  const handleUpdateField = async (requestId, field, value) => {
-    try {
-      await fetch(`${API_URL}/api/workspaces/${workspaceId}/ict-requests/${requestId}?user_id=${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
-      });
-    } catch (e) {
-      console.error('Failed to update field:', e);
-    }
-  };
-
   const handleComment = async (requestId) => {
     if (!commentText.trim()) return;
     try {
       const res = await fetch(`${API_URL}/api/workspaces/${workspaceId}/ict-requests/${requestId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, user_name: userName, content: commentText }),
       });
       if (res.ok) {
@@ -189,7 +224,7 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
         fetchRequests();
       } else {
         const err = await res.json();
-        toast({ title: 'Cannot Comment', description: err.detail || 'Failed to add comment.', variant: 'destructive' });
+        toast({ title: 'Cannot Comment', description: err.detail || 'Failed.', variant: 'destructive' });
       }
     } catch (e) {
       toast({ title: 'Error', description: 'Failed to add comment.', variant: 'destructive' });
@@ -230,9 +265,33 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
             </Button>
           ))}
         </div>
-        <Button onClick={() => setShowForm(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-1.5" data-testid="new-ict-request-btn">
-          <Plus className="w-4 h-4" /> New Request
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Export Dropdown */}
+          <div className="relative">
+            <Button size="sm" variant="outline" onClick={() => setShowExportMenu(!showExportMenu)} data-testid="ict-export-btn" className="gap-1.5">
+              <Download className="w-4 h-4" /> Export <ChevronDown className="w-3 h-3" />
+            </Button>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]">
+                  <button onClick={() => { exportCSV(filtered); setShowExportMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="export-csv">
+                    <Table2 className="w-4 h-4 text-green-600" /> Export CSV
+                  </button>
+                  <button onClick={() => { exportExcel(filtered); setShowExportMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="export-excel">
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export Excel
+                  </button>
+                  <button onClick={() => { exportPDF(filtered); setShowExportMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="export-pdf">
+                    <FileText className="w-4 h-4 text-red-600" /> Export PDF
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <Button onClick={() => setShowForm(true)} className="bg-indigo-600 hover:bg-indigo-700 gap-1.5" data-testid="new-ict-request-btn">
+            <Plus className="w-4 h-4" /> New Request
+          </Button>
+        </div>
       </div>
 
       {/* Info Banner for non-admins */}
@@ -243,7 +302,7 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
         </div>
       )}
 
-      {/* Request List */}
+      {/* ===== Request Table ===== */}
       {filtered.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-16 text-center">
@@ -253,34 +312,43 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {filtered.map(req => {
-            const StatusIcon = STATUS_CONFIG[req.status]?.icon || Clock;
-            return (
-              <Card key={req.id} className="cursor-pointer hover:shadow-md transition-shadow border-gray-200 dark:border-gray-800" onClick={() => setSelectedRequest(req)} data-testid={`ict-request-${req.id}`}>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center shrink-0">
-                    <StatusIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-mono text-gray-400">{req.ticket_number || '---'}</span>
-                      <h4 className="font-semibold text-gray-900 dark:text-white truncate">{req.request_type || req.title || 'Untitled'}</h4>
-                      <Badge className={`text-[10px] px-2 ${PRIORITY_CONFIG[req.priority] || ''}`}>{req.priority}</Badge>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 flex-wrap">
-                      <span>{req.department || req.category || ''}</span>
-                      <span>by {req.submitted_by_name}</span>
-                      {req.location && <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{req.location}</span>}
-                      <span>{new Date(req.created_at).toLocaleDateString()}</span>
-                      {req.comments?.length > 0 && <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{req.comments.length}</span>}
-                    </p>
-                  </div>
-                  <Badge className={`shrink-0 ${STATUS_CONFIG[req.status]?.color || ''}`}>{req.status}</Badge>
-                </CardContent>
-              </Card>
-            );
-          })}
+        <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="ict-requests-table">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Ticket #</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Submitted By</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Request Type</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Department</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Location</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Priority</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {filtered.map(req => (
+                  <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer transition-colors"
+                    onClick={() => setSelectedRequest(req)} data-testid={`ict-request-row-${req.id}`}>
+                    <td className="px-4 py-3 font-mono text-xs text-indigo-600 dark:text-indigo-400 whitespace-nowrap">{req.ticket_number || '---'}</td>
+                    <td className="px-4 py-3 text-gray-900 dark:text-white whitespace-nowrap">{req.submitted_by_name}</td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300 max-w-[200px] truncate">{req.request_type || req.title || '---'}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{req.department || req.category || '---'}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {req.location ? <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{req.location}</span> : '---'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap"><Badge className={`text-[10px] ${PRIORITY_CONFIG[req.priority] || ''}`}>{req.priority}</Badge></td>
+                    <td className="px-4 py-3 whitespace-nowrap"><Badge className={`text-[10px] ${STATUS_CONFIG[req.status]?.color || ''}`}>{req.status}</Badge></td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{new Date(req.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-500">
+            Showing {filtered.length} of {requests.length} request{requests.length !== 1 ? 's' : ''}
+          </div>
         </div>
       )}
 
@@ -290,6 +358,17 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
           <DialogHeader><DialogTitle>New ICT Support Request</DialogTitle></DialogHeader>
           <div className="space-y-3">
 
+            {/* Submitter Name (read-only) */}
+            <div className="flex items-center gap-3 p-3 bg-indigo-50 dark:bg-indigo-950/20 rounded-lg border border-indigo-200 dark:border-indigo-900">
+              <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                {userName?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <div>
+                <p className="text-xs text-indigo-500 dark:text-indigo-400">Submitting as</p>
+                <p className="font-semibold text-gray-900 dark:text-white text-sm" data-testid="ict-submitter-name">{userName}</p>
+              </div>
+            </div>
+
             {/* Section: Reporter Info */}
             <SectionHeader label="Reporter Information" sectionKey="reporter" icon={User} expanded={expandedSections.reporter} onToggle={toggleSection} />
             {expandedSections.reporter && (
@@ -297,17 +376,25 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-sm font-medium mb-1 block">Your Role</label>
-                    <Select value={form.reporter_role} onValueChange={v => setForm(p => ({ ...p, reporter_role: v }))}>
+                    <Select value={form.reporter_role} onValueChange={v => setForm(p => ({ ...p, reporter_role: v, other_role_specify: '' }))}>
                       <SelectTrigger data-testid="ict-role-select"><SelectValue placeholder="Select your role..." /></SelectTrigger>
                       <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                     </Select>
+                    {form.reporter_role === 'Other' && (
+                      <Input className="mt-2" placeholder="Please specify your role..." value={form.other_role_specify}
+                        onChange={e => setForm(p => ({ ...p, other_role_specify: e.target.value }))} data-testid="ict-other-role-input" />
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1 block">Department</label>
-                    <Select value={form.department} onValueChange={v => setForm(p => ({ ...p, department: v }))}>
+                    <Select value={form.department} onValueChange={v => setForm(p => ({ ...p, department: v, other_department_specify: '' }))}>
                       <SelectTrigger data-testid="ict-department-select"><SelectValue placeholder="Select department..." /></SelectTrigger>
                       <SelectContent>{DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                     </Select>
+                    {form.department === 'Other' && (
+                      <Input className="mt-2" placeholder="Please specify department..." value={form.other_department_specify}
+                        onChange={e => setForm(p => ({ ...p, other_department_specify: e.target.value }))} data-testid="ict-other-department-input" />
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -329,11 +416,11 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                 {form.reporting_for_self === 'No' && (
                   <div className="grid grid-cols-2 gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900">
                     <div>
-                      <label className="text-sm font-medium mb-1 block">User&apos;s Name</label>
+                      <label className="text-sm font-medium mb-1 block">Affected User&apos;s Name</label>
                       <Input placeholder="Name of the affected user..." value={form.other_user_name} onChange={e => setForm(p => ({ ...p, other_user_name: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">User&apos;s Email</label>
+                      <label className="text-sm font-medium mb-1 block">Affected User&apos;s Email</label>
                       <Input placeholder="user@email.com" type="email" value={form.other_user_email} onChange={e => setForm(p => ({ ...p, other_user_email: e.target.value }))} />
                     </div>
                   </div>
@@ -348,10 +435,14 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-sm font-medium mb-1 block">Request Type *</label>
-                    <Select value={form.request_type} onValueChange={v => setForm(p => ({ ...p, request_type: v }))}>
+                    <Select value={form.request_type} onValueChange={v => setForm(p => ({ ...p, request_type: v, other_request_type_specify: '' }))}>
                       <SelectTrigger data-testid="ict-request-type-select"><SelectValue placeholder="Select request type..." /></SelectTrigger>
                       <SelectContent>{REQUEST_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                     </Select>
+                    {form.request_type === 'Other' && (
+                      <Input className="mt-2" placeholder="Please specify request type..." value={form.other_request_type_specify}
+                        onChange={e => setForm(p => ({ ...p, other_request_type_specify: e.target.value }))} data-testid="ict-other-request-type-input" />
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1 block">Priority</label>
@@ -378,7 +469,7 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
               </div>
             )}
 
-            {/* Section: Additional Details (collapsible) */}
+            {/* Section: Symptoms & Troubleshooting */}
             <SectionHeader label="Symptoms & Troubleshooting" sectionKey="details" icon={AlertTriangle} expanded={expandedSections.details} onToggle={toggleSection} />
             {expandedSections.details && (
               <div className="space-y-3 pl-1">
@@ -487,7 +578,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
               </DialogHeader>
 
               <div className="space-y-4 mt-2">
-                {/* Info Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                   {selectedRequest.department && (
                     <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -525,7 +615,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 </div>
 
-                {/* Reporting for someone else */}
                 {selectedRequest.reporting_for_self === 'No' && (
                   <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900 text-sm">
                     <span className="text-amber-600 dark:text-amber-400 font-medium text-xs block mb-1">Reported on behalf of:</span>
@@ -533,13 +622,11 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* Description */}
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Description</h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 rounded-lg p-3">{selectedRequest.description}</p>
                 </div>
 
-                {/* Symptoms & Errors */}
                 {(selectedRequest.symptoms || selectedRequest.error_messages) && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {selectedRequest.symptoms && (
@@ -557,7 +644,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* Troubleshooting */}
                 {selectedRequest.troubleshooting_attempted === 'Yes' && (
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Troubleshooting Attempted</h4>
@@ -565,7 +651,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* HR Section */}
                 {selectedRequest.is_hr_related === 'Yes' && (
                   <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-900 text-sm">
                     <span className="text-purple-600 dark:text-purple-400 font-medium text-xs block mb-1">HR-Related Request</span>
@@ -574,7 +659,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* Contact Info */}
                 {(selectedRequest.contact_number || selectedRequest.work_email) && (
                   <div className="flex gap-4 text-sm text-gray-500">
                     {selectedRequest.work_email && <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{selectedRequest.work_email}</span>}
@@ -582,7 +666,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* Resolution Notes */}
                 {selectedRequest.resolution_notes && (
                   <div>
                     <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1">Resolution Notes</h4>
@@ -590,7 +673,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* Admin Notes */}
                 {isAdmin && selectedRequest.notes && (
                   <div>
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Internal Notes</h4>
@@ -598,7 +680,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* Admin Actions */}
                 {isAdmin && (
                   <div className="flex items-center gap-2 flex-wrap border-t pt-4">
                     <span className="text-sm font-medium text-gray-500 mr-1">Status:</span>
@@ -614,7 +695,6 @@ const WorkspaceICTSupport = ({ workspaceId, userId, userName, userRole }) => {
                   </div>
                 )}
 
-                {/* Comments */}
                 <div className="border-t pt-4">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
                     <MessageSquare className="w-4 h-4" /> Comments ({selectedRequest.comments?.length || 0})
