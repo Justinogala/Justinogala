@@ -157,6 +157,7 @@ from routes.team_billing import router as team_billing_router
 from routes.shift_reminders import router as shift_reminders_router
 from routes.admin_workspaces import router as admin_workspaces_router
 from routes.admin_chat_moderation import router as admin_chat_router
+from routes.search import router as search_router
 from routes.admin_shifts import router as admin_shifts_router
 from routes.reports import router as reports_router, check_escalations
 from routes.approvals import run_weekly_digest
@@ -232,6 +233,7 @@ api_router.include_router(esignature_router)
 api_router.include_router(approvals_router)
 api_router.include_router(organizations_router)
 api_router.include_router(admin_forms_router, prefix="/admin")
+api_router.include_router(search_router)
 
 
 # ============== Include Main Router ==============

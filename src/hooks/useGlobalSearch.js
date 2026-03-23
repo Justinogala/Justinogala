@@ -6,20 +6,19 @@ import { useAuth } from '@/context/AuthContext';
 export const useGlobalSearch = () => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState({ meetings: [], transcriptions: [] });
+  const [results, setResults] = useState({ pages: [], workspaces: [], users: [], forms: [], messages: [] });
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const debounceRef = useRef(null);
 
-  // Load history on mount
   useEffect(() => {
     setRecentSearches(GlobalSearchService.getRecentSearches());
   }, []);
 
   const performSearch = useCallback(async (searchQuery) => {
     if (!searchQuery.trim()) {
-      setResults({ meetings: [], transcriptions: [] });
+      setResults({ pages: [], workspaces: [], users: [], forms: [], messages: [] });
       setLoading(false);
       return;
     }
@@ -30,35 +29,33 @@ export const useGlobalSearch = () => {
       setResults(data);
     } catch (error) {
       console.error('Search failed:', error);
-      setResults({ meetings: [], transcriptions: [] });
+      setResults({ pages: [], workspaces: [], users: [], forms: [], messages: [] });
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   const handleSearchChange = (e) => {
-    const value = e.target.value;
+    const value = typeof e === 'string' ? e : e.target.value;
     setQuery(value);
     setIsOpen(true);
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (value.trim().length > 0) {
-      setLoading(true); // Set loading immediately for better UX
+      setLoading(true);
       debounceRef.current = setTimeout(() => {
         performSearch(value);
-      }, 300);
+      }, 250);
     } else {
       setLoading(false);
-      setResults({ meetings: [], transcriptions: [] });
+      setResults({ pages: [], workspaces: [], users: [], forms: [], messages: [] });
     }
   };
 
   const clearSearch = () => {
     setQuery('');
-    setResults({ meetings: [], transcriptions: [] });
+    setResults({ pages: [], workspaces: [], users: [], forms: [], messages: [] });
     setIsOpen(false);
   };
 

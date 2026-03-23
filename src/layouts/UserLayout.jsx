@@ -4,6 +4,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import UserSidebar from '@/components/UserSidebar';
 import UserHeader from '@/components/UserHeader';
+import MobileSearchOverlay from '@/components/search/MobileSearchOverlay';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const UserLayout = () => {
@@ -59,6 +60,7 @@ const UserLayout = () => {
           </main>
         </div>
       </div>
+      <MobileSearchOverlay />
     </>
   );
 };
