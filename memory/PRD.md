@@ -79,6 +79,16 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Calls**: Backend now checks if target user is online before initiating call; returns immediate "User is offline" error instead of hanging in "connecting" forever. 30-second call timeout on frontend. Added TURN servers for better NAT traversal.
 - **Voice Messages**: Voice recordings now upload to object storage before attaching to messages. Audio player renders inline in chat for voice message playback.
 
+### Mobile-Friendly Optimization (March 2026)
+- **Global CSS**: Prevented horizontal overflow on all pages, added touch-friendly tap targets (min 36px), iOS zoom prevention on input focus, scrollable tables and tabs, safe-area padding
+- **WorkspaceChatPage**: Full-width sidebar on mobile with show/hide panels — clicking a user shows conversation with back button, tapping back returns to sidebar
+- **Dashboard**: Activity items stack vertically on mobile with proper spacing
+- **WorkspaceDetailPage**: Hero header stacks vertically on mobile, buttons horizontally scrollable, tabs scroll horizontally with touch
+- **WorkspacesPage**: Title text scales down, cards single-column on phone
+- **AdminFormsPage**: Responsive form builder grid, reduced padding
+- **ICT Support**: Dialog margins adjusted for mobile
+- Tested at 375px (phone), 768px (tablet), 1920px (desktop) — no regressions
+
 ## Backlog
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
