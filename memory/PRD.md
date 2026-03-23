@@ -16,6 +16,13 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Added Floating Orbs animation to hero section background (`FloatingOrbs.jsx`)
 - Tested: Verified via screenshot — login→dashboard→logout→login redirect works correctly
 
+### ICT Support Request System (Complete - Mar 2026)
+- Created "ICT Support" workspace template with form fields (category, priority, affected system, impact)
+- Backend CRUD: POST/GET/PUT/DELETE /api/workspaces/{id}/ict-requests + comments endpoint
+- Frontend: New tab + header button on workspace page, request form modal, ticket list with filters, detail view with comments
+- Permissions: Only workspace members can view/submit; owner/admin can change status and delete; comments enabled after resolution
+- Tested: Backend endpoints return 200, form renders correctly, ticket list and detail view working
+
 ### Feature Pages Expansion (Complete - Mar 2026)
 - Created 6 new feature pages: Video Calls, Approvals, eSignature, Shifts, IR/SOR Reports, Notifications
 - All use FeaturePageLayout with benefits, features, use cases, and navigation
