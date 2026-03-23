@@ -32,6 +32,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+import UserPresenceStatus from '@/components/chat/UserPresenceStatus';
+
 const WorkspaceChatPage = () => {
   const { user: currentUser } = useAuth();
   const { currentWorkspace } = useWorkspace();
@@ -335,6 +337,11 @@ const WorkspaceChatPage = () => {
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
                 <Settings className="w-4 h-4 text-gray-500" />
               </Button>
+            </div>
+            
+            {/* User Presence Status */}
+            <div className="mb-3">
+              <UserPresenceStatus />
             </div>
             
             {/* Search */}
@@ -645,16 +652,22 @@ const WorkspaceChatPage = () => {
                             )}
                             
                             {/* Text Message */}
-                            {msg.content && msg.content.trim() && (
-                              <div className={cn(
-                                "px-4 py-3 rounded-2xl",
-                                isMine 
-                                  ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm" 
-                                  : "bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-bl-sm shadow-sm border border-gray-100 dark:border-gray-700"
-                              )}>
-                                <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                              </div>
-                            )}
+                            {/* Text Message - strip inline attachment markers */}
+                            {msg.content && msg.content.trim() && (() => {
+                              const cleanContent = msg.content
+                                .replace(/\n?\[(IMAGE|GIF|FILE):.*?\]/g, '')
+                                .trim();
+                              return cleanContent ? (
+                                <div className={cn(
+                                  "px-4 py-3 rounded-2xl",
+                                  isMine 
+                                    ? "bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-br-sm" 
+                                    : "bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-bl-sm shadow-sm border border-gray-100 dark:border-gray-700"
+                                )}>
+                                  <p className="text-sm whitespace-pre-wrap break-words">{cleanContent}</p>
+                                </div>
+                              ) : null;
+                            })()}
                             
                             <div className={cn("flex items-center gap-1.5 mt-1 px-1", isMine ? "justify-end" : "justify-start")}>
                               <span className="text-[10px] text-gray-400">{formatTime(msg.timestamp || msg.created_at)}</span>

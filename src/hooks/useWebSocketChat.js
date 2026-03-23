@@ -5,22 +5,38 @@ const API_BASE = window.location.origin;
 export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onReadReceipt, onCriticalIncident) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
-  const [connectionType, setConnectionType] = useState(null); // 'sse' or 'ws' or 'polling'
+  const [connectionType, setConnectionType] = useState(null);
   
   const eventSourceRef = useRef(null);
-  const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const connectSSERef = useRef(null);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 10;
 
-  // Connect using Server-Sent Events (SSE) - more reliable with reverse proxies
+  // Use refs for callbacks to prevent connectSSE from being recreated
+  const onMessageRef = useRef(onMessage);
+  const onPresenceRef = useRef(onPresence);
+  const onTypingRef = useRef(onTyping);
+  const onReadReceiptRef = useRef(onReadReceipt);
+  const onCriticalIncidentRef = useRef(onCriticalIncident);
+  const userIdRef = useRef(userId);
+
+  // Keep refs in sync without triggering reconnection
+  useEffect(() => { onMessageRef.current = onMessage; }, [onMessage]);
+  useEffect(() => { onPresenceRef.current = onPresence; }, [onPresence]);
+  useEffect(() => { onTypingRef.current = onTyping; }, [onTyping]);
+  useEffect(() => { onReadReceiptRef.current = onReadReceipt; }, [onReadReceipt]);
+  useEffect(() => { onCriticalIncidentRef.current = onCriticalIncident; }, [onCriticalIncident]);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
+
+  // Connect using Server-Sent Events (SSE) - stable, no callback dependencies
   const connectSSE = useCallback(() => {
-    if (!userId || eventSourceRef.current) return;
+    const uid = userIdRef.current;
+    if (!uid || eventSourceRef.current) return;
 
     try {
       console.log('[Chat] Connecting via SSE...');
-      const eventSource = new EventSource(`${API_BASE}/api/chat/stream/${userId}`);
+      const eventSource = new EventSource(`${API_BASE}/api/chat/stream/${uid}`);
       
       eventSource.onopen = () => {
         console.log('[Chat] SSE connection opened');
@@ -34,150 +50,80 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         console.log('[Chat] SSE connected:', JSON.parse(event.data));
       });
 
-      eventSource.addEventListener('message', (event) => {
+      eventSource.addEventListener('new_message', (event) => {
         const data = JSON.parse(event.data);
-        console.log('[Chat] SSE message received:', data);
-        onMessage?.(data);
+        onMessageRef.current?.(data);
       });
 
       eventSource.addEventListener('message_sent', (event) => {
         const data = JSON.parse(event.data);
-        console.log('[Chat] SSE message sent confirmation:', data);
-        onMessage?.(data);
+        onMessageRef.current?.(data);
       });
 
       eventSource.addEventListener('presence', (event) => {
         const data = JSON.parse(event.data);
-        console.log('[Chat] SSE presence update:', data);
-        onPresence?.(data);
+        onPresenceRef.current?.(data);
       });
 
       eventSource.addEventListener('typing', (event) => {
         const data = JSON.parse(event.data);
-        console.log('[Chat] SSE typing indicator:', data);
-        onTyping?.(data);
+        onTypingRef.current?.(data);
       });
 
       eventSource.addEventListener('read_receipt', (event) => {
         const data = JSON.parse(event.data);
-        console.log('[Chat] SSE read receipt:', data);
-        onReadReceipt?.(data);
+        onReadReceiptRef.current?.(data);
       });
 
       // Call-related SSE events
-      eventSource.addEventListener('incoming_call', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE incoming call:', data);
-        if (window.__webrtcCallHandler) {
-          window.__webrtcCallHandler({ type: 'incoming_call', data });
-        }
-      });
-
-      eventSource.addEventListener('call_accepted', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE call accepted:', data);
-        if (window.__webrtcCallHandler) {
-          window.__webrtcCallHandler({ type: 'call_accepted', data });
-        }
-      });
-
-      eventSource.addEventListener('call_rejected', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE call rejected:', data);
-        if (window.__webrtcCallHandler) {
-          window.__webrtcCallHandler({ type: 'call_rejected', data });
-        }
-      });
-
-      eventSource.addEventListener('call_ended', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE call ended:', data);
-        if (window.__webrtcCallHandler) {
-          window.__webrtcCallHandler({ type: 'call_ended', data });
-        }
-      });
-
-      eventSource.addEventListener('webrtc_offer', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE WebRTC offer:', data);
-        if (window.__webrtcCallHandler) {
-          window.__webrtcCallHandler({ type: 'webrtc_offer', data });
-        }
-      });
-
-      eventSource.addEventListener('webrtc_answer', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE WebRTC answer:', data);
-        if (window.__webrtcCallHandler) {
-          window.__webrtcCallHandler({ type: 'webrtc_answer', data });
-        }
-      });
-
-      eventSource.addEventListener('webrtc_ice_candidate', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE ICE candidate:', data);
-        if (window.__webrtcCallHandler) {
-          window.__webrtcCallHandler({ type: 'webrtc_ice_candidate', data });
-        }
+      const callEvents = ['incoming_call', 'call_accepted', 'call_rejected', 'call_ended', 'webrtc_offer', 'webrtc_answer', 'webrtc_ice_candidate'];
+      callEvents.forEach(eventName => {
+        eventSource.addEventListener(eventName, (event) => {
+          const data = JSON.parse(event.data);
+          if (window.__webrtcCallHandler) {
+            window.__webrtcCallHandler({ type: eventName, data });
+          }
+        });
       });
 
       // Group call events
-      eventSource.addEventListener('group_call_participant_joined', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE group participant joined:', data);
-        if (window.__groupCallHandler) {
-          window.__groupCallHandler({ type: 'participant_joined', data });
-        }
-      });
-
-      eventSource.addEventListener('group_call_participant_left', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE group participant left:', data);
-        if (window.__groupCallHandler) {
-          window.__groupCallHandler({ type: 'participant_left', data });
-        }
-      });
-
-      eventSource.addEventListener('group_call_signal', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE group call signal:', data);
-        if (window.__groupCallHandler) {
-          window.__groupCallHandler({ type: 'signal', data });
-        }
-      });
-
-      eventSource.addEventListener('group_call_participant_updated', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('[Chat] SSE group participant updated:', data);
-        if (window.__groupCallHandler) {
-          window.__groupCallHandler({ type: 'participant_updated', data });
-        }
+      const groupCallEvents = ['group_call_participant_joined', 'group_call_participant_left', 'group_call_signal', 'group_call_participant_updated'];
+      groupCallEvents.forEach(eventName => {
+        eventSource.addEventListener(eventName, (event) => {
+          const data = JSON.parse(event.data);
+          const typeMap = {
+            'group_call_participant_joined': 'participant_joined',
+            'group_call_participant_left': 'participant_left',
+            'group_call_signal': 'signal',
+            'group_call_participant_updated': 'participant_updated'
+          };
+          if (window.__groupCallHandler) {
+            window.__groupCallHandler({ type: typeMap[eventName], data });
+          }
+        });
       });
 
       eventSource.addEventListener('critical_incident', (event) => {
         const data = JSON.parse(event.data);
-        console.log('[Chat] SSE critical incident alert:', data);
-        onCriticalIncident?.(data);
+        onCriticalIncidentRef.current?.(data);
       });
 
       eventSource.addEventListener('ping', () => {
         // Keep-alive ping received, connection is healthy
       });
 
-      eventSource.onerror = (error) => {
-        console.error('[Chat] SSE error:', error);
+      eventSource.onerror = () => {
+        console.warn('[Chat] SSE connection error, will reconnect...');
         eventSource.close();
         eventSourceRef.current = null;
         setIsConnected(false);
         
-        // Try to reconnect
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          const delay = Math.min(2000 * Math.pow(1.5, reconnectAttemptsRef.current - 1), 30000);
           console.log(`[Chat] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
-            // Use the connectSSERef to avoid stale closure
             if (connectSSERef.current) connectSSERef.current();
           }, delay);
         } else {
@@ -192,12 +138,10 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
       setConnectionError('Could not establish connection');
       setConnectionType('polling');
     }
-  }, [userId, onMessage, onPresence, onTyping, onReadReceipt, onCriticalIncident]);
+  }, []); // No dependencies - uses refs for everything
 
-  // Keep connectSSERef in sync with the latest connectSSE function
-  useEffect(() => {
-    connectSSERef.current = connectSSE;
-  }, [connectSSE]);
+  // Keep connectSSERef in sync
+  useEffect(() => { connectSSERef.current = connectSSE; }, [connectSSE]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -206,19 +150,24 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, []);
 
-  // Connect when userId changes
+  // Connect when userId changes - only depends on userId, not connectSSE
   useEffect(() => {
     if (userId) {
+      // Close existing connection if userId changed
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      reconnectAttemptsRef.current = 0;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       connectSSE();
     }
@@ -228,34 +177,33 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
   }, [userId, connectSSE]);
 
-  // Send message via REST API (SSE is receive-only)
-  const sendMessage = useCallback(async (receiverId, content, messageType = 'text', attachments = []) => {
-    // SSE doesn't support sending, always use REST
-    return false;
-  }, []);
-
   // Send typing indicator via REST
   const sendTypingIndicator = useCallback(async (receiverId, isTyping) => {
-    if (!userId) return;
+    const uid = userIdRef.current;
+    if (!uid) return;
     
     try {
-      await fetch(`${API_BASE}/api/chat/typing?user_id=${userId}&receiver_id=${receiverId}&is_typing=${isTyping}`, {
+      await fetch(`${API_BASE}/api/chat/typing?user_id=${uid}&receiver_id=${receiverId}&is_typing=${isTyping}`, {
         method: 'POST'
       });
     } catch (err) {
       console.error('[Chat] Error sending typing indicator:', err);
     }
-  }, [userId]);
+  }, []);
 
   // Send read receipt via REST
   const sendReadReceipt = useCallback(async (messageIds, senderId) => {
-    if (!userId || messageIds.length === 0) return;
+    const uid = userIdRef.current;
+    if (!uid || messageIds.length === 0) return;
     
     try {
-      await fetch(`${API_BASE}/api/chat/messages/read?reader_id=${userId}`, {
+      await fetch(`${API_BASE}/api/chat/messages/read?reader_id=${uid}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(messageIds)
@@ -263,13 +211,16 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
     } catch (err) {
       console.error('[Chat] Error sending read receipt:', err);
     }
-  }, [userId]);
+  }, []);
 
   // Manual reconnect
   const reconnect = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
     }
     reconnectAttemptsRef.current = 0;
     setConnectionError(null);
@@ -280,7 +231,6 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
     isConnected,
     connectionError,
     connectionType,
-    sendMessage,
     sendTypingIndicator,
     sendReadReceipt,
     reconnect

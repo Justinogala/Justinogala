@@ -27,18 +27,13 @@ export const fileService = {
       const user = userData ? JSON.parse(userData) : null;
       const userId = user?.id || 'anonymous';
 
-      // Convert file to base64
-      const base64 = await fileToBase64(file);
-      
       // Start progress
-      if (onProgress) onProgress(30);
+      if (onProgress) onProgress(10);
 
-      // Upload to backend using FormData (backend expects Form fields)
+      // Use multipart file upload (supports both file and base64 on backend)
       const formData = new FormData();
+      formData.append('file', file);
       formData.append('user_id', userId);
-      formData.append('file_name', file.name);
-      formData.append('file_data', base64);
-      formData.append('content_type', file.type);
       formData.append('category', bucket);
 
       const response = await fetch(`${apiUrl}/api/chat/files/upload`, {
@@ -66,7 +61,8 @@ export const fileService = {
       }
 
       const data = await response.json();
-      const fileId = data.file?.id || data.file_id;
+      const fileData = data.file || {};
+      const fileId = fileData.id || data.file_id;
       
       if (onProgress) onProgress(100);
 
@@ -74,13 +70,13 @@ export const fileService = {
         success: true, 
         data: {
           id: fileId,
-          name: file.name,
-          size: file.size,
-          type: file.type,
+          name: fileData.file_name || file.name,
+          size: fileData.size || file.size,
+          type: fileData.content_type || file.type,
           bucket,
           path: `${path}/${file.name}`,
-          uploadedAt: new Date().toISOString(),
-          url: `${apiUrl}/api/chat/files/${fileId}`
+          uploadedAt: fileData.uploaded_at || new Date().toISOString(),
+          url: fileData.url || `${apiUrl}/api/chat/files/${fileId}/download`
         }
       };
     } catch (error) {
@@ -90,12 +86,12 @@ export const fileService = {
   },
 
   /**
-   * Download/stream a file from GridFS
+   * Download/stream a file
    */
   downloadFile: async (fileId) => {
     const apiUrl = getApiUrl();
     try {
-      const response = await fetch(`${apiUrl}/api/chat/files/${fileId}`);
+      const response = await fetch(`${apiUrl}/api/chat/files/${fileId}/download`);
       if (!response.ok) {
         throw new Error('Download failed');
       }
@@ -112,7 +108,7 @@ export const fileService = {
    */
   getFileUrl: (fileId) => {
     const apiUrl = getApiUrl();
-    return `${apiUrl}/api/chat/files/${fileId}`;
+    return `${apiUrl}/api/chat/files/${fileId}/download`;
   },
 
   /**

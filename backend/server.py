@@ -333,6 +333,13 @@ async def startup_event():
                     logger.info("Admin user already exists")
         except Exception as seed_err:
             logger.error(f"Admin seed error: {seed_err}")
+        
+        # Initialize object storage for chat file uploads
+        try:
+            from routes.chat import init_storage
+            init_storage()
+        except Exception as storage_err:
+            logger.warning(f"Object storage init (will retry on first upload): {storage_err}")
             
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
