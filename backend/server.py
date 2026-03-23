@@ -165,6 +165,7 @@ from routes.esignature import router as esignature_router
 from routes.approvals import router as approvals_router
 from routes.organizations import router as organizations_router
 from routes.forms import router as forms_router
+from routes.forms import admin_router as admin_forms_router
 
 
 # ============== Include All Routers ==============
@@ -230,6 +231,7 @@ api_router.include_router(admin_reports_router)
 api_router.include_router(esignature_router)
 api_router.include_router(approvals_router)
 api_router.include_router(organizations_router)
+api_router.include_router(admin_forms_router, prefix="/admin")
 
 
 # ============== Include Main Router ==============

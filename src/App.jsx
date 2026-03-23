@@ -223,6 +223,7 @@ const AdminApprovalTemplatesPage = lazy(() => import('@/pages/admin/AdminApprova
 const AdminOrganizationsPage = lazy(() => import('@/pages/admin/AdminOrganizationsPage'));
 const AdminShiftsPage = lazy(() => import('@/pages/admin/AdminShiftsPage'));
 const AdminIRTemplatesPage = lazy(() => import('@/pages/admin/AdminIRTemplatesPage'));
+const AdminFormsPage = lazy(() => import('@/pages/admin/AdminFormsPage'));
 const AdminWorkspaceDetailPage = lazy(() => import('@/pages/admin/AdminWorkspaceDetailPage'));
 const AdminWorkspacesPage = lazy(() => import('@/pages/admin/AdminWorkspacesPage'));
 const AdminChatModerationPage = lazy(() => import('@/pages/admin/AdminChatModerationPage'));
@@ -520,6 +521,7 @@ function App() {
                                 <Route path="approval-templates" element={<AdminApprovalTemplatesPage />} />
                                 <Route path="organizations" element={<AdminOrganizationsPage />} />
                                 <Route path="ir-sor-templates" element={<AdminIRTemplatesPage />} />
+                                <Route path="forms" element={<AdminFormsPage />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>
