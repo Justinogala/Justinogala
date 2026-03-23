@@ -100,13 +100,17 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - Regular users can still view and access workspaces they are members of
 
 ### Workspace Forms Module (Mar 2026)
-- New "Forms" tab in workspace detail page (between ICT Support and Members)
-- Backend: `/app/backend/routes/forms.py` — Full CRUD for form templates and submissions
-- Form template builder (admin only): supports Text, Textarea, Date, Number, Yes/No (radio), Dropdown field types
-- Form fill view: shows submitter name/email, renders all field types, validates required fields
-- Submissions: admins see all with submitter email; regular users see only their own
-- Auto-seeds "Maintenance Request Form" template with 6 fields (date, staff name, repair location, behavior concern, priority level, description)
-- Tested: 100% (12/12 backend + all frontend) — iteration_61
+- New "Forms" tab in workspace detail page - users can fill out forms and view their own submissions
+- **Admin Portal Forms Page** (`/admin/forms`): Full template management (create/edit/delete) with:
+  - Org-wide template table showing Template Name, Workspace, Fields, Recipients, Status, Created, Actions
+  - Form builder with 6 field types: Text Input, Textarea, Date, Number, Yes/No (radio), Dropdown
+  - **Recipient Emails**: Admin can set comma-separated emails that receive form submissions per template
+  - Workspace selector when creating new templates
+  - View all submissions across all workspaces with submitter name and email
+- Backend: `/app/backend/routes/forms.py` — workspace-level + admin-level CRUD
+- Admin routes: `/api/admin/form-templates`, `/api/admin/form-submissions`, `/api/admin/workspaces-list`
+- Auto-seeds "Maintenance Request Form" with 6 fields (date, staff name, repair location, behavior concern, priority level, description)
+- Tested: 100% (15/15 backend + all frontend) — iteration_62
 ## Prioritized Backlog
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
