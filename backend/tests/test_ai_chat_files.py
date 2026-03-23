@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://helpdesk-module.preview.emergentagent.com"
+    BASE_URL = "https://chat-attachments-fix.preview.emergentagent.com"
 
 
 class TestHealthCheck:

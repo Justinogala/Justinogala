@@ -64,7 +64,7 @@
   "test_credentials": {
     "admin_email": "admin@munal.com",
     "admin_password": "Admin@123456",
-    "app_url": "https://helpdesk-module.preview.emergentagent.com"
+    "app_url": "https://chat-attachments-fix.preview.emergentagent.com"
   },
   "seed_data_creation": "Duplicate endpoint was tested which creates new approvals with '(Copy)' suffix. Test created: 'UI Test - Annual Leave March 2026 (Copy)'",
   "retest_needed": false,

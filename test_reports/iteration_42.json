@@ -48,7 +48,7 @@
   "test_credentials": {
     "user": "admin@munal.com",
     "password": "Admin@123456",
-    "app_url": "https://helpdesk-module.preview.emergentagent.com"
+    "app_url": "https://chat-attachments-fix.preview.emergentagent.com"
   },
   "seed_data_creation": "Used existing test messages with attachments from iteration_41",
   "retest_needed": false,
