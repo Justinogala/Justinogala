@@ -92,6 +92,12 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 ### IR/SOR Templates
 - `GET/POST/PUT/DELETE /api/reports/templates` — Template CRUD
 
+
+### Workspace Admin-Only Creation (Mar 2026)
+- Backend: POST /api/workspaces checks user role - only admin/super_admin/manager can create
+- Frontend: "Create Workspace" button hidden on WorkspacesPage, Dashboard, and WorkspaceDashboardWidget for non-admin users
+- Empty state shows "Contact your admin to be added" for regular users
+- Regular users can still view and access workspaces they are members of
 ## Prioritized Backlog
 ### P2
 - Refactor AdminStripeSettingsPage.jsx

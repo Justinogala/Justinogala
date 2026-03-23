@@ -47,6 +47,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, trend }) => (
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = user && ['admin', 'super_admin', 'manager'].includes((user.role || '').toLowerCase());
 
   // Mock data for dashboard
   const recentActivity = [
@@ -181,9 +182,11 @@ const Dashboard = () => {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/workspaces')}>
-                <Plus className="w-4 h-4 mr-2" /> Create Workspace
-              </Button>
+              {isAdmin && (
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/workspaces')} data-testid="dashboard-create-workspace-btn">
+                  <Plus className="w-4 h-4 mr-2" /> Create Workspace
+                </Button>
+              )}
               <Button className="w-full justify-start" variant="outline">
                 <UserPlus className="w-4 h-4 mr-2" /> Invite Team Member
               </Button>

@@ -7,14 +7,18 @@ import { Input } from '@/components/ui/input';
 import WorkspaceCard from '@/components/shared/WorkspaceCard';
 import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
 import { useWorkspace } from '@/context/WorkspaceContext';
+import { useAuth } from '@/context/AuthContext';
 import PageTransition from '@/components/PageTransition';
 import { Helmet } from 'react-helmet';
 
 const WorkspacesPage = () => {
   const navigate = useNavigate();
   const { workspaces, loading } = useWorkspace();
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const isAdmin = user && ['admin', 'super_admin', 'manager'].includes((user.role || '').toLowerCase());
 
   const filteredWorkspaces = workspaces.filter(ws => 
     ws.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -36,12 +40,15 @@ const WorkspacesPage = () => {
                  Manage your teams, projects, and shared resources in one place.
                </p>
              </div>
-             <Button 
-               onClick={() => setIsModalOpen(true)} 
-               className="h-12 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 transition-all hover:scale-105"
-             >
-               <Plus className="mr-2 h-5 w-5" /> Create Workspace
-             </Button>
+             {isAdmin && (
+               <Button 
+                 onClick={() => setIsModalOpen(true)} 
+                 className="h-12 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 transition-all hover:scale-105"
+                 data-testid="create-workspace-btn"
+               >
+                 <Plus className="mr-2 h-5 w-5" /> Create Workspace
+               </Button>
+             )}
           </div>
 
           {/* Filters & Search */}
@@ -67,9 +74,13 @@ const WorkspacesPage = () => {
                 <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                   <Plus className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No workspaces found</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">Get started by creating your first team workspace.</p>
-                <Button onClick={() => setIsModalOpen(true)} variant="outline">Create Workspace</Button>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  {isAdmin ? 'No workspaces found' : 'No workspaces assigned'}
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">
+                  {isAdmin ? 'Get started by creating your first team workspace.' : 'Contact your admin to be added to a workspace.'}
+                </p>
+                {isAdmin && <Button onClick={() => setIsModalOpen(true)} variant="outline">Create Workspace</Button>}
              </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
