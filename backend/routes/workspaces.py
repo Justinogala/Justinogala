@@ -1166,20 +1166,41 @@ async def delete_workspace_file(workspace_id: str, file_id: str, user_id: str = 
 
 class ICTRequestCreate(BaseModel):
     workspace_id: str
-    title: str
-    category: str
-    priority: str
-    affected_system: str = ""
-    description: str
-    impact: str = "Individual"
     submitted_by_id: str
     submitted_by_name: str
+    # Reporter info
+    reporter_role: str = ""
+    department: str = ""
+    reporting_for_self: str = "Yes"
+    other_user_name: str = ""
+    other_user_email: str = ""
+    # Request details
+    request_type: str = ""
+    location: str = ""
+    description: str = ""
+    device_equipment: str = ""
+    who_is_affected: str = ""
+    symptoms: str = ""
+    error_messages: str = ""
+    troubleshooting_attempted: str = "No"
+    troubleshooting_results: str = ""
+    # HR related
+    is_hr_related: str = "No"
+    hr_details: str = ""
+    hr_email: str = ""
+    # Contact
+    contact_number: str = ""
+    work_email: str = ""
+    # Legacy/compatible fields
+    priority: str = "Medium"
 
 class ICTRequestUpdate(BaseModel):
     status: Optional[str] = None
     assigned_to_id: Optional[str] = None
     assigned_to_name: Optional[str] = None
     resolution_notes: Optional[str] = None
+    notes: Optional[str] = None
+    email_sent: Optional[bool] = None
 
 class ICTCommentCreate(BaseModel):
     user_id: str
@@ -1202,21 +1223,48 @@ async def create_ict_request(workspace_id: str, request: ICTRequestCreate):
 
     now = datetime.now(timezone.utc).isoformat()
     ticket_id = str(uuid.uuid4())
+
+    # Generate a human-readable ticket number
+    count = await db.ict_support_requests.count_documents({"workspace_id": workspace_id})
+    ticket_number = f"ICT-{count + 1:04d}"
+
     ticket = {
         "id": ticket_id,
+        "ticket_number": ticket_number,
         "workspace_id": workspace_id,
-        "title": request.title,
-        "category": request.category,
-        "priority": request.priority,
-        "affected_system": request.affected_system,
-        "description": request.description,
-        "impact": request.impact,
-        "status": "Open",
+        # Reporter info
         "submitted_by_id": request.submitted_by_id,
         "submitted_by_name": request.submitted_by_name,
+        "reporter_role": request.reporter_role,
+        "department": request.department,
+        "reporting_for_self": request.reporting_for_self,
+        "other_user_name": request.other_user_name,
+        "other_user_email": request.other_user_email,
+        # Request details
+        "request_type": request.request_type,
+        "location": request.location,
+        "description": request.description,
+        "device_equipment": request.device_equipment,
+        "who_is_affected": request.who_is_affected,
+        "symptoms": request.symptoms,
+        "error_messages": request.error_messages,
+        "troubleshooting_attempted": request.troubleshooting_attempted,
+        "troubleshooting_results": request.troubleshooting_results,
+        # HR related
+        "is_hr_related": request.is_hr_related,
+        "hr_details": request.hr_details,
+        "hr_email": request.hr_email,
+        # Contact
+        "contact_number": request.contact_number,
+        "work_email": request.work_email,
+        # Ticket meta
+        "priority": request.priority,
+        "status": "Open",
         "assigned_to_id": None,
         "assigned_to_name": None,
         "resolution_notes": None,
+        "notes": "",
+        "email_sent": False,
         "comments": [],
         "created_at": now,
         "updated_at": now,
@@ -1229,14 +1277,19 @@ async def create_ict_request(workspace_id: str, request: ICTRequestCreate):
 
 @router.get("/{workspace_id}/ict-requests")
 async def get_ict_requests(workspace_id: str, user_id: str = Query(...)):
-    """Get all ICT requests for a workspace. Only workspace members can view."""
+    """Get ICT requests. Standard users see only their own; owner/admin see all."""
     member = await db.workspace_members.find_one({"workspace_id": workspace_id, "user_id": user_id})
     if not member:
         raise HTTPException(status_code=403, detail="Only workspace members can view requests")
 
-    cursor = db.ict_support_requests.find({"workspace_id": workspace_id}, {"_id": 0}).sort("created_at", -1)
+    is_admin = member.get("role") in ["owner", "admin"]
+    query = {"workspace_id": workspace_id}
+    if not is_admin:
+        query["submitted_by_id"] = user_id
+
+    cursor = db.ict_support_requests.find(query, {"_id": 0}).sort("created_at", -1)
     requests = await cursor.to_list(500)
-    return {"requests": requests}
+    return {"requests": requests, "is_admin": is_admin}
 
 
 @router.get("/{workspace_id}/ict-requests/{request_id}")
@@ -1274,6 +1327,10 @@ async def update_ict_request(workspace_id: str, request_id: str, update: ICTRequ
         update_fields["assigned_to_name"] = update.assigned_to_name
     if update.resolution_notes is not None:
         update_fields["resolution_notes"] = update.resolution_notes
+    if update.notes is not None:
+        update_fields["notes"] = update.notes
+    if update.email_sent is not None:
+        update_fields["email_sent"] = update.email_sent
 
     await db.ict_support_requests.update_one({"id": request_id}, {"$set": update_fields})
     updated = await db.ict_support_requests.find_one({"id": request_id}, {"_id": 0})

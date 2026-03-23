@@ -8,7 +8,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://incident-hub-44.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://helpdesk-module.preview.emergentagent.com').rstrip('/')
 TEST_WORKSPACE_ID = "09d5860a-d822-4597-962d-a787f643cd0f"
 
 # Test credentials
