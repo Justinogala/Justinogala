@@ -164,6 +164,7 @@ from routes.admin_reports import router as admin_reports_router
 from routes.esignature import router as esignature_router
 from routes.approvals import router as approvals_router
 from routes.organizations import router as organizations_router
+from routes.forms import router as forms_router
 
 
 # ============== Include All Routers ==============
@@ -187,6 +188,7 @@ api_router.include_router(recordings_router)
 
 # Workspaces
 api_router.include_router(workspaces_router)
+api_router.include_router(forms_router, prefix="/workspaces")
 
 # Calendar
 api_router.include_router(calendar_router)

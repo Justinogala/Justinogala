@@ -24,6 +24,7 @@ import { getWorkspaceById, deleteWorkspace, updateWorkspace } from '@/services/w
 import { API_URL } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import WorkspaceICTSupport from '@/components/workspace/WorkspaceICTSupport';
+import WorkspaceForms from '@/components/workspace/WorkspaceForms';
 import PageTransition from '@/components/PageTransition';
 import WorkspaceMemberManagement from '@/components/WorkspaceMemberManagement';
 
@@ -568,6 +569,7 @@ const WorkspaceDetailPage = () => {
                 { val: 'files', label: 'Files', icon: FolderOpen },
                 { val: 'news', label: 'News', icon: Megaphone },
                 { val: 'ict-support', label: 'ICT Support', icon: Monitor },
+                { val: 'forms', label: 'Forms', icon: FileText },
                 { val: 'members', label: 'Members', icon: Users },
                 { val: 'activity', label: 'Activity', icon: Clock },
                 { val: 'settings', label: 'Settings', icon: Settings },
@@ -753,6 +755,11 @@ const WorkspaceDetailPage = () => {
             {/* ICT Support Tab */}
             <TabsContent value="ict-support" className="animate-in fade-in-50">
               <WorkspaceICTSupport workspaceId={workspaceId} userId={user?.id} userName={user?.name || user?.email} userRole={isOwner ? 'owner' : 'member'} />
+            </TabsContent>
+
+            {/* Forms Tab */}
+            <TabsContent value="forms" className="animate-in fade-in-50">
+              <WorkspaceForms workspaceId={workspaceId} userId={user?.id} userName={user?.name || user?.email} userEmail={user?.email} userRole={isOwner ? 'owner' : 'member'} />
             </TabsContent>
 
             {/* Activity Tab */}
