@@ -24,7 +24,8 @@ Build a full-stack AI application "Munal/EchoNote AI" — a meeting and collabor
 - **Excel-Based Fields Update (Mar 2026)**: Updated schema from uploaded Excel file (ICT Technical Resolution Tracking). New fields: reporter_role, department, reporting_for_self, other_user_name/email, request_type, location, device_equipment, who_is_affected, symptoms, error_messages, troubleshooting_attempted/results, is_hr_related/hr_details/hr_email, contact_number, work_email. Statuses: Open, Pending, Resolved, Closed, Cancelled/Invalid. Auto-generated ticket numbers (ICT-XXXX).
 - **Visibility Rules**: Standard users see ONLY their own submitted tickets. Workspace owners/admins (ICT Support team) see ALL tickets. Backend returns `is_admin` flag.
 - **Frontend**: Multi-section collapsible form (Reporter Info, Request Details, Symptoms & Troubleshooting, HR-Related, Contact Info). Updated filters for all 5 statuses. Detail view shows all new fields conditionally.
-- Tested: 100% (18/18 backend + all frontend) — iteration_59
+- **UI Enhancements (Mar 2026)**: Submitter name shown at top of form (read-only). "Other" specify input box appears when Other is selected in Role/Department/Request Type dropdowns. Replaced card list with data table (Ticket#, Submitted By, Request Type, Department, Location, Priority, Status, Date). Export dropdown with CSV, Excel (.xlsx), PDF options using xlsx + jspdf libraries.
+- Tested: 100% (18/18 backend + all frontend) — iterations 59, 60
 
 ### Feature Pages Expansion (Complete - Mar 2026)
 - Created 6 new feature pages: Video Calls, Approvals, eSignature, Shifts, IR/SOR Reports, Notifications
