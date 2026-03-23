@@ -58,12 +58,15 @@ export const WebSocketChatProvider = ({ children }) => {
 
   // Handle presence updates
   const handlePresence = useCallback((data) => {
+    // Update online users based on presence status
     setOnlineUsers(prev => {
       const newSet = new Set(prev);
-      if (data.status === 'online') {
-        newSet.add(data.user_id);
-      } else {
+      // "offline" and "appear_offline" mean not visible online
+      if (data.status === 'offline' || data.status === 'appear_offline') {
         newSet.delete(data.user_id);
+      } else {
+        // "online", "available", "busy", "be_right_back", "away", "do_not_disturb" are all online
+        newSet.add(data.user_id);
       }
       return newSet;
     });
