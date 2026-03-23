@@ -12,6 +12,7 @@ import { API_URL } from '@/lib/api';
 
 const WorkspaceDashboardWidget = () => {
   const { user } = useAuth();
+  const isAdmin = user && ['admin', 'super_admin', 'manager'].includes((user.role || '').toLowerCase());
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,16 +71,20 @@ const WorkspaceDashboardWidget = () => {
       {workspaces.length === 0 ? (
         <div data-testid="workspace-widget-empty" className="text-center py-6">
           <Building2 className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No workspaces yet</p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs"
-            onClick={() => navigate('/workspaces')}
-            data-testid="workspace-widget-create-btn"
-          >
-            Create Workspace
-          </Button>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+            {isAdmin ? 'No workspaces yet' : 'No workspaces assigned to you yet'}
+          </p>
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs"
+              onClick={() => navigate('/workspaces')}
+              data-testid="workspace-widget-create-btn"
+            >
+              Create Workspace
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-2">

@@ -393,8 +393,13 @@ async def get_workspaces(user_id: str = None):
 
 @router.post("")
 async def create_workspace(workspace: WorkspaceCreate):
-    """Create a new workspace"""
+    """Create a new workspace. Only admin users can create workspaces."""
     try:
+        # Check if the user has admin role
+        creator = await db.users.find_one({"id": workspace.owner_id}, {"_id": 0, "role": 1})
+        if not creator or (creator.get("role") or "").lower() not in ["admin", "super_admin", "manager"]:
+            raise HTTPException(status_code=403, detail="Only admin users can create workspaces")
+
         # Check entitlements
         from routes.entitlements import check_entitlement, record_usage
         check = await check_entitlement(workspace.owner_id, "workspaces", 1)
