@@ -28,11 +28,15 @@ import PollCreator from './PollCreator';
 import ContactSharePicker from './ContactSharePicker';
 import ScheduleMessagePicker from './ScheduleMessagePicker';
 
+import { fileService } from '@/services/fileService';
+
 const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a message...", onTyping }) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
+  
+  const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   
   const textareaRef = useRef(null);
   const emojiTriggerRef = useRef(null);
@@ -104,6 +108,28 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
     console.log('Scheduled message:', scheduled);
     onSendMessage(`[Scheduled for ${new Date(scheduled.scheduledFor).toLocaleString()}] ${scheduled.message}`, []);
     setMessage('');
+  };
+
+  const handleVoiceSend = async (file, duration) => {
+    setIsUploadingVoice(true);
+    try {
+      const result = await fileService.uploadFile(file, 'voice-messages', 'voice');
+      if (result.success && result.data) {
+        handleAttachment({
+          type: 'voice',
+          url: result.data.url,
+          name: 'Voice Message',
+          duration,
+          size: result.data.size
+        });
+      } else {
+        console.error('Voice upload failed:', result.error);
+      }
+    } catch (err) {
+      console.error('Voice upload error:', err);
+    } finally {
+      setIsUploadingVoice(false);
+    }
   };
 
   const removeAttachment = (index) => {
@@ -305,7 +331,7 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
               </motion.div>
             ) : (
               <VoiceMessageRecorder 
-                onSend={(file, duration) => handleAttachment({ type: 'voice', file, duration, name: 'Voice Message' })} 
+                onSend={handleVoiceSend}
               />
             )}
           </div>

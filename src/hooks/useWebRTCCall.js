@@ -116,6 +116,18 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
         if (!response.ok) {
           console.error('[WebRTC] Signal failed:', await response.text());
         } else {
+          const result = await response.json();
+          // Handle offline user for call initiation
+          if (type === 'call_initiate' && !result.success) {
+            console.warn('[WebRTC] Call failed:', result.error);
+            webrtcService.cleanup();
+            setCurrentCall(null);
+            setLocalStream(null);
+            // Notify caller the user is offline
+            if (result.reason === 'offline') {
+              window.__callError?.('User is currently offline and cannot receive calls.');
+            }
+          }
           console.log('[WebRTC] Signal sent:', type);
         }
       } catch (error) {
@@ -137,6 +149,11 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
         break;
         
       case 'call_accepted':
+        // Clear call timeout since the call was answered
+        if (callTimeoutRef.current) {
+          clearTimeout(callTimeoutRef.current);
+          callTimeoutRef.current = null;
+        }
         if (webrtcService.currentCall) {
           webrtcService.currentCall.status = 'connecting';
           setCurrentCall({ ...webrtcService.currentCall });
@@ -197,11 +214,25 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
     });
   }, []);
 
+  const callTimeoutRef = useRef(null);
+
   // Initiate a call
   const initiateCall = useCallback(async (targetUserId, callType = 'audio') => {
     try {
       const call = await webrtcService.initiateCall(targetUserId, callType);
       setCurrentCall({ ...call });
+      
+      // Set a 30-second timeout for unanswered calls
+      callTimeoutRef.current = setTimeout(() => {
+        if (webrtcService.currentCall?.status === 'ringing') {
+          console.warn('[WebRTC] Call timeout - no answer');
+          webrtcService.cleanup();
+          setCurrentCall(null);
+          setLocalStream(null);
+          window.__callError?.('No answer. The user did not pick up.');
+        }
+      }, 30000);
+      
       return call;
     } catch (error) {
       console.error('[WebRTC] Error initiating call:', error);
@@ -229,6 +260,10 @@ export const useWebRTCCall = (userId, onIncomingCall) => {
 
   // End current call
   const endCall = useCallback(() => {
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
     webrtcService.endCall();
     setCurrentCall(null);
     setLocalStream(null);
