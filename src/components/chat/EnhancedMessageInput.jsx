@@ -311,16 +311,6 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
           </div>
         </TooltipProvider>
       </form>
-      
-      {/* Formatting Hint */}
-      <div className="flex justify-between mt-2 px-1">
-        <span className="text-[10px] text-gray-400 hidden sm:inline">
-          Press <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-[9px]">Enter</kbd> to send, <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-[9px]">Shift+Enter</kbd> for new line
-        </span>
-        <span className="text-[10px] text-gray-400 hidden sm:inline">
-          **bold** • *italic* • `code`
-        </span>
-      </div>
     </div>
   );
 };
