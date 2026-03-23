@@ -129,7 +129,21 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
       {/* Search Bar (when expanded) */}
       {!collapsed && (
         <div className="px-4 py-3">
-          <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-100/80 dark:bg-slate-800/80 rounded-xl text-gray-400 text-sm cursor-pointer hover:bg-gray-200/80 dark:hover:bg-slate-700/80 transition-colors group">
+          <div 
+            className="flex items-center gap-2 px-3 py-2.5 bg-gray-100/80 dark:bg-slate-800/80 rounded-xl text-gray-400 text-sm cursor-pointer hover:bg-gray-200/80 dark:hover:bg-slate-700/80 transition-colors group"
+            onClick={() => {
+              // Focus the header search or open mobile search
+              const headerInput = document.querySelector('[data-testid="header-search-input"]');
+              if (headerInput) {
+                headerInput.focus();
+              } else {
+                // On mobile, trigger search overlay
+                window.dispatchEvent(new CustomEvent('open-search'));
+              }
+              if (isMobile && onClose) onClose();
+            }}
+            data-testid="sidebar-search-btn"
+          >
             <Search className="w-4 h-4" />
             <span className="flex-1">Search...</span>
             <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-700 text-[10px] font-medium shadow-sm group-hover:shadow">⌘K</kbd>
