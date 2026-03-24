@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, HardDrive, Plus, FileText, Shield, Zap, Lock,
+  Users, Plus, FileText, Shield, Zap, Lock,
   ArrowUpRight, Sparkles, Calendar, Video, Mic,
   MessageSquare, ChevronRight, Crown, PenTool, BarChart3,
   Briefcase, ArrowRight, Bell, CheckCircle2, Clock
@@ -22,7 +22,7 @@ import UserPaymentDashboardWidget from '@/components/user/UserPaymentDashboardWi
 import TranscriptionWidget from '@/components/TranscriptionWidget';
 import UsageDashboard from '@/components/UsageDashboard';
 import WorkspaceDashboardWidget from '@/components/user/WorkspaceDashboardWidget';
-import { ActivityGraph, RecentActivityFeed } from '@/components/user/DashboardActivity';
+import { ActivityGraph, RecentActivityFeed, useDashboardStream } from '@/components/user/DashboardActivity';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -38,6 +38,9 @@ const UserDashboard = () => {
     announcements: 0,
     workspaces: [],
   });
+
+  // Real-time SSE stream for activity + stats
+  const { graphData, activities: liveActivities, stats: liveStats, isLive, lastUpdated } = useDashboardStream();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -70,6 +73,15 @@ const UserDashboard = () => {
 
   useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
 
+  // Merge SSE live stats into dashboardData when available
+  const effectiveStats = liveStats ? {
+    ...dashboardData,
+    workspaceCount: liveStats.workspaceCount,
+    memberCount: liveStats.memberCount,
+    pendingApprovals: liveStats.pendingApprovals,
+    announcements: liveStats.announcements,
+  } : dashboardData;
+
   const handleMeetingSuccess = () => {
     setRefreshMeetingsTrigger(prev => prev + 1);
   };
@@ -96,10 +108,10 @@ const UserDashboard = () => {
   const planInfo = getPlanInfo();
 
   const stats = [
-    { label: 'Workspaces', value: dashboardData.workspaceCount, icon: Briefcase, gradient: 'from-indigo-500 to-violet-600', shadow: 'shadow-indigo-500/20', path: '/workspaces' },
-    { label: 'Team Members', value: dashboardData.memberCount, icon: Users, gradient: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/20' },
-    { label: 'Approvals', value: dashboardData.pendingApprovals, icon: CheckCircle2, gradient: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/20', highlight: dashboardData.pendingApprovals > 0 },
-    { label: 'Announcements', value: dashboardData.announcements, icon: Bell, gradient: 'from-rose-500 to-pink-600', shadow: 'shadow-rose-500/20' },
+    { label: 'Workspaces', value: effectiveStats.workspaceCount, icon: Briefcase, gradient: 'from-indigo-500 to-violet-600', shadow: 'shadow-indigo-500/20', path: '/workspaces' },
+    { label: 'Team Members', value: effectiveStats.memberCount, icon: Users, gradient: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/20' },
+    { label: 'Approvals', value: effectiveStats.pendingApprovals, icon: CheckCircle2, gradient: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/20', highlight: effectiveStats.pendingApprovals > 0 },
+    { label: 'Announcements', value: effectiveStats.announcements, icon: Bell, gradient: 'from-rose-500 to-pink-600', shadow: 'shadow-rose-500/20' },
   ];
 
   const quickActions = [
@@ -145,11 +157,11 @@ const UserDashboard = () => {
                 {getGreeting()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-400">{user?.name?.split(' ')[0] || 'there'}</span>
               </h1>
               <p className="text-white/50 mt-2 max-w-lg text-sm sm:text-base">
-                {dashboardData.workspaceCount > 0
-                  ? `You're part of ${dashboardData.workspaceCount} workspace${dashboardData.workspaceCount > 1 ? 's' : ''} with ${dashboardData.memberCount} team member${dashboardData.memberCount > 1 ? 's' : ''}.`
+                {effectiveStats.workspaceCount > 0
+                  ? `You're part of ${effectiveStats.workspaceCount} workspace${effectiveStats.workspaceCount > 1 ? 's' : ''} with ${effectiveStats.memberCount} team member${effectiveStats.memberCount > 1 ? 's' : ''}.`
                   : "Your AI meeting companion is ready. Let's get started."}
-                {dashboardData.pendingApprovals > 0 && (
-                  <span className="text-amber-400 font-medium"> {dashboardData.pendingApprovals} pending approval{dashboardData.pendingApprovals > 1 ? 's' : ''}.</span>
+                {effectiveStats.pendingApprovals > 0 && (
+                  <span className="text-amber-400 font-medium"> {effectiveStats.pendingApprovals} pending approval{effectiveStats.pendingApprovals > 1 ? 's' : ''}.</span>
                 )}
               </p>
             </div>
@@ -286,10 +298,10 @@ const UserDashboard = () => {
         {/* Activity Section - Graph + Feed side by side */}
         <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-5 gap-6" data-testid="dashboard-activity-section">
           <div className="lg:col-span-3">
-            <ActivityGraph />
+            <ActivityGraph data={graphData} isLive={isLive} lastUpdated={lastUpdated} />
           </div>
           <div className="lg:col-span-2">
-            <RecentActivityFeed />
+            <RecentActivityFeed activities={liveActivities} isLive={isLive} />
           </div>
         </motion.div>
 
