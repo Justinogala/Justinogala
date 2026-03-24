@@ -42,7 +42,7 @@
   "test_credentials": {
     "user": "admin@munal.com",
     "password": "Admin@123456",
-    "app_url": "https://chat-attachments-fix.preview.emergentagent.com"
+    "app_url": "https://presence-mobile-app.preview.emergentagent.com"
   },
   "seed_data_creation": "None required",
   "retest_needed": false,

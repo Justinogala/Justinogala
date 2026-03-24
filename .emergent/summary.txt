@@ -1,145 +1,197 @@
-<analysis>**original_problem_statement**:
-The user is building Munal/EchoNote AI — a comprehensive AI-powered workforce and collaboration platform. Recent feature requests included updating the eSignature Terms of Service to reflect Canadian laws, building an independent file manager for Workspaces with permission controls, implementing a Delegate feature for approvals, creating an IR/SOR Template builder for admins, and adding AI Insights to Approvals using GPT-5.2. 
+<analysis>original_problem_statement: 
+The user is continuously enhancing the Munal/EchoNote AI platform. Current product requirements include: making the chat module stable (fixing SSE connection glitches/flickering), implementing object storage for uploaded files and voice notes, adding Microsoft Teams-style rich presence statuses, fixing WebRTC calls hanging, making the entire application (specifically chat and workspaces) fully mobile-responsive (375px & 768px), fixing broken quick-access workspace links, enabling super-admin workspace deletion, implementing a functional global search bar, and finally, redesigning the User Dashboard to be intuitive and stunning.
 
-**User's preferred language**: English (INSTRUCT NEXT AGENT: You MUST respond in English only).
+**User's preferred language**: English (INSTRUCT NEXT AGENT: You MUST respond in English only)
 
 **what currently exists?** 
-A mature Vite/React and FastAPI full-stack application using MongoDB. It features complete modules for Approvals (with delegation, multi-step workflows, and GPT-5.2 AI analytics), Workspaces (with isolated GridFS file management and role-based permissions), Organizations (management, invites), eSignature workflows (with Canadian TOS and history management), and Incident Reports (IR/SOR with admin-defined templates).
+A mature full-stack application (FastAPI backend + React frontend + MongoDB) featuring comprehensive Workspace management, Admin Dashboards, ICT Support tracking, and an org-wide Forms module. In this session, the Chat system was stabilized (SSE), Object Storage was integrated for files/voice memos, WebRTC calls were fixed to reject offline users, the app was made mobile-responsive, global search was implemented, and admin workspace deletion was repaired.
 
-**Last working item**:
-- **Last item agent was working**: Investigating and fixing an Admin Logout bug. The user reported that clicking logout in the admin panel does not redirect to the login page and fails to completely clear the session. The agent identified the root cause in  where  is bypassing the context's actual  function, but the context window ended before the fix was applied.
-- **Status**: IN PROGRESS
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: manual testing by screenshot tool (to verify proper redirection to  after fixing the logic).
+**Last working item**: 
+- **Last item agent was working**: Redesigning the User Dashboard () to make it visually stunning and intuitive per the user's request.
+- **Status**: IN PROGRESS / BLOCKED
+- **Agent Testing Done**: N (Attempted to take a screenshot, but Vite crashed).
+- **Which testing method agent to use?**: Frontend testing agent + Screenshot tool (to visually verify the new stunning design).
 - **User Testing Done**: N
 
-**All Pending/In progress Issue list**:
-Issue 1: Admin Logout routing and session clear failure (P0 - HIGHEST)
+**All Pending/In progress Issue list**:  
+Issue 1: Frontend Vite Compilation Error (P0)
 
-Issues Detail:
-- Issue 1: 
-   - **Attempted fixes**: Agent identified the issue but ran out of context before editing the file.
-   - **Next debug checklist**: 
-      - Frontend file:  (around lines 89-95).
-      - The  function currently does  and . 
-      - Fix: It needs to await the actual  function destructured from  and then .
-   - **Why fix this issue and what will be achieved with the fix?**: It is a critical security and UX issue. Admins must be able to securely terminate their sessions and be routed to the correct admin login screen, not the public landing page.
-   - **Status**: IN PROGRESS
-   - **Is recurring issue?**: N
-   - **Should Test frontend/backend/both after fix?**: Frontend (Screenshot tool to verify redirect).
-   - **Blocked on other issue**: None
+  Issues Detail:
+  - Issue 1: Frontend Vite Compilation Error
+     - **Attempted fixes**: The agent updated , but Vite threw a compilation error in the final step:  
+     - **Next debug checklist**: Check the frontend terminal logs. Install the missing dependencies (yarn add v1.22.22
+[1/4] Resolving packages...
+[2/4] Fetching packages...
+[3/4] Linking dependencies...
+[4/4] Building fresh packages...
+success Saved lockfile.
+success Saved 45 new dependencies.
+info Direct dependencies
+├─ jspdf-autotable@5.0.7
+├─ jspdf@4.2.1
+├─ ssf@0.11.2
+├─ wmf@1.0.2
+├─ word@0.4.0
+└─ xlsx@0.18.5
+info All dependencies
+├─ @tootallnate/once@1.1.2
+├─ abab@2.0.6
+├─ acorn-globals@6.0.0
+├─ acorn-walk@7.2.0
+├─ asynckit@0.4.0
+├─ browser-process-hrtime@1.0.0
+├─ combined-stream@1.0.8
+├─ cssom@0.4.4
+├─ cssstyle@2.3.0
+├─ data-urls@2.0.0
+├─ decimal.js@10.6.0
+├─ delayed-stream@1.0.0
+├─ domexception@2.0.1
+├─ escodegen@2.1.0
+├─ esprima@4.0.1
+├─ form-data@3.0.4
+├─ html-encoding-sniffer@2.0.1
+├─ http-proxy-agent@4.0.1
+├─ https-proxy-agent@5.0.1
+├─ iconv-lite@0.4.24
+├─ is-potential-custom-element-name@1.0.1
+├─ jsdom@16.7.0
+├─ jspdf-autotable@5.0.7
+├─ jspdf@4.2.1
+├─ mime-db@1.52.0
+├─ mime-types@2.1.35
+├─ nwsapi@2.2.23
+├─ parse5@6.0.1
+├─ psl@1.15.0
+├─ querystringify@2.2.0
+├─ requires-port@1.0.0
+├─ safer-buffer@2.1.2
+├─ saxes@5.0.1
+├─ ssf@0.11.2
+├─ symbol-tree@3.2.4
+├─ tough-cookie@4.1.4
+├─ universalify@0.2.0
+├─ url-parse@1.5.10
+├─ w3c-hr-time@1.0.2
+├─ w3c-xmlserializer@2.0.0
+├─ wmf@1.0.2
+├─ word@0.4.0
+├─ ws@7.5.10
+├─ xlsx@0.18.5
+└─ xmlchars@2.2.0
+Done in 50.09s.) or clear the Vite cache ( and restart supervisor). Verify frontend compiles successfully.
+     - **Why fix this issue and what will be achieved with the fix?**: The frontend is currently broken/blank, preventing verification of the new Dashboard redesign.
+     - **Status**: IN PROGRESS / BLOCKED
+     - **Is recurring issue?**: Y (Appeared earlier in the session as well).
+     - **Should Test frontend/backend/both after fix?**: frontend
+     - **Blocked on other issue**: None
 
-**In progress Task List**:
-Task 1: Animated Hero Section Background (P1)
+**In progress Task List**: 
+Task 1: Redesign User Dashboard (P0)
 
-Task Detail:
-- Task 1:
-   - **Where to resume**: The agent proposed 4 animation options (A: Floating Orbs, B: Particle Field, C: Animated Wave, D: All Combined) to the user via chat. 
-   - **What will be achieved with this?**: Enhances the visual appeal of the landing page hero section.
-   - **Status**: BLOCKED
-   - **Should Test frontend/backend/both after fix?**: Frontend
-   - **Blocked on something**: Waiting for the user to reply with their preferred animation option (A, B, C, or D).
+ Task Detail:
+  - Task 1: Redesign User Dashboard
+     - **Where to resume**: Review the changes made to . Once the Vite dependency issue (Issue 1) is resolved, take a screenshot to evaluate the design. Make it look premium, intuitive, and use the existing components well without introducing errors.
+     - **What will be achieved with this?**: A better user experience on the main landing page post-login.
+     - **Status**: IN PROGRESS
+     - **Should Test frontend/backend/both after fix?**: frontend
+     - **Blocked on something**: Blocked by Issue 1 (Vite compilation error).
 
 **Upcoming and Future Tasks**
 Upcoming Tasks:
-- (P2) Refactor .
-- (P2) Clean up orphaned data from the  table.
+- (P2) Refactor 
+- (P2) Clean up orphaned data from  table
 
 Future Tasks:
-- (P3) Consolidate  and .
-- (P3) Implement Two-Factor Authentication (2FA) for admin accounts.
+- (P3) Consolidate  and 
+- (P3) Implement Two-Factor Authentication (2FA) for admin accounts
+- (P3) Add Client Behavior Observation Form (9th template to Forms module)
 
 **Completed work in this session**
-- Updated eSignature Terms of Service to reflect Canadian jurisdiction and updated dates (DONE).
-- Workspace File Manager: Added independent GridFS file storage, upload, download, list, and delete endpoints for Workspaces (DONE).
-- Workspace File Sharing Permissions: Added Owner/Member/Viewer roles and UI toggles for workspace file uploads (DONE).
-- Approvals Delegation (P1): Added ability to delegate approvals to substitutes, with updated workflow UI and audit trails (DONE).
-- IR/SOR Templates: Created an admin page to build incident report templates and added a template picker to the user-facing report form (DONE).
-- eSignature History Delete: Added a backend endpoint and UI trash icon to delete signing history (DONE).
-- Approvals Phase 2 (P2): Integrated GPT-5.2 via  for AI insights and built a comprehensive Analytics dashboard tab (DONE).
+- **SSE Connection Stability Fix**: Fixed status flickering by moving  into a ref to prevent unnecessary reconnections. (DONE)
+- **Object Storage Integration**: Hooked up chat file uploads, downloads, and voice message blobs to Cloudflare R2/S3 object storage via Emergent Integration. (DONE)
+- **Rich Presence Status**: Implemented Teams-style presence (Available, Busy, Be Right Back, etc.) with custom durations. (DONE)
+- **WebRTC Call Fixes**: Backend now checks if target user is online before sending signals; frontend handles User offline toasts and call timeouts. (DONE)
+- **App-Wide Mobile Responsiveness**: Overhauled  to toggle between sidebar/chat on mobile. Fixed tabs in  and various grids. (DONE)
+- **Quick Links Fix**: Fixed Submit Ticket and My Tickets buttons navigating to 404 pages; they now correctly trigger tab switches inside the workspace. (DONE)
+- **Admin Workspace Deletion**: Fixed 500 error caused by undefined  in . (DONE)
+- **Global Search**: Created  endpoint and wired it to header/sidebar to search workspaces, users, forms, and messages simultaneously. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-- None.
+None.
 
 **Known issue recurrence from previous fork**
-- None.
+- Issue recurrence in previous fork: None
+- Recurrence count: 0
+- Status: RESOLVED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **GridFS**: Utilized for storing workspace-specific files in MongoDB to isolate them from general chat files.
-- **Emergent Integrations Library**: Used to access OpenAI GPT-5.2 for generating dynamic AI insights on the Approvals Analytics dashboard.
-- **Recharts**: Heavily utilized for data visualization in the new Approvals Analytics tab.
-- **State Management**: Complex conditional rendering used in  to dynamically inject custom form fields based on selected templates.
+- FastAPI / Motor: Asynchronous MongoDB CRUD operations.
+- Server-Sent Events (SSE): Used for real-time chat message delivery and online presence broadcasting.
+- WebRTC: Used for audio/video calling.
+- Object Storage: Integrated via Emergent library for persistent file/audio uploads.
+- React/Tailwind: Heavy responsive design using CSS classes (, , etc.).
 
 **key DB schema**
-- : 
--  / : updated to handle  and .
-- : updated to store  and  dictionaries.
+  - : Added  object (, , ).
+  - : Uses  pointing to backend download route which proxies object storage.
+  - : Status can be marked as .
 
 **changes in tech stack**
-- Added  library specifically to utilize the Emergent LLM Key for OpenAI GPT-5.2 logic.
+  - Added Object Storage integration (Cloudflare R2/S3 compatible) for file retention.
 
-**All files of reference**
--  (Contains the active P0 bug)
--  (Contains the correct logout logic that needs to be called)
+**All files of reference** 
+  -  (Currently being edited for UI redesign)
+  -  (Causing Vite compilation errors due to missing / dependencies)
+  -  &  (Call flow handlers)
+  -  (Core chat UI with heavy mobile layout logic)
 
-**Areas that need refactoring**:
--  and  have overlapping logic and are slated for future consolidation (P3).
--  requires refactoring (P2).
+**Areas that need refactoring**: 
+  - 
 
 **key api endpoints**
--  & : Workspace file management.
-- : Manage workspace file access.
-- : Endpoint to assign a substitute to an approval.
-- : Fetches chart data and utilizes GPT-5.2 for textual AI insights.
-- : CRUD for admin IR/SOR templates.
-- : Removes an entry from the signing history.
+  -  (Set user rich presence)
+  -  (Global cross-entity search)
+  -  (Workspace deletion)
 
 **Critical Info for New Agent**
-- **IMMEDIATE PRIORITY (P0)**: Fix the admin logout bug in . The current logic clears local storage manually and redirects to , bypassing the actual React context  function which causes the app state to remain stale.
-- You are waiting on the user to pick an animation style (A, B, C, or D) for the Hero section.
-- **Testing note**: The previous agent utilized  extensively. Continue doing so for any new multi-component features, but for the immediate logout bug, a simple manual screenshot test is sufficient.
+The immediate blocker is a Vite compilation error. Before attempting to finalize the User Dashboard redesign requested by the user, you **must** fix the missing dependencies (, ) crashing the frontend server. Use yarn add v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/add for documentation about this command. or clean the Vite cache to ensure the app compiles. Once the frontend is running, review the visual changes to  using the screenshot tool, ensure it looks stunning and intuitive, and verify functionality.
 
 **documents and test reports created in this job**
-- 
-- 
-- 
-- 
-- 
-- 
+  - /app/memory/PRD.md
+  - /app/test_reports/iteration_64.json (Chat stability tests)
+  - /app/test_reports/iteration_65.json (Mobile responsiveness tests)
 
-**Last 10 User Messages and any pending HUMAN messages**
-1. **User**: make the laws guiding eSignature Terms of Service to be canada... -> **COMPLETED**.
-2. **User**: Last updated: July 15, 2025 is todays date, march 19, 2026 -> **COMPLETED**.
-3. **User**: i want the workspaces created to have their own file manager... -> **COMPLETED**.
-4. **User**: proceed (with file manager) -> **ACKNOWLEDGED**.
-5. **User**: add file sharing permissions within workspaces... -> **COMPLETED**.
-6. **User**: proceed but replace editor with member -> **COMPLETED**.
-7. **User**: Next Action Items: Implement Delegate feature, Approvals Phase 2, Create New Template for ir/sor... -> **COMPLETED**.
-8. **User**: proceed (with Delegate feature) -> **COMPLETED**.
-9. **User**: the history menu needs delete action button and not only download [Image] -> **COMPLETED**.
-10. **User**: can you make the backgroud of the heroes section have some moving...? -> **PENDING/BLOCKED** (Agent asked for preference A/B/C/D).
-11. **User**: the admin is not showing the login page when i click logout and it does not logout completly... -> **IN PROGRESS** (Agent found bug, context limit reached).
+**Last 10 User Messages and any pending HUMAN messages** 
+ 1. **User**: remove the following below the input menu of the chat :Press Enter to send... -> **COMPLETED**.
+ 2. **User**: when i make calls it keeps connecting, without connected, check it . and check the voice too -> **COMPLETED** (Fixed WebRTC offline check and Voice blob uploads).
+ 3. **User**: optimize, scale and mobile friendly enabled... just make the whole app mobile friendly again. -> **COMPLETED**.
+ 4. **User**: implement the two menu marked red. if you click it takes you to page not found as attached. -> **COMPLETED** (Fixed Quick Links routing).
+ 5. **User**: implement workspace to be deleted from the super admin console -> **COMPLETED** (Fixed  backend crash).
+ 6. **User**: implement the search menu as marked red to full functionality. -> **COMPLETED** (Built Global Search API + UI).
+ 7. **User**: make the user account dashboard more intuitive and stunning design using only the 7.90 credit available. no errors, add the available features appropriately -> **IN PROGRESS** (Redesign logic started, but frontend crashed due to Vite dependency error).
+ 8. **User**: what did i tell you? proceed -> **IN PROGRESS**.
 
 **Project Health Check:**
-- Broken: Admin Logout Flow
-- Mocked: None
+**Broken**: Frontend UI is currently down due to Vite dependency resolution errors (, ).
 
-**3rd Party Integrations**
-- OpenAI GPT-5.2 — uses Emergent LLM Key (via )
-- Resend (Emails) — requires Environment Key
-- Stripe (Payments) — test key present in environment
+**3rd Party Integrations** 
+  - OpenAI Sora 2 Pro (Video Gen) — uses Emergent LLM Key
+  - Resend (Email Delivery) — requires User API Key 
+  - Object Storage (Cloudflare R2/S3) — uses Emergent LLM Key / Internal Integration Config
 
 **Testing status**
-- Testing agent used after significant changes: YES (iterations 54-58)
-- Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: None
-- Known regressions: Admin logout functionality is currently broken.
+  - Testing agent used after significant changes: YES (For Chat SSE and Mobile Responsiveness)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: Frontend Vite cache/dependency resolution is failing for .
 
 **Credentials to test flow:**
-- Admin:  / 
+  - Admin:  / 
 
 **What agent forgot to execute**
-- The agent successfully completed all tasks but reached the context limit before it could execute the file edit to fix the Admin logout bug.</analysis>
+The agent failed to resolve the missing dependency error for  and  before the context window ended, leaving the frontend in a broken state for the dashboard redesign verification.</analysis>
