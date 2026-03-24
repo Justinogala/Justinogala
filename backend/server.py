@@ -167,6 +167,7 @@ from routes.approvals import router as approvals_router
 from routes.organizations import router as organizations_router
 from routes.forms import router as forms_router
 from routes.forms import admin_router as admin_forms_router
+from routes.dashboard import router as dashboard_router
 
 
 # ============== Include All Routers ==============
@@ -234,6 +235,7 @@ api_router.include_router(approvals_router)
 api_router.include_router(organizations_router)
 api_router.include_router(admin_forms_router, prefix="/admin")
 api_router.include_router(search_router)
+api_router.include_router(dashboard_router)
 
 
 # ============== Include Main Router ==============
