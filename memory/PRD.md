@@ -17,41 +17,44 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes (March 2026)
 
-### User Dashboard Redesign - COMPLETED (March 24, 2026)
-- Replaced hardcoded stats with dynamic data from `/api/workspaces/dashboard/summary` API
-- Stats now show real Workspaces count, Team Members, Pending Approvals, Announcements
-- Added 8 quick action buttons (New Meeting, Record, Transcribe, Chat, Workspaces, eSignature, AI Assistant, Reports)
-- Added workspace cards showing real workspace data with member counts and scope badges
-- Dark hero banner with gradient, animated entrance transitions (framer-motion)
-- Mobile responsive (375px, 768px, 1920px tested)
-- All 34 frontend tests passed (iteration_66.json)
+### Real-Time Dashboard Activity Updates - COMPLETED (March 24, 2026)
+- Created SSE endpoint `/api/dashboard/activity/stream` that pushes data every 20 seconds
+- Frontend `useDashboardStream` hook connects via EventSource for live updates
+- Green pulsing "LIVE" indicators on both Weekly Activity chart and Recent Activity feed
+- `AnimatedNumber` component with eased transitions for smooth stat counter changes
+- `effectiveStats` pattern: SSE live stats merged with initial data for seamless updates
+- Slide-in animations for new activity feed items (framer-motion AnimatePresence)
+- "Updated Just now" timestamp on the activity graph
+- 34 tests passed (9 backend + 25 frontend, iteration_68.json)
 
 ### Quick Action Link Fixes - COMPLETED (March 24, 2026)
 - Fixed eSignature link: `/e-signature` (404) → `/esignature` (working)
 - Fixed AI Assistant link: `/ai-chat` (404) → `/messages` (working)
-- All 8 quick actions now navigate to valid pages
 
 ### Activity Graph & Feed - COMPLETED (March 24, 2026)
-- Created `/api/dashboard/activity` backend endpoint aggregating data from chat_messages, calendar_events, approvals, user_activity, esignature_documents
 - Weekly Activity bar chart (recharts) showing Messages, Approvals, Meetings, Logins over 7 days
-- Recent Activity feed showing 10 most recent items across all types with relative timestamps
-- Components: `ActivityGraph`, `RecentActivityFeed` in `/app/src/components/user/DashboardActivity.jsx`
-- All 30 tests passed (iteration_67.json)
+- Recent Activity feed showing 10 most recent items across all types
+- Backend endpoint `/api/dashboard/activity` aggregates data from multiple collections
+
+### User Dashboard Redesign - COMPLETED (March 24, 2026)
+- Dynamic stats from API (Workspaces, Team Members, Pending Approvals, Announcements)
+- 8 quick action buttons with gradient icons
+- Workspace cards showing real data with member counts and scope badges
+- Dark hero banner, animated entrance transitions (framer-motion)
 
 ### Chat Module Enhancements - COMPLETED
-1. **SSE Connection Stability Fix** - Fixed status flickering
-2. **File Attachments with Object Storage** - Chat file uploads via Emergent Object Storage
-3. **Rich Presence Status System** - Teams/Slack-style user presence (6 status types)
+1. SSE Connection Stability Fix - Fixed status flickering
+2. File Attachments with Object Storage - Chat file uploads via Emergent Object Storage
+3. Rich Presence Status System - Teams/Slack-style user presence (6 status types)
 
 ### Call & Voice Fixes - COMPLETED
 - Backend checks if target user is online before initiating call
 - Voice recordings upload to object storage
-- 30-second call timeout on frontend, TURN servers for NAT traversal
+- 30-second call timeout, TURN servers for NAT traversal
 
 ### Mobile-Friendly Optimization - COMPLETED
 - Global CSS: prevented horizontal overflow, touch-friendly tap targets, iOS zoom prevention
 - WorkspaceChatPage: Full-width sidebar on mobile with show/hide panels
-- Dashboard, WorkspaceDetailPage, WorkspacesPage, AdminFormsPage, ICT Support all responsive
 
 ### Other Completions
 - Quick Links Fix (Submit Ticket, My Tickets buttons)
@@ -63,53 +66,42 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 /app/
 ├── backend/
 │   ├── routes/
-│   │   ├── chat.py          # SSE, messages, file upload (object storage), presence APIs
-│   │   ├── dashboard.py     # NEW: Activity graph + feed data endpoint
-│   │   ├── forms.py         # Org-wide template CRUD & submissions
-│   │   ├── workspaces.py    # Workspace management, dashboard summary API
-│   │   ├── admin.py         # Admin routes
-│   │   ├── search.py        # Global search endpoint
-│   │   ├── calls.py         # WebRTC calls with offline user validation
-│   │   └── admin_workspaces.py # Admin workspace deletion
-│   ├── services/storage.py  # Cloud storage service
-│   ├── config.py            # DB, logging config
-│   └── server.py            # FastAPI app, router registration
+│   │   ├── chat.py              # SSE, messages, file upload, presence APIs
+│   │   ├── dashboard.py         # Activity API + SSE stream endpoint
+│   │   ├── forms.py             # Org-wide template CRUD & submissions
+│   │   ├── workspaces.py        # Workspace management, dashboard summary
+│   │   ├── admin.py             # Admin routes
+│   │   ├── search.py            # Global search endpoint
+│   │   ├── calls.py             # WebRTC calls with offline validation
+│   │   └── admin_workspaces.py  # Admin workspace deletion
+│   └── server.py
 └── frontend/src/
     ├── components/
-    │   ├── chat/
-    │   │   ├── UserPresenceStatus.jsx
-    │   │   ├── EnhancedMessageInput.jsx
-    │   │   └── VoiceMessageRecorder.jsx
     │   ├── user/
-    │   │   ├── DashboardActivity.jsx    # NEW: ActivityGraph + RecentActivityFeed
+    │   │   ├── DashboardActivity.jsx    # ActivityGraph, RecentActivityFeed, useDashboardStream, AnimatedNumber, LiveDot
     │   │   ├── WorkspaceDashboardWidget.jsx
     │   │   ├── MeetingListSection.jsx
     │   │   └── RecentFilesSection.jsx
-    │   ├── search/
-    │   │   ├── MobileSearchOverlay.jsx
-    │   │   └── SearchResultsDropdown.jsx
-    │   ├── UsageDashboard.jsx
-    │   └── TranscriptionWidget.jsx
+    │   ├── chat/
+    │   │   ├── UserPresenceStatus.jsx
+    │   │   └── VoiceMessageRecorder.jsx
+    │   └── search/
+    │       ├── MobileSearchOverlay.jsx
+    │       └── SearchResultsDropdown.jsx
     ├── pages/
-    │   ├── user/UserDashboard.jsx   # Redesigned with activity graph/feed
+    │   ├── user/UserDashboard.jsx   # Real-time dashboard with SSE
     │   ├── WorkspaceChatPage.jsx
     │   └── WorkspaceDetailPage.jsx
-    └── services/
-        ├── fileService.js
-        ├── entitlementsService.js
-        └── webrtcService.js
+    └── hooks/useWebSocketChat.js    # Chat SSE hook
 ```
 
 ## Key API Endpoints
+- `GET /api/dashboard/activity` - Activity graph + feed data
+- `GET /api/dashboard/activity/stream` - SSE real-time stream (sends init, update, ping events)
+- `GET /api/workspaces/dashboard/summary` - Dashboard summary with workspace counts
 - `POST /api/chat/messages` - Send message
-- `POST /api/chat/files/upload` - Upload file
-- `GET /api/chat/files/{id}/download` - Download file
-- `PUT /api/chat/presence/status` - Set user status
-- `GET /api/chat/stream/{user_id}` - SSE event stream
-- `GET /api/workspaces/dashboard/summary?user_id=` - Dashboard summary
-- `GET /api/dashboard/activity?user_id=` - Activity graph + feed
+- `GET /api/chat/stream/{user_id}` - Chat SSE stream
 - `GET /api/search` - Global cross-entity search
-- `DELETE /api/admin/workspaces/{workspace_id}` - Admin workspace deletion
 
 ## 3rd Party Integrations
 - OpenAI Sora 2 Pro (Video Gen) — Emergent LLM Key
