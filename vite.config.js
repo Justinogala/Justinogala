@@ -237,6 +237,7 @@ logger.error = (msg, options) => {
 export default defineConfig({
 	customLogger: logger,
 	envPrefix: ['VITE_', 'REACT_APP_'],
+	cacheDir: path.resolve(__dirname, 'frontend/node_modules/.vite'),
 	plugins: [
 		react(),
 		viteHealthCheckPlugin(),
