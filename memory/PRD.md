@@ -17,6 +17,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes (March 2026)
 
+### Landing Page "How It Works" Upgrade - COMPLETED (March 24, 2026)
+- Expanded from 4 basic meeting steps to 5 comprehensive platform steps
+- New steps: Set Up Your Space, Connect & Collaborate, Run Smart Meetings, Streamline Workflows, Track & Grow
+- Alternating left/right timeline layout on desktop with connecting line and numbered dots
+- Each card has gradient icon, description, and 2 feature highlight pills
+- "Get Started Free" CTA at bottom linking to /register
+- 25 frontend tests passed (iteration_69.json)
+
 ### Real-Time Dashboard Activity Updates - COMPLETED (March 24, 2026)
 - Created SSE endpoint `/api/dashboard/activity/stream` that pushes data every 20 seconds
 - Frontend `useDashboardStream` hook connects via EventSource for live updates
