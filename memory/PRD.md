@@ -17,24 +17,34 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes (March 2026)
 
+### User Dashboard Redesign - COMPLETED (March 24, 2026)
+- Replaced hardcoded stats with dynamic data from `/api/workspaces/dashboard/summary` API
+- Stats now show real Workspaces count, Team Members, Pending Approvals, Announcements
+- Added 8 quick action buttons (New Meeting, Record, Transcribe, Chat, Workspaces, eSignature, AI Assistant, Reports)
+- Added workspace cards showing real workspace data with member counts and scope badges
+- Dark hero banner with gradient, animated entrance transitions (framer-motion)
+- Mobile responsive (375px, 768px, 1920px tested)
+- All 34 frontend tests passed (iteration_66.json)
+
 ### Chat Module Enhancements - COMPLETED
-1. **SSE Connection Stability Fix** - Fixed status flickering (on/off) caused by SSE reconnection loop. Root cause: callback dependencies in `useWebSocketChat.js` caused `connectSSE` to be recreated on every render, closing and reopening the SSE connection. Fix: Used refs for all callbacks so `connectSSE` has zero dependencies. Added 5-second grace period before broadcasting offline to handle reconnection gaps.
+1. **SSE Connection Stability Fix** - Fixed status flickering
+2. **File Attachments with Object Storage** - Chat file uploads via Emergent Object Storage
+3. **Rich Presence Status System** - Teams/Slack-style user presence (6 status types)
 
-2. **File Attachments with Object Storage** - Chat file uploads now use Emergent Object Storage for permanent persistence (with GridFS fallback). Supports both multipart file upload and base64 encoded data. Files downloadable via `/api/chat/files/{id}/download`. Frontend `fileService.js` updated to use multipart upload.
+### Call & Voice Fixes - COMPLETED
+- Backend checks if target user is online before initiating call
+- Voice recordings upload to object storage
+- 30-second call timeout on frontend, TURN servers for NAT traversal
 
-3. **Rich Presence Status System** - Teams/Slack-style user presence:
-   - 6 status types: Available, Busy, Do not disturb, Be right back, Away, Appear offline
-   - Custom status message (max 200 chars)
-   - Clear after duration (30 min, 1 hr, 2 hrs, today, this week)
-   - Backend APIs: PUT/GET `/api/chat/presence/status`, GET `/api/chat/presence/bulk`
-   - Frontend: `UserPresenceStatus` dropdown component in chat sidebar
+### Mobile-Friendly Optimization - COMPLETED
+- Global CSS: prevented horizontal overflow, touch-friendly tap targets, iOS zoom prevention
+- WorkspaceChatPage: Full-width sidebar on mobile with show/hide panels
+- Dashboard, WorkspaceDetailPage, WorkspacesPage, AdminFormsPage, ICT Support all responsive
 
-### Previous Completions
-- ICT Support Request module UI update with Excel data, dropdowns, CSV/Excel exports
-- Workspace Creation restricted to Admin roles only
-- Admin Forms Portal (`/admin/forms`) for org-wide template management
-- 8 Healthcare Form Templates seeded automatically
-- Form Submission hooked up to Resend API for email delivery
+### Other Completions
+- Quick Links Fix (Submit Ticket, My Tickets buttons)
+- Admin Workspace Deletion (Fixed 500 error)
+- Global Search API + UI (/api/search endpoint)
 
 ## Architecture
 ```
@@ -43,53 +53,58 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 │   ├── routes/
 │   │   ├── chat.py          # SSE, messages, file upload (object storage), presence APIs
 │   │   ├── forms.py         # Org-wide template CRUD & submissions
-│   │   ├── workspaces.py    # Workspace management (admin-only creation)
+│   │   ├── workspaces.py    # Workspace management, dashboard summary API
 │   │   ├── admin.py         # Admin routes
-│   │   └── ...
+│   │   ├── search.py        # Global search endpoint
+│   │   ├── calls.py         # WebRTC calls with offline user validation
+│   │   └── admin_workspaces.py # Admin workspace deletion
 │   ├── services/storage.py  # Cloud storage service
 │   ├── config.py            # DB, logging config
 │   └── server.py            # FastAPI app, router registration
 └── frontend/src/
-    ├── components/chat/
-    │   ├── UserPresenceStatus.jsx  # Rich presence dropdown
-    │   ├── EnhancedMessageInput.jsx # Chat input with attachments
-    │   ├── FileUploadHandler.jsx    # File attachment handler
-    │   └── ImageUploadHandler.jsx   # Image attachment handler
+    ├── components/
+    │   ├── chat/
+    │   │   ├── UserPresenceStatus.jsx  # Rich presence dropdown
+    │   │   ├── EnhancedMessageInput.jsx # Chat input with attachments
+    │   │   └── VoiceMessageRecorder.jsx # Voice recording
+    │   ├── user/
+    │   │   ├── WorkspaceDashboardWidget.jsx
+    │   │   ├── MeetingListSection.jsx
+    │   │   └── RecentFilesSection.jsx
+    │   ├── search/
+    │   │   ├── MobileSearchOverlay.jsx
+    │   │   └── SearchResultsDropdown.jsx
+    │   ├── UsageDashboard.jsx
+    │   └── TranscriptionWidget.jsx
     ├── hooks/useWebSocketChat.js    # SSE connection (ref-based, stable)
-    ├── context/WebSocketChatContext.jsx # Chat state management
-    ├── services/fileService.js       # File upload/download (multipart)
-    └── pages/WorkspaceChatPage.jsx   # Main chat UI
+    ├── pages/
+    │   ├── user/UserDashboard.jsx   # REDESIGNED: Dynamic data, 8 quick actions
+    │   ├── WorkspaceChatPage.jsx    # Core chat UI
+    │   └── WorkspaceDetailPage.jsx  # Fixed quick links, mobile tabs
+    └── services/
+        ├── fileService.js
+        ├── entitlementsService.js
+        └── webrtcService.js
 ```
 
 ## Key API Endpoints
-- `POST /api/chat/messages` - Send message (JSON body)
-- `POST /api/chat/files/upload` - Upload file (multipart)
+- `POST /api/chat/messages` - Send message
+- `POST /api/chat/files/upload` - Upload file
 - `GET /api/chat/files/{id}/download` - Download file
 - `PUT /api/chat/presence/status` - Set user status
 - `GET /api/chat/presence/status/{user_id}` - Get user status
-- `GET /api/chat/presence/bulk?user_ids=id1,id2` - Bulk status
 - `GET /api/chat/stream/{user_id}` - SSE event stream
+- `GET /api/workspaces/dashboard/summary?user_id=` - Dashboard summary data
+- `GET /api/search` - Global cross-entity search
+- `DELETE /api/admin/workspaces/{workspace_id}` - Admin workspace deletion
 
 ## 3rd Party Integrations
 - OpenAI Sora 2 Pro (Video Gen) — Emergent LLM Key
 - Resend (Email Delivery) — RESEND_API_KEY
 - Emergent Object Storage — EMERGENT_LLM_KEY
 
-### Call & Voice Fixes (March 2026)
-- **Calls**: Backend now checks if target user is online before initiating call; returns immediate "User is offline" error instead of hanging in "connecting" forever. 30-second call timeout on frontend. Added TURN servers for better NAT traversal.
-- **Voice Messages**: Voice recordings now upload to object storage before attaching to messages. Audio player renders inline in chat for voice message playback.
-
-### Mobile-Friendly Optimization (March 2026)
-- **Global CSS**: Prevented horizontal overflow on all pages, added touch-friendly tap targets (min 36px), iOS zoom prevention on input focus, scrollable tables and tabs, safe-area padding
-- **WorkspaceChatPage**: Full-width sidebar on mobile with show/hide panels — clicking a user shows conversation with back button, tapping back returns to sidebar
-- **Dashboard**: Activity items stack vertically on mobile with proper spacing
-- **WorkspaceDetailPage**: Hero header stacks vertically on mobile, buttons horizontally scrollable, tabs scroll horizontally with touch
-- **WorkspacesPage**: Title text scales down, cards single-column on phone
-- **AdminFormsPage**: Responsive form builder grid, reduced padding
-- **ICT Support**: Dialog margins adjusted for mobile
-- Tested at 375px (phone), 768px (tablet), 1920px (desktop) — no regressions
-
 ## Backlog
+
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned data from workspace_members table
