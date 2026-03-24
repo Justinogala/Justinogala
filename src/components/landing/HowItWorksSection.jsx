@@ -165,7 +165,7 @@ const HowItWorksSection = () => {
         >
           <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">Ready to transform how your team works?</p>
           <a
-            href="/register"
+            href="/signup"
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all duration-300"
             data-testid="how-it-works-cta"
           >
