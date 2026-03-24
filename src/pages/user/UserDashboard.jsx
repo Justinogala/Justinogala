@@ -22,6 +22,7 @@ import UserPaymentDashboardWidget from '@/components/user/UserPaymentDashboardWi
 import TranscriptionWidget from '@/components/TranscriptionWidget';
 import UsageDashboard from '@/components/UsageDashboard';
 import WorkspaceDashboardWidget from '@/components/user/WorkspaceDashboardWidget';
+import { ActivityGraph, RecentActivityFeed } from '@/components/user/DashboardActivity';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -107,8 +108,8 @@ const UserDashboard = () => {
     { label: 'Transcribe', icon: FileText, gradient: 'from-blue-500 to-cyan-500', action: () => navigate('/transcriptions'), desc: 'Audio to text' },
     { label: 'Chat', icon: MessageSquare, gradient: 'from-emerald-500 to-teal-500', action: () => navigate('/workspace/chat'), desc: 'Team messages' },
     { label: 'Workspaces', icon: Briefcase, gradient: 'from-amber-500 to-orange-500', action: () => navigate('/workspaces'), desc: 'Your teams' },
-    { label: 'eSignature', icon: PenTool, gradient: 'from-indigo-500 to-blue-600', action: () => navigate('/e-signature'), desc: 'Sign documents', badge: 'NEW' },
-    { label: 'AI Assistant', icon: Sparkles, gradient: 'from-fuchsia-500 to-pink-600', action: () => navigate('/ai-chat'), desc: 'Ask anything' },
+    { label: 'eSignature', icon: PenTool, gradient: 'from-indigo-500 to-blue-600', action: () => navigate('/esignature'), desc: 'Sign documents', badge: 'NEW' },
+    { label: 'AI Assistant', icon: Sparkles, gradient: 'from-fuchsia-500 to-pink-600', action: () => navigate('/messages'), desc: 'Ask anything' },
     { label: 'Reports', icon: BarChart3, gradient: 'from-slate-600 to-gray-700', action: () => navigate('/reports'), desc: 'IR / SOR' },
   ];
 
@@ -281,6 +282,16 @@ const UserDashboard = () => {
             </div>
           </motion.div>
         )}
+
+        {/* Activity Section - Graph + Feed side by side */}
+        <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-5 gap-6" data-testid="dashboard-activity-section">
+          <div className="lg:col-span-3">
+            <ActivityGraph />
+          </div>
+          <div className="lg:col-span-2">
+            <RecentActivityFeed />
+          </div>
+        </motion.div>
 
         {/* Usage & Limits */}
         <motion.div variants={item}>
