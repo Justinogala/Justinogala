@@ -26,6 +26,18 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Mobile responsive (375px, 768px, 1920px tested)
 - All 34 frontend tests passed (iteration_66.json)
 
+### Quick Action Link Fixes - COMPLETED (March 24, 2026)
+- Fixed eSignature link: `/e-signature` (404) → `/esignature` (working)
+- Fixed AI Assistant link: `/ai-chat` (404) → `/messages` (working)
+- All 8 quick actions now navigate to valid pages
+
+### Activity Graph & Feed - COMPLETED (March 24, 2026)
+- Created `/api/dashboard/activity` backend endpoint aggregating data from chat_messages, calendar_events, approvals, user_activity, esignature_documents
+- Weekly Activity bar chart (recharts) showing Messages, Approvals, Meetings, Logins over 7 days
+- Recent Activity feed showing 10 most recent items across all types with relative timestamps
+- Components: `ActivityGraph`, `RecentActivityFeed` in `/app/src/components/user/DashboardActivity.jsx`
+- All 30 tests passed (iteration_67.json)
+
 ### Chat Module Enhancements - COMPLETED
 1. **SSE Connection Stability Fix** - Fixed status flickering
 2. **File Attachments with Object Storage** - Chat file uploads via Emergent Object Storage
@@ -52,6 +64,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ├── backend/
 │   ├── routes/
 │   │   ├── chat.py          # SSE, messages, file upload (object storage), presence APIs
+│   │   ├── dashboard.py     # NEW: Activity graph + feed data endpoint
 │   │   ├── forms.py         # Org-wide template CRUD & submissions
 │   │   ├── workspaces.py    # Workspace management, dashboard summary API
 │   │   ├── admin.py         # Admin routes
@@ -64,10 +77,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 └── frontend/src/
     ├── components/
     │   ├── chat/
-    │   │   ├── UserPresenceStatus.jsx  # Rich presence dropdown
-    │   │   ├── EnhancedMessageInput.jsx # Chat input with attachments
-    │   │   └── VoiceMessageRecorder.jsx # Voice recording
+    │   │   ├── UserPresenceStatus.jsx
+    │   │   ├── EnhancedMessageInput.jsx
+    │   │   └── VoiceMessageRecorder.jsx
     │   ├── user/
+    │   │   ├── DashboardActivity.jsx    # NEW: ActivityGraph + RecentActivityFeed
     │   │   ├── WorkspaceDashboardWidget.jsx
     │   │   ├── MeetingListSection.jsx
     │   │   └── RecentFilesSection.jsx
@@ -76,11 +90,10 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
     │   │   └── SearchResultsDropdown.jsx
     │   ├── UsageDashboard.jsx
     │   └── TranscriptionWidget.jsx
-    ├── hooks/useWebSocketChat.js    # SSE connection (ref-based, stable)
     ├── pages/
-    │   ├── user/UserDashboard.jsx   # REDESIGNED: Dynamic data, 8 quick actions
-    │   ├── WorkspaceChatPage.jsx    # Core chat UI
-    │   └── WorkspaceDetailPage.jsx  # Fixed quick links, mobile tabs
+    │   ├── user/UserDashboard.jsx   # Redesigned with activity graph/feed
+    │   ├── WorkspaceChatPage.jsx
+    │   └── WorkspaceDetailPage.jsx
     └── services/
         ├── fileService.js
         ├── entitlementsService.js
@@ -92,9 +105,9 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - `POST /api/chat/files/upload` - Upload file
 - `GET /api/chat/files/{id}/download` - Download file
 - `PUT /api/chat/presence/status` - Set user status
-- `GET /api/chat/presence/status/{user_id}` - Get user status
 - `GET /api/chat/stream/{user_id}` - SSE event stream
-- `GET /api/workspaces/dashboard/summary?user_id=` - Dashboard summary data
+- `GET /api/workspaces/dashboard/summary?user_id=` - Dashboard summary
+- `GET /api/dashboard/activity?user_id=` - Activity graph + feed
 - `GET /api/search` - Global cross-entity search
 - `DELETE /api/admin/workspaces/{workspace_id}` - Admin workspace deletion
 
