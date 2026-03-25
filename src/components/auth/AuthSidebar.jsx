@@ -5,7 +5,7 @@ import { CheckCircle2, BarChart2, Video, Zap } from 'lucide-react';
 
 const AuthSidebar = ({ title, subtitle, features = [], showPartners = true }) => {
   return (
-    <div className="hidden lg:flex flex-col justify-between w-full lg:w-1/2 bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] p-12 text-white relative overflow-hidden h-full min-h-screen">
+    <div className="hidden lg:flex flex-col justify-between w-full lg:w-1/2 bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] p-12 text-white relative overflow-hidden">
       {/* Background patterns */}
       <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-white mix-blend-overlay filter blur-[100px]"></div>

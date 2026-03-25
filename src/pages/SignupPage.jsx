@@ -119,7 +119,7 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col lg:flex-row lg:items-stretch bg-white dark:bg-slate-950">
       <Helmet>
         <title>Sign Up - Munal AI</title>
         <meta name="description" content="Create your Munal AI account to start automating your meeting notes." />
