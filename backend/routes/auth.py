@@ -138,10 +138,11 @@ async def send_verification_email(email: str, code: str, user_name: str, max_ret
     """
     
     params = {
-        "from": SENDER_EMAIL,
+        "from": f"Munal AI <{SENDER_EMAIL}>",
         "to": [email],
         "subject": "Verify your email - Munal AI",
-        "html": html_content
+        "html": html_content,
+        "reply_to": SENDER_EMAIL
     }
     
     last_error = None
@@ -193,10 +194,11 @@ async def send_password_reset_email(email: str, temp_password: str, user_name: s
     """
     
     params = {
-        "from": SENDER_EMAIL,
+        "from": f"Munal AI <{SENDER_EMAIL}>",
         "to": [email],
         "subject": "Password Reset - Munal AI",
-        "html": html_content
+        "html": html_content,
+        "reply_to": SENDER_EMAIL
     }
     
     try:
