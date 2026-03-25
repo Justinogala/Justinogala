@@ -130,7 +130,6 @@ const SignupPage = () => {
         title="Create your Munal AI account"
         subtitle="Join forward-thinking teams using AI to reclaim hours of their week from manual meeting notes."
         features={[
-          { title: "Universal Integration", description: "Works seamlessly with Zoom, Google Meet, and Microsoft Teams." },
           { title: "Team Knowledge Base", description: "Turn disparate meetings into a searchable, intelligent team library." },
           { title: "Advanced Privacy", description: "SOC2 compliant security ensures your meeting data stays private." }
         ]}
