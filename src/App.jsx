@@ -48,7 +48,7 @@ import SignupPage from '@/pages/SignupPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 const VerifyEmailPage = lazy(() => import('@/pages/VerifyEmailPage'));
 import AdminLoginPage from '@/pages/AdminLoginPage';
-import AdminDashboard from '@/pages/AdminDashboard'; 
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 
 // Feature Pages
 const FeatureOverviewPage = lazy(() => import('@/pages/features/FeatureOverviewPage'));

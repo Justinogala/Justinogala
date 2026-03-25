@@ -10,8 +10,8 @@ export const EASING = {
 
 // Durations
 export const DURATION = {
-  FAST: 0.3,
-  NORMAL: 0.6,
+  FAST: 0.15,
+  NORMAL: 0.3,
   SLOW: 0.8,
   SLOWER: 1.0,
 };

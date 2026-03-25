@@ -13,7 +13,7 @@ const HeroBackground = () => {
 
       {/* === B: Particle Field === */}
       <div className="hero-particles">
-        {Array.from({ length: 40 }).map((_, i) => (
+        {Array.from({ length: 15 }).map((_, i) => (
           <div key={i} className={`hero-particle hero-particle--${i % 8}`} style={{
             left: `${(i * 2.5) % 100}%`,
             animationDelay: `${(i * 0.4) % 6}s`,
