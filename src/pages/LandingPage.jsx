@@ -59,7 +59,7 @@ const LandingPage = () => {
                 </h1>
                 
                 <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed">
-                  The AI-powered workforce platform that combines intelligent meeting assistance, shift scheduling, time tracking, and team collaboration in one seamless experience.
+                  The all-in-one AI-powered unified communication and workforce platform designed to replace multiple workplace tools with a single integrated system.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
