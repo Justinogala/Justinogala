@@ -89,7 +89,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-white dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col lg:flex-row lg:items-stretch bg-white dark:bg-slate-950">
       <Helmet>
         <title>Login - Munal AI</title>
         <meta name="description" content="Log in to your Munal AI account for meeting intelligence." />
