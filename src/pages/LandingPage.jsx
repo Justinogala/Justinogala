@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,12 +10,12 @@ import PageTransition from '@/components/PageTransition';
 import HeroBackground from '@/components/HeroBackground';
 import DemoVideoModal from '@/components/DemoVideoModal';
 
-// Import Section Components
-import BenefitsSection from '@/components/landing/BenefitsSection';
-import HowItWorksSection from '@/components/landing/HowItWorksSection';
-import PricingSection from '@/components/landing/PricingSection';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import StatsSection from '@/components/landing/StatsSection';
+// Lazy load below-the-fold sections
+const BenefitsSection = lazy(() => import('@/components/landing/BenefitsSection'));
+const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
+const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
+const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection'));
+const StatsSection = lazy(() => import('@/components/landing/StatsSection'));
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -100,21 +100,31 @@ const LandingPage = () => {
           </section>
 
           {/* Stats Section */}
-          <StatsSection />
+          <Suspense fallback={null}>
+            <StatsSection />
+          </Suspense>
 
           {/* Benefits Section */}
           <div id="features">
-            <BenefitsSection />
+            <Suspense fallback={null}>
+              <BenefitsSection />
+            </Suspense>
           </div>
 
           {/* How It Works Section */}
-          <HowItWorksSection />
+          <Suspense fallback={null}>
+            <HowItWorksSection />
+          </Suspense>
 
           {/* Testimonials Section */}
-          <TestimonialsSection />
+          <Suspense fallback={null}>
+            <TestimonialsSection />
+          </Suspense>
 
           {/* Pricing Section */}
-          <PricingSection />
+          <Suspense fallback={null}>
+            <PricingSection />
+          </Suspense>
 
           {/* Final CTA */}
           <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
