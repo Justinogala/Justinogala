@@ -1,16 +1,15 @@
 
-import { Sparkles, Zap, Bell, Info, Gift } from 'lucide-react';
+import { Sparkles, Zap, Bell, Info, Gift, MessageSquare, FileCheck } from 'lucide-react';
 
 export const announcementTemplates = {
   welcome: {
-    id: 'welcome-banner-v1', // Unique ID for localStorage persistence
+    id: 'welcome-banner-v1',
     type: 'promotional',
     icon: Sparkles,
-    headline: "✨ Welcome to Munal",
+    headline: "Welcome to Munal",
     subtext: "Your ultimate AI meeting companion is here.",
     buttonText: "Explore Features",
     buttonLink: "/features/overview",
-    closable: true
   },
   maintenance: {
     id: 'maintenance-warning',
@@ -20,7 +19,6 @@ export const announcementTemplates = {
     subtext: "System will be updated on Saturday at 2 AM UTC.",
     buttonText: "Status Page",
     buttonLink: "/status",
-    closable: true
   },
   newFeature: {
     id: 'feature-voice-chat',
@@ -30,7 +28,6 @@ export const announcementTemplates = {
     subtext: "Interact with your meeting notes using just your voice!",
     buttonText: "Try Now",
     buttonLink: "/features/voice-chat",
-    closable: true
   },
   promo: {
     id: 'promo-pro-plan',
@@ -40,9 +37,36 @@ export const announcementTemplates = {
     subtext: "Get 50% off the Pro plan for your first 3 months.",
     buttonText: "Claim Offer",
     buttonLink: "/pricing",
-    closable: true
   }
 };
+
+// Rotating announcements for the top banner
+export const rotatingAnnouncements = [
+  {
+    type: 'promotional',
+    icon: Sparkles,
+    headline: "Welcome to Munal",
+    subtext: "Your all-in-one AI-powered workforce platform is here.",
+    buttonText: "Explore Features",
+    buttonLink: "/features/overview",
+  },
+  {
+    type: 'info',
+    icon: MessageSquare,
+    headline: "Real-Time Team Chat",
+    subtext: "Collaborate with your team through instant messaging, voice calls & file sharing.",
+    buttonText: "Start Chatting",
+    buttonLink: "/signup",
+  },
+  {
+    type: 'success',
+    icon: FileCheck,
+    headline: "eSignatures & Smart Forms",
+    subtext: "Go paperless with digital signatures, approvals & automated workflows.",
+    buttonText: "Get Started",
+    buttonLink: "/signup",
+  },
+];
 
 // Default configuration to be used in the app
 export const currentAnnouncement = announcementTemplates.welcome;
