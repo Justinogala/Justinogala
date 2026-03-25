@@ -1,5 +1,5 @@
 
-import { Sparkles, Zap, Bell, Info, Gift, MessageSquare, FileCheck } from 'lucide-react';
+import { Sparkles, Zap, Bell, Info, Gift, MessageSquare, FileCheck, Video, BarChart3, Shield } from 'lucide-react';
 
 export const announcementTemplates = {
   welcome: {
@@ -66,6 +66,30 @@ export const rotatingAnnouncements = [
     buttonText: "Get Started",
     buttonLink: "/signup",
   },
+  {
+    type: 'meeting',
+    icon: Video,
+    headline: "AI-Powered Meetings",
+    subtext: "Record, transcribe & summarize meetings automatically with smart AI assistance.",
+    buttonText: "Try Meetings",
+    buttonLink: "/signup",
+  },
+  {
+    type: 'analytics',
+    icon: BarChart3,
+    headline: "Live Team Analytics",
+    subtext: "Track activity in real-time with dashboards, graphs & performance insights.",
+    buttonText: "See Dashboard",
+    buttonLink: "/signup",
+  },
+  {
+    type: 'security',
+    icon: Shield,
+    headline: "Enterprise-Grade Security",
+    subtext: "Role-based access, audit logs & workspace isolation to keep your data safe.",
+    buttonText: "Learn More",
+    buttonLink: "/features/overview",
+  },
 ];
 
 // Default configuration to be used in the app
@@ -97,6 +121,24 @@ export const getAnnouncementStyle = (type) => {
         background: 'bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600',
         text: 'text-white',
         button: 'bg-white text-violet-600 hover:bg-violet-50'
+      };
+    case 'meeting':
+      return {
+        background: 'bg-gradient-to-r from-rose-600 to-red-500',
+        text: 'text-white',
+        button: 'bg-white text-rose-600 hover:bg-rose-50'
+      };
+    case 'analytics':
+      return {
+        background: 'bg-gradient-to-r from-indigo-600 to-violet-500',
+        text: 'text-white',
+        button: 'bg-white text-indigo-600 hover:bg-indigo-50'
+      };
+    case 'security':
+      return {
+        background: 'bg-gradient-to-r from-slate-700 to-slate-900',
+        text: 'text-white',
+        button: 'bg-white text-slate-700 hover:bg-slate-50'
       };
   }
 };
