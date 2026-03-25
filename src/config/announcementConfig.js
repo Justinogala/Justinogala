@@ -1,5 +1,5 @@
 
-import { Sparkles, Zap, Bell, Info, Gift, MessageSquare, FileCheck, Video, BarChart3, Shield } from 'lucide-react';
+import { Sparkles, Zap, Bell, Info, Gift, MessageSquare, FileCheck, Video, BarChart3, Shield, Mic, Briefcase, Clock } from 'lucide-react';
 
 export const announcementTemplates = {
   welcome: {
@@ -90,6 +90,30 @@ export const rotatingAnnouncements = [
     buttonText: "Learn More",
     buttonLink: "/features/overview",
   },
+  {
+    type: 'voice',
+    icon: Mic,
+    headline: "Voice Notes & Transcription",
+    subtext: "Record voice memos, transcribe audio to text & search your spoken ideas instantly.",
+    buttonText: "Try It Free",
+    buttonLink: "/signup",
+  },
+  {
+    type: 'workspace',
+    icon: Briefcase,
+    headline: "Unified Workspaces",
+    subtext: "Bring teams, projects & departments together under one roof with smart workspace management.",
+    buttonText: "Create Workspace",
+    buttonLink: "/signup",
+  },
+  {
+    type: 'shifts',
+    icon: Clock,
+    headline: "Shift Scheduling & Time Tracking",
+    subtext: "Plan shifts, track hours & manage attendance — all automated and conflict-free.",
+    buttonText: "Explore Shifts",
+    buttonLink: "/signup",
+  },
 ];
 
 // Default configuration to be used in the app
@@ -139,6 +163,24 @@ export const getAnnouncementStyle = (type) => {
         background: 'bg-gradient-to-r from-slate-700 to-slate-900',
         text: 'text-white',
         button: 'bg-white text-slate-700 hover:bg-slate-50'
+      };
+    case 'voice':
+      return {
+        background: 'bg-gradient-to-r from-pink-600 to-fuchsia-600',
+        text: 'text-white',
+        button: 'bg-white text-pink-600 hover:bg-pink-50'
+      };
+    case 'workspace':
+      return {
+        background: 'bg-gradient-to-r from-amber-500 to-orange-600',
+        text: 'text-white',
+        button: 'bg-white text-amber-600 hover:bg-amber-50'
+      };
+    case 'shifts':
+      return {
+        background: 'bg-gradient-to-r from-teal-600 to-cyan-600',
+        text: 'text-white',
+        button: 'bg-white text-teal-600 hover:bg-teal-50'
       };
   }
 };
