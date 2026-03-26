@@ -33,9 +33,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 
 import { getApiUrl, API_URL } from '@/lib/api';
+import { useAdminAuth } from '@/context/AdminAuthContext';
 
 const AdminBroadcastsPage = () => {
   const { toast } = useToast();
+  const { adminUser, isSuperAdmin } = useAdminAuth();
   const [activeTab, setActiveTab] = useState('broadcasts');
   
   // Broadcasts state
@@ -64,7 +66,9 @@ const AdminBroadcastsPage = () => {
   const fetchBroadcasts = useCallback(async () => {
     setLoadingBroadcasts(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/broadcasts`);
+      const token = localStorage.getItem('admin_token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await fetch(`${API_URL}/api/admin/broadcasts`, { headers });
       const data = await response.json();
       if (data.success) {
         setBroadcasts(data.broadcasts);
@@ -81,7 +85,9 @@ const AdminBroadcastsPage = () => {
   const fetchScheduledExports = useCallback(async () => {
     setLoadingExports(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/scheduled-exports`);
+      const token = localStorage.getItem('admin_token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await fetch(`${API_URL}/api/admin/scheduled-exports`, { headers });
       const data = await response.json();
       if (data.success) {
         setScheduledExports(data.exports);
@@ -108,9 +114,13 @@ const AdminBroadcastsPage = () => {
     
     setSendingBroadcast(true);
     try {
+      const token = localStorage.getItem('admin_token');
       const response = await fetch(`${API_URL}/api/admin/broadcasts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           subject: broadcastSubject,
           content: broadcastContent,
@@ -154,13 +164,17 @@ const AdminBroadcastsPage = () => {
     
     setSavingExport(true);
     try {
+      const token = localStorage.getItem('admin_token');
       const url = editingExport 
         ? `${API_URL}/api/admin/scheduled-exports/${editingExport.id}`
         : `${API_URL}/api/admin/scheduled-exports`;
       
       const response = await fetch(url, {
         method: editingExport ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           name: exportName,
           frequency: exportFrequency,
@@ -290,7 +304,10 @@ const AdminBroadcastsPage = () => {
               Broadcasts & Scheduled Exports
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Send announcements to all users and manage automated compliance exports.
+              {isSuperAdmin() 
+                ? 'Send announcements to all users and manage automated compliance exports.'
+                : `Send announcements to ${adminUser?.org_name || 'your organization'} members and manage automated exports.`
+              }
             </p>
           </div>
         </div>
@@ -312,7 +329,10 @@ const AdminBroadcastsPage = () => {
           <TabsContent value="broadcasts" className="space-y-4">
             <div className="flex justify-between items-center">
               <p className="text-sm text-muted-foreground">
-                Send messages to all users at once
+                {isSuperAdmin() 
+                  ? 'Send messages to all users at once'
+                  : `Send messages to ${adminUser?.org_name || 'your organization'} members`
+                }
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={fetchBroadcasts} disabled={loadingBroadcasts}>
@@ -506,7 +526,10 @@ const AdminBroadcastsPage = () => {
                 New Broadcast Message
               </DialogTitle>
               <DialogDescription>
-                This message will be sent to all active users on the platform.
+                {isSuperAdmin()
+                  ? 'This message will be sent to all active users on the platform.'
+                  : `This message will be sent to all members of ${adminUser?.org_name || 'your organization'}.`
+                }
               </DialogDescription>
             </DialogHeader>
             
@@ -552,7 +575,7 @@ const AdminBroadcastsPage = () => {
                 ) : (
                   <Send className="w-4 h-4 mr-2" />
                 )}
-                Send to All Users
+                {isSuperAdmin() ? 'Send to All Users' : `Send to ${adminUser?.org_name || 'Organization'}`}
               </Button>
             </DialogFooter>
           </DialogContent>
