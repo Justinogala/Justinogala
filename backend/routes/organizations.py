@@ -296,26 +296,52 @@ async def add_org_member(org_id: str, member: OrgMemberAdd):
     return {"success": True, "member": user_doc}
 
 
+class AssignUserToOrg(BaseModel):
+    user_id: str
+    org_role: str = "member"  # admin, manager, member
+
+
 @router.post("/{org_id}/members/assign")
-async def assign_existing_user(org_id: str, user_id: str = Query(...)):
-    """Assign an existing personal user to this organization (upgrades to business)."""
+async def assign_existing_user(org_id: str, body: AssignUserToOrg):
+    """Assign an existing user to this organization with a specific org role."""
     org = await db.organizations.find_one({"id": org_id}, {"_id": 0})
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    user = await db.users.find_one({"id": user_id})
+    user = await db.users.find_one({"id": body.user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     if user.get("organization_id") and user.get("account_type") == "business":
         raise HTTPException(status_code=400, detail="User is already assigned to an organization")
 
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {"organization_id": org_id, "account_type": "business", "updated_at": datetime.now(timezone.utc)}}
-    )
-    return {"success": True, "message": f"User assigned to organization '{org['name']}'"}
+    # Validate org role
+    valid_org_roles = ["admin", "manager", "member"]
+    org_role = body.org_role.lower() if body.org_role else "member"
+    if org_role not in valid_org_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid org role. Must be one of: {', '.join(valid_org_roles)}")
 
+    # Map org role to platform role
+    platform_role_map = {"admin": "Admin", "manager": "Manager", "member": "User"}
+    platform_role = platform_role_map.get(org_role, "User")
+
+    await db.users.update_one(
+        {"id": body.user_id},
+        {"$set": {
+            "organization_id": org_id,
+            "account_type": "business",
+            "org_role": org_role,
+            "role": platform_role,
+            "updated_at": datetime.now(timezone.utc)
+        }}
+    )
+    return {
+        "success": True,
+        "message": f"User assigned to '{org['name']}' as {org_role}",
+        "org_name": org["name"],
+        "org_role": org_role,
+        "platform_role": platform_role
+    }
 
 @router.delete("/{org_id}/members/{user_id}")
 async def remove_org_member(org_id: str, user_id: str):
