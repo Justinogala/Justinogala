@@ -254,24 +254,24 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-200">Email Address</Label>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Email Address</Label>
             <Input 
               value={formData.email} 
               onChange={(e) => handleChange(e)}
               name="email"
-              className="bg-white/5 border-white/10 text-white"
+              className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
               data-testid="edit-user-email-input"
             />
           </div>
           
           {/* Name */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-200">Full Name</Label>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Full Name</Label>
             <Input 
               name="name"
               value={formData.name} 
               onChange={handleChange}
-              className="bg-white/5 border-white/10 text-white"
+              className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
               data-testid="edit-user-name-input"
             />
           </div>
@@ -279,13 +279,13 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
           {/* Password Reset Section */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-gray-200">Password</Label>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Password</Label>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowPasswordSection(!showPasswordSection)}
-                className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 h-auto py-1 px-2"
+                className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 h-auto py-1 px-2"
               >
                 <KeyRound className="w-3 h-3 mr-1" />
                 {showPasswordSection ? 'Cancel Reset' : 'Reset Password'}
@@ -300,16 +300,16 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
                   placeholder="Enter new password (min. 6 characters)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white pr-10"
+                  className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Leave empty to keep current password
                 </p>
               </div>
@@ -319,12 +319,12 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
           <div className="grid grid-cols-2 gap-4">
             {/* Plan */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-200">Plan</Label>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Plan</Label>
               <Select 
                 value={formData.plan}
                 onValueChange={(val) => handleSelectChange('plan', val)}
               >
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white">
                   <SelectValue placeholder="Select Plan" />
                 </SelectTrigger>
                 <SelectContent>
@@ -337,12 +337,12 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
 
             {/* Status */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-200">Status</Label>
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Status</Label>
                <Select 
                 value={formData.status}
                 onValueChange={(val) => handleSelectChange('status', val)}
               >
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white">
                   <SelectValue placeholder="Select Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -356,12 +356,12 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
 
           {/* Role */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-200">Role</Label>
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Role</Label>
              <Select 
               value={formData.role}
               onValueChange={(val) => handleSelectChange('role', val)}
             >
-              <SelectTrigger className="bg-white/5 border-white/10 text-white" data-testid="edit-user-role-select">
+              <SelectTrigger className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white" data-testid="edit-user-role-select">
                 <SelectValue placeholder="Select Role" />
               </SelectTrigger>
               <SelectContent>
@@ -374,11 +374,11 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
 
           {/* Permissions Section - Only for Admin/Manager */}
           {showPermissions && (
-            <div className="space-y-3 pt-4 border-t border-white/10">
+            <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-white/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-violet-400" />
-                  <Label className="text-sm font-semibold text-white">
+                  <Shield className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                  <Label className="text-sm font-semibold text-gray-900 dark:text-white">
                     Admin Privileges
                   </Label>
                 </div>
@@ -388,7 +388,7 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
                     variant="ghost"
                     size="sm"
                     onClick={selectAllPermissions}
-                    className="text-xs h-6 px-2 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                    className="text-xs h-6 px-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-500/10"
                   >
                     All
                   </Button>
@@ -397,14 +397,14 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
                     variant="ghost"
                     size="sm"
                     onClick={deselectAllPermissions}
-                    className="text-xs h-6 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    className="text-xs h-6 px-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"
                   >
                     None
                   </Button>
                 </div>
               </div>
               
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Customize admin access for this {formData.role.toLowerCase()}.
               </p>
 
@@ -420,18 +420,18 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
                       open={isExpanded}
                       onOpenChange={() => toggleCategory(category)}
                     >
-                      <div className="rounded-lg border border-white/10 overflow-hidden">
+                      <div className="rounded-lg border border-gray-200 dark:border-white/10 overflow-hidden">
                         <CollapsibleTrigger asChild>
                           <div 
-                            className="flex items-center justify-between p-3 bg-white/5 cursor-pointer hover:bg-white/10"
+                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/5 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10"
                             data-testid={`edit-permission-category-${category}`}
                           >
                             <div className="flex items-center gap-3">
                               <Icon className={`w-4 h-4 ${config.color}`} />
-                              <span className="text-sm font-medium text-gray-200">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                 {config.label}
                               </span>
-                              <span className="text-xs text-gray-400 bg-white/10 px-2 py-0.5 rounded-full">
+                              <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-white/10 px-2 py-0.5 rounded-full">
                                 {enabled}/{total}
                               </span>
                             </div>
@@ -444,7 +444,7 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
                                   e.stopPropagation();
                                   toggleAllInCategory(category, enabled < total);
                                 }}
-                                className="text-xs h-6 px-2 text-gray-400 hover:text-white"
+                                className="text-xs h-6 px-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                               >
                                 {enabled === total ? 'None' : 'All'}
                               </Button>
@@ -466,7 +466,7 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
                               >
                                 <Label 
                                   htmlFor={`edit-${category}-${perm}`}
-                                  className="text-sm text-gray-400 cursor-pointer"
+                                  className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer"
                                 >
                                   {PERMISSION_LABELS[perm] || perm}
                                 </Label>
@@ -488,9 +488,9 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
             </div>
           )}
 
-          <div className="pt-4 flex gap-3 border-t border-white/10">
-            <Button type="button" variant="outline" className="flex-1 bg-transparent border-white/20 text-white hover:bg-white/10" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="flex-1 bg-violet-600 hover:bg-violet-700" disabled={loading} data-testid="edit-user-submit-btn">
+          <div className="pt-4 flex gap-3 border-t border-gray-200 dark:border-white/10">
+            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Cancel</Button>
+            <Button type="submit" className="flex-1 bg-violet-600 hover:bg-violet-700 text-white" disabled={loading} data-testid="edit-user-submit-btn">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
             </Button>
           </div>
