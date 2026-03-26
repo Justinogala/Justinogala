@@ -1,6 +1,6 @@
 """
 Module Permissions API - role-based templates and per-user overrides.
-Super admin can control which modules each role/user can access.
+Super admin can control which admin modules each role can access.
 """
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -10,69 +10,101 @@ from datetime import datetime, timezone
 
 router = APIRouter(prefix="/admin/module-permissions", tags=["module-permissions"])
 
-# All available modules
+# All available admin modules (mapped to sidebar sections)
 ALL_MODULES = [
-    "dashboard", "quick_record", "text_to_audio", "text_to_video",
-    "calendar", "meetings", "transcriptions", "voice_chat",
-    "workspaces", "chat", "messages", "files",
-    "esignature", "approvals", "reports",
-    "support_tickets", "admin_panel"
+    # Primary
+    "dashboard",
+    # Management
+    "users", "organizations", "workspaces", "reports",
+    "ir_sor_templates", "chat_moderation", "shifts", "support_tickets",
+    "messages", "broadcasts", "approval_templates", "forms",
+    # Billing
+    "billing",
+    # Configuration
+    "monitoring", "security_policies", "meeting_analytics", "cloud_storage",
+    "video_settings", "stripe_settings", "video_history", "api_settings",
+    "transcription_settings", "integrations", "audit_logs", "general_settings",
+    # Super admin only
+    "module_permissions"
 ]
-
-# Default role templates
-DEFAULT_TEMPLATES = {
-    "user": {
-        "dashboard": True, "quick_record": False, "text_to_audio": False,
-        "text_to_video": False, "calendar": False, "meetings": False,
-        "transcriptions": False, "voice_chat": False, "workspaces": True,
-        "chat": True, "messages": True, "files": False,
-        "esignature": False, "approvals": False, "reports": False,
-        "support_tickets": False, "admin_panel": False
-    },
-    "admin": {
-        "dashboard": True, "quick_record": True, "text_to_audio": True,
-        "text_to_video": True, "calendar": True, "meetings": True,
-        "transcriptions": True, "voice_chat": True, "workspaces": True,
-        "chat": True, "messages": True, "files": True,
-        "esignature": True, "approvals": True, "reports": True,
-        "support_tickets": True, "admin_panel": False
-    },
-    "manager": {
-        "dashboard": True, "quick_record": True, "text_to_audio": True,
-        "text_to_video": True, "calendar": True, "meetings": True,
-        "transcriptions": True, "voice_chat": True, "workspaces": True,
-        "chat": True, "messages": True, "files": True,
-        "esignature": True, "approvals": True, "reports": True,
-        "support_tickets": True, "admin_panel": False
-    },
-    "super_admin": {
-        "dashboard": True, "quick_record": True, "text_to_audio": True,
-        "text_to_video": True, "calendar": True, "meetings": True,
-        "transcriptions": True, "voice_chat": True, "workspaces": True,
-        "chat": True, "messages": True, "files": True,
-        "esignature": True, "approvals": True, "reports": True,
-        "support_tickets": True, "admin_panel": True
-    },
-}
 
 MODULE_LABELS = {
     "dashboard": "Dashboard",
-    "quick_record": "Quick Record",
-    "text_to_audio": "Text to Audio",
-    "text_to_video": "Text to Video",
-    "calendar": "Calendar",
-    "meetings": "Meetings",
-    "transcriptions": "Transcriptions",
-    "voice_chat": "Voice Chat",
+    "users": "Users",
+    "organizations": "Organizations",
     "workspaces": "Workspaces",
-    "chat": "Chat",
-    "messages": "Messages",
-    "files": "Files",
-    "esignature": "eSignature",
-    "approvals": "Approvals",
     "reports": "IR / SOR Reports",
+    "ir_sor_templates": "IR/SOR Templates",
+    "chat_moderation": "Chat Moderation",
+    "shifts": "Shifts",
     "support_tickets": "Support Tickets",
-    "admin_panel": "Admin Panel",
+    "messages": "Messages",
+    "broadcasts": "Broadcasts",
+    "approval_templates": "Approval Templates",
+    "forms": "Forms",
+    "billing": "Billing & Payments",
+    "monitoring": "Monitoring",
+    "security_policies": "Security Policies",
+    "meeting_analytics": "Meeting Analytics",
+    "cloud_storage": "Cloud Storage",
+    "video_settings": "Video Settings",
+    "stripe_settings": "Stripe Settings",
+    "video_history": "Video History",
+    "api_settings": "API Settings",
+    "transcription_settings": "Transcription Settings",
+    "integrations": "Integrations",
+    "audit_logs": "Audit Logs",
+    "general_settings": "General Settings",
+    "module_permissions": "Module Permissions",
+}
+
+MODULE_GROUPS = {
+    "Primary": ["dashboard"],
+    "Management": ["users", "organizations", "workspaces", "reports", "ir_sor_templates",
+                    "chat_moderation", "shifts", "support_tickets", "messages",
+                    "broadcasts", "approval_templates", "forms"],
+    "Billing": ["billing"],
+    "Configuration": ["monitoring", "security_policies", "meeting_analytics", "cloud_storage",
+                       "video_settings", "stripe_settings", "video_history", "api_settings",
+                       "transcription_settings", "integrations", "audit_logs", "general_settings"],
+    "Super Admin": ["module_permissions"],
+}
+
+# Default role templates
+DEFAULT_TEMPLATES = {
+    "super_admin": {m: True for m in ALL_MODULES},
+    "admin": {
+        "dashboard": True,
+        "users": True, "organizations": True, "workspaces": True,
+        "reports": True, "ir_sor_templates": True,
+        "chat_moderation": True, "shifts": True,
+        "support_tickets": True, "messages": True, "broadcasts": False,
+        "approval_templates": False, "forms": True,
+        "billing": False,
+        "monitoring": False, "security_policies": False,
+        "meeting_analytics": True, "cloud_storage": False,
+        "video_settings": False, "stripe_settings": False,
+        "video_history": False, "api_settings": False,
+        "transcription_settings": False, "integrations": False,
+        "audit_logs": False, "general_settings": False,
+        "module_permissions": False,
+    },
+    "manager": {
+        "dashboard": True,
+        "users": False, "organizations": False, "workspaces": True,
+        "reports": True, "ir_sor_templates": False,
+        "chat_moderation": True, "shifts": True,
+        "support_tickets": True, "messages": True, "broadcasts": False,
+        "approval_templates": False, "forms": True,
+        "billing": False,
+        "monitoring": False, "security_policies": False,
+        "meeting_analytics": True, "cloud_storage": False,
+        "video_settings": False, "stripe_settings": False,
+        "video_history": False, "api_settings": False,
+        "transcription_settings": False, "integrations": False,
+        "audit_logs": False, "general_settings": False,
+        "module_permissions": False,
+    },
 }
 
 
@@ -88,10 +120,40 @@ async def _ensure_templates():
             })
 
 
+async def get_effective_permissions(user_id: str, role: str) -> dict:
+    """Get effective module permissions for a user. Used by login route."""
+    role_key = role.lower().replace(" ", "_")
+
+    # Super admin always gets everything
+    if role_key == "super_admin":
+        return {m: True for m in ALL_MODULES}
+
+    # Check per-user override first
+    override = await db["module_permission_overrides"].find_one(
+        {"user_id": user_id}, {"_id": 0}
+    )
+    if override and override.get("permissions"):
+        return override["permissions"]
+
+    # Fall back to role template from DB
+    await _ensure_templates()
+    template = await db["module_permission_templates"].find_one(
+        {"role": role_key}, {"_id": 0}
+    )
+    if template and template.get("permissions"):
+        return template["permissions"]
+
+    # Final fallback — default template
+    return DEFAULT_TEMPLATES.get(role_key, DEFAULT_TEMPLATES.get("admin", {}))
+
+
 @router.get("/modules")
 async def get_all_modules():
-    """Get list of all modules with labels."""
-    return {"modules": [{"key": k, "label": MODULE_LABELS.get(k, k)} for k in ALL_MODULES]}
+    """Get list of all modules with labels and groups."""
+    return {
+        "modules": [{"key": k, "label": MODULE_LABELS.get(k, k)} for k in ALL_MODULES],
+        "groups": MODULE_GROUPS,
+    }
 
 
 @router.get("/templates")
@@ -111,10 +173,13 @@ class TemplateUpdate(BaseModel):
 @router.put("/templates/{role}")
 async def update_role_template(role: str, body: TemplateUpdate):
     """Update a role template. Only super_admin should call this."""
-    if role not in DEFAULT_TEMPLATES:
+    if role == "super_admin":
+        raise HTTPException(status_code=403, detail="Cannot modify super_admin template")
+
+    valid_roles = [r for r in DEFAULT_TEMPLATES if r != "super_admin"]
+    if role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
 
-    # Validate all keys are valid modules
     for key in body.permissions:
         if key not in ALL_MODULES:
             raise HTTPException(status_code=400, detail=f"Invalid module: {key}")
@@ -125,57 +190,32 @@ async def update_role_template(role: str, body: TemplateUpdate):
         {"$set": {"permissions": body.permissions, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
 
-    # Also update all users of this role who don't have per-user overrides
-    users_of_role = await db["users"].find(
-        {"role": {"$regex": f"^{role}$", "$options": "i"}},
-        {"_id": 0, "id": 1}
-    ).to_list(1000)
-
-    for u in users_of_role:
-        override = await db["module_permission_overrides"].find_one({"user_id": u["id"]}, {"_id": 0})
-        if not override:
-            # No override — they inherit from template, no action needed
-            pass
-
     return {"message": f"Template for '{role}' updated", "permissions": body.permissions}
 
 
 @router.get("/user/{user_id}")
 async def get_user_permissions(user_id: str):
     """Get effective permissions for a user (override > template > default)."""
-    user = await db["users"].find_one({"id": user_id}, {"_id": 0, "id": 1, "role": 1, "name": 1, "email": 1})
+    user = await db["users"].find_one(
+        {"id": user_id}, {"_id": 0, "id": 1, "role": 1, "name": 1, "email": 1}
+    )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    role = (user.get("role") or "User").lower()
+    role = (user.get("role") or "User").lower().replace(" ", "_")
+    perms = await get_effective_permissions(user_id, user.get("role", "User"))
 
-    # Check per-user override first
-    override = await db["module_permission_overrides"].find_one({"user_id": user_id}, {"_id": 0})
-    if override and override.get("permissions"):
-        return {
-            "user_id": user_id,
-            "role": role,
-            "source": "override",
-            "permissions": override["permissions"]
-        }
+    # Check per-user override
+    override = await db["module_permission_overrides"].find_one(
+        {"user_id": user_id}, {"_id": 0}
+    )
+    source = "override" if (override and override.get("permissions")) else "template"
 
-    # Fall back to role template
-    await _ensure_templates()
-    template = await db["module_permission_templates"].find_one({"role": role}, {"_id": 0})
-    if template:
-        return {
-            "user_id": user_id,
-            "role": role,
-            "source": "template",
-            "permissions": template["permissions"]
-        }
-
-    # Final fallback — default user template
     return {
         "user_id": user_id,
         "role": role,
-        "source": "default",
-        "permissions": DEFAULT_TEMPLATES.get("user", {})
+        "source": source,
+        "permissions": perms
     }
 
 

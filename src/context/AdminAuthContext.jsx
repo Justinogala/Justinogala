@@ -63,7 +63,7 @@ export const AdminAuthProvider = ({ children }) => {
       }
 
       const dbUser = data.user;
-      const role = (dbUser.role || '').toLowerCase();
+      const role = (dbUser.role || '').toLowerCase().replace(' ', '_');
       
       if (role !== 'admin' && role !== 'super_admin' && role !== 'manager') {
         throw new Error('Access denied. Admin privileges required.');
@@ -75,7 +75,7 @@ export const AdminAuthProvider = ({ children }) => {
         username: dbUser.name || dbUser.full_name || 'Admin',
         name: dbUser.name || dbUser.full_name || 'Admin',
         role: dbUser.role,
-        permissions: dbUser.permissions || {},
+        module_permissions: dbUser.module_permissions || {},
         plan: dbUser.plan,
         avatar: dbUser.avatar
       };
@@ -92,6 +92,35 @@ export const AdminAuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const refreshPermissions = async () => {
+    if (!adminUser?.id) return;
+    try {
+      const apiUrl = getApiUrl();
+      const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      const res = await fetch(`${apiUrl}/api/admin/module-permissions/user/${adminUser.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = { ...adminUser, module_permissions: data.permissions };
+        setAdminUser(updated);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updated));
+      }
+    } catch (err) {
+      console.error('Failed to refresh permissions:', err);
+    }
+  };
+
+  const isSuperAdmin = () => {
+    const role = (adminUser?.role || '').toLowerCase().replace(' ', '_');
+    return role === 'super_admin';
+  };
+
+  const hasModuleAccess = (moduleKey) => {
+    if (isSuperAdmin()) return true;
+    return adminUser?.module_permissions?.[moduleKey] === true;
   };
 
   const logout = async () => {
@@ -113,7 +142,10 @@ export const AdminAuthProvider = ({ children }) => {
         error, 
         login, 
         logout,
-        clearError 
+        clearError,
+        isSuperAdmin,
+        hasModuleAccess,
+        refreshPermissions
       }}
     >
       {children}

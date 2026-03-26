@@ -12,10 +12,10 @@ const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { adminUser } = useAdminAuth();
   
-  // Map admin user to have correct role for permissions
+  // Pass user with module_permissions directly — PermissionContext handles RBAC
   const userWithPermissions = adminUser ? {
     ...adminUser,
-    role: adminUser.role === 'super_admin' ? 'Admin' : adminUser.role || 'Admin'
+    role: adminUser.role || 'Admin'
   } : null;
 
   return (

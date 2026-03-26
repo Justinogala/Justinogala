@@ -79,7 +79,7 @@ const SubNavItem = ({ link, onClose }) => (
 );
 
 const AdminSidebar = ({ onClose, isMobile }) => {
-  const { logout, adminUser } = useAdminAuth();
+  const { logout, adminUser, isSuperAdmin, hasModuleAccess } = useAdminAuth();
   const { permissions } = usePermissions();
   const navigate = useNavigate();
   const [paymentsOpen, setPaymentsOpen] = useState(false);
@@ -95,9 +95,9 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     if (!isMobile) setCollapsed(!collapsed);
   };
 
-  // Helper to check if user has a specific permission
-  const hasPermission = (category, action) => {
-    return permissions?.[category]?.[action] || false;
+  // Check module-level access using the RBAC module_permissions
+  const canAccessModule = (moduleKey) => {
+    return hasModuleAccess(moduleKey);
   };
 
   const primaryLinks = [
@@ -106,32 +106,28 @@ const AdminSidebar = ({ onClose, isMobile }) => {
       label: 'Dashboard', 
       path: '/admin/dashboard', 
       gradient: 'from-violet-500 to-indigo-500',
-      permission: ['dashboard', 'view']
+      moduleKey: 'dashboard'
     },
   ];
 
-  // Management links with permissions
+  // Management links with module keys
   const allManagementLinks = [
-    { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500', permission: ['users', 'view'] },
-    { icon: Building2, label: 'Organizations', path: '/admin/organizations', gradient: 'from-violet-500 to-purple-500', permission: ['users', 'view'] },
-    { icon: Building2, label: 'Workspaces', path: '/admin/workspaces', gradient: 'from-indigo-500 to-violet-500', permission: ['workspaces', 'view'] },
-    { icon: FileWarning, label: 'IR / SOR Reports', path: '/admin/reports', gradient: 'from-red-500 to-orange-500', permission: ['workspaces', 'view'] },
-    { icon: FileCheck2, label: 'IR/SOR Templates', path: '/admin/ir-sor-templates', gradient: 'from-orange-500 to-amber-500', permission: ['workspaces', 'view'] },
-    { icon: MessageSquare, label: 'Chat Moderation', path: '/admin/chat-moderation', gradient: 'from-emerald-500 to-green-500', permission: ['chat_moderation', 'view'] },
-    { icon: Clock, label: 'Shifts', path: '/admin/shifts', gradient: 'from-orange-500 to-amber-500', permission: ['shifts', 'view'] },
-    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-pink-500 to-rose-500', permission: ['support', 'view'] },
-    { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-rose-500 to-red-500', permission: ['messages', 'view'] },
-    { icon: MessageSquare, label: 'Broadcasts', path: '/admin/broadcasts', gradient: 'from-violet-500 to-purple-500', permission: ['messages', 'broadcast'] },
-    { icon: FileCheck2, label: 'Approval Templates', path: '/admin/approval-templates', gradient: 'from-teal-500 to-emerald-500', permission: ['settings', 'modify'] },
-    { icon: ClipboardList, label: 'Forms', path: '/admin/forms', gradient: 'from-indigo-500 to-blue-500', permission: ['workspaces', 'view'] },
+    { icon: Users, label: 'Users', path: '/admin/users', gradient: 'from-blue-500 to-cyan-500', moduleKey: 'users' },
+    { icon: Building2, label: 'Organizations', path: '/admin/organizations', gradient: 'from-violet-500 to-purple-500', moduleKey: 'organizations' },
+    { icon: Building2, label: 'Workspaces', path: '/admin/workspaces', gradient: 'from-indigo-500 to-violet-500', moduleKey: 'workspaces' },
+    { icon: FileWarning, label: 'IR / SOR Reports', path: '/admin/reports', gradient: 'from-red-500 to-orange-500', moduleKey: 'reports' },
+    { icon: FileCheck2, label: 'IR/SOR Templates', path: '/admin/ir-sor-templates', gradient: 'from-orange-500 to-amber-500', moduleKey: 'ir_sor_templates' },
+    { icon: MessageSquare, label: 'Chat Moderation', path: '/admin/chat-moderation', gradient: 'from-emerald-500 to-green-500', moduleKey: 'chat_moderation' },
+    { icon: Clock, label: 'Shifts', path: '/admin/shifts', gradient: 'from-orange-500 to-amber-500', moduleKey: 'shifts' },
+    { icon: Ticket, label: 'Support Tickets', path: '/admin/support-tickets', gradient: 'from-pink-500 to-rose-500', moduleKey: 'support_tickets' },
+    { icon: MessageSquare, label: 'Messages', path: '/admin/messages', gradient: 'from-rose-500 to-red-500', moduleKey: 'messages' },
+    { icon: MessageSquare, label: 'Broadcasts', path: '/admin/broadcasts', gradient: 'from-violet-500 to-purple-500', moduleKey: 'broadcasts' },
+    { icon: FileCheck2, label: 'Approval Templates', path: '/admin/approval-templates', gradient: 'from-teal-500 to-emerald-500', moduleKey: 'approval_templates' },
+    { icon: ClipboardList, label: 'Forms', path: '/admin/forms', gradient: 'from-indigo-500 to-blue-500', moduleKey: 'forms' },
   ];
 
-  // Filter management links based on permissions
-  const managementLinks = allManagementLinks.filter(link => {
-    if (!link.permission) return true;
-    const [category, action] = link.permission;
-    return hasPermission(category, action);
-  });
+  // Filter management links based on module permissions
+  const managementLinks = allManagementLinks.filter(link => canAccessModule(link.moduleKey));
 
   const paymentSubLinks = [
     { icon: Gateway, label: 'Payment Gateways', path: '/admin/payment-gateways' },
@@ -141,31 +137,27 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: Receipt, label: 'Transactions', path: '/admin/transactions' },
   ];
 
-  // Config links with permissions
+  // Config links with module keys
   const allConfigLinks = [
-    { icon: Activity, label: 'Monitoring', path: '/admin/monitoring', gradient: 'from-green-500 to-emerald-500', permission: ['settings', 'view'] },
-    { icon: Lock, label: 'Security Policies', path: '/admin/security-policies', gradient: 'from-red-500 to-rose-500', permission: ['settings', 'security'] },
-    { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500', permission: ['dashboard', 'analytics'] },
-    { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500', permission: ['settings', 'modify'] },
-    { icon: Video, label: 'Video Settings', path: '/admin/video-settings', gradient: 'from-fuchsia-500 to-pink-500', permission: ['settings', 'modify'] },
-    { icon: CreditCard, label: 'Stripe Settings', path: '/admin/stripe-settings', gradient: 'from-green-500 to-emerald-500', permission: ['billing', 'manage'] },
-    { icon: Video, label: 'Video History', path: '/admin/video-history', gradient: 'from-purple-500 to-fuchsia-500', permission: ['settings', 'view'] },
-    { icon: Key, label: 'API Settings', path: '/admin/api-settings', gradient: 'from-amber-500 to-orange-500', permission: ['settings', 'modify'] },
-    { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500', permission: ['settings', 'modify'] },
-    { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500', permission: ['settings', 'modify'] },
-    { icon: FileText, label: 'Audit Logs', path: '/admin/audit-logs', gradient: 'from-rose-500 to-pink-500', permission: ['settings', 'view'] },
-    { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500', permission: ['settings', 'view'] },
+    { icon: Activity, label: 'Monitoring', path: '/admin/monitoring', gradient: 'from-green-500 to-emerald-500', moduleKey: 'monitoring' },
+    { icon: Lock, label: 'Security Policies', path: '/admin/security-policies', gradient: 'from-red-500 to-rose-500', moduleKey: 'security_policies' },
+    { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500', moduleKey: 'meeting_analytics' },
+    { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500', moduleKey: 'cloud_storage' },
+    { icon: Video, label: 'Video Settings', path: '/admin/video-settings', gradient: 'from-fuchsia-500 to-pink-500', moduleKey: 'video_settings' },
+    { icon: CreditCard, label: 'Stripe Settings', path: '/admin/stripe-settings', gradient: 'from-green-500 to-emerald-500', moduleKey: 'stripe_settings' },
+    { icon: Video, label: 'Video History', path: '/admin/video-history', gradient: 'from-purple-500 to-fuchsia-500', moduleKey: 'video_history' },
+    { icon: Key, label: 'API Settings', path: '/admin/api-settings', gradient: 'from-amber-500 to-orange-500', moduleKey: 'api_settings' },
+    { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500', moduleKey: 'transcription_settings' },
+    { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500', moduleKey: 'integrations' },
+    { icon: FileText, label: 'Audit Logs', path: '/admin/audit-logs', gradient: 'from-rose-500 to-pink-500', moduleKey: 'audit_logs' },
+    { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500', moduleKey: 'general_settings' },
   ];
 
-  // Filter config links based on permissions
-  const configLinks = allConfigLinks.filter(link => {
-    if (!link.permission) return true;
-    const [category, action] = link.permission;
-    return hasPermission(category, action);
-  });
+  // Filter config links based on module permissions
+  const configLinks = allConfigLinks.filter(link => canAccessModule(link.moduleKey));
 
   // Check if user can see billing section
-  const canSeeBilling = hasPermission('billing', 'view');
+  const canSeeBilling = canAccessModule('billing');
 
   return (
     <motion.div 
@@ -352,6 +344,24 @@ const AdminSidebar = ({ onClose, isMobile }) => {
               setHoveredItem={setHoveredItem}
             />
           ))}
+        </div>
+        )}
+
+        {/* Module Permissions - Super Admin Only */}
+        {canAccessModule('module_permissions') && (
+        <div className="space-y-1">
+          {!collapsed && (
+            <p className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Super Admin</p>
+          )}
+          {collapsed && <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-gray-700 to-transparent mx-2 mb-2" />}
+          <NavItem
+            link={{ icon: Shield, label: 'Module Permissions', path: '/admin/module-permissions', gradient: 'from-red-600 to-rose-600' }}
+            index={primaryLinks.length + managementLinks.length + configLinks.length}
+            collapsed={collapsed}
+            onClose={onClose}
+            hoveredItem={hoveredItem}
+            setHoveredItem={setHoveredItem}
+          />
         </div>
         )}
       </div>
