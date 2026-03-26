@@ -29,32 +29,31 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Super Admin can assign any user to an org with a specific role from Users page
 - Super Admin can remove users from organizations (reverts to personal account)
 
-## Recent Changes (March 2026)
+## Recent Changes
+
+### Use Cases Mega-Menu & Industry Pages - COMPLETED (March 26, 2026)
+- Redesigned "Use Cases" dropdown into mega-menu with 2 columns: "By Team" and "By Industry"
+- Created 5 new industry landing pages: Healthcare, Education, Government, Legal & Compliance, Finance
+- Built reusable `UseCasePageLayout` component with hero, stats bar, challenges, solutions, workflows, testimonial, CTA, and prev/next navigation
+- Updated `UseCasesIndex` with organized "By Team" and "By Industry" card sections
+- All routes registered in App.jsx with lazy loading
+- 43/43 frontend tests passed (iteration_74.json)
 
 ### Assign Users to Organizations - COMPLETED (March 26, 2026)
 - Backend: `POST /api/organizations/{org_id}/members/assign` accepts `{user_id, org_role}` body
 - Maps org roles to platform roles (admin→Admin, manager→Manager, member→User)
-- Sets organization_id, account_type=business, org_role, and platform role
-- Rejects already-assigned users (400) and invalid roles
-- `DELETE /api/organizations/{org_id}/members/{user_id}` removes from org → personal
 - Frontend: "Assign to Organization" dialog on Users page (Super Admin only)
-- Shows org dropdown + role selector (admin/manager/member) with platform role descriptions
-- "Remove from Organization" option for users already in an org
-- Org Admin does NOT see Organization section in dropdown
-- User badges show org_role for business users, "Personal" for non-org users
 - 12 backend + 8 frontend tests passed (iteration_73.json)
 
 ### Organization-Scoped Admin Access - COMPLETED (March 26, 2026)
 - Broadcasts/Exports scoped to caller's org for Admin/Manager
 - User visibility scoped to caller's org
-- 15 backend + 9 frontend tests passed (iteration_72.json)
 
 ### Permission Change Audit Log - COMPLETED (March 26, 2026)
 - `permission_audit_log` collection, Activity Log UI on Module Permissions page
 
 ### RBAC Module Permissions - COMPLETED (March 26, 2026)
 - 27 admin modules, role-based templates, Module Permissions page
-- 14 backend + 31 frontend tests (iteration_70.json)
 
 ## Architecture
 ```
@@ -63,19 +62,34 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 │   ├── admin.py              # Broadcasts + Exports (org-scoped)
 │   ├── auth.py               # Login returns module_permissions, org info
 │   ├── users.py              # Role+org-based user visibility
-│   ├── organizations.py      # Org CRUD, member assign/remove (admin/manager/member)
+│   ├── organizations.py      # Org CRUD, member assign/remove
 │   ├── module_permissions.py # RBAC templates, audit log
 │   └── server.py             # Super_Admin seed
 └── frontend/src/
+    ├── components/
+    │   ├── Header.jsx                          # Mega-menu for Features & Use Cases
+    │   └── features/
+    │       ├── FeaturePageLayout.jsx           # Reusable feature page layout
+    │       └── UseCasePageLayout.jsx           # Reusable use case page layout (NEW)
+    ├── pages/UseCases/
+    │   ├── UseCasesIndex.jsx                   # Updated index with By Team & By Industry
+    │   ├── SalesTeams.jsx
+    │   ├── CustomerSuccess.jsx
+    │   ├── ProductTeams.jsx
+    │   ├── EngineeringTeams.jsx
+    │   ├── HRRecruiting.jsx
+    │   ├── Healthcare.jsx                      # NEW
+    │   ├── Education.jsx                       # NEW
+    │   ├── Government.jsx                      # NEW
+    │   ├── Legal.jsx                           # NEW
+    │   └── Finance.jsx                         # NEW
     ├── context/AdminAuthContext.jsx
     ├── contexts/PermissionContext.jsx
-    ├── pages/admin/
-    │   ├── AdminUserManagementPage.jsx  # Assign to Org dialog
-    │   ├── AdminBroadcastsPage.jsx      # Org-scoped broadcasts
-    │   ├── AdminModulePermissionsPage.jsx
-    │   └── AdminOrganizationsPage.jsx
-    ├── components/AdminSidebar.jsx
-    └── services/adminUserDataService.js
+    └── pages/admin/
+        ├── AdminUserManagementPage.jsx
+        ├── AdminBroadcastsPage.jsx
+        ├── AdminModulePermissionsPage.jsx
+        └── AdminOrganizationsPage.jsx
 ```
 
 ## Key API Endpoints
