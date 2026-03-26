@@ -434,6 +434,16 @@ async def login_user(request: Request, credentials: UserLogin):
     token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
     refresh_token, _ = create_refresh_token(user["id"])
     
+    # Fetch module permissions for admin/manager/super_admin users
+    module_permissions = {}
+    user_role = (user.get("role") or "User").lower().replace(" ", "_")
+    if user_role in ("admin", "super_admin", "manager"):
+        try:
+            from routes.module_permissions import get_effective_permissions
+            module_permissions = await get_effective_permissions(user["id"], user.get("role", "User"))
+        except Exception as e:
+            logger.error(f"Failed to fetch module permissions: {e}")
+    
     # Update last login
     await db.users.update_one(
         {"id": user["id"]},
@@ -453,6 +463,9 @@ async def login_user(request: Request, credentials: UserLogin):
         user["updated_at"] = user["updated_at"].isoformat()
     if "last_login" in user and hasattr(user["last_login"], 'isoformat'):
         user["last_login"] = user["last_login"].isoformat()
+    
+    # Include module_permissions in user object for frontend
+    user["module_permissions"] = module_permissions
     
     return {
         "user": user,

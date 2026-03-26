@@ -168,6 +168,7 @@ from routes.organizations import router as organizations_router
 from routes.forms import router as forms_router
 from routes.forms import admin_router as admin_forms_router
 from routes.dashboard import router as dashboard_router
+from routes.module_permissions import router as module_permissions_router
 
 
 # ============== Include All Routers ==============
@@ -236,6 +237,7 @@ api_router.include_router(organizations_router)
 api_router.include_router(admin_forms_router, prefix="/admin")
 api_router.include_router(search_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(module_permissions_router)
 
 
 # ============== Include Main Router ==============
@@ -311,7 +313,7 @@ async def startup_event():
                     "email": "admin@munal.com",
                     "password": hashed_pw,
                     "name": "Admin User",
-                    "role": "Admin",
+                    "role": "Super_Admin",
                     "status": "Active",
                     "plan": "Enterprise",
                     "avatar": None,
@@ -321,8 +323,15 @@ async def startup_event():
                     "updated_at": datetime.now(timezone.utc)
                 }
                 await db.users.insert_one(admin_doc)
-                logger.info("Admin user seeded: admin@munal.com")
+                logger.info("Super Admin user seeded: admin@munal.com")
             else:
+                # Migrate existing admin to Super_Admin if still on old "Admin" role
+                if admin.get("role") == "Admin":
+                    await db.users.update_one(
+                        {"email": "admin@munal.com"},
+                        {"$set": {"role": "Super_Admin"}}
+                    )
+                    logger.info("Migrated admin@munal.com to Super_Admin role")
                 # Auto-migrate admin plain-text password to bcrypt
                 stored_pw = admin.get("password", "")
                 if not (stored_pw.startswith('$2b$') or stored_pw.startswith('$2a$')):

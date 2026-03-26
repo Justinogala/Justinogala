@@ -3,59 +3,109 @@ import React, { createContext, useContext, useMemo } from 'react';
 // Permission context for role-based access control
 const PermissionContext = createContext(null);
 
-// Default permissions for each role
-const DEFAULT_PERMISSIONS = {
-  Admin: {
-    dashboard: { view: true, analytics: true },
-    users: { view: true, create: true, edit: true, delete: true },
-    workspaces: { view: true, manage: true, suspend: true, delete: true },
-    chat_moderation: { view: true, flag: true, delete: true, export: true },
-    shifts: { view: true, manage: true, override: true, export: true },
-    billing: { view: true, manage: true, refunds: true },
-    settings: { view: true, modify: true, security: true },
-    support: { view: true, respond: true },
-    messages: { view: true, send: true, broadcast: true }
-  },
-  Manager: {
-    dashboard: { view: true, analytics: true },
-    users: { view: true, create: false, edit: false, delete: false },
-    workspaces: { view: true, manage: true, suspend: false, delete: false },
-    chat_moderation: { view: true, flag: true, delete: false, export: false },
-    shifts: { view: true, manage: true, override: false, export: true },
-    billing: { view: true, manage: false, refunds: false },
-    settings: { view: true, modify: false, security: false },
-    support: { view: true, respond: true },
-    messages: { view: true, send: true, broadcast: false }
-  },
-  User: {
-    dashboard: { view: false, analytics: false },
-    users: { view: false, create: false, edit: false, delete: false },
-    workspaces: { view: false, manage: false, suspend: false, delete: false },
-    chat_moderation: { view: false, flag: false, delete: false, export: false },
-    shifts: { view: false, manage: false, override: false, export: false },
-    billing: { view: false, manage: false, refunds: false },
-    settings: { view: false, modify: false, security: false },
-    support: { view: false, respond: false },
-    messages: { view: false, send: false, broadcast: false }
-  }
+// Module-to-permission-category mapping
+// Maps module_permissions keys → the PermissionContext category + actions they enable
+const MODULE_TO_PERMISSIONS = {
+  dashboard: { dashboard: { view: true, analytics: true } },
+  users: { users: { view: true, create: true, edit: true, delete: true } },
+  organizations: { users: { view: true } },
+  workspaces: { workspaces: { view: true, manage: true, suspend: true, delete: true } },
+  reports: { workspaces: { view: true } },
+  ir_sor_templates: { workspaces: { view: true } },
+  chat_moderation: { chat_moderation: { view: true, flag: true, delete: true, export: true } },
+  shifts: { shifts: { view: true, manage: true, override: true, export: true } },
+  support_tickets: { support: { view: true, respond: true } },
+  messages: { messages: { view: true, send: true } },
+  broadcasts: { messages: { broadcast: true } },
+  approval_templates: { settings: { modify: true } },
+  forms: { workspaces: { view: true } },
+  billing: { billing: { view: true, manage: true, refunds: true } },
+  monitoring: { settings: { view: true } },
+  security_policies: { settings: { security: true } },
+  meeting_analytics: { dashboard: { analytics: true } },
+  cloud_storage: { settings: { modify: true } },
+  video_settings: { settings: { modify: true } },
+  stripe_settings: { billing: { manage: true } },
+  video_history: { settings: { view: true } },
+  api_settings: { settings: { modify: true } },
+  transcription_settings: { settings: { modify: true } },
+  integrations: { settings: { modify: true } },
+  audit_logs: { settings: { view: true } },
+  general_settings: { settings: { view: true, modify: true } },
+  module_permissions: { settings: { modify: true } },
 };
 
+// All permission categories with all-false defaults
+const EMPTY_PERMISSIONS = {
+  dashboard: { view: false, analytics: false },
+  users: { view: false, create: false, edit: false, delete: false },
+  workspaces: { view: false, manage: false, suspend: false, delete: false },
+  chat_moderation: { view: false, flag: false, delete: false, export: false },
+  shifts: { view: false, manage: false, override: false, export: false },
+  billing: { view: false, manage: false, refunds: false },
+  settings: { view: false, modify: false, security: false },
+  support: { view: false, respond: false },
+  messages: { view: false, send: false, broadcast: false },
+};
+
+// Build action-level permissions from module-level permissions
+function buildPermissionsFromModules(modulePerms) {
+  // Deep clone empty permissions
+  const result = JSON.parse(JSON.stringify(EMPTY_PERMISSIONS));
+
+  if (!modulePerms || typeof modulePerms !== 'object') return result;
+
+  for (const [moduleKey, enabled] of Object.entries(modulePerms)) {
+    if (!enabled) continue;
+    const mapping = MODULE_TO_PERMISSIONS[moduleKey];
+    if (!mapping) continue;
+
+    for (const [category, actions] of Object.entries(mapping)) {
+      if (!result[category]) result[category] = {};
+      for (const [action, val] of Object.entries(actions)) {
+        if (val) result[category][action] = true;
+      }
+    }
+  }
+
+  return result;
+}
+
 export const PermissionProvider = ({ children, user }) => {
-  // Get user permissions or defaults based on role
   const permissions = useMemo(() => {
-    if (!user) return DEFAULT_PERMISSIONS.User;
-    // Check if user has custom permissions (non-empty object)
-    const hasCustomPerms = user.permissions && Object.keys(user.permissions).length > 0;
-    return hasCustomPerms ? user.permissions : (DEFAULT_PERMISSIONS[user.role] || DEFAULT_PERMISSIONS.User);
+    if (!user) return EMPTY_PERMISSIONS;
+
+    const role = (user.role || '').toLowerCase().replace(' ', '_');
+
+    // Super admin gets everything
+    if (role === 'super_admin') {
+      const all = JSON.parse(JSON.stringify(EMPTY_PERMISSIONS));
+      for (const cat of Object.keys(all)) {
+        for (const act of Object.keys(all[cat])) {
+          all[cat][act] = true;
+        }
+      }
+      return all;
+    }
+
+    // Build from module_permissions (server-provided)
+    if (user.module_permissions && Object.keys(user.module_permissions).length > 0) {
+      return buildPermissionsFromModules(user.module_permissions);
+    }
+
+    // Fallback: empty (deny all) for unknown roles
+    return EMPTY_PERMISSIONS;
   }, [user]);
 
   const value = useMemo(() => ({
     permissions,
     role: user?.role || 'User',
-    isAdmin: user?.role === 'Admin',
+    isSuperAdmin: (user?.role || '').toLowerCase().replace(' ', '_') === 'super_admin',
+    isAdmin: ['Admin', 'Super_Admin'].includes(user?.role),
     isManager: user?.role === 'Manager',
-    isAdminOrManager: ['Admin', 'Manager'].includes(user?.role),
-  }), [permissions, user?.role]);
+    isAdminOrManager: ['Admin', 'Super_Admin', 'Manager'].includes(user?.role),
+    modulePermissions: user?.module_permissions || {},
+  }), [permissions, user?.role, user?.module_permissions]);
 
   return (
     <PermissionContext.Provider value={value}>
@@ -68,13 +118,14 @@ export const PermissionProvider = ({ children, user }) => {
 export const usePermissions = () => {
   const context = useContext(PermissionContext);
   if (!context) {
-    // Return default User permissions if no provider
     return {
-      permissions: DEFAULT_PERMISSIONS.User,
+      permissions: EMPTY_PERMISSIONS,
       role: 'User',
+      isSuperAdmin: false,
       isAdmin: false,
       isManager: false,
       isAdminOrManager: false,
+      modulePermissions: {},
     };
   }
   return context;
@@ -149,5 +200,5 @@ export const RequireRole = ({ roles, children, fallback = null }) => {
   return children;
 };
 
-// Export default permissions for use elsewhere
-export { DEFAULT_PERMISSIONS };
+// Export for use elsewhere
+export { EMPTY_PERMISSIONS as DEFAULT_PERMISSIONS };
