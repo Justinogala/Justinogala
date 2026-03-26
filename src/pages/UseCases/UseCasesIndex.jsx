@@ -1,17 +1,18 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
 import {
   Users, TrendingUp, Code, Heart, Briefcase, HeartPulse,
   GraduationCap, Landmark, Scale, Wallet, ArrowRight, LayoutGrid
 } from 'lucide-react';
+
+const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection'));
 
 const CaseCard = ({ item, idx }) => (
   <motion.div
@@ -63,22 +64,63 @@ const UseCasesIndex = () => {
         <Header />
 
         <main className="flex-grow" data-testid="usecases-index">
-          {/* Hero */}
-          <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-24 bg-white dark:bg-slate-900 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-50/60 via-transparent to-purple-50/40 dark:from-violet-900/10 dark:to-purple-900/10 pointer-events-none" />
-            <div className="container mx-auto px-6 relative z-10 text-center">
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-                <div className="inline-flex items-center px-3 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-sm font-medium mb-6">
-                  Solutions for Every Team
-                </div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-heading mb-6 text-gray-900 dark:text-white leading-tight max-w-4xl mx-auto">
-                  Built for How Your
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-purple-600"> Team Works</span>
-                </h1>
-                <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-                  Discover how Munal transforms workflows across teams and industries with AI-powered meeting intelligence.
-                </p>
-              </motion.div>
+          {/* Hero with Image */}
+          <section className="relative py-20 lg:py-28 bg-white dark:bg-slate-900 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 via-transparent to-purple-50/50 dark:from-violet-900/10 dark:to-purple-900/10 pointer-events-none" />
+            <div className="container mx-auto px-6 relative z-10">
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-sm font-medium mb-6">
+                    Solutions for Every Team
+                  </div>
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-heading mb-6 text-gray-900 dark:text-white leading-tight">
+                    Built for How Your
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-purple-600"> Team Works</span>
+                  </h1>
+                  <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+                    Discover how Munal transforms workflows across teams and industries with AI-powered meeting intelligence.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button size="lg" onClick={() => navigate('/signup')} className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25" data-testid="usecases-hero-cta">
+                      Start Free Trial
+                    </Button>
+                    <Button size="lg" variant="outline" className="border-gray-300 dark:border-gray-700" onClick={() => navigate('/contact')}>
+                      Talk to Sales
+                    </Button>
+                  </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-violet-600 to-purple-700 rounded-2xl blur-3xl -z-10 opacity-20" />
+                  <img
+                    src="https://images.unsplash.com/photo-1758691736975-9f7f643d178e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwxfHxkaXZlcnNlJTIwYnVzaW5lc3MlMjB0ZWFtJTIwbWVldGluZyUyMGNvbGxhYm9yYXRpb24lMjBtb2Rlcm4lMjBvZmZpY2V8ZW58MHx8fHwxNzc0NTY3MzcyfDA&ixlib=rb-4.1.0&q=85"
+                    alt="Teams using Munal"
+                    className="rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 w-full object-cover aspect-video hover:scale-[1.02] transition-transform duration-500"
+                    loading="lazy"
+                  />
+                </motion.div>
+              </div>
+            </div>
+          </section>
+
+          {/* Stats Bar */}
+          <section className="py-10 bg-gradient-to-r from-violet-600 to-purple-700 text-white">
+            <div className="container mx-auto px-6">
+              <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center text-sm font-medium opacity-80 tracking-wide mb-6">
+                Trusted by 500+ organizations across 10 industries
+              </motion.p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                {[
+                  { value: '500+', label: 'Organizations' },
+                  { value: '10M+', label: 'Meetings processed' },
+                  { value: '99.2%', label: 'Transcription accuracy' },
+                  { value: '4.9/5', label: 'Customer rating' },
+                ].map((stat, i) => (
+                  <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                    <div className="text-3xl md:text-4xl font-bold mb-1">{stat.value}</div>
+                    <div className="text-sm opacity-80">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -107,6 +149,11 @@ const UseCasesIndex = () => {
               </div>
             </div>
           </section>
+
+          {/* Testimonials Carousel */}
+          <Suspense fallback={<div className="py-24" />}>
+            <TestimonialsSection />
+          </Suspense>
 
           {/* CTA */}
           <section className="py-20 bg-gradient-to-r from-violet-600 to-purple-700 text-white relative overflow-hidden">
