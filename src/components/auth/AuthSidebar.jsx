@@ -5,30 +5,44 @@ import { CheckCircle2, BarChart2, Video, Zap } from 'lucide-react';
 
 const AuthSidebar = ({ title, subtitle, features = [], showPartners = true }) => {
   return (
-    <div className="hidden lg:flex flex-col justify-between w-full lg:w-1/2 bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] p-12 text-white relative overflow-hidden">
-      {/* Background patterns */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-white mix-blend-overlay filter blur-[100px]"></div>
-         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-400 mix-blend-overlay filter blur-[100px]"></div>
-      </div>
+    <div className="hidden lg:flex flex-col justify-between w-full lg:w-1/2 relative overflow-hidden p-12 bg-gradient-to-br from-slate-50 via-emerald-50/40 to-lime-50/30">
+      {/* Pastel gradient blooms (same as hero) */}
+      <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-emerald-300/40 via-teal-200/30 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-b from-violet-200/20 via-slate-100/10 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 -right-20 w-[400px] h-[400px] rounded-full bg-gradient-to-bl from-lime-200/25 via-emerald-100/15 to-transparent blur-3xl pointer-events-none" />
+
+      {/* Diagonal accent line */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 800 1200">
+        <defs>
+          <linearGradient id="auth-line-grad" x1="0.5" y1="0" x2="0.7" y2="1">
+            <stop offset="0%" stopColor="#059669" stopOpacity="0.5" />
+            <stop offset="50%" stopColor="#10b981" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#a3e635" stopOpacity="0.3" />
+          </linearGradient>
+        </defs>
+        <line x1="550" y1="0" x2="700" y2="1200" stroke="url(#auth-line-grad)" strokeWidth="2" />
+      </svg>
+
+      {/* Subtle noise texture */}
+      <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div>
           <Link to="/" className="flex items-center gap-3 mb-16 hover:opacity-90 transition-opacity w-fit">
-             <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 shadow-lg p-1.5">
+             <div className="w-12 h-12 bg-white/70 backdrop-blur-md rounded-xl flex items-center justify-center border border-gray-200/50 shadow-lg p-1.5">
                <img 
                  src="https://static.prod-images.emergentagent.com/jobs/0ff6213d-4a2a-4c94-9f92-a5cedc3a17d4/images/c66837e8355d2f7fb390996083b9cb7c8e4765b7bb7762754d0a7568ffe65bb5.png" 
                  alt="Munal AI Logo" 
                  className="w-full h-full object-contain"
                />
              </div>
-             <span className="text-2xl font-bold tracking-tight">Munal AI</span>
+             <span className="text-2xl font-bold tracking-tight text-gray-900">Munal AI</span>
           </Link>
 
-          <h1 className="text-4xl xl:text-5xl font-bold mb-6 leading-tight tracking-tight">
+          <h1 className="text-4xl xl:text-5xl font-bold mb-6 leading-tight tracking-tight text-gray-900">
             {title}
           </h1>
-          <p className="text-purple-100 text-lg mb-12 max-w-lg leading-relaxed font-light opacity-90">
+          <p className="text-gray-500 text-lg mb-12 max-w-lg leading-relaxed font-light">
             {subtitle}
           </p>
 
@@ -36,12 +50,12 @@ const AuthSidebar = ({ title, subtitle, features = [], showPartners = true }) =>
             <div className="space-y-6 mb-12">
               {features.map((feature, idx) => (
                 <div key={idx} className="flex items-start gap-4 group">
-                  <div className="mt-1 bg-white/10 p-1.5 rounded-lg group-hover:bg-white/20 transition-colors">
-                    <CheckCircle2 className="w-5 h-5 text-purple-200" />
+                  <div className="mt-1 bg-emerald-100/60 p-1.5 rounded-lg group-hover:bg-emerald-100 transition-colors">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-lg">{feature.title}</h3>
-                    <p className="text-sm text-purple-100/80 font-light mt-1">{feature.description}</p>
+                    <h3 className="font-semibold text-gray-800 text-lg">{feature.title}</h3>
+                    <p className="text-sm text-gray-500 font-light mt-1">{feature.description}</p>
                   </div>
                 </div>
               ))}
@@ -51,8 +65,8 @@ const AuthSidebar = ({ title, subtitle, features = [], showPartners = true }) =>
 
         {showPartners && (
           <div className="relative z-10 mt-auto">
-            <p className="text-xs text-purple-200 uppercase tracking-widest font-semibold mb-6 opacity-70">Trusted by Global Teams</p>
-            <div className="flex flex-wrap gap-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+            <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold mb-6">Trusted by Global Teams</p>
+            <div className="flex flex-wrap gap-8 text-gray-400">
               <div className="flex items-center gap-2"><Video className="w-6 h-6"/> <span className="font-bold text-lg">Stream</span></div>
               <div className="flex items-center gap-2"><BarChart2 className="w-6 h-6"/> <span className="font-bold text-lg">Analytics</span></div>
               <div className="flex items-center gap-2"><Zap className="w-6 h-6"/> <span className="font-bold text-lg">FastSync</span></div>

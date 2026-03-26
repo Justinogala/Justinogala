@@ -73,10 +73,16 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[100px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[100px]" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-slate-50 via-emerald-50/40 to-lime-50/30">
+      {/* Pastel gradient blooms (same as hero) */}
+      <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-emerald-300/40 via-teal-200/30 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-b from-violet-200/20 via-slate-100/10 to-transparent blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 -right-20 w-[400px] h-[400px] rounded-full bg-gradient-to-bl from-lime-200/25 via-emerald-100/15 to-transparent blur-3xl pointer-events-none" />
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1920 900">
+        <defs><linearGradient id="admin-line" x1="0.6" y1="0" x2="0.8" y2="1"><stop offset="0%" stopColor="#059669" stopOpacity="0.5"/><stop offset="100%" stopColor="#a3e635" stopOpacity="0.3"/></linearGradient></defs>
+        <line x1="1200" y1="0" x2="1500" y2="900" stroke="url(#admin-line)" strokeWidth="2"/>
+      </svg>
+      <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
 
       <Helmet>
         <title>Admin Login | Munal</title>
