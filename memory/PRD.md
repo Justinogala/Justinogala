@@ -31,6 +31,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Cookie/PWA Overlap Fix & Social Proof - COMPLETED (March 26, 2026)
+- Fixed cookie consent bar overlapping with PWA install prompt (narrowed to max-w-2xl, install prompt elevated to z-[110] and bottom-44 on mobile)
+- Added industry-specific social proof text to all 10 use case page stats bars
+- 100% frontend tests passed (iteration_76.json)
+
 ### Use Cases Mega-Menu & Industry Pages - COMPLETED (March 26, 2026)
 - Redesigned "Use Cases" dropdown into mega-menu with 2 columns: "By Team" and "By Industry"
 - Created 5 new industry landing pages: Healthcare, Education, Government, Legal & Compliance, Finance
