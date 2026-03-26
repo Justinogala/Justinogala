@@ -184,7 +184,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-lg lg:max-w-xl xl:max-w-2xl h-auto object-contain drop-shadow-2xl"
+                className="w-full max-w-lg lg:max-w-xl xl:max-w-2xl h-auto object-contain mix-blend-multiply opacity-90"
               />
             </AnimatePresence>
           </div>
