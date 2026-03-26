@@ -1,7 +1,8 @@
 """
 User management routes.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
@@ -11,6 +12,7 @@ from config import db, logger
 from models import UserCreate, UserUpdate, DEFAULT_PERMISSIONS
 
 router = APIRouter(prefix="/users", tags=["Users"])
+security = HTTPBearer(auto_error=False)
 
 
 
@@ -37,11 +39,28 @@ async def get_role_permissions(role: str):
 @router.get("")
 async def get_users(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """Get all users with pagination"""
+    """Get users. Admin/Manager only see Admin+Manager users. Super_Admin sees all."""
+    caller_role = None
+    if credentials:
+        try:
+            from routes.auth import verify_jwt_token
+            payload = verify_jwt_token(credentials.credentials)
+            caller = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "role": 1})
+            if caller:
+                caller_role = (caller.get("role") or "").lower().replace(" ", "_")
+        except Exception:
+            pass
+
+    query_filter = {}
+    # Admin and Manager can only see Admin, Manager, and Super_Admin users
+    if caller_role in ("admin", "manager"):
+        query_filter["role"] = {"$in": ["Admin", "Manager", "Super_Admin", "admin", "manager", "super_admin"]}
+
     users = await db.users.find(
-        {},
+        query_filter,
         {"_id": 0, "password": 0}
     ).skip(skip).limit(limit).to_list(limit)
     

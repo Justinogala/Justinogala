@@ -185,10 +185,37 @@ async def update_role_template(role: str, body: TemplateUpdate):
             raise HTTPException(status_code=400, detail=f"Invalid module: {key}")
 
     await _ensure_templates()
+
+    # Get old permissions for diff
+    old_template = await db["module_permission_templates"].find_one({"role": role}, {"_id": 0})
+    old_perms = old_template.get("permissions", {}) if old_template else {}
+
     await db["module_permission_templates"].update_one(
         {"role": role},
         {"$set": {"permissions": body.permissions, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
+
+    # Build change diff
+    changes = []
+    for mod_key in ALL_MODULES:
+        old_val = old_perms.get(mod_key, False)
+        new_val = body.permissions.get(mod_key, False)
+        if old_val != new_val:
+            changes.append({
+                "module": mod_key,
+                "label": MODULE_LABELS.get(mod_key, mod_key),
+                "from": old_val,
+                "to": new_val,
+            })
+
+    # Log the change
+    if changes:
+        await db["permission_audit_log"].insert_one({
+            "action": "template_update",
+            "role": role,
+            "changes": changes,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
 
     return {"message": f"Template for '{role}' updated", "permissions": body.permissions}
 
@@ -226,13 +253,17 @@ class UserPermissionUpdate(BaseModel):
 @router.put("/user/{user_id}")
 async def set_user_permissions(user_id: str, body: UserPermissionUpdate):
     """Set per-user permission override."""
-    user = await db["users"].find_one({"id": user_id}, {"_id": 0, "id": 1})
+    user = await db["users"].find_one({"id": user_id}, {"_id": 0, "id": 1, "email": 1})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     for key in body.permissions:
         if key not in ALL_MODULES:
             raise HTTPException(status_code=400, detail=f"Invalid module: {key}")
+
+    # Get old override for diff
+    old_override = await db["module_permission_overrides"].find_one({"user_id": user_id}, {"_id": 0})
+    old_perms = old_override.get("permissions", {}) if old_override else {}
 
     await db["module_permission_overrides"].update_one(
         {"user_id": user_id},
@@ -244,6 +275,28 @@ async def set_user_permissions(user_id: str, body: UserPermissionUpdate):
         upsert=True
     )
 
+    # Log the change
+    changes = []
+    for mod_key in ALL_MODULES:
+        old_val = old_perms.get(mod_key, None)
+        new_val = body.permissions.get(mod_key, None)
+        if old_val != new_val and new_val is not None:
+            changes.append({
+                "module": mod_key,
+                "label": MODULE_LABELS.get(mod_key, mod_key),
+                "from": old_val,
+                "to": new_val,
+            })
+
+    if changes:
+        await db["permission_audit_log"].insert_one({
+            "action": "user_override",
+            "user_id": user_id,
+            "user_email": user.get("email", ""),
+            "changes": changes,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
     return {"message": "User permissions updated", "user_id": user_id, "permissions": body.permissions}
 
 
@@ -251,4 +304,28 @@ async def set_user_permissions(user_id: str, body: UserPermissionUpdate):
 async def reset_user_permissions(user_id: str):
     """Remove per-user override so user falls back to role template."""
     await db["module_permission_overrides"].delete_one({"user_id": user_id})
+
+    # Log the reset
+    await db["permission_audit_log"].insert_one({
+        "action": "user_override_reset",
+        "user_id": user_id,
+        "changes": [],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
     return {"message": "User permissions reset to role template"}
+
+
+@router.get("/audit-log")
+async def get_permission_audit_log(
+    limit: int = 50,
+    skip: int = 0
+):
+    """Get the permission change audit log."""
+    logs = await db["permission_audit_log"].find(
+        {}, {"_id": 0}
+    ).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+
+    total = await db["permission_audit_log"].count_documents({})
+
+    return {"logs": logs, "total": total}
