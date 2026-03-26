@@ -96,7 +96,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
   };
 
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden" data-testid="hero-carousel">
+    <section className="relative min-h-[78vh] flex items-center overflow-hidden" data-testid="hero-carousel">
       {/* Animated background */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -125,7 +125,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="container mx-auto px-6 relative z-10 pt-8 pb-16">
+      <div className="container mx-auto px-6 relative z-10 pt-2 pb-8">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           {/* Left - Text */}
           <div className="flex-1 text-left">
