@@ -52,7 +52,7 @@
   "test_credentials": {
     "user": "admin@munal.com / Admin@123456",
     "test_user_id": "3fe4c41c-4f43-4683-98dc-db6de39b842c",
-    "app_url": "https://access-matrix-3.preview.emergentagent.com"
+    "app_url": "https://vertical-solutions-3.preview.emergentagent.com"
   },
   "seed_data_creation": "Used existing 'Welcome to Munal AI!' message in inbox for AI feature testing",
   "retest_needed": false,

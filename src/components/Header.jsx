@@ -9,7 +9,8 @@ import {
   Briefcase, GraduationCap, AudioLines, Clapperboard,
   PenLine, FileOutput, AlertTriangle, CreditCard,
   Clock, Headphones, LayoutDashboard, CircleDot,
-  FolderOpen, Bell, CheckCircle, Phone, GitBranch
+  FolderOpen, Bell, CheckCircle, Phone, GitBranch,
+  Building, Scale, Landmark, HeartPulse, BookOpen, Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll } from 'framer-motion';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
@@ -113,12 +114,18 @@ const Header = () => {
       { label: 'Billing', href: '/pricing', icon: CreditCard, col: 3 },
     ],
     'Use Cases': [
-      { label: 'Overview', href: '/use-cases', icon: Zap },
-      { label: 'Sales Teams', href: '/use-cases/sales', icon: Briefcase },
-      { label: 'Customer Success', href: '/use-cases/customer-success', icon: Heart },
-      { label: 'Product Teams', href: '/use-cases/product', icon: LayoutGrid },
-      { label: 'Engineering', href: '/use-cases/engineering', icon: Code },
-      { label: 'HR & Recruiting', href: '/use-cases/hr', icon: Users },
+      // Column 0: By Team
+      { label: 'Sales Teams', href: '/use-cases/sales', icon: Briefcase, col: 0 },
+      { label: 'Customer Success', href: '/use-cases/customer-success', icon: Heart, col: 0 },
+      { label: 'Product Teams', href: '/use-cases/product', icon: LayoutGrid, col: 0 },
+      { label: 'Engineering', href: '/use-cases/engineering', icon: Code, col: 0 },
+      { label: 'HR & Recruiting', href: '/use-cases/hr', icon: Users, col: 0 },
+      // Column 1: By Industry
+      { label: 'Healthcare', href: '/use-cases/healthcare', icon: HeartPulse, col: 1, badge: 'NEW' },
+      { label: 'Education', href: '/use-cases/education', icon: BookOpen, col: 1, badge: 'NEW' },
+      { label: 'Government', href: '/use-cases/government', icon: Landmark, col: 1, badge: 'NEW' },
+      { label: 'Legal & Compliance', href: '/use-cases/legal', icon: Scale, col: 1, badge: 'NEW' },
+      { label: 'Finance', href: '/use-cases/finance', icon: Wallet, col: 1, badge: 'NEW' },
     ],
     'Product': [
       { label: 'Pricing', href: '/pricing', icon: Zap },
@@ -282,14 +289,14 @@ const Header = () => {
                     transition={{ duration: 0.15 }}
                     className={cn(
                       "absolute top-full z-50",
-                      title === 'Features' ? 'right-0' : 'left-0'
+                      title === 'Features' ? 'right-0' : title === 'Use Cases' ? 'left-0' : 'left-0'
                     )}
                   >
                     {/* Bridge gap */}
                     <div className="h-2" />
                     <div className={cn(
                       "bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl shadow-2xl",
-                      title === 'Features' ? 'w-[700px] p-5' : 'w-56 py-2'
+                      title === 'Features' ? 'w-[700px] p-5' : title === 'Use Cases' ? 'w-[460px] p-5' : 'w-56 py-2'
                     )}>
                     {title === 'Features' ? (
                       <>
@@ -316,6 +323,35 @@ const Header = () => {
                           <p className="text-xs text-gray-400">Explore all 24+ features</p>
                           <Link to="/features" onClick={() => setActiveDropdown(null)} className="text-xs font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-400 flex items-center gap-1">
                             View all features <ChevronDown className="w-3 h-3 -rotate-90" />
+                          </Link>
+                        </div>
+                      </>
+                    ) : title === 'Use Cases' ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-0">
+                          {['By Team', 'By Industry'].map((colTitle, i) => (
+                            <div key={colTitle}>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-violet-500 mb-2 px-2">{colTitle}</p>
+                              {items.filter(item => item.col === i).map((item) => (
+                                <Link
+                                  key={item.href + item.label}
+                                  to={item.href}
+                                  onClick={() => setActiveDropdown(null)}
+                                  className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-gray-600 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-400 rounded-md transition-colors group"
+                                  data-testid={`usecase-menu-${item.label.toLowerCase().replace(/[\s&]+/g, '-')}`}
+                                >
+                                  <item.icon className="w-3.5 h-3.5 text-gray-400 group-hover:text-violet-500 transition-colors shrink-0" />
+                                  <span>{item.label}</span>
+                                  {item.badge && <span className="text-[9px] font-bold bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 px-1 py-0.5 rounded leading-none">{item.badge}</span>}
+                                </Link>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-violet-100 dark:border-violet-800 flex items-center justify-between">
+                          <p className="text-xs text-gray-400">10 solutions for every team</p>
+                          <Link to="/use-cases" onClick={() => setActiveDropdown(null)} className="text-xs font-semibold text-violet-600 hover:text-violet-700 dark:text-violet-400 flex items-center gap-1">
+                            View all use cases <ChevronDown className="w-3 h-3 -rotate-90" />
                           </Link>
                         </div>
                       </>

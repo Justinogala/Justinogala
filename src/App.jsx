@@ -157,6 +157,11 @@ const CustomerSuccess = lazy(() => import('@/pages/UseCases/CustomerSuccess'));
 const ProductTeams = lazy(() => import('@/pages/UseCases/ProductTeams'));
 const EngineeringTeams = lazy(() => import('@/pages/UseCases/EngineeringTeams'));
 const HRRecruiting = lazy(() => import('@/pages/UseCases/HRRecruiting'));
+const Healthcare = lazy(() => import('@/pages/UseCases/Healthcare'));
+const Education = lazy(() => import('@/pages/UseCases/Education'));
+const Government = lazy(() => import('@/pages/UseCases/Government'));
+const Legal = lazy(() => import('@/pages/UseCases/Legal'));
+const Finance = lazy(() => import('@/pages/UseCases/Finance'));
 
 // Resources
 const ResourcesIndex = lazy(() => import('@/pages/Resources/ResourcesIndex'));
@@ -453,6 +458,11 @@ function App() {
                               <Route path="/use-cases/product" element={<ProductTeams />} />
                               <Route path="/use-cases/engineering" element={<EngineeringTeams />} />
                               <Route path="/use-cases/hr" element={<HRRecruiting />} />
+                              <Route path="/use-cases/healthcare" element={<Healthcare />} />
+                              <Route path="/use-cases/education" element={<Education />} />
+                              <Route path="/use-cases/government" element={<Government />} />
+                              <Route path="/use-cases/legal" element={<Legal />} />
+                              <Route path="/use-cases/finance" element={<Finance />} />
 
                               <Route path="/resources" element={<ResourcesIndex />} />
                               <Route path="/resources/docs" element={<Documentation />} />

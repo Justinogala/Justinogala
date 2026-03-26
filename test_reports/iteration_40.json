@@ -74,7 +74,7 @@
   "test_credentials": {
     "user": "admin@munal.com",
     "password": "Admin@123456",
-    "app_url": "https://access-matrix-3.preview.emergentagent.com"
+    "app_url": "https://vertical-solutions-3.preview.emergentagent.com"
   },
   "seed_data_creation": "Test DOCX file created at /tmp/test_conversion.docx for e2e testing",
   "retest_needed": false,
