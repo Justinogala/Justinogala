@@ -16,68 +16,74 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - eSignature, Approvals, IR/SOR Reports
 - Role-Based Access Control (RBAC) with module-level permissions
 - Permission audit logging
+- Organization-scoped admin access (broadcasts, user visibility)
+
+## Organization Model
+- Organizations have three roles: **admin**, **manager**, **member**
+- Org roles map to platform roles: `admin→Admin`, `manager→Manager`, `member→User`
+- `Super_Admin` is platform-level only (not org-specific)
+- Admin/Manager users are org-scoped: they see only their org's members
+- Broadcasts/Scheduled Exports from org Admin go to their org only
+- Super Admin broadcasts go to all users platform-wide
 
 ## Recent Changes (March 2026)
 
-### Admin User Visibility Restriction - COMPLETED (March 26, 2026)
-- Backend: `GET /api/users` now checks caller role via auth token
-- Super_Admin: sees ALL users (30 users including regular app users)
-- Admin/Manager: only see Admin, Manager, Super_Admin users (3 users)
-- No auth: backward compatible, returns all users
-- Frontend: `adminUserDataService.js` now sends `admin_token` header
-- 9 backend + 16 frontend tests passed (iteration_71.json)
+### Organization-Scoped Admin Access - COMPLETED (March 26, 2026)
+- Backend: Broadcasts POST/GET now check caller auth token and scope to org
+- Backend: Scheduled Exports POST/GET similarly scoped to caller's org
+- Backend: `GET /api/users` → Admin with org_id sees only org members; Super Admin sees all
+- Backend: `POST /api/organizations/{org_id}/members` maps org roles to platform roles
+- Backend: Login returns `organization_id` and `org_name` for org users
+- Frontend: Broadcast page shows "Send to [OrgName]" for org admins, "Send to All Users" for Super Admin
+- Frontend: AdminAuthContext stores `organization_id`, `org_name`, `org_role`
+- 15 backend + 9 frontend tests passed (iteration_72.json)
 
 ### Permission Change Audit Log - COMPLETED (March 26, 2026)
-- Backend: `permission_audit_log` MongoDB collection tracks all permission changes
-- Logs template updates with role, changes diff (module label, from→to)
-- Logs user overrides and resets
-- `GET /api/admin/module-permissions/audit-log` endpoint with pagination
-- Frontend: Activity Log section at bottom of Module Permissions page
-- Shows Template/User Override/Reset badges, role names, change pills, relative timestamps
-- Auto-refreshes after saving a template change
+- `permission_audit_log` collection tracks template updates, user overrides, resets
+- `GET /api/admin/module-permissions/audit-log` endpoint
+- Activity Log section on Module Permissions page with change pills and timestamps
 
 ### RBAC Module Permissions - COMPLETED (March 26, 2026)
 - Fixed critical security flaw: Admin users no longer have Superadmin access
-- Migrated admin@munal.com from "Admin" to "Super_Admin" role
-- Backend: `/api/admin/module-permissions/` API with templates, user overrides, module listing
-- Login route returns `module_permissions` in user object
-- Frontend: `AdminAuthContext` stores module_permissions with `isSuperAdmin()` and `hasModuleAccess()`
-- Frontend: `PermissionContext` builds action-level permissions from server-provided module permissions
-- Frontend: `AdminSidebar` filters links based on module-level RBAC
-- Frontend: Module Permissions management page at `/admin/module-permissions`
-- 27 modules across 5 groups: Super Admin (27/27), Admin (12/27), Manager (9/27)
-- 14 backend + 31 frontend tests passed (iteration_70.json)
+- 27 admin modules across 5 groups with role-based templates
+- Module Permissions management page at `/admin/module-permissions`
+- 14 backend + 31 frontend tests (iteration_70.json)
+
+### Admin User Visibility Restriction - COMPLETED (March 26, 2026)
+- Admin with org sees org members; without org sees only admin/manager/super_admin
+- Super Admin sees all users
+- 9 backend + 16 frontend tests (iteration_71.json)
 
 ## Architecture
 ```
 /app/
-├── backend/
-│   ├── routes/
-│   │   ├── module_permissions.py  # RBAC templates, user overrides, audit log
-│   │   ├── auth.py               # Login returns module_permissions
-│   │   ├── users.py              # Role-based user visibility filtering
-│   │   ├── chat.py, dashboard.py, forms.py, workspaces.py, etc.
-│   └── server.py                 # Super_Admin seed, all routers registered
+├── backend/routes/
+│   ├── admin.py              # Broadcasts + Scheduled Exports (org-scoped via _get_caller)
+│   ├── auth.py               # Login returns module_permissions, organization_id, org_name
+│   ├── users.py              # Role+org-based user visibility filtering
+│   ├── organizations.py      # Org CRUD, member management (admin/manager/member roles)
+│   ├── module_permissions.py # RBAC templates, user overrides, audit log
+│   └── server.py             # Super_Admin seed, all routers registered
 └── frontend/src/
-    ├── context/AdminAuthContext.jsx   # isSuperAdmin(), hasModuleAccess()
-    ├── contexts/PermissionContext.jsx # Module→action permission builder
-    ├── layouts/AdminLayout.jsx
-    ├── components/AdminSidebar.jsx    # Module-key based filtering
-    ├── services/adminUserDataService.js  # Sends auth token for user filtering
+    ├── context/AdminAuthContext.jsx       # isSuperAdmin(), hasModuleAccess(), org info
+    ├── contexts/PermissionContext.jsx     # Module→action permission builder
     ├── pages/admin/
-    │   ├── AdminModulePermissionsPage.jsx  # Permission matrix + audit log
-    │   └── AdminUserManagementPage.jsx
-    └── hooks/useUserManagement.js
+    │   ├── AdminBroadcastsPage.jsx       # Org-scoped text and auth headers
+    │   ├── AdminModulePermissionsPage.jsx # Permission matrix + audit log
+    │   ├── AdminOrganizationsPage.jsx     # Org management with admin/manager/member roles
+    │   └── AdminUserManagementPage.jsx    # Org-filtered user list
+    ├── components/AdminSidebar.jsx        # Module-key based filtering
+    └── services/adminUserDataService.js   # Sends auth token for user filtering
 ```
 
 ## Key API Endpoints
-- `GET /api/users` - Role-filtered user list (Admin sees org users only)
-- `GET /api/admin/module-permissions/modules` - All modules with labels/groups
+- `GET /api/users` - Role+org-filtered user list
+- `POST/GET /api/admin/broadcasts` - Org-scoped broadcasts
+- `POST/GET /api/admin/scheduled-exports` - Org-scoped exports
+- `POST /api/organizations/{org_id}/members` - Create org member (admin/manager/member)
 - `GET /api/admin/module-permissions/templates` - Role templates
-- `PUT /api/admin/module-permissions/templates/{role}` - Update template (creates audit log)
 - `GET /api/admin/module-permissions/audit-log` - Permission change history
-- `GET /api/admin/module-permissions/user/{user_id}` - Effective user permissions
-- `POST /api/auth/login` - Returns module_permissions in user object
+- `POST /api/auth/login` - Returns module_permissions, organization_id, org_name
 
 ## 3rd Party Integrations
 - OpenAI Sora 2 Pro (Video Gen) — Emergent LLM Key
@@ -87,15 +93,17 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ## Backlog
 
 ### P2
-- Demo video shows "Numbus" instead of "Munal" (needs new Sora 2 gen or user asset)
+- Demo video shows "Numbus" instead of "Munal"
 - Refactor AdminStripeSettingsPage.jsx
-- Clean up orphaned data from workspace_members table
+- Clean up orphaned workspace_members data
 
 ### P3
 - Consolidate AuthContext and AdminAuthContext
 - Implement 2FA for admin accounts
 - Add Client Behavior Observation Form (9th template)
 
-## Credentials
-- Super Admin: admin@munal.com / Admin@123456 (role: Super_Admin)
-- Test Admin: testadmin@munal.com / TestAdmin@123 (role: Admin)
+## Test Credentials
+- Super Admin: admin@munal.com / Admin@123456 (role: Super_Admin, no org)
+- Org Admin: orgadmin@munal.com / OrgAdmin@123 (role: Admin, org: Munal Healthcare)
+- Org Manager: orgmgr@munal.com / OrgMgr@123 (role: Manager, org: Munal Healthcare)
+- Org Member: orgmember@munal.com / OrgMem@123 (role: User, org: Munal Healthcare)
