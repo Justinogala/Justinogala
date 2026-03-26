@@ -1,54 +1,75 @@
-
 import React from 'react';
-import { Helmet } from 'react-helmet';
-import PageHero from '@/components/shared/PageHero';
-import PageSection from '@/components/shared/PageSection';
-import CTASection from '@/components/shared/CTASection';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import PageTransition from '@/components/PageTransition';
-import { Lightbulb, Search, GitBranch } from 'lucide-react';
+import UseCasePageLayout from '@/components/features/UseCasePageLayout';
+import {
+  Lightbulb, Search, LayoutGrid, Users, MessageSquare,
+  GitBranch, BarChart, ClipboardList, Mic, FileText, Layers, Target
+} from 'lucide-react';
 
-const ProductTeams = () => {
-  return (
-    <PageTransition>
-      <Helmet>
-        <title>Product Teams - EchoNote AI</title>
-      </Helmet>
-      
-      <Header />
-      
-      <PageHero 
-        title="Build What Matters"
-        subtitle="Connect directly with user feedback. Search thousands of customer conversations to validate features."
-        backgroundImage="https://images.unsplash.com/photo-1573166364839-1bfe9196c23e"
-      />
-
-      <PageSection background="alt">
-        <div className="container mx-auto px-6 max-w-4xl">
-           <div className="flex flex-col gap-12">
-              <div className="flex items-start gap-6">
-                 <div className="p-4 bg-blue-100 rounded-xl text-blue-600"><Search className="w-8 h-8" /></div>
-                 <div>
-                    <h3 className="text-2xl font-bold mb-2 text-text-primary">Universal Search</h3>
-                    <p className="text-text-secondary text-lg">Don't guess what users want. Search "mobile app crash" across 500 sales calls to see the real impact.</p>
-                 </div>
-              </div>
-              <div className="flex items-start gap-6">
-                 <div className="p-4 bg-purple-100 rounded-xl text-purple-600"><Lightbulb className="w-8 h-8" /></div>
-                 <div>
-                    <h3 className="text-2xl font-bold mb-2 text-text-primary">Feature Validation</h3>
-                    <p className="text-text-secondary text-lg">Clip exact moments where users describe a problem and share it with your engineering squad.</p>
-                 </div>
-              </div>
-           </div>
-        </div>
-      </PageSection>
-
-      <CTASection />
-      <Footer />
-    </PageTransition>
-  );
-};
+const ProductTeams = () => (
+  <UseCasePageLayout
+    industry="Product Teams"
+    tagline="Data-Driven Product Decisions"
+    title="Build What Matters. Validate with Real Conversations."
+    description="Connect directly to the voice of your customer. Search thousands of conversations to validate features, prioritize roadmaps, and ship products users actually want."
+    heroImage="https://images.pexels.com/photos/7181112/pexels-photo-7181112.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    accentColor="blue"
+    stats={[
+      { value: '5x', label: 'Faster feature validation' },
+      { value: '80%', label: 'Less guesswork in roadmaps' },
+      { value: '1000+', label: 'Conversations searchable' },
+      { value: '30%', label: 'Higher feature adoption' },
+    ]}
+    challenges={[
+      { icon: Search, title: 'Disconnected from Users', description: 'Product managers rely on secondhand summaries. The real voice of the customer gets lost between sales, support, and CS.' },
+      { icon: LayoutGrid, title: 'Roadmap Prioritization', description: 'Without data on frequency and impact, feature prioritization becomes opinion-driven instead of evidence-based.' },
+      { icon: Users, title: 'Cross-Team Alignment', description: 'Engineering, Design, and PM interpret requirements differently when meeting notes are vague or incomplete.' },
+    ]}
+    solutions={[
+      {
+        icon: Mic,
+        title: 'Universal Conversation Search',
+        description: 'Search across thousands of sales calls, CS meetings, and user interviews to find every mention of a feature or pain point.',
+        bullets: [
+          'Full-text search across all team conversations',
+          'Filter by customer segment, date, or sentiment',
+          'Clip and share exact moments with your engineering squad',
+        ],
+      },
+      {
+        icon: Lightbulb,
+        title: 'Evidence-Based Feature Validation',
+        description: 'Stop guessing what users want. Ground every roadmap decision in real customer conversations and quantified demand.',
+        bullets: [
+          'AI-tagged feature requests aggregated by frequency',
+          'Customer quotes linked directly to feature proposals',
+          'Impact scoring based on account value and request volume',
+        ],
+      },
+      {
+        icon: FileText,
+        title: 'Auto-Generated Specs & PRDs',
+        description: 'Turn brainstorming sessions and user research calls into drafted product specs and requirements documents.',
+        bullets: [
+          'Meeting-to-PRD transformation with AI',
+          'Action items auto-extracted and assigned to owners',
+          'Version history of how requirements evolved',
+        ],
+      },
+    ]}
+    workflows={[
+      { icon: Target, title: 'User Interviews', description: 'Capture rich qualitative data from user research sessions with auto-tagged themes.' },
+      { icon: ClipboardList, title: 'Sprint Planning', description: 'Document sprint planning outcomes with clear acceptance criteria from discussions.' },
+      { icon: GitBranch, title: 'Design Reviews', description: 'Record design critiques and decisions for future reference and onboarding.' },
+      { icon: Layers, title: 'Roadmap Reviews', description: 'Data-driven roadmap sessions powered by aggregated customer voice data.' },
+    ]}
+    testimonial={{
+      quote: "We used to spend weeks surveying customers to validate features. Now we search Munal and have the answer in minutes, backed by real conversation data.",
+      author: "Lena Torres",
+      role: "Head of Product, Kiteflow"
+    }}
+    prevCase={{ name: 'Customer Success', link: '/use-cases/customer-success' }}
+    nextCase={{ name: 'Engineering', link: '/use-cases/engineering' }}
+  />
+);
 
 export default ProductTeams;
