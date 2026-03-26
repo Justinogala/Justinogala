@@ -7,7 +7,9 @@ export const adminUserDataService = {
   getAllUsers: async () => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/users`);
+      const token = localStorage.getItem('admin_token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await fetch(`${apiUrl}/api/users`, { headers });
       
       if (!response.ok) {
         throw new Error('Failed to fetch users');

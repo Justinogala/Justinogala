@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 import { getApiUrl } from '@/lib/api';
-import { Shield, Check, X, Loader2, Save, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Shield, Check, X, Loader2, Save, RotateCcw, ChevronDown, ChevronRight, History, ArrowUp, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +31,8 @@ const AdminModulePermissionsPage = () => {
   const [dirty, setDirty] = useState({});
   const [expandedGroups, setExpandedGroups] = useState({ Primary: true, Management: true, Billing: true, Configuration: true, 'Super Admin': true });
   const [toast, setToast] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const apiUrl = getApiUrl();
   const token = localStorage.getItem('admin_token');
@@ -67,7 +69,23 @@ const AdminModulePermissionsPage = () => {
     }
   }, [apiUrl, token]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const fetchAuditLog = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const h = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`${apiUrl}/api/admin/module-permissions/audit-log?limit=20`, { headers: h });
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogs(data.logs || []);
+      }
+    } catch (err) {
+      // silent fail for audit log
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [apiUrl, token]);
+
+  useEffect(() => { fetchData(); fetchAuditLog(); }, [fetchData, fetchAuditLog]);
 
   const togglePermission = (role, moduleKey) => {
     if (role === 'super_admin') return;
@@ -93,6 +111,7 @@ const AdminModulePermissionsPage = () => {
       if (!res.ok) throw new Error('Save failed');
       setDirty(prev => ({ ...prev, [role]: false }));
       showToast(`${role.charAt(0).toUpperCase() + role.slice(1)} permissions saved`);
+      fetchAuditLog();
     } catch (err) {
       showToast('Failed to save', 'error');
     } finally {
@@ -116,6 +135,21 @@ const AdminModulePermissionsPage = () => {
   const countEnabled = (role) => {
     const perms = editState[role] || {};
     return Object.values(perms).filter(Boolean).length;
+  };
+
+  const formatTimestamp = (ts) => {
+    if (!ts) return '';
+    try {
+      const d = new Date(ts);
+      const now = new Date();
+      const diffMs = now - d;
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHrs = Math.floor(diffMins / 60);
+      if (diffHrs < 24) return `${diffHrs}h ago`;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return ts; }
   };
 
   if (!isSuperAdmin()) {
@@ -281,6 +315,77 @@ const AdminModulePermissionsPage = () => {
             </Button>
           </div>
         ))}
+      </div>
+
+      {/* Audit Log */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden" data-testid="audit-log-section">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500">
+            <History className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-gray-800 dark:text-white">Activity Log</h2>
+            <p className="text-xs text-gray-400">Track permission changes</p>
+          </div>
+        </div>
+
+        <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[400px] overflow-y-auto">
+          {auditLoading ? (
+            <div className="p-8 flex justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="p-8 text-center text-sm text-gray-400" data-testid="audit-log-empty">
+              No permission changes recorded yet.
+            </div>
+          ) : (
+            auditLogs.map((log, idx) => (
+              <div key={idx} className="px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors" data-testid={`audit-log-entry-${idx}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide",
+                      log.action === 'template_update'
+                        ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300'
+                        : log.action === 'user_override'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                    )}>
+                      {log.action === 'template_update' ? 'Template' : log.action === 'user_override' ? 'User Override' : 'Reset'}
+                    </span>
+                    {log.role && (
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 capitalize">{log.role}</span>
+                    )}
+                    {log.user_email && (
+                      <span className="text-xs text-gray-500">{log.user_email}</span>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-gray-400">
+                    {formatTimestamp(log.timestamp)}
+                  </span>
+                </div>
+                {log.changes && log.changes.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {log.changes.map((change, ci) => (
+                      <span
+                        key={ci}
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium",
+                          change.to
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                            : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                        )}
+                      >
+                        {change.to ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                        {change.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
