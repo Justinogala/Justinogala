@@ -14,101 +14,94 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Video generation (Sora 2 Pro)
 - Voice Chat, Text-to-Audio, Calendar, Meetings, Transcriptions
 - eSignature, Approvals, IR/SOR Reports
+- Role-Based Access Control (RBAC) with module-level permissions
 
 ## Recent Changes (March 2026)
 
+### RBAC Module Permissions - COMPLETED (March 26, 2026)
+- Fixed critical security flaw: Admin users no longer have Superadmin access
+- Migrated admin@munal.com from "Admin" to "Super_Admin" role
+- Backend: `/api/admin/module-permissions/` API with templates, user overrides, and module listing
+- Login route now returns `module_permissions` in user object for admin/super_admin/manager roles
+- Frontend: `AdminAuthContext` stores module_permissions with `isSuperAdmin()` and `hasModuleAccess()` helpers
+- Frontend: `PermissionContext` builds action-level permissions from server-provided module permissions
+- Frontend: `AdminSidebar` filters links based on module-level RBAC (not hardcoded defaults)
+- Frontend: New "Module Permissions" page at `/admin/module-permissions` for Super Admins
+- Permission matrix UI with Admin/Manager columns, grouped by section (Primary, Management, Billing, Configuration, Super Admin)
+- Templates stored in MongoDB `module_permission_templates` collection
+- Per-user overrides supported via `module_permission_overrides` collection
+- 27 modules across 5 groups, default: Super Admin (27/27), Admin (12/27), Manager (9/27)
+- 45 tests passed (14 backend + 31 frontend, iteration_70.json)
+
 ### Landing Page "How It Works" Upgrade - COMPLETED (March 24, 2026)
 - Expanded from 4 basic meeting steps to 5 comprehensive platform steps
-- New steps: Set Up Your Space, Connect & Collaborate, Run Smart Meetings, Streamline Workflows, Track & Grow
-- Alternating left/right timeline layout on desktop with connecting line and numbered dots
-- Each card has gradient icon, description, and 2 feature highlight pills
-- "Get Started Free" CTA at bottom linking to /register
 - 25 frontend tests passed (iteration_69.json)
 
 ### Real-Time Dashboard Activity Updates - COMPLETED (March 24, 2026)
-- Created SSE endpoint `/api/dashboard/activity/stream` that pushes data every 20 seconds
-- Frontend `useDashboardStream` hook connects via EventSource for live updates
-- Green pulsing "LIVE" indicators on both Weekly Activity chart and Recent Activity feed
-- `AnimatedNumber` component with eased transitions for smooth stat counter changes
-- `effectiveStats` pattern: SSE live stats merged with initial data for seamless updates
-- Slide-in animations for new activity feed items (framer-motion AnimatePresence)
-- "Updated Just now" timestamp on the activity graph
-- 34 tests passed (9 backend + 25 frontend, iteration_68.json)
-
-### Quick Action Link Fixes - COMPLETED (March 24, 2026)
-- Fixed eSignature link: `/e-signature` (404) → `/esignature` (working)
-- Fixed AI Assistant link: `/ai-chat` (404) → `/messages` (working)
-
-### Activity Graph & Feed - COMPLETED (March 24, 2026)
-- Weekly Activity bar chart (recharts) showing Messages, Approvals, Meetings, Logins over 7 days
-- Recent Activity feed showing 10 most recent items across all types
-- Backend endpoint `/api/dashboard/activity` aggregates data from multiple collections
+- SSE endpoint `/api/dashboard/activity/stream`, live graphs and feeds
+- 34 tests passed (iteration_68.json)
 
 ### User Dashboard Redesign - COMPLETED (March 24, 2026)
-- Dynamic stats from API (Workspaces, Team Members, Pending Approvals, Announcements)
-- 8 quick action buttons with gradient icons
-- Workspace cards showing real data with member counts and scope badges
-- Dark hero banner, animated entrance transitions (framer-motion)
+- Dynamic stats, 8 quick actions, workspace cards with real data
 
-### Chat Module Enhancements - COMPLETED
-1. SSE Connection Stability Fix - Fixed status flickering
-2. File Attachments with Object Storage - Chat file uploads via Emergent Object Storage
-3. Rich Presence Status System - Teams/Slack-style user presence (6 status types)
-
-### Call & Voice Fixes - COMPLETED
-- Backend checks if target user is online before initiating call
-- Voice recordings upload to object storage
-- 30-second call timeout, TURN servers for NAT traversal
-
-### Mobile-Friendly Optimization - COMPLETED
-- Global CSS: prevented horizontal overflow, touch-friendly tap targets, iOS zoom prevention
-- WorkspaceChatPage: Full-width sidebar on mobile with show/hide panels
-
-### Other Completions
-- Quick Links Fix (Submit Ticket, My Tickets buttons)
-- Admin Workspace Deletion (Fixed 500 error)
-- Global Search API + UI (/api/search endpoint)
+### Other Recent Completions
+- Quick Action Link Fixes (eSignature, AI Assistant)
+- Activity Graph & Feed
+- Chat Module Enhancements (SSE stability, file attachments, presence)
+- Call & Voice Fixes
+- Mobile-Friendly Optimization
+- Admin Workspace Deletion Fix
+- Global Search API + UI
+- Landing page speed optimization (<0.5s), 3-slide hero carousel
+- Auth pages pastel gradient redesign
+- Cookie Consent banner
+- Resend email delivery fix for password resets
 
 ## Architecture
 ```
 /app/
 ├── backend/
 │   ├── routes/
-│   │   ├── chat.py              # SSE, messages, file upload, presence APIs
-│   │   ├── dashboard.py         # Activity API + SSE stream endpoint
-│   │   ├── forms.py             # Org-wide template CRUD & submissions
-│   │   ├── workspaces.py        # Workspace management, dashboard summary
-│   │   ├── admin.py             # Admin routes
-│   │   ├── search.py            # Global search endpoint
-│   │   ├── calls.py             # WebRTC calls with offline validation
-│   │   └── admin_workspaces.py  # Admin workspace deletion
-│   └── server.py
+│   │   ├── module_permissions.py  # RBAC: templates, user overrides, module listing
+│   │   ├── auth.py               # Login returns module_permissions
+│   │   ├── chat.py               # SSE, messages, file upload, presence APIs
+│   │   ├── dashboard.py          # Activity API + SSE stream endpoint
+│   │   ├── forms.py              # Org-wide template CRUD & submissions
+│   │   ├── workspaces.py         # Workspace management, dashboard summary
+│   │   ├── admin.py              # Admin routes
+│   │   ├── search.py             # Global search endpoint
+│   │   ├── calls.py              # WebRTC calls with offline validation
+│   │   └── admin_workspaces.py   # Admin workspace deletion
+│   └── server.py                 # Super_Admin seed, all routers registered
 └── frontend/src/
+    ├── context/
+    │   └── AdminAuthContext.jsx   # isSuperAdmin(), hasModuleAccess(), refreshPermissions()
+    ├── contexts/
+    │   └── PermissionContext.jsx  # Builds action permissions from module permissions
+    ├── layouts/
+    │   └── AdminLayout.jsx       # Passes actual role (no more super_admin→Admin mapping)
     ├── components/
-    │   ├── user/
-    │   │   ├── DashboardActivity.jsx    # ActivityGraph, RecentActivityFeed, useDashboardStream, AnimatedNumber, LiveDot
-    │   │   ├── WorkspaceDashboardWidget.jsx
-    │   │   ├── MeetingListSection.jsx
-    │   │   └── RecentFilesSection.jsx
-    │   ├── chat/
-    │   │   ├── UserPresenceStatus.jsx
-    │   │   └── VoiceMessageRecorder.jsx
-    │   └── search/
-    │       ├── MobileSearchOverlay.jsx
-    │       └── SearchResultsDropdown.jsx
+    │   ├── AdminSidebar.jsx      # Module-key based filtering, Super Admin section
+    │   └── user/
+    │       └── DashboardActivity.jsx
     ├── pages/
-    │   ├── user/UserDashboard.jsx   # Real-time dashboard with SSE
-    │   ├── WorkspaceChatPage.jsx
-    │   └── WorkspaceDetailPage.jsx
-    └── hooks/useWebSocketChat.js    # Chat SSE hook
+    │   ├── admin/
+    │   │   └── AdminModulePermissionsPage.jsx  # Permission matrix UI
+    │   └── user/UserDashboard.jsx
+    └── hooks/useWebSocketChat.js
 ```
 
 ## Key API Endpoints
+- `GET /api/admin/module-permissions/modules` - All modules with labels and groups
+- `GET /api/admin/module-permissions/templates` - Role templates (super_admin, admin, manager)
+- `PUT /api/admin/module-permissions/templates/{role}` - Update role template
+- `GET /api/admin/module-permissions/user/{user_id}` - Effective permissions for a user
+- `PUT /api/admin/module-permissions/user/{user_id}` - Set per-user override
+- `DELETE /api/admin/module-permissions/user/{user_id}` - Reset to role template
+- `POST /api/auth/login` - Returns module_permissions in user object
 - `GET /api/dashboard/activity` - Activity graph + feed data
-- `GET /api/dashboard/activity/stream` - SSE real-time stream (sends init, update, ping events)
-- `GET /api/workspaces/dashboard/summary` - Dashboard summary with workspace counts
-- `POST /api/chat/messages` - Send message
-- `GET /api/chat/stream/{user_id}` - Chat SSE stream
+- `GET /api/dashboard/activity/stream` - SSE real-time stream
+- `GET /api/workspaces/dashboard/summary` - Dashboard summary
 - `GET /api/search` - Global cross-entity search
 
 ## 3rd Party Integrations
@@ -119,6 +112,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ## Backlog
 
 ### P2
+- Demo video shows "Numbus" instead of "Munal" (needs new Sora 2 generation or user asset)
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned data from workspace_members table
 
@@ -128,4 +122,4 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Add Client Behavior Observation Form (9th template)
 
 ## Credentials
-- Admin: admin@munal.com / Admin@123456
+- Super Admin: admin@munal.com / Admin@123456 (role: Super_Admin)
