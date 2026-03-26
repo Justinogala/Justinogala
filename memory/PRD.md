@@ -34,10 +34,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ### Use Cases Mega-Menu & Industry Pages - COMPLETED (March 26, 2026)
 - Redesigned "Use Cases" dropdown into mega-menu with 2 columns: "By Team" and "By Industry"
 - Created 5 new industry landing pages: Healthcare, Education, Government, Legal & Compliance, Finance
+- Redesigned 5 existing "By Team" pages (Sales, Customer Success, Product, Engineering, HR) to use same UseCasePageLayout
 - Built reusable `UseCasePageLayout` component with hero, stats bar, challenges, solutions, workflows, testimonial, CTA, and prev/next navigation
 - Updated `UseCasesIndex` with organized "By Team" and "By Industry" card sections
 - All routes registered in App.jsx with lazy loading
-- 43/43 frontend tests passed (iteration_74.json)
+- 43/43 frontend tests passed (iteration_74.json) + 41/41 team page tests (iteration_75.json)
 
 ### Assign Users to Organizations - COMPLETED (March 26, 2026)
 - Backend: `POST /api/organizations/{org_id}/members/assign` accepts `{user_id, org_role}` body
