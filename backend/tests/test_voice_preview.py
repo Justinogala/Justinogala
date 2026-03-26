@@ -9,7 +9,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://access-matrix-3.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vertical-solutions-3.preview.emergentagent.com')
 
 class TestTTSBase64Endpoint:
     """Tests for TTS base64 endpoint used for voice preview"""
