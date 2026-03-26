@@ -31,6 +31,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Use Cases Overview Hero + Testimonials Carousel - COMPLETED (March 26, 2026)
+- Enhanced UseCasesIndex hero with image, tagline badge, CTAs, and stats bar (500+, 10M+, 99.2%, 4.9/5)
+- Expanded testimonials from 4 to 12 industry leaders
+- Built auto-sliding carousel with 4s interval, hover-pause, arrows, dot navigation
+- Responsive: 3 cards desktop, 2 tablet, 1 mobile
+- Both /use-cases and landing page use the same carousel
+- 24/24 frontend tests passed (iteration_77.json)
+
 ### Cookie/PWA Overlap Fix & Social Proof - COMPLETED (March 26, 2026)
 - Fixed cookie consent bar overlapping with PWA install prompt (narrowed to max-w-2xl, install prompt elevated to z-[110] and bottom-44 on mobile)
 - Added industry-specific social proof text to all 10 use case page stats bars
