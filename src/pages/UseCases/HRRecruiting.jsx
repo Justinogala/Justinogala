@@ -13,8 +13,8 @@ const HRRecruiting = () => (
     description="Munal captures every interview, generates structured scorecards, and ensures fair, consistent hiring — so your team can focus on finding the right talent."
     heroImage="https://images.unsplash.com/photo-1758518730162-09a142505bfd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwxfHxociUyMHJlY3J1aXRpbmclMjBpbnRlcnZpZXclMjBoaXJpbmclMjBvZmZpY2V8ZW58MHx8fHwxNzc0NTY1ODA3fDA&ixlib=rb-4.1.0&q=85"
     accentColor="amber"
+    socialProof="Trusted by 80+ talent acquisition teams"
     stats={[
-      { value: '50%', label: 'Faster hiring decisions' },
       { value: '3x', label: 'More structured feedback' },
       { value: '85%', label: 'Interview completion rate' },
       { value: '40%', label: 'Less interviewer bias' },

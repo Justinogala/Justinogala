@@ -13,8 +13,8 @@ const SalesTeams = () => (
     description="Automate CRM entry, capture objection handling patterns, and coach your reps to quota — all powered by real-time meeting intelligence from Munal."
     heroImage="https://images.unsplash.com/photo-1591453214154-c95db71dbd83?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNTl8MHwxfHNlYXJjaHwxfHxzYWxlcyUyMHRlYW0lMjBtZWV0aW5nJTIwYnVzaW5lc3MlMjBkZWFsJTIwaGFuZHNoYWtlfGVufDB8fHx8MTc3NDU2NTgwM3ww&ixlib=rb-4.1.0&q=85"
     accentColor="violet"
+    socialProof="Trusted by 200+ sales teams worldwide"
     stats={[
-      { value: '35%', label: 'More deals closed' },
       { value: '2hrs', label: 'Saved per rep per day' },
       { value: '95%', label: 'CRM data accuracy' },
       { value: '50%', label: 'Faster onboarding' },

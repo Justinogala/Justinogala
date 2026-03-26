@@ -13,8 +13,8 @@ const ProductTeams = () => (
     description="Connect directly to the voice of your customer. Search thousands of conversations to validate features, prioritize roadmaps, and ship products users actually want."
     heroImage="https://images.pexels.com/photos/7181112/pexels-photo-7181112.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
     accentColor="blue"
+    socialProof="Trusted by product teams at 100+ SaaS companies"
     stats={[
-      { value: '5x', label: 'Faster feature validation' },
       { value: '80%', label: 'Less guesswork in roadmaps' },
       { value: '1000+', label: 'Conversations searchable' },
       { value: '30%', label: 'Higher feature adoption' },

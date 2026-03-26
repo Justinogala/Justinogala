@@ -13,8 +13,8 @@ const Government = () => (
     description="Munal helps government agencies digitize meetings, ensure compliance with open-records laws, and make public proceedings more accessible to citizens."
     heroImage="https://images.unsplash.com/photo-1768353086314-9ddfb405a057?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwyfHxnb3Zlcm5tZW50JTIwcGFybGlhbWVudCUyMGJ1aWxkaW5nJTIwbW9kZXJufGVufDB8fHx8MTc3NDU2NDg3MXww&ixlib=rb-4.1.0&q=85"
     accentColor="slate"
+    socialProof="Trusted by 50+ government agencies and municipalities"
     stats={[
-      { value: '70%', label: 'Faster minutes publication' },
       { value: '100%', label: 'Audit trail compliance' },
       { value: '5x', label: 'Faster FOIA response' },
       { value: '50+', label: 'Agencies onboarded' },

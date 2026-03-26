@@ -13,8 +13,8 @@ const EngineeringTeams = () => (
     description="Capture technical decisions, architectural reviews, and sprint discussions automatically. Never lose context on why a decision was made — searchable forever in Munal."
     heroImage="https://images.pexels.com/photos/6804068/pexels-photo-6804068.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
     accentColor="violet"
+    socialProof="Trusted by engineering teams at 120+ tech companies"
     stats={[
-      { value: '45%', label: 'Less meeting overhead' },
       { value: '2x', label: 'Faster requirement clarity' },
       { value: '100%', label: 'Decision traceability' },
       { value: '70%', label: 'Fewer requirement misses' },

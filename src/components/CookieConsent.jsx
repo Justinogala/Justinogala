@@ -44,7 +44,7 @@ const CookieConsent = () => {
           className="fixed bottom-0 left-0 right-0 z-[100] p-4 sm:p-6"
           data-testid="cookie-consent"
         >
-          <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-black/10 border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-black/10 border border-gray-200 dark:border-gray-800 overflow-hidden">
             {/* Main banner */}
             <div className="p-5 sm:p-6">
               <div className="flex items-start gap-4">

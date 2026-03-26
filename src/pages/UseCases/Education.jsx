@@ -13,8 +13,8 @@ const Education = () => (
     description="From lecture capture to faculty meetings, Munal helps educators and institutions save time, improve accessibility, and keep every learner engaged."
     heroImage="https://images.pexels.com/photos/289737/pexels-photo-289737.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
     accentColor="blue"
+    socialProof="Trusted by 75+ educational institutions worldwide"
     stats={[
-      { value: '45%', label: 'Better lecture retention' },
       { value: '10K+', label: 'Hours transcribed monthly' },
       { value: '98%', label: 'Student satisfaction rate' },
       { value: '24/7', label: 'On-demand study materials' },
