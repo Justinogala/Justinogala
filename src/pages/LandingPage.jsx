@@ -33,17 +33,7 @@ const LandingPage = () => {
         <main className="flex-grow">
           {/* Hero Section */}
           <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-            {/* Background Image with Gradient Overlay */}
-            <div className="absolute inset-0 z-0">
-              <img 
-                src="https://images.unsplash.com/photo-1688733720228-4f7a18681c4f" 
-                alt="Modern Tech Workspace" 
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-slate-900/80 bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-violet-900/50 backdrop-blur-sm" />
-            </div>
-
-            {/* Combined Hero Background: Orbs + Particles + Waves */}
+            {/* Soft pastel gradient background */}
             <HeroBackground />
 
             <div className="container mx-auto px-6 relative z-10 pt-20 pb-24 text-center">
@@ -53,12 +43,12 @@ const LandingPage = () => {
                 transition={{ duration: 0.8 }}
                 className="max-w-4xl mx-auto"
               >
-                <h1 className="text-5xl md:text-7xl font-bold font-heading mb-6 text-white leading-tight tracking-tight">
+                <h1 className="text-5xl md:text-7xl font-bold font-heading mb-6 text-gray-900 dark:text-white leading-tight tracking-tight">
                   Manage, Collaborate, <br className="hidden md:block" />
-                  and <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-purple-400">Scale Your Team</span>
+                  and <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Scale Your Team</span>
                 </h1>
                 
-                <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
                   The all-in-one AI-powered unified communication and workforce platform designed to replace multiple workplace tools with a single integrated system.
                 </p>
 
@@ -66,7 +56,7 @@ const LandingPage = () => {
                   <Button 
                     size="lg" 
                     onClick={() => navigate('/signup')}
-                    className="h-14 px-8 text-lg bg-violet-600 hover:bg-violet-700 text-white rounded-full shadow-lg shadow-violet-500/30 transition-all hover:scale-105"
+                    className="h-14 px-8 text-lg bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg shadow-emerald-500/30 transition-all hover:scale-105"
                   >
                     Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
@@ -75,7 +65,7 @@ const LandingPage = () => {
                     variant="outline"
                     data-testid="watch-demo-btn"
                     onClick={() => setDemoOpen(true)}
-                    className="h-14 px-8 text-lg border-white text-white hover:bg-white/10 rounded-full backdrop-blur-sm"
+                    className="h-14 px-8 text-lg border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
                   >
                     <PlayCircle className="mr-2 w-5 h-5" /> Watch Demo
                   </Button>
