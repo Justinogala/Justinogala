@@ -76,6 +76,9 @@ export const AdminAuthProvider = ({ children }) => {
         name: dbUser.name || dbUser.full_name || 'Admin',
         role: dbUser.role,
         module_permissions: dbUser.module_permissions || {},
+        organization_id: dbUser.organization_id || null,
+        org_name: dbUser.org_name || null,
+        org_role: dbUser.org_role || null,
         plan: dbUser.plan,
         avatar: dbUser.avatar
       };

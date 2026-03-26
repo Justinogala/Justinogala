@@ -31,8 +31,8 @@ class OrgMemberAdd(BaseModel):
     email: str
     name: str
     password: str
-    role: str = "member"
-    org_role: str = "User"
+    role: str = "member"  # org_role: admin, manager, member
+    org_role: str = "User"  # platform role set based on org role
     plan: str = "Free"
 
 class OrgMemberUpdate(BaseModel):
@@ -257,8 +257,18 @@ async def add_org_member(org_id: str, member: OrgMemberAdd):
     if existing:
         raise HTTPException(status_code=400, detail="A user with this email already exists")
 
+    # Validate org role
+    valid_org_roles = ["admin", "manager", "member"]
+    org_role = member.role.lower() if member.role else "member"
+    if org_role not in valid_org_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid org role. Must be one of: {', '.join(valid_org_roles)}")
+
+    # Map org role to platform role
+    platform_role_map = {"admin": "Admin", "manager": "Manager", "member": "User"}
+    platform_role = platform_role_map.get(org_role, "User")
+
     from models import DEFAULT_PERMISSIONS
-    permissions = DEFAULT_PERMISSIONS.get(member.org_role, DEFAULT_PERMISSIONS["User"])
+    permissions = DEFAULT_PERMISSIONS.get(platform_role, DEFAULT_PERMISSIONS["User"])
 
     user_id = str(uuid.uuid4())
     user_doc = {
@@ -266,12 +276,12 @@ async def add_org_member(org_id: str, member: OrgMemberAdd):
         "email": member.email.lower(),
         "password": bcrypt.hashpw(member.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
         "name": member.name,
-        "role": member.org_role,
+        "role": platform_role,
         "status": "Active",
         "plan": member.plan,
         "account_type": "business",
         "organization_id": org_id,
-        "org_role": member.role,
+        "org_role": org_role,
         "permissions": permissions,
         "avatar": None,
         "created_at": datetime.now(timezone.utc),
@@ -282,7 +292,7 @@ async def add_org_member(org_id: str, member: OrgMemberAdd):
     user_doc.pop("password")
     user_doc.pop("_id", None)
 
-    logger.info(f"Business user '{member.email}' created under org {org_id}")
+    logger.info(f"Business user '{member.email}' ({org_role}) created under org {org_id}")
     return {"success": True, "member": user_doc}
 
 

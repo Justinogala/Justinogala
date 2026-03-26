@@ -1,7 +1,8 @@
 """
 Admin routes - settings, monitoring, analytics, user management, cloud storage.
 """
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request, Query, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Optional, List
 from pydantic import BaseModel
@@ -15,6 +16,23 @@ from services.storage import storage_service, STORAGE_PROVIDERS
 from encryption import decrypt_field
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+security = HTTPBearer(auto_error=False)
+
+
+async def _get_caller(credentials):
+    """Extract caller info from auth token."""
+    if not credentials:
+        return None
+    try:
+        from routes.auth import verify_jwt_token
+        payload = verify_jwt_token(credentials.credentials)
+        user = await db.users.find_one(
+            {"id": payload["sub"]},
+            {"_id": 0, "id": 1, "role": 1, "organization_id": 1, "name": 1, "email": 1}
+        )
+        return user
+    except Exception:
+        return None
 
 
 # ============== Models ==============
@@ -1388,10 +1406,18 @@ class BroadcastMessageCreate(BaseModel):
 
 
 @router.get("/scheduled-exports")
-async def get_scheduled_exports():
-    """Get all scheduled export configurations"""
+async def get_scheduled_exports(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get scheduled export configurations. Scoped to caller's org for Admin/Manager."""
     try:
-        exports = await db.scheduled_exports.find({}, {"_id": 0}).to_list(100)
+        query = {}
+        caller = await _get_caller(credentials)
+        if caller:
+            role = (caller.get("role") or "").lower().replace(" ", "_")
+            org_id = caller.get("organization_id")
+            if role in ("admin", "manager") and org_id:
+                query["organization_id"] = org_id
+
+        exports = await db.scheduled_exports.find(query, {"_id": 0}).to_list(100)
         return {"success": True, "exports": exports}
     except Exception as e:
         logger.error(f"Error fetching scheduled exports: {e}")
@@ -1399,11 +1425,21 @@ async def get_scheduled_exports():
 
 
 @router.post("/scheduled-exports")
-async def create_scheduled_export(request: ScheduledExportCreate):
-    """Create a new scheduled export configuration"""
+async def create_scheduled_export(
+    request: ScheduledExportCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Create a new scheduled export. Scoped to caller's org for Admin/Manager."""
     try:
         export_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
+        
+        caller = await _get_caller(credentials)
+        caller_org_id = None
+        if caller:
+            role = (caller.get("role") or "").lower().replace(" ", "_")
+            if role in ("admin", "manager"):
+                caller_org_id = caller.get("organization_id")
         
         # Calculate next run time based on frequency
         next_run = datetime.now(timezone.utc)
@@ -1422,6 +1458,7 @@ async def create_scheduled_export(request: ScheduledExportCreate):
             "status_filter": request.status_filter,
             "email_recipients": request.email_recipients,
             "enabled": request.enabled,
+            "organization_id": caller_org_id,
             "last_run": None,
             "next_run": next_run.isoformat(),
             "run_count": 0,
@@ -1590,15 +1627,27 @@ async def run_scheduled_export_now(export_id: str):
 # ============== Admin Broadcast Messages ==============
 
 @router.get("/broadcasts")
-async def get_broadcasts(limit: int = 50, skip: int = 0):
-    """Get all broadcast messages sent by admin"""
+async def get_broadcasts(
+    limit: int = 50,
+    skip: int = 0,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get broadcast messages. Admin sees own org's broadcasts, Super_Admin sees all."""
     try:
+        query = {}
+        caller = await _get_caller(credentials)
+        if caller:
+            role = (caller.get("role") or "").lower().replace(" ", "_")
+            org_id = caller.get("organization_id")
+            if role in ("admin", "manager") and org_id:
+                query["organization_id"] = org_id
+
         broadcasts = await db.admin_broadcasts.find(
-            {},
+            query,
             {"_id": 0}
         ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
         
-        total = await db.admin_broadcasts.count_documents({})
+        total = await db.admin_broadcasts.count_documents(query)
         
         return {
             "success": True,
@@ -1611,15 +1660,36 @@ async def get_broadcasts(limit: int = 50, skip: int = 0):
 
 
 @router.post("/broadcasts")
-async def create_broadcast(request: BroadcastMessageCreate):
-    """Send a broadcast message to all users"""
+async def create_broadcast(
+    request: BroadcastMessageCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Send a broadcast message. Admin/Manager sends to their org only, Super_Admin sends to all."""
     try:
         broadcast_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         
-        # Get all active users
+        caller = await _get_caller(credentials)
+        caller_role = ""
+        caller_org_id = None
+        org_name = None
+        
+        if caller:
+            caller_role = (caller.get("role") or "").lower().replace(" ", "_")
+            caller_org_id = caller.get("organization_id")
+        
+        # Determine user query based on caller's role
+        user_query = {"status": {"$ne": "disabled"}, "id": {"$exists": True, "$ne": None}}
+        
+        if caller_role in ("admin", "manager") and caller_org_id:
+            # Admin/Manager: only broadcast to their organization members
+            user_query["organization_id"] = caller_org_id
+            org = await db.organizations.find_one({"id": caller_org_id}, {"_id": 0, "name": 1})
+            org_name = org.get("name") if org else "Organization"
+        # Super_Admin or no auth: broadcast to all users
+        
         users = await db.users.find(
-            {"status": {"$ne": "disabled"}, "id": {"$exists": True, "$ne": None}},
+            user_query,
             {"_id": 0, "id": 1, "name": 1, "email": 1}
         ).to_list(10000)
         
@@ -1630,27 +1700,23 @@ async def create_broadcast(request: BroadcastMessageCreate):
             raise HTTPException(status_code=400, detail="No active users found")
         
         # Get admin info
-        admin = await db.users.find_one({"role": "admin"}, {"_id": 0, "id": 1, "name": 1, "email": 1})
-        if not admin:
-            admin = {"id": "admin", "name": "Admin", "email": "admin@munal.com"}
+        admin_info = caller or {"id": "admin", "name": "Admin", "email": "admin@munal.com"}
         
         # Create individual messages for each user
         messages_created = 0
         emails_sent = 0
         
         for user in users:
-            # Skip if no valid user id
             if not user.get("id"):
                 continue
                 
-            # Create internal message
             message_id = str(uuid.uuid4())
             message = {
                 "id": message_id,
                 "thread_id": message_id,
                 "broadcast_id": broadcast_id,
-                "sender_id": admin.get("id") or "admin",
-                "sender_name": "Munal Admin",
+                "sender_id": admin_info.get("id") or "admin",
+                "sender_name": admin_info.get("name") or "Munal Admin",
                 "recipient_id": user["id"],
                 "recipient_name": user.get("name") or user.get("email", "User"),
                 "subject": request.subject,
@@ -1690,7 +1756,7 @@ async def create_broadcast(request: BroadcastMessageCreate):
                                 <a href="https://munal.ai/messages" style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px;">View in App</a>
                             </div>
                             <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 12px;">
-                                <p>© 2026 Munal AI. All rights reserved.</p>
+                                <p>&copy; 2026 Munal AI. All rights reserved.</p>
                             </div>
                         </div>
                         """
@@ -1700,7 +1766,7 @@ async def create_broadcast(request: BroadcastMessageCreate):
                 except Exception as email_error:
                     logger.error(f"Failed to send broadcast email to {user['email']}: {email_error}")
         
-        # Save broadcast record
+        # Save broadcast record with org scoping
         broadcast = {
             "id": broadcast_id,
             "subject": request.subject,
@@ -1709,8 +1775,10 @@ async def create_broadcast(request: BroadcastMessageCreate):
             "recipients_count": len(users),
             "messages_created": messages_created,
             "emails_sent": emails_sent,
+            "organization_id": caller_org_id,
+            "org_name": org_name,
             "created_at": now,
-            "created_by": admin.get("id")
+            "created_by": admin_info.get("id")
         }
         
         await db.admin_broadcasts.insert_one(broadcast)

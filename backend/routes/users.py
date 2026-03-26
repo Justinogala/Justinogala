@@ -42,22 +42,31 @@ async def get_users(
     limit: int = Query(100, ge=1, le=1000),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """Get users. Admin/Manager only see Admin+Manager users. Super_Admin sees all."""
+    """Get users. Admin/Manager see only their org members. Super_Admin sees all."""
     caller_role = None
+    caller_org_id = None
     if credentials:
         try:
             from routes.auth import verify_jwt_token
             payload = verify_jwt_token(credentials.credentials)
-            caller = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "role": 1})
+            caller = await db.users.find_one(
+                {"id": payload["sub"]},
+                {"_id": 0, "role": 1, "organization_id": 1}
+            )
             if caller:
                 caller_role = (caller.get("role") or "").lower().replace(" ", "_")
+                caller_org_id = caller.get("organization_id")
         except Exception:
             pass
 
     query_filter = {}
-    # Admin and Manager can only see Admin, Manager, and Super_Admin users
+    # Admin/Manager with an org → see only their organization members
     if caller_role in ("admin", "manager"):
-        query_filter["role"] = {"$in": ["Admin", "Manager", "Super_Admin", "admin", "manager", "super_admin"]}
+        if caller_org_id:
+            query_filter["organization_id"] = caller_org_id
+        else:
+            # Admin without org → see only other admins/managers (no regular users)
+            query_filter["role"] = {"$in": ["Admin", "Manager", "Super_Admin", "admin", "manager", "super_admin"]}
 
     users = await db.users.find(
         query_filter,

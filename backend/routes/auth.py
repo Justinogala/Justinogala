@@ -467,6 +467,12 @@ async def login_user(request: Request, credentials: UserLogin):
     # Include module_permissions in user object for frontend
     user["module_permissions"] = module_permissions
     
+    # Include organization info for admin users
+    org_id = user.get("organization_id")
+    if org_id:
+        org = await db.organizations.find_one({"id": org_id}, {"_id": 0, "name": 1})
+        user["org_name"] = org.get("name") if org else None
+    
     return {
         "user": user,
         "token": token,

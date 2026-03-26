@@ -1,0 +1,128 @@
+{
+  "summary": "Completed comprehensive testing of org-scoped broadcasts, scheduled exports, and user visibility features. All 15 backend tests passed. Frontend verified for both Org Admin and Super Admin views - org-scoped text displays correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Backend: POST /api/auth/login for org admin returns organization_id and org_name in user object",
+    "Backend: POST /api/auth/login for org manager returns organization_id with role=Manager",
+    "Backend: POST /api/auth/login for org member returns organization_id with role=User",
+    "Backend: POST /api/auth/login for super admin has no organization_id and role=Super_Admin",
+    "Backend: GET /api/users with Super Admin auth returns ALL users (30+ users)",
+    "Backend: GET /api/users with Org Admin auth returns ONLY users from that admin's organization",
+    "Backend: POST /api/admin/broadcasts with Org Admin auth sends to org members only (3 recipients)",
+    "Backend: POST /api/admin/broadcasts with Super Admin auth sends to ALL users (32 recipients)",
+    "Backend: GET /api/admin/broadcasts with Org Admin auth only returns their org's broadcasts",
+    "Backend: GET /api/admin/broadcasts with Super Admin auth returns ALL broadcasts",
+    "Backend: GET /api/admin/scheduled-exports with Org Admin auth only returns their org's exports",
+    "Backend: POST /api/admin/scheduled-exports with Org Admin creates export with organization_id",
+    "Backend: POST /api/organizations/{org_id}/members with role=admin creates user with platform role=Admin",
+    "Backend: POST /api/organizations/{org_id}/members with role=manager creates user with platform role=Manager",
+    "Backend: POST /api/organizations/{org_id}/members with role=member creates user with platform role=User",
+    "Frontend: Org Admin login and navigate to Broadcasts page - text shows org name 'Munal Healthcare'",
+    "Frontend: Org Admin Broadcasts page header shows 'Send announcements to Munal Healthcare members'",
+    "Frontend: Org Admin Broadcasts tab shows 'Send messages to Munal Healthcare members'",
+    "Frontend: New Broadcast modal for Org Admin shows 'Send to Munal Healthcare' button",
+    "Frontend: New Broadcast modal for Org Admin shows 'This message will be sent to all members of Munal Healthcare'",
+    "Frontend: Super Admin Broadcasts page shows 'Send announcements to all users'",
+    "Frontend: Super Admin Broadcasts tab shows 'Send messages to all users at once'",
+    "Frontend: Super Admin broadcast modal shows 'Send to All Users' button",
+    "Frontend: Super Admin broadcast modal shows 'This message will be sent to all active users on the platform'"
+  ],
+  "failed_tests": [],
+  "test_report_links": [
+    "/app/backend/tests/test_org_scoped_broadcasts.py",
+    "/app/test_reports/pytest/org_scoped_broadcasts_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_org_scoped_broadcasts.py"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100% (9/9 features verified)"
+  },
+  "test_credentials": {
+    "super_admin": {
+      "email": "admin@munal.com",
+      "password": "Admin@123456",
+      "role": "Super_Admin",
+      "organization_id": null,
+      "broadcast_recipients": 32
+    },
+    "org_admin": {
+      "email": "orgadmin@munal.com",
+      "password": "OrgAdmin@123",
+      "role": "Admin",
+      "organization_id": "present",
+      "org_name": "Munal Healthcare",
+      "broadcast_recipients": 3
+    },
+    "org_manager": {
+      "email": "orgmgr@munal.com",
+      "password": "OrgMgr@123",
+      "role": "Manager"
+    },
+    "org_member": {
+      "email": "orgmember@munal.com",
+      "password": "OrgMem@123",
+      "role": "User"
+    }
+  },
+  "seed_data_creation": "None - used existing org 'Munal Healthcare' with 3 members",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Org-scoped broadcasts and exports feature fully tested. Key findings: (1) Org Admin/Manager broadcasts go to org members only (3 recipients for Munal Healthcare). (2) Super Admin broadcasts go to all users (32 recipients). (3) GET /api/users filters by caller's org for Admin/Manager. (4) Frontend correctly shows org name in Broadcasts page for Org Admin and 'all users' for Super Admin. (5) POST /api/organizations/{org_id}/members correctly maps org roles to platform roles (admin→Admin, manager→Manager, member→User). (6) Login returns organization_id and org_name for org users.",
+  "features_verified": {
+    "org_member_role_mapping": {
+      "admin_org_role": "Creates user with platform role=Admin, org_role=admin",
+      "manager_org_role": "Creates user with platform role=Manager, org_role=manager",
+      "member_org_role": "Creates user with platform role=User, org_role=member"
+    },
+    "user_visibility": {
+      "super_admin": "Sees ALL users (30+ users)",
+      "org_admin": "Sees ONLY users from their organization"
+    },
+    "broadcast_scoping": {
+      "org_admin": {
+        "recipients": "3 (org members only)",
+        "broadcast_has_org_id": true,
+        "broadcast_has_org_name": true
+      },
+      "super_admin": {
+        "recipients": "32 (all users)",
+        "broadcast_has_org_id": false,
+        "platform_wide": true
+      }
+    },
+    "scheduled_exports_scoping": {
+      "org_admin": "Creates exports with organization_id, sees only org exports",
+      "super_admin": "Sees all exports"
+    },
+    "frontend_org_scoped_text": {
+      "org_admin_broadcasts_page": {
+        "header": "Send announcements to Munal Healthcare members and manage automated exports",
+        "tab_description": "Send messages to Munal Healthcare members",
+        "modal_description": "This message will be sent to all members of Munal Healthcare",
+        "send_button": "Send to Munal Healthcare"
+      },
+      "super_admin_broadcasts_page": {
+        "header": "Send announcements to all users and manage automated compliance exports",
+        "tab_description": "Send messages to all users at once",
+        "modal_description": "This message will be sent to all active users on the platform",
+        "send_button": "Send to All Users"
+      }
+    },
+    "login_returns_org_info": {
+      "org_admin": "Returns organization_id and org_name",
+      "super_admin": "organization_id is null (no org)"
+    }
+  }
+}
