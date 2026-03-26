@@ -15,94 +15,69 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Voice Chat, Text-to-Audio, Calendar, Meetings, Transcriptions
 - eSignature, Approvals, IR/SOR Reports
 - Role-Based Access Control (RBAC) with module-level permissions
+- Permission audit logging
 
 ## Recent Changes (March 2026)
+
+### Admin User Visibility Restriction - COMPLETED (March 26, 2026)
+- Backend: `GET /api/users` now checks caller role via auth token
+- Super_Admin: sees ALL users (30 users including regular app users)
+- Admin/Manager: only see Admin, Manager, Super_Admin users (3 users)
+- No auth: backward compatible, returns all users
+- Frontend: `adminUserDataService.js` now sends `admin_token` header
+- 9 backend + 16 frontend tests passed (iteration_71.json)
+
+### Permission Change Audit Log - COMPLETED (March 26, 2026)
+- Backend: `permission_audit_log` MongoDB collection tracks all permission changes
+- Logs template updates with role, changes diff (module label, from→to)
+- Logs user overrides and resets
+- `GET /api/admin/module-permissions/audit-log` endpoint with pagination
+- Frontend: Activity Log section at bottom of Module Permissions page
+- Shows Template/User Override/Reset badges, role names, change pills, relative timestamps
+- Auto-refreshes after saving a template change
 
 ### RBAC Module Permissions - COMPLETED (March 26, 2026)
 - Fixed critical security flaw: Admin users no longer have Superadmin access
 - Migrated admin@munal.com from "Admin" to "Super_Admin" role
-- Backend: `/api/admin/module-permissions/` API with templates, user overrides, and module listing
-- Login route now returns `module_permissions` in user object for admin/super_admin/manager roles
-- Frontend: `AdminAuthContext` stores module_permissions with `isSuperAdmin()` and `hasModuleAccess()` helpers
+- Backend: `/api/admin/module-permissions/` API with templates, user overrides, module listing
+- Login route returns `module_permissions` in user object
+- Frontend: `AdminAuthContext` stores module_permissions with `isSuperAdmin()` and `hasModuleAccess()`
 - Frontend: `PermissionContext` builds action-level permissions from server-provided module permissions
-- Frontend: `AdminSidebar` filters links based on module-level RBAC (not hardcoded defaults)
-- Frontend: New "Module Permissions" page at `/admin/module-permissions` for Super Admins
-- Permission matrix UI with Admin/Manager columns, grouped by section (Primary, Management, Billing, Configuration, Super Admin)
-- Templates stored in MongoDB `module_permission_templates` collection
-- Per-user overrides supported via `module_permission_overrides` collection
-- 27 modules across 5 groups, default: Super Admin (27/27), Admin (12/27), Manager (9/27)
-- 45 tests passed (14 backend + 31 frontend, iteration_70.json)
-
-### Landing Page "How It Works" Upgrade - COMPLETED (March 24, 2026)
-- Expanded from 4 basic meeting steps to 5 comprehensive platform steps
-- 25 frontend tests passed (iteration_69.json)
-
-### Real-Time Dashboard Activity Updates - COMPLETED (March 24, 2026)
-- SSE endpoint `/api/dashboard/activity/stream`, live graphs and feeds
-- 34 tests passed (iteration_68.json)
-
-### User Dashboard Redesign - COMPLETED (March 24, 2026)
-- Dynamic stats, 8 quick actions, workspace cards with real data
-
-### Other Recent Completions
-- Quick Action Link Fixes (eSignature, AI Assistant)
-- Activity Graph & Feed
-- Chat Module Enhancements (SSE stability, file attachments, presence)
-- Call & Voice Fixes
-- Mobile-Friendly Optimization
-- Admin Workspace Deletion Fix
-- Global Search API + UI
-- Landing page speed optimization (<0.5s), 3-slide hero carousel
-- Auth pages pastel gradient redesign
-- Cookie Consent banner
-- Resend email delivery fix for password resets
+- Frontend: `AdminSidebar` filters links based on module-level RBAC
+- Frontend: Module Permissions management page at `/admin/module-permissions`
+- 27 modules across 5 groups: Super Admin (27/27), Admin (12/27), Manager (9/27)
+- 14 backend + 31 frontend tests passed (iteration_70.json)
 
 ## Architecture
 ```
 /app/
 ├── backend/
 │   ├── routes/
-│   │   ├── module_permissions.py  # RBAC: templates, user overrides, module listing
+│   │   ├── module_permissions.py  # RBAC templates, user overrides, audit log
 │   │   ├── auth.py               # Login returns module_permissions
-│   │   ├── chat.py               # SSE, messages, file upload, presence APIs
-│   │   ├── dashboard.py          # Activity API + SSE stream endpoint
-│   │   ├── forms.py              # Org-wide template CRUD & submissions
-│   │   ├── workspaces.py         # Workspace management, dashboard summary
-│   │   ├── admin.py              # Admin routes
-│   │   ├── search.py             # Global search endpoint
-│   │   ├── calls.py              # WebRTC calls with offline validation
-│   │   └── admin_workspaces.py   # Admin workspace deletion
+│   │   ├── users.py              # Role-based user visibility filtering
+│   │   ├── chat.py, dashboard.py, forms.py, workspaces.py, etc.
 │   └── server.py                 # Super_Admin seed, all routers registered
 └── frontend/src/
-    ├── context/
-    │   └── AdminAuthContext.jsx   # isSuperAdmin(), hasModuleAccess(), refreshPermissions()
-    ├── contexts/
-    │   └── PermissionContext.jsx  # Builds action permissions from module permissions
-    ├── layouts/
-    │   └── AdminLayout.jsx       # Passes actual role (no more super_admin→Admin mapping)
-    ├── components/
-    │   ├── AdminSidebar.jsx      # Module-key based filtering, Super Admin section
-    │   └── user/
-    │       └── DashboardActivity.jsx
-    ├── pages/
-    │   ├── admin/
-    │   │   └── AdminModulePermissionsPage.jsx  # Permission matrix UI
-    │   └── user/UserDashboard.jsx
-    └── hooks/useWebSocketChat.js
+    ├── context/AdminAuthContext.jsx   # isSuperAdmin(), hasModuleAccess()
+    ├── contexts/PermissionContext.jsx # Module→action permission builder
+    ├── layouts/AdminLayout.jsx
+    ├── components/AdminSidebar.jsx    # Module-key based filtering
+    ├── services/adminUserDataService.js  # Sends auth token for user filtering
+    ├── pages/admin/
+    │   ├── AdminModulePermissionsPage.jsx  # Permission matrix + audit log
+    │   └── AdminUserManagementPage.jsx
+    └── hooks/useUserManagement.js
 ```
 
 ## Key API Endpoints
-- `GET /api/admin/module-permissions/modules` - All modules with labels and groups
-- `GET /api/admin/module-permissions/templates` - Role templates (super_admin, admin, manager)
-- `PUT /api/admin/module-permissions/templates/{role}` - Update role template
-- `GET /api/admin/module-permissions/user/{user_id}` - Effective permissions for a user
-- `PUT /api/admin/module-permissions/user/{user_id}` - Set per-user override
-- `DELETE /api/admin/module-permissions/user/{user_id}` - Reset to role template
+- `GET /api/users` - Role-filtered user list (Admin sees org users only)
+- `GET /api/admin/module-permissions/modules` - All modules with labels/groups
+- `GET /api/admin/module-permissions/templates` - Role templates
+- `PUT /api/admin/module-permissions/templates/{role}` - Update template (creates audit log)
+- `GET /api/admin/module-permissions/audit-log` - Permission change history
+- `GET /api/admin/module-permissions/user/{user_id}` - Effective user permissions
 - `POST /api/auth/login` - Returns module_permissions in user object
-- `GET /api/dashboard/activity` - Activity graph + feed data
-- `GET /api/dashboard/activity/stream` - SSE real-time stream
-- `GET /api/workspaces/dashboard/summary` - Dashboard summary
-- `GET /api/search` - Global cross-entity search
 
 ## 3rd Party Integrations
 - OpenAI Sora 2 Pro (Video Gen) — Emergent LLM Key
@@ -112,7 +87,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ## Backlog
 
 ### P2
-- Demo video shows "Numbus" instead of "Munal" (needs new Sora 2 generation or user asset)
+- Demo video shows "Numbus" instead of "Munal" (needs new Sora 2 gen or user asset)
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned data from workspace_members table
 
@@ -123,3 +98,4 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Credentials
 - Super Admin: admin@munal.com / Admin@123456 (role: Super_Admin)
+- Test Admin: testadmin@munal.com / TestAdmin@123 (role: Admin)
