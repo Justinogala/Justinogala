@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { 
   UserPlus, Download, FileJson, FileSpreadsheet, Loader2, Search, 
   Filter, Users, Shield, Mail, MoreHorizontal, Edit2, Trash2, 
-  Eye, UserX, UserCheck, RefreshCw, Crown, Sparkles, MessageSquare
+  Eye, UserX, UserCheck, RefreshCw, Crown, Sparkles, MessageSquare,
+  Building2, Link2, Unlink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,14 +26,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import AddUserModal from '@/components/admin/modals/AddUserModal';
 import EditUserModal from '@/components/EditUserModal';
 import UserMessagesModal from '@/components/admin/modals/UserMessagesModal';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { UserExportService } from '@/services/UserExportService';
+import { useAdminAuth } from '@/context/AdminAuthContext';
+import { getApiUrl } from '@/lib/api';
 
 const AdminUserManagementPage = () => {
   const { users, loading, addUser, updateUser, deleteUser, fetchUsers } = useUserManagement();
+  const { isSuperAdmin } = useAdminAuth();
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [isMessagesModalOpen, setIsMessagesModalOpen] = useState(false);
@@ -43,6 +55,91 @@ const AdminUserManagementPage = () => {
   const [planFilter, setPlanFilter] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
+  
+  // Assign to Org state
+  const [isAssignOrgOpen, setIsAssignOrgOpen] = useState(false);
+  const [assignUser, setAssignUser] = useState(null);
+  const [organizations, setOrganizations] = useState([]);
+  const [selectedOrgId, setSelectedOrgId] = useState('');
+  const [selectedOrgRole, setSelectedOrgRole] = useState('member');
+  const [assigningToOrg, setAssigningToOrg] = useState(false);
+  const [orgsLoading, setOrgsLoading] = useState(false);
+
+  const apiUrl = getApiUrl();
+  const token = localStorage.getItem('admin_token');
+
+  const fetchOrganizations = useCallback(async () => {
+    setOrgsLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/organizations`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrganizations(Array.isArray(data) ? data : (data.organizations || []));
+      }
+    } catch (err) {
+      console.error('Failed to fetch orgs:', err);
+    } finally {
+      setOrgsLoading(false);
+    }
+  }, [apiUrl, token]);
+
+  const handleOpenAssignOrg = (user) => {
+    setAssignUser(user);
+    setSelectedOrgId('');
+    setSelectedOrgRole('member');
+    setIsAssignOrgOpen(true);
+    fetchOrganizations();
+  };
+
+  const handleAssignToOrg = async () => {
+    if (!selectedOrgId || !assignUser) return;
+    setAssigningToOrg(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/organizations/${selectedOrgId}/members/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ user_id: assignUser.id, org_role: selectedOrgRole })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast({
+          title: 'User assigned',
+          description: `${assignUser.name || assignUser.email} assigned to ${data.org_name} as ${data.org_role}.`,
+        });
+        setIsAssignOrgOpen(false);
+        setAssignUser(null);
+        fetchUsers();
+      } else {
+        toast({ title: 'Error', description: data.detail || 'Failed to assign user', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Network error', variant: 'destructive' });
+    } finally {
+      setAssigningToOrg(false);
+    }
+  };
+
+  const handleRemoveFromOrg = async (user) => {
+    if (!user.organization_id) return;
+    if (!window.confirm(`Remove ${user.name || user.email} from their organization? They will become a personal account.`)) return;
+    try {
+      const res = await fetch(`${apiUrl}/api/organizations/${user.organization_id}/members/${user.id}`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        toast({ title: 'User removed', description: `${user.name || user.email} removed from organization.` });
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        toast({ title: 'Error', description: data.detail || 'Failed', variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Network error', variant: 'destructive' });
+    }
+  };
 
   // Apply filters using useMemo
   const filteredUsers = useMemo(() => {
@@ -344,8 +441,9 @@ const AdminUserManagementPage = () => {
                             </span>
                           )}
                           {user.account_type === 'business' ? (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-200 dark:border-violet-800" data-testid={`user-business-badge-${index}`}>
-                              Business
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-200 dark:border-violet-800 flex items-center gap-1" data-testid={`user-business-badge-${index}`}>
+                              <Building2 className="w-3 h-3" />
+                              {user.org_role || 'Business'}
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700" data-testid={`user-personal-badge-${index}`}>
@@ -397,6 +495,21 @@ const AdminUserManagementPage = () => {
                               <Shield className="w-4 h-4 mr-2" /> Set as {role}
                             </DropdownMenuItem>
                           ))}
+                          {isSuperAdmin() && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Organization</div>
+                              {!user.organization_id ? (
+                                <DropdownMenuItem onClick={() => handleOpenAssignOrg(user)} data-testid={`assign-org-btn-${user.id}`}>
+                                  <Link2 className="w-4 h-4 mr-2" /> Assign to Organization
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => handleRemoveFromOrg(user)} data-testid={`remove-org-btn-${user.id}`}>
+                                  <Unlink className="w-4 h-4 mr-2" /> Remove from Organization
+                                </DropdownMenuItem>
+                              )}
+                            </>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleDeleteUser(user)} className="text-red-600 focus:text-red-600">
                             <Trash2 className="w-4 h-4 mr-2" /> Delete User
@@ -430,6 +543,86 @@ const AdminUserManagementPage = () => {
         }} 
         user={selectedUser} 
       />
+
+      {/* Assign to Organization Dialog */}
+      <Dialog open={isAssignOrgOpen} onOpenChange={setIsAssignOrgOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="assign-org-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-violet-500" />
+              Assign to Organization
+            </DialogTitle>
+            <DialogDescription>
+              Assign <strong>{assignUser?.name || assignUser?.email}</strong> to an organization with a specific role.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Organization</label>
+              {orgsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-400 py-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading organizations...
+                </div>
+              ) : (
+                <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                  <SelectTrigger className="w-full" data-testid="org-select-trigger">
+                    <SelectValue placeholder="Select an organization..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organizations.map(org => (
+                      <SelectItem key={org.id} value={org.id} data-testid={`org-option-${org.id}`}>
+                        {org.name}
+                      </SelectItem>
+                    ))}
+                    {organizations.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-gray-400">No organizations found</div>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Organization Role</label>
+              <Select value={selectedOrgRole} onValueChange={setSelectedOrgRole}>
+                <SelectTrigger className="w-full" data-testid="org-role-select-trigger">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-400">
+                {selectedOrgRole === 'admin' && 'Admin — full access to organization features, platform role: Admin'}
+                {selectedOrgRole === 'manager' && 'Manager — can manage teams and shifts, platform role: Manager'}
+                {selectedOrgRole === 'member' && 'Member — standard access, platform role: User'}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignOrgOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssignToOrg}
+              disabled={!selectedOrgId || assigningToOrg}
+              className="bg-violet-600 hover:bg-violet-700 text-white"
+              data-testid="assign-org-confirm-btn"
+            >
+              {assigningToOrg ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Link2 className="w-4 h-4 mr-2" />
+              )}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
