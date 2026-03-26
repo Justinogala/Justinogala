@@ -1,21 +1,249 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, PlayCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, PlayCircle, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
-import HeroBackground from '@/components/HeroBackground';
 import DemoVideoModal from '@/components/DemoVideoModal';
 
-// Lazy load below-the-fold sections
 const BenefitsSection = lazy(() => import('@/components/landing/BenefitsSection'));
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
 const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection'));
 const StatsSection = lazy(() => import('@/components/landing/StatsSection'));
+
+const SLIDES = [
+  {
+    headline: <>Manage, Collaborate, <br className="hidden md:block" />and <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Scale Your Team</span></>,
+    description: "The all-in-one AI-powered unified communication and workforce platform designed to replace multiple workplace tools with a single integrated system.",
+    cta: "Get Started Free",
+    ctaLink: "/signup",
+    image: "https://static.prod-images.emergentagent.com/jobs/f7ee836a-0271-464d-a8fb-de0d209aae53/images/76ec4552dbe7b1bbce8af176b036f49b3a1aaec319d9640841d0367f7e808bc2.png",
+    bg: "from-slate-50 via-emerald-50/40 to-lime-50/30",
+    bloom1: "from-emerald-300/40 via-teal-200/30",
+    bloom2: "from-violet-200/20 via-slate-100/10",
+    bloom3: "from-lime-200/25 via-emerald-100/15",
+    lineColor1: "#059669",
+    lineColor2: "#a3e635",
+  },
+  {
+    headline: <>Streamline Every <br className="hidden md:block" /><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-600">Workflow</span> Effortlessly</>,
+    description: "Digital forms, eSignatures, approvals, and ICT support — eliminate paperwork and reduce turnaround time with intelligent automation.",
+    cta: "Explore Workflows",
+    ctaLink: "/signup",
+    image: "https://static.prod-images.emergentagent.com/jobs/f7ee836a-0271-464d-a8fb-de0d209aae53/images/54adb864712e25da3c0a319e51dd8f02f2d9705fd01a1778eabb75ed18d84076.png",
+    bg: "from-orange-50/40 via-amber-50/30 to-slate-50",
+    bloom1: "from-amber-300/40 via-orange-200/30",
+    bloom2: "from-rose-200/15 via-slate-100/10",
+    bloom3: "from-yellow-200/25 via-amber-100/15",
+    lineColor1: "#d97706",
+    lineColor2: "#fbbf24",
+  },
+  {
+    headline: <>AI-Powered <br className="hidden md:block" /><span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-indigo-600">Meeting Intelligence</span></>,
+    description: "Record, transcribe, and summarize meetings automatically. Turn conversations into searchable knowledge with smart AI assistance.",
+    cta: "Try AI Meetings",
+    ctaLink: "/signup",
+    image: "https://static.prod-images.emergentagent.com/jobs/f7ee836a-0271-464d-a8fb-de0d209aae53/images/3b9781b6ce48e3dd4e0aa40371f9a53050d3656b1ddedad6766825a568b6f563.png",
+    bg: "from-violet-50/40 via-indigo-50/30 to-slate-50",
+    bloom1: "from-violet-300/40 via-indigo-200/30",
+    bloom2: "from-blue-200/15 via-slate-100/10",
+    bloom3: "from-purple-200/25 via-violet-100/15",
+    lineColor1: "#7c3aed",
+    lineColor2: "#a78bfa",
+  },
+];
+
+const INTERVAL = 6000;
+
+const HeroCarousel = ({ onDemoOpen }) => {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [direction, setDirection] = useState(1);
+
+  const goTo = useCallback((idx) => {
+    setDirection(idx > current ? 1 : -1);
+    setCurrent(idx);
+  }, [current]);
+
+  const next = useCallback(() => {
+    setDirection(1);
+    setCurrent(prev => (prev + 1) % SLIDES.length);
+  }, []);
+
+  const prev = useCallback(() => {
+    setDirection(-1);
+    setCurrent(prev => (prev - 1 + SLIDES.length) % SLIDES.length);
+  }, []);
+
+  useEffect(() => {
+    if (paused) return;
+    const timer = setInterval(next, INTERVAL);
+    return () => clearInterval(timer);
+  }, [paused, next]);
+
+  const slide = SLIDES[current];
+
+  const variants = {
+    enter: (dir) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir) => ({ x: dir > 0 ? -300 : 300, opacity: 0 }),
+  };
+
+  return (
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden" data-testid="hero-carousel">
+      {/* Animated background */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`bg-${current}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8 }}
+          className="absolute inset-0"
+        >
+          <div className={cn("absolute inset-0 bg-gradient-to-br", slide.bg)} />
+          <div className={cn("absolute -bottom-32 -left-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tr to-transparent blur-3xl pointer-events-none", slide.bloom1)} />
+          <div className={cn("absolute -top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-b to-transparent blur-3xl pointer-events-none", slide.bloom2)} />
+          <div className={cn("absolute top-1/3 -right-20 w-[400px] h-[400px] rounded-full bg-gradient-to-bl to-transparent blur-3xl pointer-events-none", slide.bloom3)} />
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1920 900">
+            <defs>
+              <linearGradient id={`line-${current}`} x1="0.6" y1="0" x2="0.8" y2="1">
+                <stop offset="0%" stopColor={slide.lineColor1} stopOpacity="0.5" />
+                <stop offset="100%" stopColor={slide.lineColor2} stopOpacity="0.3" />
+              </linearGradient>
+            </defs>
+            <line x1="1200" y1="0" x2="1500" y2="900" stroke={`url(#line-${current})`} strokeWidth="2" />
+          </svg>
+          <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Content */}
+      <div className="container mx-auto px-6 relative z-10 pt-24 pb-28">
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          {/* Left - Text */}
+          <div className="flex-1 text-left">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={`text-${current}`}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-6">
+                  {slide.headline}
+                </h1>
+                <p className="text-lg sm:text-xl text-gray-500 mb-8 max-w-xl leading-relaxed">
+                  {slide.description}
+                </p>
+                <div className="flex flex-col sm:flex-row items-start gap-3">
+                  <Button
+                    size="lg"
+                    onClick={() => navigate(slide.ctaLink)}
+                    className="h-12 px-7 text-base bg-gray-900 hover:bg-gray-800 text-white rounded-lg shadow-lg transition-all hover:scale-105"
+                  >
+                    {slide.cta} <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    data-testid="watch-demo-btn"
+                    onClick={onDemoOpen}
+                    className="h-12 px-7 text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 rounded-lg"
+                  >
+                    <PlayCircle className="mr-2 w-5 h-5" /> Watch Demo
+                  </Button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Right - Image */}
+          <div className="flex-1 flex justify-center lg:justify-end">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.img
+                key={`img-${current}`}
+                src={slide.image}
+                alt="Platform illustration"
+                custom={direction}
+                variants={{
+                  enter: (dir) => ({ x: dir > 0 ? 100 : -100, opacity: 0, scale: 0.9 }),
+                  center: { x: 0, opacity: 1, scale: 1 },
+                  exit: (dir) => ({ x: dir > 0 ? -100 : 100, opacity: 0, scale: 0.9 }),
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full max-w-lg lg:max-w-xl xl:max-w-2xl h-auto object-contain drop-shadow-2xl"
+              />
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation controls - bottom center */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4" data-testid="hero-nav">
+        {/* Pause/Play */}
+        <button
+          onClick={() => setPaused(!paused)}
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300/60 text-gray-500 hover:text-gray-800 hover:border-gray-400 transition-colors bg-white/50 backdrop-blur-sm"
+          aria-label={paused ? "Play" : "Pause"}
+          data-testid="hero-pause-btn"
+        >
+          {paused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Prev */}
+        <button
+          onClick={prev}
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300/60 text-gray-500 hover:text-gray-800 hover:border-gray-400 transition-colors bg-white/50 backdrop-blur-sm"
+          aria-label="Previous slide"
+          data-testid="hero-prev-btn"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {/* Dots */}
+        <div className="flex items-center gap-2">
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={cn(
+                "rounded-full transition-all duration-300",
+                i === current
+                  ? "w-6 h-2.5 bg-gray-900"
+                  : "w-2.5 h-2.5 bg-gray-300 hover:bg-gray-500"
+              )}
+              aria-label={`Go to slide ${i + 1}`}
+              data-testid={`hero-dot-${i}`}
+            />
+          ))}
+        </div>
+
+        {/* Next */}
+        <button
+          onClick={next}
+          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300/60 text-gray-500 hover:text-gray-800 hover:border-gray-400 transition-colors bg-white/50 backdrop-blur-sm"
+          aria-label="Next slide"
+          data-testid="hero-next-btn"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </section>
+  );
+};
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -27,91 +255,30 @@ const LandingPage = () => {
         <Helmet>
           <title>Munal - AI-Powered Workforce & Collaboration Platform</title>
         </Helmet>
-        
+
         <Header />
 
         <main className="flex-grow">
-          {/* Hero Section */}
-          <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-            {/* Soft pastel gradient background */}
-            <HeroBackground />
+          <HeroCarousel onDemoOpen={() => setDemoOpen(true)} />
 
-            <div className="container mx-auto px-6 relative z-10 pt-20 pb-24 text-center">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-                className="max-w-4xl mx-auto"
-              >
-                <h1 className="text-5xl md:text-7xl font-bold font-heading mb-6 text-gray-900 dark:text-white leading-tight tracking-tight">
-                  Manage, Collaborate, <br className="hidden md:block" />
-                  and <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Scale Your Team</span>
-                </h1>
-                
-                <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-                  The all-in-one AI-powered unified communication and workforce platform designed to replace multiple workplace tools with a single integrated system.
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Button 
-                    size="lg" 
-                    onClick={() => navigate('/signup')}
-                    className="h-14 px-8 text-lg bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg shadow-emerald-500/30 transition-all hover:scale-105"
-                  >
-                    Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    variant="outline"
-                    data-testid="watch-demo-btn"
-                    onClick={() => setDemoOpen(true)}
-                    className="h-14 px-8 text-lg border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
-                  >
-                    <PlayCircle className="mr-2 w-5 h-5" /> Watch Demo
-                  </Button>
-                </div>
-                
-                <div className="mt-12 text-sm text-gray-400 font-medium">
-                  Trusted by teams managing shifts, meetings, and collaboration worldwide
-                </div>
-              </motion.div>
-            </div>
-            
-            {/* Scroll Indicator */}
-            <motion.div 
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50"
-              animate={{ y: [0, 10, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
-                <div className="w-1 h-2 bg-white/50 rounded-full" />
-              </div>
-            </motion.div>
-          </section>
-
-          {/* Stats Section */}
           <Suspense fallback={null}>
             <StatsSection />
           </Suspense>
 
-          {/* Benefits Section */}
           <div id="features">
             <Suspense fallback={null}>
               <BenefitsSection />
             </Suspense>
           </div>
 
-          {/* How It Works Section */}
           <Suspense fallback={null}>
             <HowItWorksSection />
           </Suspense>
 
-          {/* Testimonials Section */}
           <Suspense fallback={null}>
             <TestimonialsSection />
           </Suspense>
 
-          {/* Pricing Section */}
           <Suspense fallback={null}>
             <PricingSection />
           </Suspense>
@@ -124,8 +291,8 @@ const LandingPage = () => {
               <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
                 No credit card required. Cancel anytime. Join the productivity revolution.
               </p>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 onClick={() => navigate('/signup')}
                 className="h-14 px-10 text-lg bg-white text-slate-900 hover:bg-gray-100 rounded-full shadow-xl transition-all hover:scale-105"
               >
