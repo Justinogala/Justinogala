@@ -21,6 +21,7 @@ import AdminProtectedRoute from '@/components/AdminProtectedRoute';
 import PageTransition from '@/components/PageTransition';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Toaster } from '@/components/ui/toaster';
+import CookieConsent from '@/components/CookieConsent';
 import { ToastContextProvider } from '@/components/ui/use-toast';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import AnnouncementManager from '@/components/AnnouncementManager'; 
@@ -530,6 +531,7 @@ function App() {
                             </Routes>
                           </Suspense>
                           <Toaster />
+                          <CookieConsent />
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>
                     </WebSocketChatProvider>
