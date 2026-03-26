@@ -27,7 +27,7 @@ export const Modal = ({ isOpen, onClose, children, className, title }) => {
               transition={{ duration: 0.3, type: 'spring', damping: 25, stiffness: 300 }}
               className={cn(
                 "relative w-full max-w-lg bg-white dark:bg-slate-900 sm:rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800",
-                "max-h-[90vh] sm:max-h-[85vh] overflow-y-auto",
+                "max-h-[90vh] sm:max-h-[85vh] flex flex-col",
                 "rounded-t-2xl sm:rounded-2xl", // Bottom sheet style on mobile
                 "pb-safe", // Safe area padding for bottom
                 className
@@ -47,13 +47,13 @@ export const Modal = ({ isOpen, onClose, children, className, title }) => {
 
               {/* Title */}
               {title && (
-                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white pr-8">{title}</h2>
                 </div>
               )}
 
-              {/* Content */}
-              <div className="p-6">
+              {/* Content — scrollable */}
+              <div className="p-6 overflow-y-auto flex-1 min-h-0">
                 {children}
               </div>
             </motion.div>

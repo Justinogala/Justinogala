@@ -250,7 +250,6 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Edit User">
-      <ScrollArea className="max-h-[70vh] pr-2">
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
           <div className="space-y-2">
@@ -495,7 +494,6 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
             </Button>
           </div>
         </form>
-      </ScrollArea>
     </Modal>
   );
 };
