@@ -13,7 +13,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://presence-mobile-app.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://access-matrix-3.preview.emergentagent.com').rstrip('/')
 
 # Test user credentials from review_request
 TEST_USER_ID = "3fe4c41c-4f43-4683-98dc-db6de39b842c"

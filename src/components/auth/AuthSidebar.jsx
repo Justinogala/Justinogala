@@ -29,14 +29,10 @@ const AuthSidebar = ({ title, subtitle, features = [], showPartners = true }) =>
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div>
           <Link to="/" className="flex items-center gap-3 mb-16 hover:opacity-90 transition-opacity w-fit">
-             <div className="w-12 h-12 bg-white/70 backdrop-blur-md rounded-xl flex items-center justify-center border border-gray-200/50 shadow-lg p-1.5">
-               <img 
-                 src="https://static.prod-images.emergentagent.com/jobs/0ff6213d-4a2a-4c94-9f92-a5cedc3a17d4/images/c66837e8355d2f7fb390996083b9cb7c8e4765b7bb7762754d0a7568ffe65bb5.png" 
-                 alt="Munal AI Logo" 
-                 className="w-full h-full object-contain"
-               />
+             <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/30">
+               <span className="text-white font-bold text-xl">M</span>
              </div>
-             <span className="text-2xl font-bold tracking-tight text-gray-900">Munal AI</span>
+             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-700 to-purple-600">Munal</span>
           </Link>
 
           <h1 className="text-4xl xl:text-5xl font-bold mb-6 leading-tight tracking-tight text-gray-900">

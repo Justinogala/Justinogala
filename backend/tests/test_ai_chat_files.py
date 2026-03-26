@@ -27,7 +27,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://presence-mobile-app.preview.emergentagent.com"
+    BASE_URL = "https://access-matrix-3.preview.emergentagent.com"
 
 
 class TestHealthCheck:

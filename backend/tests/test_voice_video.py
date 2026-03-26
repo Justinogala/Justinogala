@@ -8,7 +8,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://presence-mobile-app.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://access-matrix-3.preview.emergentagent.com')
 
 class TestVideoVoiceFeature:
     """Tests for voice selection feature in video generation"""
