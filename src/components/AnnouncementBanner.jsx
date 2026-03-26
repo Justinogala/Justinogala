@@ -1,14 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { getAnnouncementStyle } from '@/config/announcementConfig';
+import { useHeroSlide } from '@/contexts/HeroSlideContext';
+
+// Banner color themes matching hero slides
+const SLIDE_BANNER_THEMES = [
+  { bg: 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700', btn: 'text-emerald-800 bg-white/90 hover:bg-white' },
+  { bg: 'bg-gradient-to-r from-amber-500 via-orange-600 to-amber-600', btn: 'text-amber-900 bg-white/90 hover:bg-white' },
+  { bg: 'bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-700', btn: 'text-violet-800 bg-white/90 hover:bg-white' },
+];
 
 const ROTATE_INTERVAL = 5000;
 
 const AnnouncementBanner = ({ announcements = [] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { slideIndex } = useHeroSlide();
+  const location = useLocation();
+  const isLanding = location.pathname === '/' || location.pathname === '';
+
+  // On landing page, use hero-synced colors; elsewhere, use per-announcement styles
+  const slideTheme = isLanding ? SLIDE_BANNER_THEMES[slideIndex % SLIDE_BANNER_THEMES.length] : null;
 
   const advance = useCallback(() => {
     setCurrentIndex(prev => (prev + 1) % announcements.length);
@@ -29,8 +43,8 @@ const AnnouncementBanner = ({ announcements = [] }) => {
   return (
     <div className="relative z-[60] overflow-hidden" data-testid="announcement-banner">
       <div className={cn(
-        "w-full px-4 py-3 md:py-3.5 shadow-lg relative backdrop-blur-md transition-colors duration-700",
-        styles.background
+        "w-full px-4 py-3 md:py-3.5 shadow-lg relative backdrop-blur-md transition-all duration-700",
+        slideTheme ? slideTheme.bg : styles.background
       )}>
         <div className="absolute inset-0 opacity-10 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
 
@@ -105,7 +119,7 @@ const AnnouncementBanner = ({ announcements = [] }) => {
                       whileTap={{ scale: 0.95 }}
                       className={cn(
                         "px-4 py-1.5 rounded-full text-xs md:text-sm font-bold shadow-md transition-all flex items-center gap-2 group",
-                        styles.button
+                        slideTheme ? slideTheme.btn : styles.button
                       )}
                     >
                       {current.buttonText}

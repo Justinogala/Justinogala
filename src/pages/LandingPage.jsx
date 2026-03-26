@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import DemoVideoModal from '@/components/DemoVideoModal';
+import { useHeroSlide } from '@/contexts/HeroSlideContext';
 
 const BenefitsSection = lazy(() => import('@/components/landing/BenefitsSection'));
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
@@ -65,6 +66,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
   const [direction, setDirection] = useState(1);
+  const { setSlideIndex } = useHeroSlide();
 
   const goTo = useCallback((idx) => {
     setDirection(idx > current ? 1 : -1);
@@ -86,6 +88,11 @@ const HeroCarousel = ({ onDemoOpen }) => {
     const timer = setInterval(next, INTERVAL);
     return () => clearInterval(timer);
   }, [paused, next]);
+
+  // Sync slide index to context for banner color
+  useEffect(() => {
+    setSlideIndex(current);
+  }, [current, setSlideIndex]);
 
   const slide = SLIDES[current];
 

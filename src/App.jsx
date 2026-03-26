@@ -26,6 +26,7 @@ import { ToastContextProvider } from '@/components/ui/use-toast';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import AnnouncementManager from '@/components/AnnouncementManager'; 
 import MunalAIChatWrapper from '@/components/MunalAIChatWrapper';
+import { HeroSlideProvider } from '@/contexts/HeroSlideContext';
 
 // Services
 import { audioRingingService } from '@/services/audioRingingService';
@@ -312,6 +313,7 @@ function App() {
                         <WebSocketChatProvider>
                           <AdvancedVideoCallProvider>
                             <CallStateProvider>
+                              <HeroSlideProvider>
                               <AnnouncementManager />
                               <MunalAIChatWrapper />
                               <ScrollToTop />
@@ -534,6 +536,7 @@ function App() {
                           </Suspense>
                           <Toaster />
                           <CookieConsent />
+                          </HeroSlideProvider>
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>
                     </WebSocketChatProvider>
