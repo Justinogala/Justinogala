@@ -56,7 +56,7 @@ const InstallPrompt = () => {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50"
+        className="fixed bottom-44 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-[110]"
       >
         <Card className="p-4 shadow-xl border-violet-200 dark:border-violet-900 bg-white dark:bg-slate-900 overflow-hidden relative">
           {/* Background decoration */}

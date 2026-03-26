@@ -13,8 +13,8 @@ const Healthcare = () => (
     description="Munal empowers healthcare teams to capture clinical discussions, automate documentation, and maintain compliance — so providers can focus on what matters most: the patient."
     heroImage="https://images.unsplash.com/photo-1758691461957-13aff0c37c6f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwxfHxoZWFsdGhjYXJlJTIwdGVjaG5vbG9neSUyMGRpZ2l0YWwlMjBob3NwaXRhbHxlbnwwfHx8fDE3NzQ1NjQ4Njl8MA&ixlib=rb-4.1.0&q=85"
     accentColor="emerald"
+    socialProof="Trusted by 50+ healthcare organizations"
     stats={[
-      { value: '60%', label: 'Less time on documentation' },
       { value: '99.2%', label: 'Transcription accuracy' },
       { value: '3x', label: 'Faster report turnaround' },
       { value: '100%', label: 'Audit trail coverage' },

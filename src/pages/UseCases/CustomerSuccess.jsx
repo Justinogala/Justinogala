@@ -13,8 +13,8 @@ const CustomerSuccess = () => (
     description="Track sentiment, capture feature requests, and ensure seamless handoffs — Munal turns every customer interaction into actionable intelligence for your CS team."
     heroImage="https://images.pexels.com/photos/7682464/pexels-photo-7682464.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
     accentColor="emerald"
+    socialProof="Trusted by 150+ customer success teams globally"
     stats={[
-      { value: '40%', label: 'Reduction in churn' },
       { value: '3x', label: 'Faster issue resolution' },
       { value: '100%', label: 'Call coverage' },
       { value: '60%', label: 'Less context switching' },

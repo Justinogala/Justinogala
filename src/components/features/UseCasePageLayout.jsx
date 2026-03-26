@@ -18,6 +18,7 @@ const UseCasePageLayout = ({
   heroImage,
   accentColor = 'violet',
   stats = [],
+  socialProof,
   challenges = [],
   solutions = [],
   workflows = [],
@@ -97,6 +98,11 @@ const UseCasePageLayout = ({
           {stats.length > 0 && (
             <section className={cn("py-10 bg-gradient-to-r text-white", colors.bg)}>
               <div className="container mx-auto px-6">
+                {socialProof && (
+                  <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-6">
+                    <p className="text-sm font-medium opacity-80 tracking-wide" data-testid="social-proof">{socialProof}</p>
+                  </motion.div>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                   {stats.map((stat, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>

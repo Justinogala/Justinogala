@@ -13,8 +13,8 @@ const Finance = () => (
     description="Munal helps financial teams capture investment discussions, document regulatory meetings, and maintain the audit trails required by regulators — all powered by AI."
     heroImage="https://images.unsplash.com/photo-1758519292135-2af0ad50f552?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwyfHxmaW5hbmNlJTIwYmFua2luZyUyMHRlY2hub2xvZ3klMjBtb2Rlcm58ZW58MHx8fHwxNzc0NTY0ODcyfDA&ixlib=rb-4.1.0&q=85"
     accentColor="violet"
+    socialProof="Trusted by 40+ financial institutions and funds"
     stats={[
-      { value: '55%', label: 'Faster compliance reporting' },
       { value: '3x', label: 'More meetings documented' },
       { value: '100%', label: 'Regulatory audit readiness' },
       { value: '$2M+', label: 'Annual cost savings avg.' },

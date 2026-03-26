@@ -13,8 +13,8 @@ const Legal = () => (
     description="Munal gives legal teams the power to transcribe depositions, capture case strategy sessions, and maintain iron-clad compliance records — with AI precision."
     heroImage="https://images.pexels.com/photos/6077961/pexels-photo-6077961.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
     accentColor="amber"
+    socialProof="Trusted by 60+ law firms and compliance teams"
     stats={[
-      { value: '80%', label: 'Faster deposition review' },
       { value: '99.5%', label: 'Transcript accuracy' },
       { value: '40%', label: 'Reduction in billable admin' },
       { value: '100%', label: 'Chain of custody maintained' },
