@@ -31,6 +31,12 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Careers & Features Overview Redesign - COMPLETED (March 26, 2026)
+- Redesigned Careers page with modern hero (image, tagline, CTAs), stats bar, perks section, 6 job listings
+- Redesigned Features Overview with modern hero, stats bar (24+, 6, 99.9%, SOC2), and 24 feature cards
+- Both pages now match the latest design pattern used across use case pages
+- 100% frontend tests passed (iteration_78.json)
+
 ### Use Cases Overview Hero + Testimonials Carousel - COMPLETED (March 26, 2026)
 - Enhanced UseCasesIndex hero with image, tagline badge, CTAs, and stats bar (500+, 10M+, 99.2%, 4.9/5)
 - Expanded testimonials from 4 to 12 industry leaders
