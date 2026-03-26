@@ -97,13 +97,13 @@ const HeroCarousel = ({ onDemoOpen }) => {
   const slide = SLIDES[current];
 
   const variants = {
-    enter: (dir) => ({ x: dir > 0 ? 300 : -300, opacity: 0 }),
+    enter: (dir) => ({ x: dir > 0 ? 150 : -150, opacity: 0 }),
     center: { x: 0, opacity: 1 },
-    exit: (dir) => ({ x: dir > 0 ? -300 : 300, opacity: 0 }),
+    exit: (dir) => ({ x: dir > 0 ? -150 : 150, opacity: 0 }),
   };
 
   return (
-    <section className="relative min-h-[78vh] flex items-center overflow-hidden" data-testid="hero-carousel">
+    <section className="relative min-h-[55vh] sm:min-h-[78vh] flex items-center overflow-hidden" data-testid="hero-carousel">
       {/* Animated background */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -115,10 +115,10 @@ const HeroCarousel = ({ onDemoOpen }) => {
           className="absolute inset-0"
         >
           <div className={cn("absolute inset-0 bg-gradient-to-br", slide.bg)} />
-          <div className={cn("absolute -bottom-32 -left-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tr to-transparent blur-3xl pointer-events-none", slide.bloom1)} />
-          <div className={cn("absolute -top-20 left-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-b to-transparent blur-3xl pointer-events-none", slide.bloom2)} />
-          <div className={cn("absolute top-1/3 -right-20 w-[400px] h-[400px] rounded-full bg-gradient-to-bl to-transparent blur-3xl pointer-events-none", slide.bloom3)} />
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1920 900">
+          <div className={cn("absolute -bottom-32 -left-32 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] rounded-full bg-gradient-to-tr to-transparent blur-3xl pointer-events-none", slide.bloom1)} />
+          <div className={cn("absolute -top-20 left-1/4 w-[250px] sm:w-[500px] h-[250px] sm:h-[500px] rounded-full bg-gradient-to-b to-transparent blur-3xl pointer-events-none", slide.bloom2)} />
+          <div className={cn("absolute top-1/3 -right-20 w-[200px] sm:w-[400px] h-[200px] sm:h-[400px] rounded-full bg-gradient-to-bl to-transparent blur-3xl pointer-events-none", slide.bloom3)} />
+          <svg className="absolute inset-0 w-full h-full pointer-events-none hidden sm:block" preserveAspectRatio="none" viewBox="0 0 1920 900">
             <defs>
               <linearGradient id={`line-${current}`} x1="0.6" y1="0" x2="0.8" y2="1">
                 <stop offset="0%" stopColor={slide.lineColor1} stopOpacity="0.5" />
@@ -132,8 +132,8 @@ const HeroCarousel = ({ onDemoOpen }) => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="container mx-auto px-6 relative z-10 pt-2 pb-8">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+      <div className="container mx-auto px-5 sm:px-6 relative z-10 pt-2 pb-10 sm:pb-8">
+        <div className="flex flex-col lg:flex-row items-center gap-4 sm:gap-8 lg:gap-16">
           {/* Left - Text */}
           <div className="flex-1 text-left">
             <AnimatePresence mode="wait" custom={direction}>
@@ -146,17 +146,17 @@ const HeroCarousel = ({ onDemoOpen }) => {
                 exit="exit"
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               >
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-6">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-3 sm:mb-6">
                   {slide.headline}
                 </h1>
-                <p className="text-lg sm:text-xl text-gray-500 mb-8 max-w-xl leading-relaxed">
+                <p className="text-base sm:text-xl text-gray-500 mb-5 sm:mb-8 max-w-xl leading-relaxed">
                   {slide.description}
                 </p>
-                <div className="flex flex-col sm:flex-row items-start gap-3">
+                <div className="flex flex-row items-center gap-3">
                   <Button
                     size="lg"
                     onClick={() => navigate(slide.ctaLink)}
-                    className="h-12 px-7 text-base bg-gray-900 hover:bg-gray-800 text-white rounded-lg shadow-lg transition-all hover:scale-105"
+                    className="h-11 sm:h-12 px-5 sm:px-7 text-sm sm:text-base bg-gray-900 hover:bg-gray-800 text-white rounded-lg shadow-lg transition-all hover:scale-105"
                   >
                     {slide.cta} <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
@@ -165,7 +165,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
                     variant="ghost"
                     data-testid="watch-demo-btn"
                     onClick={onDemoOpen}
-                    className="h-12 px-7 text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 rounded-lg"
+                    className="h-11 sm:h-12 px-5 sm:px-7 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 rounded-lg"
                   >
                     <PlayCircle className="mr-2 w-5 h-5" /> Watch Demo
                   </Button>
@@ -191,7 +191,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-xs lg:max-w-sm xl:max-w-md h-auto object-contain mix-blend-multiply opacity-90"
+                className="w-full max-w-[220px] sm:max-w-xs lg:max-w-sm xl:max-w-md h-auto object-contain mix-blend-multiply opacity-90"
               />
             </AnimatePresence>
           </div>
