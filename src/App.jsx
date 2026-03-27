@@ -192,6 +192,7 @@ const Privacy = lazy(() => import('@/pages/Legal/Privacy'));
 const Terms = lazy(() => import('@/pages/Legal/Terms'));
 const ManageCookies = lazy(() => import('@/pages/Legal/ManageCookies'));
 const Trademarks = lazy(() => import('@/pages/Legal/Trademarks'));
+const SecurityPage = lazy(() => import('@/pages/Legal/SecurityPage'));
 const ContactFormPage = lazy(() => import('@/pages/ContactFormPage'));
 
 // Admin Pages
@@ -490,6 +491,7 @@ function App() {
                               <Route path="/legal/terms" element={<Terms />} />
                               <Route path="/legal/cookies" element={<ManageCookies />} />
                               <Route path="/legal/trademarks" element={<Trademarks />} />
+                              <Route path="/legal/security" element={<SecurityPage />} />
                               <Route path="/legal/contact" element={<Contact />} />
 
                               {/* Admin Routes */}
