@@ -31,6 +31,16 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### AI Chat (ChatGPT-style) — COMPLETED (March 27, 2026)
+- Full-screen AI chat page at /ai-chat powered by GPT-5.2 (Emergent LLM Key)
+- Sidebar with conversation history, auto-titling, rename/delete
+- SSE streaming responses with markdown + code syntax highlighting
+- File upload (Emergent Object Storage), voice input (Whisper STT)
+- 6 suggested prompts, stop generation, responsive design
+- Navigation: AI Chat in UserSidebar + Header button (authenticated)
+- Backend: /api/ai-chat/ routes, MongoDB collections: ai_conversations, ai_messages, ai_chat_files
+- 17/17 backend tests passed, frontend bugs fixed (process.env, auth race condition)
+
 ### Security Legal Page — COMPLETED (March 27, 2026)
 - Created /legal/security page with 10 sections: Commitment, Encryption, Infrastructure, Access Control, Audit Logging, Incident Response, Compliance, Data Privacy, Vulnerability Management, Security Updates
 - Emerald-themed hero, trust badges bar, sidebar navigation, expandable sections
