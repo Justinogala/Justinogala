@@ -31,6 +31,12 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Docs, API Reference & Press Redesign - COMPLETED (March 27, 2026)
+- Documentation: modern hero, search, 8 category cards, 6 popular articles, stats bar
+- API Reference: hero with terminal code block, search, 10 endpoints, 4 SDK cards, stats bar
+- Press: hero with media image, 6 press releases, 4 media coverage cards, brand assets, stats bar
+- 100% frontend tests passed (iteration_80.json)
+
 ### Footer Restructure - COMPLETED (March 27, 2026)
 - Restructured footer into 6 columns: Brand, Product (9 links), Use Cases (8 links), Resources (6 links), Company + Legal (6 links)
 - Added missing pages: eSignature, Shift Management, all Use Cases, Documentation, API Reference, Community, Support Center, Press
