@@ -521,6 +521,13 @@ export default function AIChatPage() {
       <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Top Bar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
+          <a href="/dashboard" className="flex items-center gap-2 mr-2 hover:opacity-80 transition-opacity" data-testid="chat-logo-link">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-sm">M</span>
+            </div>
+            <span className="font-semibold text-sm text-gray-900 dark:text-white hidden sm:inline">Munal</span>
+          </a>
+          <div className="w-px h-6 bg-gray-200 dark:bg-slate-700" />
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" data-testid="toggle-sidebar">
             {sidebarOpen ? <ChevronLeft className="w-5 h-5 text-gray-500" /> : <Menu className="w-5 h-5 text-gray-500" />}
           </button>
