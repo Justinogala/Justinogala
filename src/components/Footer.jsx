@@ -104,8 +104,18 @@ const Footer = () => {
         <div className="max-w-[1600px] mx-auto px-8 lg:px-12 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
 
-            {/* Left — Theme + Division label */}
+            {/* Left — Privacy Choices + Theme + Division label */}
             <div className="flex items-center gap-4 flex-wrap justify-center md:justify-start">
+              <Link to="/legal/cookies" className="inline-flex items-center gap-1.5 group" data-testid="footer-privacy-choices">
+                <svg width="16" height="16" viewBox="0 0 30 14" className="flex-shrink-0" aria-hidden="true">
+                  <rect x="0" y="0" width="30" height="14" rx="7" fill="#2B6CB0" />
+                  <circle cx="7" cy="7" r="5" fill="white" />
+                  <path d="M5.5 7L6.5 8L8.5 6" stroke="#2B6CB0" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="23" cy="7" r="5" fill="white" />
+                  <path d="M21.5 5.5L24.5 8.5M24.5 5.5L21.5 8.5" stroke="#2B6CB0" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                </svg>
+                <span className="text-[11px] text-[#767676] dark:text-gray-500 group-hover:underline">Your Privacy Choices</span>
+              </Link>
               <ThemeSwitcher />
               <span className="text-[11px] text-[#767676] dark:text-gray-500">
                 Munal AI is a division of Jiffix Inc.
