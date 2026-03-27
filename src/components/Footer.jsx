@@ -35,7 +35,7 @@ const Footer = () => {
               <span className="font-bold text-xl text-gray-900 dark:text-white tracking-tight">Munal</span>
             </Link>
             <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-              AI-powered meeting companion for modern teams. Capture, analyze, and collaborate seamlessly.
+              Munal is an all-in-one workforce management and collaboration platform. From AI transcriptions and shift scheduling to eSignatures, real-time chat, and compliance-ready documentation — we help teams across healthcare, education, government, legal, and finance work smarter.
             </p>
             <div className="flex space-x-3">
               {[Github, Twitter, Linkedin, Slack].map((Icon, idx) => (
