@@ -31,6 +31,12 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Manage Cookies & Trademarks Pages — COMPLETED (March 27, 2026)
+- Created /legal/cookies page with 4 cookie categories, interactive toggles, save preferences
+- Created /legal/trademarks page with 7 sections, Quick Reference card
+- Footer Legal column and bottom bar links updated to point to both new pages
+- 15/15 frontend tests passed (iteration_82)
+
 ### Footer Tweak — Microsoft Color Match (March 27, 2026)
 - Updated footer background to #f2f2f2 (Microsoft light gray)
 - Removed "Munal Technologies Inc.", replaced with "Munal AI is a division of Jiffix Inc."
