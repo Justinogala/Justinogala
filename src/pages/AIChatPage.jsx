@@ -33,8 +33,9 @@ import {
   StopCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getApiUrl } from '@/lib/api';
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = getApiUrl();
 
 const suggestedPrompts = [
   { icon: Sparkles, label: 'Write a professional email', prompt: 'Help me write a professional email to a client about a project delay, keeping the tone apologetic yet confident.' },
@@ -142,7 +143,7 @@ function ChatMessage({ message }) {
 
 export default function AIChatPage() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [token, setToken] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
@@ -166,6 +167,9 @@ export default function AIChatPage() {
 
   // Get token from session storage
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
     try {
       const sessionJson = localStorage.getItem('munal_sessions');
       if (sessionJson) {
@@ -177,7 +181,7 @@ export default function AIChatPage() {
       }
     } catch {}
     if (!isAuthenticated) navigate('/login');
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, authLoading]);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
@@ -438,6 +442,15 @@ export default function AIChatPage() {
   };
 
   const isEmptyState = !activeConvId || messages.length === 0;
+
+  // Show loading while auth is initializing
+  if (authLoading || (!token && !isAuthenticated)) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
+        <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-slate-950" data-testid="ai-chat-page">
