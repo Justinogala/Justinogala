@@ -388,9 +388,15 @@ const Header = () => {
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center space-x-4 shrink-0">
           {isAuthenticated ? (
-            <Button onClick={() => navigate('/dashboard')} variant="default" className="shadow-violet-500/20">
-              Go to Dashboard
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => navigate('/ai-chat')} variant="outline" className="gap-1.5" data-testid="header-ai-chat-btn">
+                <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6V2H8"/><path d="m8 18-4 4V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2Z"/><path d="M2 12h2"/><path d="M9 11v2"/><path d="M15 11v2"/><path d="M20 12h2"/></svg>
+                AI Chat
+              </Button>
+              <Button onClick={() => navigate('/dashboard')} variant="default" className="shadow-violet-500/20">
+                Go to Dashboard
+              </Button>
+            </div>
           ) : (
             <>
               <Link to="/login" className="text-sm font-semibold text-gray-700 hover:text-violet-600 dark:text-gray-200 dark:hover:text-violet-400 transition-colors">Log in</Link>

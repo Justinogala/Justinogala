@@ -369,11 +369,7 @@ function App() {
                               <Route path="/shared/recording/:shareToken" element={<SharedRecordingPage />} />
                               <Route path="/checkout/:planId" element={<CheckoutPage />} />
 
-                              <Route path="/ai-chat" element={
-                                <ProtectedRoute>
-                                  <AIChatPage />
-                                </ProtectedRoute>
-                              } />
+                              <Route path="/ai-chat" element={<AIChatPage />} />
 
                               <Route path="/update-password" element={
                                 <ProtectedRoute>
