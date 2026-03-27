@@ -1,59 +1,29 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
-import { Github, Twitter, Linkedin, Slack, Mail, MapPin, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { contactConfig } from '@/config/contactConfig';
 
 const FooterLink = ({ to, children }) => (
-  <li>
-    <Link
-      to={to}
-      className={cn(
-        "text-sm font-medium transition-colors duration-300 block py-1",
-        "text-gray-500 dark:text-gray-400",
-        "hover:text-violet-600 dark:hover:text-violet-400"
-      )}
-    >
-      {children}
-    </Link>
-  </li>
+  <Link
+    to={to}
+    className="text-[13px] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+  >
+    {children}
+  </Link>
 );
 
 const Footer = () => {
   return (
-    <footer className="bg-white dark:bg-slate-950 border-t border-gray-100 dark:border-slate-800 pt-16 pb-8" data-testid="footer">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 mb-16">
+    <footer className="bg-gray-50 dark:bg-slate-950 border-t border-gray-200 dark:border-slate-800" data-testid="footer">
 
-          {/* Brand */}
-          <div className="col-span-2 md:col-span-3 lg:col-span-1 space-y-5">
-            <Link to="/" className="flex items-center space-x-2 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:shadow-violet-500/25 transition-all duration-300">
-                M
-              </div>
-              <span className="font-bold text-xl text-gray-900 dark:text-white tracking-tight">Munal</span>
-            </Link>
-            <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-              Munal is an all-in-one workforce management and collaboration platform. From AI transcriptions and shift scheduling to eSignatures, real-time chat, and compliance-ready documentation — we help teams across healthcare, education, government, legal, and finance work smarter.
-            </p>
-            <div className="flex space-x-3">
-              {[Github, Twitter, Linkedin, Slack].map((Icon, idx) => (
-                <a
-                  key={idx}
-                  href="#"
-                  className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-900 flex items-center justify-center text-gray-500 hover:bg-violet-100 hover:text-violet-600 dark:hover:bg-violet-900/30 dark:hover:text-violet-400 transition-all"
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
-          </div>
+      {/* Main Footer Links — Microsoft style horizontal rows */}
+      <div className="container mx-auto px-6 py-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-y-10 gap-x-8">
 
           {/* Product */}
           <div>
-            <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Product</h4>
-            <ul className="space-y-0.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-900 dark:text-white mb-5">Product</h4>
+            <div className="flex flex-col space-y-3">
               <FooterLink to="/features/overview">Features Overview</FooterLink>
               <FooterLink to="/features/transcriptions">AI Transcriptions</FooterLink>
               <FooterLink to="/features/meetings">Meetings</FooterLink>
@@ -63,13 +33,13 @@ const Footer = () => {
               <FooterLink to="/features/calendar-integration">Calendar Sync</FooterLink>
               <FooterLink to="/features/analytics">Analytics</FooterLink>
               <FooterLink to="/pricing">Pricing</FooterLink>
-            </ul>
+            </div>
           </div>
 
           {/* Use Cases */}
           <div>
-            <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Use Cases</h4>
-            <ul className="space-y-0.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-900 dark:text-white mb-5">Use Cases</h4>
+            <div className="flex flex-col space-y-3">
               <FooterLink to="/use-cases/healthcare">Healthcare</FooterLink>
               <FooterLink to="/use-cases/education">Education</FooterLink>
               <FooterLink to="/use-cases/government">Government</FooterLink>
@@ -78,65 +48,74 @@ const Footer = () => {
               <FooterLink to="/use-cases/sales">Sales Teams</FooterLink>
               <FooterLink to="/use-cases/engineering">Engineering</FooterLink>
               <FooterLink to="/use-cases">All Use Cases</FooterLink>
-            </ul>
+            </div>
           </div>
 
           {/* Resources */}
           <div>
-            <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Resources</h4>
-            <ul className="space-y-0.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-900 dark:text-white mb-5">Resources</h4>
+            <div className="flex flex-col space-y-3">
               <FooterLink to="/resources/blog">Blog & Insights</FooterLink>
               <FooterLink to="/resources/docs">Documentation</FooterLink>
               <FooterLink to="/resources/api">API Reference</FooterLink>
               <FooterLink to="/resources/community">Community</FooterLink>
               <FooterLink to="/support">Support Center</FooterLink>
               <FooterLink to="/resources">All Resources</FooterLink>
-            </ul>
+            </div>
           </div>
 
           {/* Company */}
           <div>
-            <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Company</h4>
-            <ul className="space-y-0.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-900 dark:text-white mb-5">Company</h4>
+            <div className="flex flex-col space-y-3">
               <FooterLink to="/company/about">About Us</FooterLink>
               <FooterLink to="/company/careers">Careers</FooterLink>
               <FooterLink to="/company/press">Press</FooterLink>
               <FooterLink to="/contact">Contact</FooterLink>
-            </ul>
+            </div>
+          </div>
 
-            <h4 className="font-bold text-gray-900 dark:text-white mb-3 mt-6 text-sm">Legal</h4>
-            <ul className="space-y-0.5">
+          {/* Legal */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-900 dark:text-white mb-5">Legal</h4>
+            <div className="flex flex-col space-y-3">
               <FooterLink to="/legal/privacy">Privacy Policy</FooterLink>
               <FooterLink to="/legal/terms">Terms of Service</FooterLink>
-            </ul>
+              <FooterLink to="/legal/cookies">Cookie Policy</FooterLink>
+              <FooterLink to="/legal/security">Security</FooterLink>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Contact Bar */}
-        <div className="border-t border-gray-100 dark:border-slate-800 pt-8 mb-8">
-          <div className="flex flex-wrap gap-6 justify-center text-sm text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-violet-500" />
-              {contactConfig.address}
-            </span>
-            <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-violet-500" />
-              {contactConfig.phone}
-            </span>
-            <span className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-violet-500" />
-              {contactConfig.email}
-            </span>
-          </div>
-        </div>
+      {/* Bottom Bar — Microsoft style */}
+      <div className="border-t border-gray-200 dark:border-slate-800">
+        <div className="container mx-auto px-6 py-5">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-100 dark:border-slate-800 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            &copy; {new Date().getFullYear()} Munal. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            <ThemeSwitcher />
+            {/* Left — Logo + Copyright */}
+            <div className="flex items-center gap-3">
+              <Link to="/" className="flex items-center gap-2 group">
+                <div className="w-6 h-6 rounded bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                  M
+                </div>
+                <span className="font-semibold text-sm text-gray-900 dark:text-white">Munal</span>
+              </Link>
+              <span className="text-[12px] text-gray-400 dark:text-gray-500">
+                &copy; {new Date().getFullYear()} Munal Technologies Inc. All rights reserved.
+              </span>
+            </div>
+
+            {/* Right — Theme + Legal links */}
+            <div className="flex items-center gap-5">
+              <Link to="/legal/privacy" className="text-[12px] text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Privacy</Link>
+              <Link to="/legal/terms" className="text-[12px] text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Terms</Link>
+              <Link to="/legal/cookies" className="text-[12px] text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Cookies</Link>
+              <Link to="/contact" className="text-[12px] text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Contact</Link>
+              <div className="border-l border-gray-200 dark:border-slate-700 pl-4">
+                <ThemeSwitcher />
+              </div>
+            </div>
           </div>
         </div>
       </div>
