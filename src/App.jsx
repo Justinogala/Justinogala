@@ -193,6 +193,7 @@ const Terms = lazy(() => import('@/pages/Legal/Terms'));
 const ManageCookies = lazy(() => import('@/pages/Legal/ManageCookies'));
 const Trademarks = lazy(() => import('@/pages/Legal/Trademarks'));
 const SecurityPage = lazy(() => import('@/pages/Legal/SecurityPage'));
+const AIChatPage = lazy(() => import('@/pages/AIChatPage'));
 const ContactFormPage = lazy(() => import('@/pages/ContactFormPage'));
 
 // Admin Pages
@@ -367,6 +368,12 @@ function App() {
                               <Route path="/shared/:shareToken" element={<SharedMeetingPage />} />
                               <Route path="/shared/recording/:shareToken" element={<SharedRecordingPage />} />
                               <Route path="/checkout/:planId" element={<CheckoutPage />} />
+
+                              <Route path="/ai-chat" element={
+                                <ProtectedRoute>
+                                  <AIChatPage />
+                                </ProtectedRoute>
+                              } />
 
                               <Route path="/update-password" element={
                                 <ProtectedRoute>
