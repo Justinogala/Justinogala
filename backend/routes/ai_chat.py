@@ -185,6 +185,9 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
 
         full_response = ""
         try:
+            # Send immediate "thinking" event so frontend shows feedback instantly
+            yield f"data: {json.dumps({'type': 'thinking'})}\n\n"
+
             chat = LlmChat(
                 api_key=EMERGENT_KEY,
                 session_id=f"munal-aichat-{conv_id}-{assistant_msg_id}",
@@ -213,15 +216,15 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             response = await chat.send_message(user_message)
             full_response = response
 
-            # Stream in chunks to simulate streaming
+            # Stream response in chunks for typewriter effect
             words = full_response.split(" ")
-            chunk_size = 3
+            chunk_size = 4
             for i in range(0, len(words), chunk_size):
                 chunk = " ".join(words[i:i+chunk_size])
                 if i > 0:
                     chunk = " " + chunk
                 yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
-                await asyncio.sleep(0.02)
+                await asyncio.sleep(0.01)
 
         except Exception as e:
             logger.error(f"AI Chat error: {e}")

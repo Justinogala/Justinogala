@@ -116,6 +116,15 @@ function ChatMessage({ message }) {
         )}>
           {isUser ? (
             <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : message.isThinking ? (
+            <div className="flex items-center gap-2 py-1">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span className="text-sm text-gray-400 dark:text-gray-500">Thinking...</span>
+            </div>
           ) : message.isStreaming ? (
             <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:my-0 prose-code:before:content-[''] prose-code:after:content-['']">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: CodeBlock }}>
@@ -318,7 +327,7 @@ export default function AIChatPage() {
     setUploadedFiles([]);
     setIsStreaming(true);
 
-    const assistantMsg = { id: 'streaming', role: 'assistant', content: '', isStreaming: true, created_at: new Date().toISOString() };
+    const assistantMsg = { id: 'streaming', role: 'assistant', content: '', isThinking: true, isStreaming: false, created_at: new Date().toISOString() };
     setMessages(prev => [...prev, assistantMsg]);
 
     try {
@@ -360,13 +369,15 @@ export default function AIChatPage() {
           if (!line.startsWith('data: ')) continue;
           try {
             const data = JSON.parse(line.slice(6));
-            if (data.type === 'chunk') {
+            if (data.type === 'thinking') {
+              // Already showing thinking state, just keep it
+            } else if (data.type === 'chunk') {
               fullContent += data.content;
               setMessages(prev => {
                 const updated = [...prev];
                 const last = updated[updated.length - 1];
                 if (last && last.id === 'streaming') {
-                  updated[updated.length - 1] = { ...last, content: fullContent };
+                  updated[updated.length - 1] = { ...last, content: fullContent, isThinking: false, isStreaming: true };
                 }
                 return updated;
               });
@@ -392,7 +403,7 @@ export default function AIChatPage() {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last?.id === 'streaming') {
-            updated[updated.length - 1] = { ...last, content: 'Sorry, something went wrong. Please try again.', isStreaming: false };
+            updated[updated.length - 1] = { ...last, content: 'Sorry, something went wrong. Please try again.', isStreaming: false, isThinking: false };
           }
           return updated;
         });
@@ -410,7 +421,7 @@ export default function AIChatPage() {
       setMessages(prev => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
-        if (last?.isStreaming) updated[updated.length - 1] = { ...last, isStreaming: false };
+        if (last?.isStreaming || last?.isThinking) updated[updated.length - 1] = { ...last, isStreaming: false, isThinking: false };
         return updated;
       });
     }
