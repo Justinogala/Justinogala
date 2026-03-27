@@ -165,6 +165,19 @@ export default function AIChatPage() {
   const fileInputRef = useRef(null);
   const abortRef = useRef(null);
 
+  // Helper to always get a valid auth token
+  const getToken = useCallback(() => {
+    if (token) return token;
+    try {
+      const session = JSON.parse(localStorage.getItem('munal_sessions') || '{}');
+      if (session.token) {
+        setToken(session.token);
+        return session.token;
+      }
+    } catch { /* ignore */ }
+    return null;
+  }, [token]);
+
   // Get token from session storage
   useEffect(() => {
     // Wait for auth to finish loading
@@ -179,34 +192,36 @@ export default function AIChatPage() {
           return;
         }
       }
-    } catch {}
+    } catch { /* localStorage parse error */ }
     if (!isAuthenticated) navigate('/login');
   }, [isAuthenticated, navigate, authLoading]);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
-    if (!token) return;
+    const t = getToken();
+    if (!t) return;
     try {
       const res = await fetch(`${API}/api/ai-chat/conversations`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${t}` }
       });
       if (res.ok) setConversations(await res.json());
     } catch (e) { console.error(e); }
-  }, [token]);
+  }, [getToken]);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
   // Load messages for active conversation
   useEffect(() => {
-    if (!activeConvId || !token) { setMessages([]); return; }
+    const t = getToken();
+    if (!activeConvId || !t) { setMessages([]); return; }
     setLoadingConv(true);
     fetch(`${API}/api/ai-chat/conversations/${activeConvId}`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${t}` }
     })
       .then(r => r.json())
       .then(data => { setMessages(data.messages || []); setLoadingConv(false); })
       .catch(() => setLoadingConv(false));
-  }, [activeConvId, token]);
+  }, [activeConvId, getToken]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -214,10 +229,12 @@ export default function AIChatPage() {
   }, [messages]);
 
   const createConversation = async () => {
+    const t = getToken();
+    if (!t) return;
     try {
       const res = await fetch(`${API}/api/ai-chat/conversations`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' }
       });
       const conv = await res.json();
       setConversations(prev => [conv, ...prev]);
@@ -229,10 +246,12 @@ export default function AIChatPage() {
   };
 
   const deleteConversation = async (id) => {
+    const t = getToken();
+    if (!t) return;
     try {
       await fetch(`${API}/api/ai-chat/conversations/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${t}` }
       });
       setConversations(prev => prev.filter(c => c.id !== id));
       if (activeConvId === id) { setActiveConvId(null); setMessages([]); }
@@ -240,11 +259,12 @@ export default function AIChatPage() {
   };
 
   const renameConversation = async (id) => {
-    if (!editTitle.trim()) return;
+    const t = getToken();
+    if (!editTitle.trim() || !t) return;
     try {
       await fetch(`${API}/api/ai-chat/conversations/${id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: editTitle.trim() })
       });
       setConversations(prev => prev.map(c => c.id === id ? { ...c, title: editTitle.trim() } : c));
@@ -257,12 +277,26 @@ export default function AIChatPage() {
     if (!text && uploadedFiles.length === 0) return;
     if (isStreaming) return;
 
+    // Get token, with fallback to direct localStorage read
+    let authToken = token;
+    if (!authToken) {
+      try {
+        const session = JSON.parse(localStorage.getItem('munal_sessions') || '{}');
+        authToken = session.token;
+        if (authToken) setToken(authToken);
+      } catch { /* ignore */ }
+    }
+    if (!authToken) {
+      navigate('/login');
+      return;
+    }
+
     let convId = activeConvId;
     if (!convId) {
       try {
         const res = await fetch(`${API}/api/ai-chat/conversations`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+          headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' }
         });
         const conv = await res.json();
         convId = conv.id;
@@ -293,13 +327,23 @@ export default function AIChatPage() {
 
       const res = await fetch(`${API}/api/ai-chat/conversations/${convId}/messages`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: text,
           attachments: uploadedFiles.map(f => ({ filename: f.original_filename, content_type: f.content_type, file_id: f.id }))
         }),
         signal: controller.signal
       });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Chat API error:', res.status, errText);
+        throw new Error(`API returned ${res.status}`);
+      }
+
+      if (!res.body) {
+        throw new Error('No response body for streaming');
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -392,7 +436,7 @@ export default function AIChatPage() {
         try {
           const res = await fetch(`${API}/api/ai-chat/voice`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${getToken()}` },
             body: formData
           });
           const data = await res.json();
@@ -416,7 +460,7 @@ export default function AIChatPage() {
       try {
         const res = await fetch(`${API}/api/ai-chat/upload`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${getToken()}` },
           body: formData
         });
         if (res.ok) {
