@@ -31,6 +31,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Blog Page Redesign - COMPLETED (March 27, 2026)
+- Redesigned blog with modern hero, search, 12 ICT stories covering AI, Remote Work, Healthcare, Compliance, Workforce, Education, Government, Security, Legal, Finance, HR
+- Featured post card, sticky category filter bar (11 categories), 3-column grid, newsletter CTA
+- 100% frontend tests passed (iteration_79.json)
+
 ### Careers & Features Overview Redesign - COMPLETED (March 26, 2026)
 - Redesigned Careers page with modern hero (image, tagline, CTAs), stats bar, perks section, 6 job listings
 - Redesigned Features Overview with modern hero, stats bar (24+, 6, 99.9%, SOC2), and 24 feature cards
