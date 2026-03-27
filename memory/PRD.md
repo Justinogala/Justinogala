@@ -31,6 +31,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Footer Restructure - COMPLETED (March 27, 2026)
+- Restructured footer into 6 columns: Brand, Product (9 links), Use Cases (8 links), Resources (6 links), Company + Legal (6 links)
+- Added missing pages: eSignature, Shift Management, all Use Cases, Documentation, API Reference, Community, Support Center, Press
+- Centered contact info bar above copyright
+
 ### Blog Page Redesign - COMPLETED (March 27, 2026)
 - Redesigned blog with modern hero, search, 12 ICT stories covering AI, Remote Work, Healthcare, Compliance, Workforce, Education, Government, Security, Legal, Finance, HR
 - Featured post card, sticky category filter bar (11 categories), 3-column grid, newsletter CTA
