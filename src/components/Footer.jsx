@@ -80,7 +80,8 @@ const Footer = () => {
             <div className="flex flex-col">
               <FooterLink to="/legal/privacy">Privacy Policy</FooterLink>
               <FooterLink to="/legal/terms">Terms of Service</FooterLink>
-              <FooterLink to="/legal/cookies">Cookie Policy</FooterLink>
+              <FooterLink to="/legal/cookies">Manage Cookies</FooterLink>
+              <FooterLink to="/legal/trademarks">Trademarks</FooterLink>
               <FooterLink to="/legal/security">Security</FooterLink>
             </div>
           </div>
@@ -117,7 +118,7 @@ const Footer = () => {
               <Link to="/legal/privacy" className="text-[11px] text-[#767676] dark:text-gray-500 hover:underline transition-colors" data-testid="footer-privacy-link">Privacy</Link>
               <Link to="/legal/cookies" className="text-[11px] text-[#767676] dark:text-gray-500 hover:underline transition-colors" data-testid="footer-cookies-link">Manage cookies</Link>
               <Link to="/legal/terms" className="text-[11px] text-[#767676] dark:text-gray-500 hover:underline transition-colors" data-testid="footer-terms-link">Terms of use</Link>
-              <Link to="/legal/security" className="text-[11px] text-[#767676] dark:text-gray-500 hover:underline transition-colors" data-testid="footer-security-link">Trademarks</Link>
+              <Link to="/legal/trademarks" className="text-[11px] text-[#767676] dark:text-gray-500 hover:underline transition-colors" data-testid="footer-trademarks-link">Trademarks</Link>
               <span className="text-[11px] text-[#767676] dark:text-gray-500" data-testid="footer-copyright">
                 &copy; Munal AI {new Date().getFullYear()}
               </span>
