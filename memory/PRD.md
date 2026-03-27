@@ -31,62 +31,40 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Footer Tweak — Microsoft Color Match (March 27, 2026)
+- Updated footer background to #f2f2f2 (Microsoft light gray)
+- Removed "Munal Technologies Inc.", replaced with "Munal AI is a division of Jiffix Inc."
+- Bottom bar: theme switcher + division label (left), legal links + © Munal AI 2026 (right)
+- Added 6th "Developer" column
+- Headings: #333, links: #505050, bottom bar text: #767676
+
 ### Docs, API Reference & Press Redesign - COMPLETED (March 27, 2026)
 - Documentation: modern hero, search, 8 category cards, 6 popular articles, stats bar
 - API Reference: hero with terminal code block, search, 10 endpoints, 4 SDK cards, stats bar
 - Press: hero with media image, 6 press releases, 4 media coverage cards, brand assets, stats bar
-- 100% frontend tests passed (iteration_80.json)
 
-### Footer Restructure - COMPLETED (March 27, 2026)
-- Restructured footer into 6 columns: Brand, Product (9 links), Use Cases (8 links), Resources (6 links), Company + Legal (6 links)
-- Added missing pages: eSignature, Shift Management, all Use Cases, Documentation, API Reference, Community, Support Center, Press
-- Centered contact info bar above copyright
+### Resources Index & Footer Overhaul - COMPLETED (March 27, 2026)
+- Resources Index page redesigned with modern hero section
+- Footer restructured into Microsoft-style clean layout
 
 ### Blog Page Redesign - COMPLETED (March 27, 2026)
-- Redesigned blog with modern hero, search, 12 ICT stories covering AI, Remote Work, Healthcare, Compliance, Workforce, Education, Government, Security, Legal, Finance, HR
-- Featured post card, sticky category filter bar (11 categories), 3-column grid, newsletter CTA
-- 100% frontend tests passed (iteration_79.json)
+- Redesigned blog with modern hero, search, 12 ICT stories
+- Featured post card, sticky category filter bar, 3-column grid, newsletter CTA
 
 ### Careers & Features Overview Redesign - COMPLETED (March 26, 2026)
-- Redesigned Careers page with modern hero (image, tagline, CTAs), stats bar, perks section, 6 job listings
-- Redesigned Features Overview with modern hero, stats bar (24+, 6, 99.9%, SOC2), and 24 feature cards
-- Both pages now match the latest design pattern used across use case pages
-- 100% frontend tests passed (iteration_78.json)
+- Redesigned Careers page with modern hero, stats bar, perks section, 6 job listings
+- Redesigned Features Overview with modern hero, stats bar, 24 feature cards
 
 ### Use Cases Overview Hero + Testimonials Carousel - COMPLETED (March 26, 2026)
-- Enhanced UseCasesIndex hero with image, tagline badge, CTAs, and stats bar (500+, 10M+, 99.2%, 4.9/5)
-- Expanded testimonials from 4 to 12 industry leaders
-- Built auto-sliding carousel with 4s interval, hover-pause, arrows, dot navigation
-- Responsive: 3 cards desktop, 2 tablet, 1 mobile
-- Both /use-cases and landing page use the same carousel
-- 24/24 frontend tests passed (iteration_77.json)
-
-### Cookie/PWA Overlap Fix & Social Proof - COMPLETED (March 26, 2026)
-- Fixed cookie consent bar overlapping with PWA install prompt (narrowed to max-w-2xl, install prompt elevated to z-[110] and bottom-44 on mobile)
-- Added industry-specific social proof text to all 10 use case page stats bars
-- 100% frontend tests passed (iteration_76.json)
+- Enhanced UseCasesIndex hero with image, tagline badge, CTAs, and stats bar
+- Auto-sliding carousel with 12 testimonials
 
 ### Use Cases Mega-Menu & Industry Pages - COMPLETED (March 26, 2026)
-- Redesigned "Use Cases" dropdown into mega-menu with 2 columns: "By Team" and "By Industry"
-- Created 5 new industry landing pages: Healthcare, Education, Government, Legal & Compliance, Finance
-- Redesigned 5 existing "By Team" pages (Sales, Customer Success, Product, Engineering, HR) to use same UseCasePageLayout
-- Built reusable `UseCasePageLayout` component with hero, stats bar, challenges, solutions, workflows, testimonial, CTA, and prev/next navigation
-- Updated `UseCasesIndex` with organized "By Team" and "By Industry" card sections
-- All routes registered in App.jsx with lazy loading
-- 43/43 frontend tests passed (iteration_74.json) + 41/41 team page tests (iteration_75.json)
+- 5 new industry landing pages + 5 redesigned team pages
+- Reusable UseCasePageLayout component
 
 ### Assign Users to Organizations - COMPLETED (March 26, 2026)
-- Backend: `POST /api/organizations/{org_id}/members/assign` accepts `{user_id, org_role}` body
-- Maps org roles to platform roles (admin→Admin, manager→Manager, member→User)
-- Frontend: "Assign to Organization" dialog on Users page (Super Admin only)
-- 12 backend + 8 frontend tests passed (iteration_73.json)
-
-### Organization-Scoped Admin Access - COMPLETED (March 26, 2026)
-- Broadcasts/Exports scoped to caller's org for Admin/Manager
-- User visibility scoped to caller's org
-
-### Permission Change Audit Log - COMPLETED (March 26, 2026)
-- `permission_audit_log` collection, Activity Log UI on Module Permissions page
+- Backend + Frontend for org member assignment
 
 ### RBAC Module Permissions - COMPLETED (March 26, 2026)
 - 27 admin modules, role-based templates, Module Permissions page
@@ -104,28 +82,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 └── frontend/src/
     ├── components/
     │   ├── Header.jsx                          # Mega-menu for Features & Use Cases
+    │   ├── Footer.jsx                          # Microsoft-style 6-col layout
     │   └── features/
-    │       ├── FeaturePageLayout.jsx           # Reusable feature page layout
-    │       └── UseCasePageLayout.jsx           # Reusable use case page layout (NEW)
-    ├── pages/UseCases/
-    │   ├── UseCasesIndex.jsx                   # Updated index with By Team & By Industry
-    │   ├── SalesTeams.jsx
-    │   ├── CustomerSuccess.jsx
-    │   ├── ProductTeams.jsx
-    │   ├── EngineeringTeams.jsx
-    │   ├── HRRecruiting.jsx
-    │   ├── Healthcare.jsx                      # NEW
-    │   ├── Education.jsx                       # NEW
-    │   ├── Government.jsx                      # NEW
-    │   ├── Legal.jsx                           # NEW
-    │   └── Finance.jsx                         # NEW
-    ├── context/AdminAuthContext.jsx
-    ├── contexts/PermissionContext.jsx
-    └── pages/admin/
-        ├── AdminUserManagementPage.jsx
-        ├── AdminBroadcastsPage.jsx
-        ├── AdminModulePermissionsPage.jsx
-        └── AdminOrganizationsPage.jsx
+    │       ├── FeaturePageLayout.jsx
+    │       └── UseCasePageLayout.jsx
+    ├── pages/UseCases/                         # 10 pages + Index
+    ├── pages/Resources/                        # Blog, Community, Docs, API, Index
+    ├── pages/Company/                          # Careers, Press
+    └── pages/features/                         # Feature Overview
 ```
 
 ## Key API Endpoints
@@ -144,8 +108,10 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Backlog
 
+### P1
+- Demo video shows "Numbus" instead of "Munal" (recurring — skipped twice)
+
 ### P2
-- Demo video shows "Numbus" instead of "Munal"
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned workspace_members data
 
