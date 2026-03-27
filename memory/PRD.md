@@ -31,6 +31,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Security Legal Page — COMPLETED (March 27, 2026)
+- Created /legal/security page with 10 sections: Commitment, Encryption, Infrastructure, Access Control, Audit Logging, Incident Response, Compliance, Data Privacy, Vulnerability Management, Security Updates
+- Emerald-themed hero, trust badges bar, sidebar navigation, expandable sections
+- Footer Legal column "Security" link now resolves correctly
+
 ### Manage Cookies & Trademarks Pages — COMPLETED (March 27, 2026)
 - Created /legal/cookies page with 4 cookie categories, interactive toggles, save preferences
 - Created /legal/trademarks page with 7 sections, Quick Reference card
