@@ -131,7 +131,7 @@ const UserDashboard = () => {
     <div className="min-h-screen p-4 sm:p-6 lg:p-8" data-testid="user-dashboard">
       <Helmet><title>Dashboard | Munal AI</title></Helmet>
 
-      <motion.div className="max-w-[1400px] mx-auto space-y-7" variants={container} initial="hidden" animate="show">
+      <motion.div className="max-w-[1400px] mx-auto space-y-5" variants={container} initial="hidden" animate="show">
 
         {/* Hero Header */}
         <motion.div variants={item} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 px-6 sm:px-10 py-8 sm:py-10 text-white" data-testid="dashboard-hero">
@@ -296,7 +296,7 @@ const UserDashboard = () => {
         )}
 
         {/* Activity Section - Graph + Feed side by side */}
-        <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-5 gap-6" data-testid="dashboard-activity-section">
+        <motion.div variants={item} className="grid grid-cols-1 lg:grid-cols-5 gap-4" data-testid="dashboard-activity-section">
           <div className="lg:col-span-3">
             <ActivityGraph data={graphData} isLive={isLive} lastUpdated={lastUpdated} />
           </div>
@@ -311,13 +311,13 @@ const UserDashboard = () => {
         </motion.div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <motion.div variants={item} className="lg:col-span-8 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <motion.div variants={item} className="lg:col-span-8 space-y-4">
             <MeetingListSection refreshTrigger={refreshMeetingsTrigger} />
             <RecentFilesSection refreshTrigger={refreshFilesTrigger} />
           </motion.div>
 
-          <motion.div variants={item} className="lg:col-span-4 space-y-6">
+          <motion.div variants={item} className="lg:col-span-4 space-y-4">
             <TranscriptionWidget />
             <UserPaymentDashboardWidget />
 
