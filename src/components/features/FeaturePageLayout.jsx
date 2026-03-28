@@ -17,6 +17,7 @@ const FeaturePageLayout = ({
   subtitle,
   description,
   heroImage,
+  heroComponent,
   benefits = [],
   features = [],
   useCases = [],
@@ -90,11 +91,13 @@ const FeaturePageLayout = ({
                   className="relative"
                 >
                   <div className="absolute inset-0 bg-gradient-to-tr from-violet-600/20 to-purple-600/20 rounded-2xl blur-3xl -z-10" />
-                  <img 
-                    src={heroImage} 
-                    alt={title}
-                    className="rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 w-full object-cover aspect-video transform hover:scale-[1.02] transition-transform duration-500"
-                  />
+                  {heroComponent ? heroComponent : (
+                    <img 
+                      src={heroImage} 
+                      alt={title}
+                      className="rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 w-full object-cover aspect-video transform hover:scale-[1.02] transition-transform duration-500"
+                    />
+                  )}
                 </motion.div>
               </div>
             </div>
