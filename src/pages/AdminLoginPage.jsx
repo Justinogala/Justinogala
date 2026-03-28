@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -88,6 +88,15 @@ const AdminLoginPage = () => {
         <title>Admin Login | Munal</title>
         <meta name="description" content="Secure admin portal login" />
       </Helmet>
+
+      <Link to="/" className="flex items-center gap-2 mb-8 z-10 group" data-testid="admin-login-logo">
+        <div className="w-9 h-9 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/40">
+          <span className="text-white font-bold text-lg">M</span>
+        </div>
+        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-700 to-purple-600 dark:from-violet-400 dark:to-purple-300 group-hover:from-violet-600 group-hover:to-purple-500 transition-all">
+          Munal
+        </span>
+      </Link>
       
       <Card className="w-full max-w-md shadow-2xl border-t-4 border-t-indigo-600 z-10 animate-in fade-in zoom-in-95 duration-500">
         <CardHeader className="space-y-1 text-center">
