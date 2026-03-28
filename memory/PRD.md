@@ -31,6 +31,12 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Analytics Page — Live Dashboard (March 28, 2026)
+- Replaced stock image on /features/analytics with live analytics widget
+- New endpoint: GET /api/analytics/platform-stats (real MongoDB stats)
+- Shows: stat cards, module usage bar chart, donut breakdown, 7-day activity sparkline
+- Added heroComponent prop to FeaturePageLayout for reusable custom hero content
+
 ### AI Chat (ChatGPT-style) — COMPLETED (March 27, 2026)
 - Full-screen AI chat page at /ai-chat powered by GPT-5.2 (Emergent LLM Key)
 - Sidebar with conversation history, auto-titling, rename/delete
