@@ -83,8 +83,8 @@ const AdminLoginPage = () => {
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 z-10 group" data-testid="admin-login-logo">
-          <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
-            <span className="text-slate-800 font-bold text-xl">M</span>
+          <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30">
+            <span className="text-white font-bold text-xl">M</span>
           </div>
           <span className="text-2xl font-bold text-slate-800 group-hover:text-slate-900 transition-colors">
             Munal
