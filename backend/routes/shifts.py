@@ -77,6 +77,14 @@ class ClockAction(BaseModel):
     notes: Optional[str] = None
 
 
+class TimeOffBalanceUpdate(BaseModel):
+    workspace_id: str
+    user_id: str
+    vacation_total: Optional[float] = None
+    sick_total: Optional[float] = None
+    personal_total: Optional[float] = None
+
+
 # ============== Helper Functions ==============
 
 def calculate_hours(start_time: str, end_time: str) -> float:
@@ -259,6 +267,30 @@ async def get_workspace_shifts(
         }
     except Exception as e:
         logger.error(f"Error fetching shifts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# NOTE: This PUT route must be defined BEFORE /{shift_id} to avoid route conflicts
+@router.put("/time-off-balance")
+async def update_time_off_balance(data: TimeOffBalanceUpdate):
+    """Admin updates total allocated days for a user."""
+    try:
+        update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
+        if data.vacation_total is not None:
+            update_fields["vacation_total"] = data.vacation_total
+        if data.sick_total is not None:
+            update_fields["sick_total"] = data.sick_total
+        if data.personal_total is not None:
+            update_fields["personal_total"] = data.personal_total
+
+        result = await db.time_off_balances.update_one(
+            {"workspace_id": data.workspace_id, "user_id": data.user_id},
+            {"$set": update_fields, "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+        return {"success": True, "modified": result.modified_count, "upserted": result.upserted_id is not None}
+    except Exception as e:
+        logger.error(f"Error updating time-off balance: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1192,6 +1224,124 @@ async def update_shift_preset(preset_id: str, preset: ShiftPresetCreate):
         raise
     except Exception as e:
         logger.error(f"Error updating shift preset: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== Time-Off Balance Tracking ==============
+
+@router.get("/time-off-balance/{workspace_id}/{user_id}")
+async def get_time_off_balance(workspace_id: str, user_id: str):
+    """Get time-off balance for a user: allocated days minus approved days used."""
+    try:
+        balance = await db.time_off_balances.find_one(
+            {"workspace_id": workspace_id, "user_id": user_id},
+            {"_id": 0},
+        )
+        if not balance:
+            balance = {
+                "workspace_id": workspace_id,
+                "user_id": user_id,
+                "vacation_total": 15,
+                "sick_total": 10,
+                "personal_total": 5,
+            }
+            balance["id"] = str(uuid.uuid4())
+            balance["created_at"] = datetime.now(timezone.utc).isoformat()
+            await db.time_off_balances.insert_one({**balance})
+
+        approved = await db.time_off_requests.find(
+            {"workspace_id": workspace_id, "user_id": user_id, "status": "approved"},
+            {"_id": 0, "type": 1, "start_date": 1, "end_date": 1},
+        ).to_list(500)
+
+        used = {"vacation": 0, "sick": 0, "personal": 0, "other": 0}
+        for req in approved:
+            try:
+                s = datetime.strptime(req["start_date"], "%Y-%m-%d")
+                e = datetime.strptime(req["end_date"], "%Y-%m-%d")
+                days = (e - s).days + 1
+            except Exception:
+                days = 1
+            t = req.get("type", "other")
+            if t in used:
+                used[t] += days
+            else:
+                used["other"] += days
+
+        return {
+            "success": True,
+            "balance": {
+                "vacation": {"total": balance.get("vacation_total", 15), "used": used["vacation"], "remaining": balance.get("vacation_total", 15) - used["vacation"]},
+                "sick": {"total": balance.get("sick_total", 10), "used": used["sick"], "remaining": balance.get("sick_total", 10) - used["sick"]},
+                "personal": {"total": balance.get("personal_total", 5), "used": used["personal"], "remaining": balance.get("personal_total", 5) - used["personal"]},
+            },
+        }
+    except Exception as e:
+        logger.error(f"Error fetching time-off balance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== PDF Export ==============
+
+@router.get("/export-pdf/{workspace_id}")
+async def export_shifts_pdf(workspace_id: str, start_date: str = None, end_date: str = None):
+    """Export shifts as a downloadable PDF (HTML-rendered)."""
+    try:
+        query = {"workspace_id": workspace_id}
+        if start_date:
+            query["date"] = {"$gte": start_date}
+        if end_date:
+            if "date" in query:
+                query["date"]["$lte"] = end_date
+            else:
+                query["date"] = {"$lte": end_date}
+
+        shifts = await db.shifts.find(query, {"_id": 0}).sort("date", 1).to_list(10000)
+
+        ws = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "name": 1})
+        ws_name = ws.get("name", "Workspace") if ws else "Workspace"
+
+        rows = ""
+        for s in shifts:
+            rows += f"""<tr>
+                <td>{s.get('date','')}</td>
+                <td>{s.get('start_time','')}</td>
+                <td>{s.get('end_time','')}</td>
+                <td>{s.get('hours',0)}h</td>
+                <td>{s.get('assigned_to_name','Unassigned')}</td>
+                <td>{s.get('role','')}</td>
+                <td>{s.get('department','')}</td>
+                <td>{s.get('status','')}</td>
+            </tr>"""
+
+        html = f"""<!DOCTYPE html><html><head><meta charset='utf-8'>
+        <title>Shift Report - {ws_name}</title>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px; color: #1a1a2e; }}
+            h1 {{ color: #6366f1; font-size: 24px; margin-bottom: 4px; }}
+            .meta {{ color: #666; font-size: 13px; margin-bottom: 20px; }}
+            table {{ border-collapse: collapse; width: 100%; font-size: 13px; }}
+            th {{ background: #6366f1; color: white; padding: 10px 12px; text-align: left; }}
+            td {{ padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }}
+            tr:nth-child(even) {{ background: #f9fafb; }}
+            .footer {{ margin-top: 30px; font-size: 11px; color: #999; }}
+        </style></head><body>
+        <h1>Shift Report - {ws_name}</h1>
+        <p class="meta">Period: {start_date or 'All'} to {end_date or 'All'} &bull; Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} &bull; Total shifts: {len(shifts)}</p>
+        <table><thead><tr>
+            <th>Date</th><th>Start</th><th>End</th><th>Hours</th><th>Assigned To</th><th>Role</th><th>Department</th><th>Status</th>
+        </tr></thead><tbody>{rows}</tbody></table>
+        <p class="footer">Munal Shift Management &mdash; Confidential</p>
+        </body></html>"""
+
+        from fastapi.responses import Response
+        return Response(
+            content=html,
+            media_type="text/html",
+            headers={"Content-Disposition": f"attachment; filename=shifts_report_{datetime.now().strftime('%Y%m%d')}.html"}
+        )
+    except Exception as e:
+        logger.error(f"Error exporting PDF: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

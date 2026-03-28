@@ -74,6 +74,10 @@ import {
   clockInOut,
   getClockStatus,
   getWorkspaceTimesheet,
+  createTimeOffRequest,
+  createSwapRequest,
+  getTimeOffBalance,
+  downloadPdfExport,
 } from '@/services/shiftService';
 import { getWorkspaceById, getMembers } from '@/services/workspaceService';
 
@@ -379,6 +383,24 @@ const ShiftManagementPage = () => {
   const [swapRequests, setSwapRequests] = useState([]);
   const [timeOffRequests, setTimeOffRequests] = useState([]);
 
+  // Time-Off Balance
+  const [timeOffBalance, setTimeOffBalance] = useState(null);
+
+  // Time Off Request Dialog
+  const [showTimeOffDialog, setShowTimeOffDialog] = useState(false);
+  const [timeOffForm, setTimeOffForm] = useState({
+    start_date: '', end_date: '', type: 'vacation', reason: '',
+  });
+  const [submittingTimeOff, setSubmittingTimeOff] = useState(false);
+
+  // Swap Request Dialog
+  const [showSwapDialog, setShowSwapDialog] = useState(false);
+  const [swapForm, setSwapForm] = useState({
+    shift_id: '', target_user_id: '', reason: '',
+  });
+  const [submittingSwap, setSubmittingSwap] = useState(false);
+  const [myShifts, setMyShifts] = useState([]);
+
   // Presets
   const [presets, setPresets] = useState(DEFAULT_PRESETS);
   const [newPreset, setNewPreset] = useState({ name: '', start_time: '09:00', end_time: '17:00', color: '#6366f1', icon: '⏰' });
@@ -468,6 +490,16 @@ const ShiftManagementPage = () => {
         setTimesheet(timesheetData);
       } catch {
         setTimesheet(null);
+      }
+
+      // Fetch time-off balance
+      if (user?.id) {
+        try {
+          const balanceData = await getTimeOffBalance(workspaceId, user.id);
+          setTimeOffBalance(balanceData.balance || null);
+        } catch {
+          setTimeOffBalance(null);
+        }
       }
 
     } catch (error) {
@@ -707,12 +739,68 @@ const ShiftManagementPage = () => {
     }
   };
 
+  // Handle time off request submission
+  const handleSubmitTimeOff = async () => {
+    if (!timeOffForm.start_date || !timeOffForm.end_date) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please select start and end dates' });
+      return;
+    }
+    setSubmittingTimeOff(true);
+    try {
+      await createTimeOffRequest({
+        workspace_id: workspaceId,
+        user_id: user.id,
+        start_date: timeOffForm.start_date,
+        end_date: timeOffForm.end_date,
+        type: timeOffForm.type,
+        reason: timeOffForm.reason,
+      });
+      toast({ title: 'Success', description: 'Time off request submitted' });
+      setShowTimeOffDialog(false);
+      setTimeOffForm({ start_date: '', end_date: '', type: 'vacation', reason: '' });
+      fetchData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to submit request' });
+    } finally {
+      setSubmittingTimeOff(false);
+    }
+  };
+
+  // Handle swap request submission
+  const handleSubmitSwap = async () => {
+    if (!swapForm.shift_id || !swapForm.target_user_id) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please select a shift and team member' });
+      return;
+    }
+    setSubmittingSwap(true);
+    try {
+      await createSwapRequest({
+        shift_id: swapForm.shift_id,
+        requester_id: user.id,
+        target_user_id: swapForm.target_user_id,
+        reason: swapForm.reason,
+      });
+      toast({ title: 'Success', description: 'Swap request submitted' });
+      setShowSwapDialog(false);
+      setSwapForm({ shift_id: '', target_user_id: '', reason: '' });
+      fetchData();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message || 'Failed to submit swap request' });
+    } finally {
+      setSubmittingSwap(false);
+    }
+  };
+
   // Handle export
   const handleExport = async (exportFormat) => {
     try {
       const monthStartDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
       const monthEndDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
-      await downloadExport(workspaceId, exportFormat, monthStartDate, monthEndDate);
+      if (exportFormat === 'pdf') {
+        await downloadPdfExport(workspaceId, monthStartDate, monthEndDate);
+      } else {
+        await downloadExport(workspaceId, exportFormat, monthStartDate, monthEndDate);
+      }
       toast({ title: 'Success', description: 'Export downloaded' });
     } catch (error) {
       toast({
@@ -869,6 +957,11 @@ const ShiftManagementPage = () => {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleExport('json')}>
               Export as JSON
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleExport('pdf')}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Export as PDF Report
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -1382,6 +1475,69 @@ const ShiftManagementPage = () => {
         {/* Summary Cards */}
         {renderSummaryCards()}
 
+        {/* Time-Off Balance + Request Actions */}
+        {timeOffBalance && (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6" data-testid="time-off-balance-section">
+            <Card className="border-l-4 border-l-blue-500">
+              <CardContent className="pt-4 pb-3 px-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Vacation</p>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-xl font-bold text-blue-600">{timeOffBalance.vacation?.remaining ?? 0}</span>
+                  <span className="text-xs text-gray-400">/ {timeOffBalance.vacation?.total ?? 0} days</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-2">
+                  <div className="bg-blue-500 rounded-full h-1.5 transition-all" style={{ width: `${Math.max(0, Math.min(100, ((timeOffBalance.vacation?.remaining ?? 0) / (timeOffBalance.vacation?.total || 1)) * 100))}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-rose-500">
+              <CardContent className="pt-4 pb-3 px-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Sick Leave</p>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-xl font-bold text-rose-600">{timeOffBalance.sick?.remaining ?? 0}</span>
+                  <span className="text-xs text-gray-400">/ {timeOffBalance.sick?.total ?? 0} days</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-2">
+                  <div className="bg-rose-500 rounded-full h-1.5 transition-all" style={{ width: `${Math.max(0, Math.min(100, ((timeOffBalance.sick?.remaining ?? 0) / (timeOffBalance.sick?.total || 1)) * 100))}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-amber-500">
+              <CardContent className="pt-4 pb-3 px-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Personal</p>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-xl font-bold text-amber-600">{timeOffBalance.personal?.remaining ?? 0}</span>
+                  <span className="text-xs text-gray-400">/ {timeOffBalance.personal?.total ?? 0} days</span>
+                </div>
+                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 mt-2">
+                  <div className="bg-amber-500 rounded-full h-1.5 transition-all" style={{ width: `${Math.max(0, Math.min(100, ((timeOffBalance.personal?.remaining ?? 0) / (timeOffBalance.personal?.total || 1)) * 100))}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+            <Button
+              onClick={() => setShowTimeOffDialog(true)}
+              variant="outline"
+              className="h-auto flex flex-col items-center justify-center gap-1.5 border-dashed border-2 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+              data-testid="request-time-off-btn"
+            >
+              <CalendarOff className="h-5 w-5 text-indigo-500" />
+              <span className="text-xs font-medium">Request Time Off</span>
+            </Button>
+            <Button
+              onClick={() => {
+                setMyShifts(shifts.filter(s => s.assigned_to === user?.id));
+                setShowSwapDialog(true);
+              }}
+              variant="outline"
+              className="h-auto flex flex-col items-center justify-center gap-1.5 border-dashed border-2 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+              data-testid="request-swap-btn"
+            >
+              <ArrowLeftRight className="h-5 w-5 text-purple-500" />
+              <span className="text-xs font-medium">Request Swap</span>
+            </Button>
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
@@ -1667,6 +1823,166 @@ const ShiftManagementPage = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Time Off Request Dialog */}
+      <Dialog open={showTimeOffDialog} onOpenChange={setShowTimeOffDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Time Off</DialogTitle>
+            <DialogDescription>
+              Submit a request for time off. Your manager will review and approve it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { value: 'vacation', label: 'Vacation', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+                  { value: 'sick', label: 'Sick', color: 'bg-rose-100 text-rose-700 border-rose-300' },
+                  { value: 'personal', label: 'Personal', color: 'bg-amber-100 text-amber-700 border-amber-300' },
+                  { value: 'other', label: 'Other', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+                ].map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTimeOffForm({ ...timeOffForm, type: t.value })}
+                    className={cn(
+                      'px-3 py-2 rounded-lg border text-sm font-medium transition-all',
+                      timeOffForm.type === t.value ? t.color + ' ring-2 ring-offset-1 ring-indigo-400' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    )}
+                    data-testid={`time-off-type-${t.value}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="to-start">Start Date</Label>
+                <Input
+                  id="to-start"
+                  type="date"
+                  value={timeOffForm.start_date}
+                  onChange={(e) => setTimeOffForm({ ...timeOffForm, start_date: e.target.value })}
+                  data-testid="time-off-start-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="to-end">End Date</Label>
+                <Input
+                  id="to-end"
+                  type="date"
+                  value={timeOffForm.end_date}
+                  onChange={(e) => setTimeOffForm({ ...timeOffForm, end_date: e.target.value })}
+                  data-testid="time-off-end-date"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="to-reason">Reason (optional)</Label>
+              <Textarea
+                id="to-reason"
+                placeholder="Brief description..."
+                value={timeOffForm.reason}
+                onChange={(e) => setTimeOffForm({ ...timeOffForm, reason: e.target.value })}
+                rows={3}
+                data-testid="time-off-reason"
+              />
+            </div>
+            {timeOffBalance && (
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-xs text-gray-500">
+                <span className="font-medium">Available balance:</span>{' '}
+                Vacation: {timeOffBalance.vacation?.remaining ?? 0}d, Sick: {timeOffBalance.sick?.remaining ?? 0}d, Personal: {timeOffBalance.personal?.remaining ?? 0}d
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTimeOffDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmitTimeOff} disabled={submittingTimeOff} data-testid="submit-time-off-btn">
+              {submittingTimeOff ? <RefreshCw className="h-4 w-4 mr-1 animate-spin" /> : <CalendarOff className="h-4 w-4 mr-1" />}
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Swap Request Dialog */}
+      <Dialog open={showSwapDialog} onOpenChange={setShowSwapDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Shift Swap</DialogTitle>
+            <DialogDescription>
+              Request to swap one of your shifts with another team member.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select Your Shift</Label>
+              <Select
+                value={swapForm.shift_id || 'none'}
+                onValueChange={(v) => setSwapForm({ ...swapForm, shift_id: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger data-testid="swap-shift-select">
+                  <SelectValue placeholder="Pick a shift to swap" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" disabled><span className="text-gray-400">Pick a shift</span></SelectItem>
+                  {myShifts.length === 0 ? (
+                    <SelectItem value="no-shifts" disabled>
+                      <span className="text-gray-400">No assigned shifts found</span>
+                    </SelectItem>
+                  ) : (
+                    myShifts.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.date} &bull; {s.start_time}-{s.end_time} ({s.role || 'No role'})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Swap With</Label>
+              <Select
+                value={swapForm.target_user_id || 'none'}
+                onValueChange={(v) => setSwapForm({ ...swapForm, target_user_id: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger data-testid="swap-target-select">
+                  <SelectValue placeholder="Select team member" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" disabled><span className="text-gray-400">Select member</span></SelectItem>
+                  {members.filter(m => (m.user_id || m.id) !== user?.id).map((m) => (
+                    <SelectItem key={m.user_id || m.id} value={m.user_id || m.id}>
+                      {m.name || m.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="swap-reason">Reason (optional)</Label>
+              <Textarea
+                id="swap-reason"
+                placeholder="Why do you need this swap?"
+                value={swapForm.reason}
+                onChange={(e) => setSwapForm({ ...swapForm, reason: e.target.value })}
+                rows={3}
+                data-testid="swap-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSwapDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmitSwap} disabled={submittingSwap} data-testid="submit-swap-btn">
+              {submittingSwap ? <RefreshCw className="h-4 w-4 mr-1 animate-spin" /> : <ArrowLeftRight className="h-4 w-4 mr-1" />}
+              Submit Swap
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
