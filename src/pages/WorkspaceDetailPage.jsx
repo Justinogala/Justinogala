@@ -388,6 +388,209 @@ const WorkspaceFileManager = ({ workspaceId, isOwner }) => {
   );
 };
 
+// ===== Time Clock Widget =====
+const TimeClockWidget = ({ workspaceId }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [clockedIn, setClockedIn] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [clockEntry, setClockEntry] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
+  const timerRef = useRef(null);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/time-clock/status/${workspaceId}/${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setClockedIn(data.clocked_in);
+        setElapsedSeconds(data.elapsed_seconds || 0);
+        setClockEntry(data.entry);
+      }
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, [workspaceId, user.id]);
+
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  // Live timer tick
+  useEffect(() => {
+    if (clockedIn) {
+      timerRef.current = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [clockedIn]);
+
+  const handleClockIn = async () => {
+    setActing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/time-clock/clock-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspaceId, user_id: user.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClockedIn(true);
+        setElapsedSeconds(0);
+        setClockEntry(data.entry);
+        toast({ title: 'Clocked In', description: 'Your shift timer has started.' });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ variant: 'destructive', title: 'Error', description: err.detail || 'Failed to clock in' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Error', description: 'Network error' });
+    }
+    finally { setActing(false); }
+  };
+
+  const handleClockOut = async () => {
+    setActing(true);
+    try {
+      const res = await fetch(`${API_URL}/api/time-clock/clock-out`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspaceId, user_id: user.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setClockedIn(false);
+        setElapsedSeconds(0);
+        setClockEntry(null);
+        toast({ title: 'Clocked Out', description: `Worked ${data.duration_hours}h (${data.duration_minutes} min)` });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ variant: 'destructive', title: 'Error', description: err.detail || 'Failed to clock out' });
+      }
+    } catch {
+      toast({ variant: 'destructive', title: 'Error', description: 'Network error' });
+    }
+    finally { setActing(false); }
+  };
+
+  const formatTimer = (totalSec) => {
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  if (loading) return null;
+
+  return (
+    <div data-testid="time-clock-widget" className="flex items-center gap-3">
+      {clockedIn ? (
+        <>
+          <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/20" data-testid="live-timer">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400" />
+            </span>
+            <span className="text-white font-mono text-sm font-bold tracking-wider" data-testid="timer-display">
+              {formatTimer(elapsedSeconds)}
+            </span>
+          </div>
+          <Button
+            onClick={handleClockOut}
+            disabled={acting}
+            className="bg-red-500/90 hover:bg-red-600 text-white border-0 h-9 text-xs font-semibold shadow-lg"
+            data-testid="clock-out-btn"
+          >
+            {acting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Clock className="w-3.5 h-3.5 mr-1" />}
+            Clock Out
+          </Button>
+        </>
+      ) : (
+        <Button
+          onClick={handleClockIn}
+          disabled={acting}
+          className="bg-green-500/90 hover:bg-green-600 text-white border-0 h-9 text-xs font-semibold shadow-lg"
+          data-testid="clock-in-btn"
+        >
+          {acting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Clock className="w-3.5 h-3.5 mr-1" />}
+          Clock In
+        </Button>
+      )}
+    </div>
+  );
+};
+
+// ===== Time Clock History Card (for home tab) =====
+const TimeClockHistoryCard = ({ workspaceId }) => {
+  const { user } = useAuth();
+  const [entries, setEntries] = useState([]);
+  const [totalHours, setTotalHours] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/time-clock/history/${workspaceId}/${user.id}?limit=7`);
+        if (res.ok) {
+          const data = await res.json();
+          setEntries(data.entries || []);
+          setTotalHours(data.total_hours || 0);
+        }
+      } catch { /* silent */ }
+      finally { setLoading(false); }
+    })();
+  }, [workspaceId, user.id]);
+
+  const formatDuration = (min) => {
+    if (!min) return '--';
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+
+  if (loading) return null;
+
+  return (
+    <Card data-testid="time-clock-history-card">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Clock className="w-4 h-4 text-indigo-500" /> Time Clock
+          </CardTitle>
+          <Badge variant="outline" className="text-[10px] font-semibold">
+            {totalHours}h total
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {entries.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-4">No clock entries yet</p>
+        ) : (
+          <div className="space-y-1.5">
+            {entries.slice(0, 5).map(e => (
+              <div key={e.id} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    'w-1.5 h-1.5 rounded-full',
+                    e.status === 'active' ? 'bg-green-500' : 'bg-slate-300'
+                  )} />
+                  <span className="text-slate-600 dark:text-slate-300">
+                    {new Date(e.clock_in).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  {e.status === 'active' ? (
+                    <span className="text-green-600 font-semibold">Active</span>
+                  ) : formatDuration(e.duration_minutes)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const WorkspaceDetailPage = () => {
   const params = useParams();
   const workspaceId = params.workspaceId || params.id;
@@ -546,6 +749,7 @@ const WorkspaceDetailPage = () => {
                 </div>
               </div>
               <div className="flex gap-2 shrink-0 overflow-x-auto">
+                <TimeClockWidget workspaceId={workspaceId} />
                 <Button onClick={() => setActiveTab('ict-support')} variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 h-8 sm:h-9 text-xs sm:text-sm whitespace-nowrap" data-testid="ict-support-btn">
                   <Monitor className="w-4 h-4 mr-1" /> ICT Support
                 </Button>
@@ -692,9 +896,11 @@ const WorkspaceDetailPage = () => {
                   </div>
                 </div>
 
-                {/* Recent Activity Sidebar */}
-                <div>
-                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Recent Activity</h3>
+                {/* Recent Activity Sidebar + Time Clock */}
+                <div className="space-y-6">
+                  <TimeClockHistoryCard workspaceId={workspaceId} />
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-3">Recent Activity</h3>
                   <Card>
                     <CardContent className="p-0">
                       {activities.length === 0 ? (
@@ -719,6 +925,7 @@ const WorkspaceDetailPage = () => {
                       )}
                     </CardContent>
                   </Card>
+                  </div>
                 </div>
               </div>
             </TabsContent>
