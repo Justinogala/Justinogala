@@ -17,7 +17,7 @@ const WorkspacesPage = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(9);
 
   const isAdmin = user && ['admin', 'super_admin', 'manager'].includes((user.role || '').toLowerCase());
 
@@ -60,7 +60,7 @@ const WorkspacesPage = () => {
                  placeholder="Search workspaces..." 
                  className="pl-10 h-11 bg-white dark:bg-slate-900 rounded-xl border-gray-200 dark:border-gray-800"
                  value={searchQuery}
-                 onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(6); }}
+                 onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(9); }}
                />
              </div>
           </div>
@@ -95,7 +95,7 @@ const WorkspacesPage = () => {
               {filteredWorkspaces.length > visibleCount && (
                 <div className="flex justify-center pt-2">
                   <Button
-                    onClick={() => setVisibleCount(prev => prev + 6)}
+                    onClick={() => setVisibleCount(prev => prev + 9)}
                     variant="outline"
                     className="gap-2 text-violet-600 border-violet-200 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-800 dark:hover:bg-violet-900/20"
                     data-testid="view-more-workspaces-btn"
