@@ -14,60 +14,65 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Video generation (Sora 2 Pro)
 - Voice Chat, Text-to-Audio, Calendar, Meetings, Transcriptions
 - eSignature, Approvals, IR/SOR Reports
-- Role-Based Access Control (RBAC) with module-level permissions
-- Permission audit logging
+- RBAC with module-level permissions + audit logging
 - Organization-scoped admin access
 
 ## Recent Changes
 
-### Manager Notification System + Dashboard Feature Page (March 28, 2026)
-- **In-app notifications**: When a time-off or swap request is submitted, a notification is created in MongoDB (`manager_notifications`) for the workspace owner
-- **Email notifications**: Background Resend email sent to workspace owner (if RESEND_API_KEY configured)
-- **ManagerNotificationBell component**: Bell icon in Shift Management header with unread count, notification panel, mark read/mark all read
-- **Notifications poll every 30s** for real-time updates
-- **Dashboard Feature Page** (`/features/dashboard`): Public marketing page with live data widget showing Team Members, Active Meetings, Hours Tracked, Documents, Weekly Activity chart, Notifications panel, Module Usage bars
-- Backend: 3 notification endpoints + 1 global summary endpoint
+### Push Notifications (Browser/PWA) — March 28, 2026
+- **Browser push notifications** via Web Push (VAPID keys + pywebpush)
+- When time-off/swap requests are submitted, workspace owners receive 3 types of alerts:
+  1. In-app notification (MongoDB `manager_notifications`)
+  2. Email notification (Resend)
+  3. Browser push notification (Web Push API)
+- **PushNotificationPrompt**: Bottom-right banner that asks users to enable push after 3s delay
+- **Service Worker**: Updated with JSON payload parsing, action buttons, deep link navigation on click
+- **NotificationSettings**: Updated to pass userId when subscribing/unsubscribing
+- Backend: 4 push endpoints (`/api/push/vapid-key`, `subscribe`, `unsubscribe`, `status`)
+- 100% test pass rate (iteration_88)
+
+### Manager Notification System + Dashboard Feature Page — March 28, 2026
+- In-app + email alerts to workspace owners on time-off/swap requests
+- ManagerNotificationBell component with unread count, panel, mark read
+- Dashboard Feature Page at `/features/dashboard` with live data widget
 - 100% test pass rate (iteration_87)
 
-### Shift Management Phase 2 (March 28, 2026)
-- Time-Off Request Dialog, Shift Swap Dialog, Balance tracking cards, PDF export
-- 100% test pass rate (iteration_86)
-
-### Shift Management Phase 1 (March 28, 2026)
-- Workspace-level punch in/out with live timer
-- 100% test pass rate (iteration_85)
+### Shift Management Phase 1 & 2 — March 28, 2026
+- Time clock punch in/out with live timer (Phase 1)
+- Time-off requests, swap requests, balance tracking, PDF export (Phase 2)
+- 100% test pass rates (iterations 85, 86)
 
 ## Architecture
 ```
 /app/
 ├── backend/routes/
+│   ├── push_notifications.py  # Push subscription CRUD + send_push_to_user
 │   ├── time_clock.py          # Workspace time clock
-│   ├── shifts.py              # Shifts, time-off, swap, balance, notifications, PDF export
+│   ├── shifts.py              # Shifts, time-off, swap, balance, notifications
 │   ├── ai_chat.py             # AI Chat with GPT-5.2
 │   ├── analytics.py           # Live platform stats
 │   └── ...
 └── frontend/src/
-    ├── components/shifts/
-    │   └── ManagerNotificationBell.jsx  # Bell + notification panel
-    ├── pages/
-    │   ├── features/FeatureDashboardPage.jsx  # Dashboard feature page
-    │   ├── ShiftManagementPage.jsx            # Full shift mgmt
-    │   └── WorkspaceDetailPage.jsx            # Time clock widget
-    └── services/
-        └── shiftService.js
+    ├── components/
+    │   ├── PushNotificationPrompt.jsx  # Enable push banner
+    │   ├── shifts/ManagerNotificationBell.jsx
+    │   └── pwa/NotificationSettings.jsx  # Push toggle in settings
+    ├── services/pushNotificationService.js  # Push subscription management
+    ├── pages/features/FeatureDashboardPage.jsx
+    └── public/serviceWorker.js  # Push event handler
 ```
 
 ## Key DB Collections
+- `push_subscriptions` — Browser push subscription data per user
 - `manager_notifications` — In-app notifications for workspace owners
-- `time_clock` — Workspace time clock entries
-- `time_off_requests`, `time_off_balances` — Time-off system
-- `shift_swap_requests` — Swap requests
-- `shifts`, `shift_presets` — Shift scheduling
+- `time_clock`, `shifts`, `time_off_requests`, `time_off_balances`, `shift_swap_requests`
+- `ai_conversations`, `ai_messages`, `ai_chat_files`
 
 ## 3rd Party Integrations
 - OpenAI GPT-5.2, Whisper (Emergent LLM Key)
 - Emergent Object Storage
-- Resend (Email, requires RESEND_API_KEY)
+- Resend (Email, RESEND_API_KEY)
+- pywebpush (Web Push Protocol, VAPID keys)
 
 ## Backlog
 
