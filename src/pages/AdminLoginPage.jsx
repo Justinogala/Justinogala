@@ -74,19 +74,19 @@ const AdminLoginPage = () => {
       </Helmet>
 
       {/* Left Panel — Branding */}
-      <div className="hidden lg:flex lg:w-[45%] relative bg-gradient-to-br from-violet-700 via-purple-700 to-indigo-800 flex-col justify-between p-10 overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] relative flex-col justify-between p-10 overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #e8a07a, #f0b89a, #e9a882)' }}>
         {/* Decorative grid */}
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         {/* Glow */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-white/5 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-purple-400/10 blur-[80px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-white/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-orange-300/15 blur-[80px] pointer-events-none" />
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 z-10 group" data-testid="admin-login-logo">
-          <div className="w-10 h-10 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-            <span className="text-white font-bold text-xl">M</span>
+          <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30">
+            <span className="text-slate-800 font-bold text-xl">M</span>
           </div>
-          <span className="text-2xl font-bold text-white group-hover:text-white/80 transition-colors">
+          <span className="text-2xl font-bold text-slate-800 group-hover:text-slate-900 transition-colors">
             Munal
           </span>
         </Link>
@@ -94,13 +94,13 @@ const AdminLoginPage = () => {
         {/* Center Content */}
         <div className="z-10 space-y-8 -mt-10">
           <div className="space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 flex items-center justify-center">
-              <Shield className="w-8 h-8 text-white/80" />
+            <div className="w-16 h-16 rounded-2xl bg-white/25 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+              <Shield className="w-8 h-8 text-slate-700" />
             </div>
-            <h2 className="text-3xl font-bold text-white leading-tight">
+            <h2 className="text-3xl font-bold text-slate-800 leading-tight">
               Administrative<br />Control Center
             </h2>
-            <p className="text-base text-white/60 max-w-xs leading-relaxed">
+            <p className="text-base text-slate-700/70 max-w-xs leading-relaxed">
               Manage your organization, monitor team activity, and configure platform settings.
             </p>
           </div>
@@ -112,16 +112,16 @@ const AdminLoginPage = () => {
               { icon: Fingerprint, label: 'MFA Ready' },
               { icon: ShieldCheck, label: 'SOC 2' },
             ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/15 rounded-full px-3 py-1.5">
-                <Icon className="w-3 h-3 text-white/70" />
-                <span className="text-[11px] text-white/80 font-medium">{label}</span>
+              <div key={label} className="flex items-center gap-1.5 bg-white/25 backdrop-blur-sm border border-white/30 rounded-full px-3 py-1.5">
+                <Icon className="w-3 h-3 text-slate-700" />
+                <span className="text-[11px] text-slate-700 font-medium">{label}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Bottom */}
-        <p className="text-[11px] text-white/30 z-10">
+        <p className="text-[11px] text-slate-600/50 z-10">
           Munal AI by Jiffix Inc.
         </p>
       </div>
