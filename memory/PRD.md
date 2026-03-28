@@ -31,6 +31,20 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Shift Management — Phase 1: Time Clock (March 28, 2026)
+- Created workspace-level punch in/out system (independent of scheduled shifts)
+- New backend: `/app/backend/routes/time_clock.py` with 5 endpoints:
+  - POST /api/time-clock/clock-in (with double-clock prevention)
+  - POST /api/time-clock/clock-out (calculates duration)
+  - GET /api/time-clock/status/{workspace_id}/{user_id} (elapsed seconds)
+  - GET /api/time-clock/history/{workspace_id}/{user_id} (recent entries)
+  - GET /api/time-clock/today/{workspace_id} (workspace-wide daily view)
+- Frontend: TimeClockWidget in workspace hero (green Clock In / red Clock Out button)
+- Frontend: Live timer (HH:MM:SS) with pulsing green dot when clocked in
+- Frontend: TimeClockHistoryCard in Home tab sidebar showing recent entries & total hours
+- MongoDB collection: `time_clock`
+- 100% test pass rate (backend 7/7, frontend all UI elements)
+
 ### Analytics Page — Live Dashboard (March 28, 2026)
 - Replaced stock image on /features/analytics with live analytics widget
 - New endpoint: GET /api/analytics/platform-stats (real MongoDB stats)
@@ -48,95 +62,62 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - 17/17 backend tests passed, frontend bugs fixed (process.env, auth race condition)
 
 ### Security Legal Page — COMPLETED (March 27, 2026)
-- Created /legal/security page with 10 sections: Commitment, Encryption, Infrastructure, Access Control, Audit Logging, Incident Response, Compliance, Data Privacy, Vulnerability Management, Security Updates
-- Emerald-themed hero, trust badges bar, sidebar navigation, expandable sections
+- Created /legal/security page with 10 sections
 - Footer Legal column "Security" link now resolves correctly
 
 ### Manage Cookies & Trademarks Pages — COMPLETED (March 27, 2026)
-- Created /legal/cookies page with 4 cookie categories, interactive toggles, save preferences
-- Created /legal/trademarks page with 7 sections, Quick Reference card
-- Footer Legal column and bottom bar links updated to point to both new pages
+- Created /legal/cookies and /legal/trademarks pages
 - 15/15 frontend tests passed (iteration_82)
-
-### Footer Tweak — Microsoft Color Match (March 27, 2026)
-- Updated footer background to #f2f2f2 (Microsoft light gray)
-- Removed "Munal Technologies Inc.", replaced with "Munal AI is a division of Jiffix Inc."
-- Bottom bar: theme switcher + division label (left), legal links + © Munal AI 2026 (right)
-- Added 6th "Developer" column
-- Headings: #333, links: #505050, bottom bar text: #767676
-
-### Docs, API Reference & Press Redesign - COMPLETED (March 27, 2026)
-- Documentation: modern hero, search, 8 category cards, 6 popular articles, stats bar
-- API Reference: hero with terminal code block, search, 10 endpoints, 4 SDK cards, stats bar
-- Press: hero with media image, 6 press releases, 4 media coverage cards, brand assets, stats bar
-
-### Resources Index & Footer Overhaul - COMPLETED (March 27, 2026)
-- Resources Index page redesigned with modern hero section
-- Footer restructured into Microsoft-style clean layout
-
-### Blog Page Redesign - COMPLETED (March 27, 2026)
-- Redesigned blog with modern hero, search, 12 ICT stories
-- Featured post card, sticky category filter bar, 3-column grid, newsletter CTA
-
-### Careers & Features Overview Redesign - COMPLETED (March 26, 2026)
-- Redesigned Careers page with modern hero, stats bar, perks section, 6 job listings
-- Redesigned Features Overview with modern hero, stats bar, 24 feature cards
-
-### Use Cases Overview Hero + Testimonials Carousel - COMPLETED (March 26, 2026)
-- Enhanced UseCasesIndex hero with image, tagline badge, CTAs, and stats bar
-- Auto-sliding carousel with 12 testimonials
-
-### Use Cases Mega-Menu & Industry Pages - COMPLETED (March 26, 2026)
-- 5 new industry landing pages + 5 redesigned team pages
-- Reusable UseCasePageLayout component
-
-### Assign Users to Organizations - COMPLETED (March 26, 2026)
-- Backend + Frontend for org member assignment
-
-### RBAC Module Permissions - COMPLETED (March 26, 2026)
-- 27 admin modules, role-based templates, Module Permissions page
 
 ## Architecture
 ```
 /app/
 ├── backend/routes/
-│   ├── admin.py              # Broadcasts + Exports (org-scoped)
-│   ├── auth.py               # Login returns module_permissions, org info
-│   ├── users.py              # Role+org-based user visibility
-│   ├── organizations.py      # Org CRUD, member assign/remove
-│   ├── module_permissions.py # RBAC templates, audit log
-│   └── server.py             # Super_Admin seed
+│   ├── time_clock.py          # NEW - Workspace time clock (punch in/out)
+│   ├── shifts.py              # Shift scheduling & management
+│   ├── ai_chat.py             # AI Chat with GPT-5.2
+│   ├── analytics.py           # Live platform stats
+│   ├── admin.py               # Broadcasts + Exports (org-scoped)
+│   ├── auth.py                # Login returns module_permissions, org info
+│   ├── users.py               # Role+org-based user visibility
+│   ├── organizations.py       # Org CRUD, member assign/remove
+│   ├── module_permissions.py  # RBAC templates, audit log
+│   └── server.py              # Super_Admin seed
 └── frontend/src/
     ├── components/
-    │   ├── Header.jsx                          # Mega-menu for Features & Use Cases
-    │   ├── Footer.jsx                          # Microsoft-style 6-col layout
+    │   ├── Header.jsx
+    │   ├── Footer.jsx
     │   └── features/
-    │       ├── FeaturePageLayout.jsx
-    │       └── UseCasePageLayout.jsx
-    ├── pages/UseCases/                         # 10 pages + Index
-    ├── pages/Resources/                        # Blog, Community, Docs, API, Index
-    ├── pages/Company/                          # Careers, Press
-    └── pages/features/                         # Feature Overview
+    ├── pages/
+    │   ├── WorkspaceDetailPage.jsx  # Contains TimeClockWidget + TimeClockHistoryCard
+    │   ├── AIChatPage.jsx
+    │   └── Legal/
+    └── lib/
+        └── api.js
 ```
 
 ## Key API Endpoints
-- `POST /api/organizations/{org_id}/members/assign` - Assign user to org with role
-- `DELETE /api/organizations/{org_id}/members/{user_id}` - Remove from org
-- `POST /api/organizations/{org_id}/members` - Create new org member
-- `GET /api/users` - Role+org-filtered user list
-- `POST/GET /api/admin/broadcasts` - Org-scoped broadcasts
-- `GET /api/admin/module-permissions/templates` - RBAC templates
-- `GET /api/admin/module-permissions/audit-log` - Permission change history
+- `POST /api/time-clock/clock-in` - Punch in to workspace
+- `POST /api/time-clock/clock-out` - Punch out of workspace
+- `GET /api/time-clock/status/{ws_id}/{user_id}` - Current clock status
+- `GET /api/time-clock/history/{ws_id}/{user_id}` - User clock history
+- `GET /api/time-clock/today/{ws_id}` - Today's entries
+- `POST /api/organizations/{org_id}/members/assign` - Assign user to org
+- `GET /api/analytics/platform-stats` - Live platform stats
+- `POST /api/ai-chat/conversations` - AI Chat conversations
 
 ## 3rd Party Integrations
+- OpenAI GPT-5.2 (AI Chat) — Emergent LLM Key
+- OpenAI Whisper (Voice Chat) — Emergent LLM Key
 - OpenAI Sora 2 Pro (Video Gen) — Emergent LLM Key
-- Resend (Email Delivery) — RESEND_API_KEY
 - Emergent Object Storage — EMERGENT_LLM_KEY
+- Resend (Email Delivery) — RESEND_API_KEY
 
 ## Backlog
 
 ### P1
-- Demo video shows "Numbus" instead of "Munal" (recurring — skipped twice)
+- Demo video shows "Numbus" instead of "Munal" (recurring — skipped 3 times, needs Sora 2 regeneration)
+- Phase 2 Shift Management: Time-off requests/approvals, shift scheduling, swap/offer, balance tracking, CSV/PDF reports
 
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
