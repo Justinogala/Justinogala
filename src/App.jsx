@@ -85,6 +85,7 @@ const SharedMeetingPage = lazy(() => import('@/pages/SharedMeetingPage'));
 const SharedRecordingPage = lazy(() => import('@/pages/SharedRecordingPage'));
 const WorkspaceDetailPage = lazy(() => import('@/pages/WorkspaceDetailPage'));
 const ShiftManagementPage = lazy(() => import('@/pages/ShiftManagementPage'));
+const TimeClockReportsPage = lazy(() => import('@/pages/TimeClockReportsPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
 const ESignaturePage = lazy(() => import('@/pages/ESignaturePage'));
 const ApprovalsPage = lazy(() => import('@/pages/ApprovalsPage'));
@@ -417,6 +418,7 @@ function App() {
                                 <Route path="/workspace/video-conferencing" element={<VideoConferencingPage />} /> 
                                 <Route path="/workspace/:workspaceId/manage" element={<WorkspaceDetailPage />} />
                                 <Route path="/workspace/:workspaceId/shifts" element={<ShiftManagementPage />} />
+                                <Route path="/workspace/:workspaceId/time-clock-reports" element={<TimeClockReportsPage />} />
                                 <Route path="/workspace/:id" element={<WorkspaceDetailPage />} /> 
                                 <Route path="/calendar" element={<CalendarPage />} />
                                 <Route path="/meet/:meetingId" element={<InstantMeetingRoom />} />

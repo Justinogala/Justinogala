@@ -40,6 +40,7 @@ import {
   Square,
   Timer,
   FileSpreadsheet,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1473,6 +1474,16 @@ const ShiftManagementPage = () => {
             </h1>
             <p className="text-gray-500">{workspace?.name}</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/workspace/${workspaceId}/time-clock-reports`)}
+            className="h-9 text-xs"
+            data-testid="view-reports-btn"
+          >
+            <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+            Reports
+          </Button>
           <ManagerNotificationBell userId={user?.id} />
         </div>
 

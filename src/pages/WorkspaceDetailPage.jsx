@@ -586,6 +586,13 @@ const TimeClockHistoryCard = ({ workspaceId }) => {
             ))}
           </div>
         )}
+        <button
+          onClick={() => window.location.href = `/workspace/${workspaceId}/time-clock-reports`}
+          className="w-full mt-2 text-[11px] text-indigo-500 hover:text-indigo-700 font-medium py-1.5 hover:bg-indigo-50 rounded-md transition-colors"
+          data-testid="view-time-clock-reports-btn"
+        >
+          View Full Reports
+        </button>
       </CardContent>
     </Card>
   );
