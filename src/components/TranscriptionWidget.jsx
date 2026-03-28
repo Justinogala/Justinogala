@@ -37,11 +37,11 @@ const TranscriptionWidget = () => {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
+    <div className="glass-panel rounded-2xl p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-500" />
+          <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <FileText className="w-4.5 h-4.5 text-indigo-500" />
             Recent Transcriptions
           </h3>
         </div>
@@ -56,15 +56,15 @@ const TranscriptionWidget = () => {
              {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100/50 dark:bg-slate-800/50 rounded-xl animate-pulse" />)}
            </div>
         ) : recentItems.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center py-6 text-gray-500">
-            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mb-3">
-              <Mic className="w-5 h-5 text-gray-400" />
+          <div className="h-full flex flex-col items-center justify-center text-center py-4 text-gray-500">
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mb-2">
+              <Mic className="w-4 h-4 text-gray-400" />
             </div>
             <p className="text-sm font-medium">No transcriptions yet.</p>
             <p className="text-xs mt-1 text-gray-400">Start recording to see them here.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {recentItems.map((item, idx) => {
               const statusConfig = getStatusConfig(item.status);
               const StatusIcon = statusConfig.icon;
@@ -75,12 +75,12 @@ const TranscriptionWidget = () => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="group flex items-center justify-between p-3 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
+                  className="group flex items-center justify-between p-2.5 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-slate-700 bg-gray-50/50 dark:bg-slate-900/30 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
                   onClick={() => navigate(`/transcriptions/${item.id}`)}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", statusConfig.bg)}>
-                      <StatusIcon className={cn("w-5 h-5", statusConfig.color)} />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", statusConfig.bg)}>
+                      <StatusIcon className={cn("w-4 h-4", statusConfig.color)} />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-indigo-600 transition-colors">
@@ -104,7 +104,7 @@ const TranscriptionWidget = () => {
         )}
       </div>
       
-      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800/50 flex justify-center">
+      <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-800/50 flex justify-center">
         <Button variant="ghost" size="sm" onClick={() => navigate('/transcriptions')} className="text-xs text-gray-500 hover:text-indigo-600 w-full">
            View All Transcriptions <ArrowRight className="w-3 h-3 ml-1" />
         </Button>

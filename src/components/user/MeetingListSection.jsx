@@ -55,14 +55,14 @@ const MeetingListSection = ({ refreshTrigger }) => {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
+    <div className="glass-panel rounded-2xl p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Video className="w-5 h-5 text-indigo-500" />
+          <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Video className="w-4.5 h-4.5 text-indigo-500" />
             Upcoming Meetings
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Your schedule for the next few days</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Your schedule for the next few days</p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => navigate('/meetings')} className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-full px-4">
           View All
@@ -77,17 +77,17 @@ const MeetingListSection = ({ refreshTrigger }) => {
             ))}
           </div>
         ) : meetings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700/50 bg-gray-50/50 dark:bg-slate-900/20">
-            <div className="p-3 bg-gray-100 dark:bg-slate-800 rounded-full mb-3">
-              <CalendarX className="w-6 h-6 text-gray-400" />
+          <div className="flex flex-col items-center justify-center h-32 text-center rounded-xl border-2 border-dashed border-gray-200 dark:border-slate-700/50 bg-gray-50/50 dark:bg-slate-900/20">
+            <div className="p-2.5 bg-gray-100 dark:bg-slate-800 rounded-full mb-2">
+              <CalendarX className="w-5 h-5 text-gray-400" />
             </div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No meetings scheduled</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-[200px]">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 max-w-[200px]">
               You're all clear! Click "New Meeting" to schedule one.
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <AnimatePresence>
               {meetings.slice(0, 5).map((meeting, index) => (
                 <motion.div 
@@ -95,11 +95,11 @@ const MeetingListSection = ({ refreshTrigger }) => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-slate-800/50 bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/80 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
+                  className="group relative flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-slate-800/50 bg-white/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800/80 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
                   onClick={() => navigate(`/meeting/${meeting.id}`)}
                 >
-                  <div className="flex-1 min-w-0 flex items-start gap-4">
-                    <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 w-14 h-14 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
+                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                    <div className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 w-11 h-11 shrink-0 border border-indigo-100 dark:border-indigo-900/30">
                       <span className="text-xs font-semibold uppercase">{new Date(meeting.date).toLocaleDateString('en-US', { month: 'short' })}</span>
                       <span className="text-xl font-bold leading-none mt-0.5">{new Date(meeting.date).getDate()}</span>
                     </div>
