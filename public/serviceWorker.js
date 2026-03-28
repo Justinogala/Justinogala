@@ -96,19 +96,52 @@ self.addEventListener('sync', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  const title = 'Munal';
-  const options = {
-    body: event.data ? event.data.text() : 'New activity',
+  let title = 'Munal';
+  let options = {
+    body: 'New activity',
     icon: '/icons/icon-192x192.svg',
-    badge: '/icons/icon-192x192.svg'
+    badge: '/icons/icon-192x192.svg',
+    data: { url: '/' },
   };
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      title = payload.title || title;
+      options.body = payload.body || options.body;
+      options.icon = payload.icon || options.icon;
+      options.data = { url: payload.url || '/' };
+      options.vibrate = [100, 50, 100];
+      options.requireInteraction = true;
+      options.actions = [
+        { action: 'open', title: 'View' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ];
+    } catch {
+      options.body = event.data.text() || options.body;
+    }
+  }
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  // Fix: Use self.clients instead of implicit global clients
-  event.waitUntil(self.clients.openWindow('/'));
+  const url = event.notification.data?.url || '/';
+
+  if (event.action === 'dismiss') return;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener('message', (event) => {

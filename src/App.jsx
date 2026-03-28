@@ -22,6 +22,7 @@ import PageTransition from '@/components/PageTransition';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Toaster } from '@/components/ui/toaster';
 import CookieConsent from '@/components/CookieConsent';
+import PushNotificationPrompt from '@/components/PushNotificationPrompt';
 import { ToastContextProvider } from '@/components/ui/use-toast';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import AnnouncementManager from '@/components/AnnouncementManager'; 
@@ -557,6 +558,7 @@ function App() {
                           </Suspense>
                           <Toaster />
                           <CookieConsent />
+                          <PushNotificationPrompt />
                           </HeroSlideProvider>
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>
