@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import WorkspaceCard from '@/components/shared/WorkspaceCard';
 import CreateWorkspaceModal from '@/components/CreateWorkspaceModal';
@@ -17,6 +17,7 @@ const WorkspacesPage = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [visibleCount, setVisibleCount] = useState(6);
 
   const isAdmin = user && ['admin', 'super_admin', 'manager'].includes((user.role || '').toLowerCase());
 
@@ -59,7 +60,7 @@ const WorkspacesPage = () => {
                  placeholder="Search workspaces..." 
                  className="pl-10 h-11 bg-white dark:bg-slate-900 rounded-xl border-gray-200 dark:border-gray-800"
                  value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
+                 onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(6); }}
                />
              </div>
           </div>
@@ -83,13 +84,28 @@ const WorkspacesPage = () => {
                 {isAdmin && <Button onClick={() => setIsModalOpen(true)} variant="outline">Create Workspace</Button>}
              </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredWorkspaces.map((ws) => (
-                <div key={ws.id} className="h-full">
-                  <WorkspaceCard workspace={ws} />
+            <>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredWorkspaces.slice(0, visibleCount).map((ws) => (
+                  <div key={ws.id} className="h-full">
+                    <WorkspaceCard workspace={ws} />
+                  </div>
+                ))}
+              </div>
+              {filteredWorkspaces.length > visibleCount && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    onClick={() => setVisibleCount(prev => prev + 6)}
+                    variant="outline"
+                    className="gap-2 text-violet-600 border-violet-200 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-800 dark:hover:bg-violet-900/20"
+                    data-testid="view-more-workspaces-btn"
+                  >
+                    View More ({filteredWorkspaces.length - visibleCount} remaining)
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
 

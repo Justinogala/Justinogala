@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Music, Video, MoreVertical, 
   Download, Eye, Trash2, Search, Filter,
-  FileType, Loader2
+  FileType, Loader2, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ const FileIcon = ({ type, bucket }) => {
 const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript, onDownload }) => {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(8);
 
   const filteredFiles = files.filter(file => {
     const matchesSearch = file.name.toLowerCase().includes(search.toLowerCase());
@@ -43,7 +44,7 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript, onD
             placeholder="Search files..." 
             className="pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setVisibleCount(8); }}
           />
         </div>
         
@@ -51,7 +52,7 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript, onD
           {['all', 'audio', 'video', 'document'].map((type) => (
             <button
               key={type}
-              onClick={() => setFilterType(type)}
+              onClick={() => { setFilterType(type); setVisibleCount(8); }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
                 filterType === type 
                   ? 'bg-indigo-600 text-white' 
@@ -75,7 +76,7 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript, onD
         <div className="divide-y divide-white/5">
           <AnimatePresence>
             {filteredFiles.length > 0 ? (
-              filteredFiles.map((file) => (
+              filteredFiles.slice(0, visibleCount).map((file) => (
                 <motion.div
                   key={file.id}
                   initial={{ opacity: 0 }}
@@ -170,6 +171,19 @@ const FileList = ({ files, onPreview, onDetails, onDelete, onViewTranscript, onD
             )}
           </AnimatePresence>
         </div>
+        {filteredFiles.length > visibleCount && (
+          <div className="flex justify-center p-4 border-t border-white/5">
+            <Button
+              onClick={() => setVisibleCount(prev => prev + 8)}
+              variant="outline"
+              className="gap-2 text-violet-600 border-violet-200 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-800 dark:hover:bg-violet-900/20"
+              data-testid="view-more-files-btn"
+            >
+              View More ({filteredFiles.length - visibleCount} remaining)
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
