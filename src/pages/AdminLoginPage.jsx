@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ShieldCheck, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -166,17 +166,6 @@ const AdminLoginPage = () => {
             </Button>
           </form>
         </CardContent>
-        
-        <CardFooter className="flex flex-col space-y-4 border-t pt-6 bg-gray-50 dark:bg-slate-900/50 rounded-b-xl">
-          <div className="text-center space-y-1">
-             <p className="text-xs text-gray-500 font-medium">Demo Credentials:</p>
-             <p className="text-xs text-gray-400 font-mono bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">admin@munal.com / Admin@123456</p>
-          </div>
-          <p className="text-[10px] text-center text-gray-400">
-            Protected area. Authorized personnel only. <br/>
-            IP Address Logged & Monitored.
-          </p>
-        </CardFooter>
       </Card>
     </div>
   );
