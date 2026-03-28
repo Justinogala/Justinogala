@@ -53,6 +53,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import ManagerNotificationBell from '@/components/shifts/ManagerNotificationBell';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -1457,19 +1458,22 @@ const ShiftManagementPage = () => {
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(`/workspace/${workspaceId}/manage`)}
-            className="mb-2 -ml-2"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Workspace
-          </Button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Shift Management
-          </h1>
-          <p className="text-gray-500">{workspace?.name}</p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => navigate(`/workspace/${workspaceId}/manage`)}
+              className="mb-2 -ml-2"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Workspace
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Shift Management
+            </h1>
+            <p className="text-gray-500">{workspace?.name}</p>
+          </div>
+          <ManagerNotificationBell userId={user?.id} />
         </div>
 
         {/* Summary Cards */}

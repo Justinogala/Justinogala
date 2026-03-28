@@ -62,6 +62,7 @@ const FeatureChatMessagingPage = lazy(() => import('@/pages/features/FeatureChat
 const FeatureTeamsPage = lazy(() => import('@/pages/features/FeatureTeamsPage'));
 const FeatureFileManagementPage = lazy(() => import('@/pages/features/FeatureFileManagementPage'));
 const FeatureAnalyticsPage = lazy(() => import('@/pages/features/FeatureAnalyticsPage'));
+const FeatureDashboardPage = lazy(() => import('@/pages/features/FeatureDashboardPage'));
 const FeatureVoiceChatPage = lazy(() => import('@/pages/features/FeatureVoiceChatPage'));
 const FeatureCalendarIntegrationPage = lazy(() => import('@/pages/features/FeatureCalendarIntegrationPage'));
 const FeatureVideoCallsPage = lazy(() => import('@/pages/features/FeatureVideoCallsPage'));
@@ -348,6 +349,7 @@ function App() {
                               <Route path="/features/teams" element={<FeatureTeamsPage />} />
                               <Route path="/features/file-management" element={<FeatureFileManagementPage />} />
                               <Route path="/features/analytics" element={<FeatureAnalyticsPage />} />
+                              <Route path="/features/dashboard" element={<FeatureDashboardPage />} />
                               <Route path="/features/voice-chat" element={<FeatureVoiceChatPage />} />
                               <Route path="/features/calendar-integration" element={<FeatureCalendarIntegrationPage />} />
                               <Route path="/features/video-calls" element={<FeatureVideoCallsPage />} />

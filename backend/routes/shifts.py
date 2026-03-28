@@ -131,6 +131,43 @@ async def send_shift_notification(user_email: str, user_name: str, subject: str,
         logger.error(f"Failed to send shift notification: {e}")
 
 
+async def notify_workspace_owner(workspace_id: str, title: str, message: str, notif_type: str, background_tasks: BackgroundTasks):
+    """Send in-app + email notification to the workspace owner when a request is submitted."""
+    try:
+        ws = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1, "name": 1})
+        if not ws:
+            return
+        owner = await db.users.find_one({"id": ws["owner_id"]}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+        if not owner:
+            return
+
+        notif_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        notif = {
+            "id": notif_id,
+            "user_id": owner["id"],
+            "workspace_id": workspace_id,
+            "type": notif_type,
+            "title": title,
+            "message": message,
+            "read": False,
+            "created_at": now,
+        }
+        await db.manager_notifications.insert_one(notif)
+        notif.pop("_id", None)
+
+        if owner.get("email"):
+            background_tasks.add_task(
+                send_shift_notification,
+                owner["email"],
+                owner.get("name", "Manager"),
+                title,
+                f"<p>{message}</p><p style='margin-top:16px;'><a href='#' style='background:#6366f1;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;'>Review in Munal</a></p>",
+            )
+    except Exception as e:
+        logger.error(f"Error notifying workspace owner: {e}")
+
+
 # ============== Shift CRUD ==============
 
 @router.post("/create")
@@ -469,6 +506,32 @@ async def get_user_hours(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/summary/all-workspaces")
+async def get_global_shift_summary():
+    """Get shift summary across all workspaces (for dashboard feature page)."""
+    try:
+        now = datetime.now(timezone.utc)
+        today = now.strftime("%Y-%m-%d")
+        total_shifts = await db.shifts.count_documents({"status": {"$ne": "cancelled"}})
+        today_shifts = await db.shifts.count_documents({"date": today, "status": {"$ne": "cancelled"}})
+        pending_timeoff = await db.time_off_requests.count_documents({"status": "pending"})
+        pending_swaps = await db.shift_swap_requests.count_documents({"status": "pending"})
+        active_clocks = await db.time_clock.count_documents({"clock_out": None})
+        return {
+            "success": True,
+            "summary": {
+                "total_shifts": total_shifts,
+                "today_shifts": today_shifts,
+                "pending_timeoff": pending_timeoff,
+                "pending_swaps": pending_swaps,
+                "active_clocks": active_clocks,
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting global shift summary: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/summary/{workspace_id}")
 async def get_workspace_summary(workspace_id: str):
     """Get shift summary for workspace dashboard"""
@@ -580,6 +643,16 @@ async def create_swap_request(request: ShiftSwapRequest, background_tasks: Backg
                 "Shift Swap Request",
                 f"<p>{requester.get('name', 'A team member')} has requested to swap shifts with you:</p><p><strong>Date:</strong> {shift.get('date')}<br><strong>Time:</strong> {shift.get('start_time')} - {shift.get('end_time')}<br><strong>Reason:</strong> {request.reason or 'Not specified'}</p>"
             )
+
+        # Notify workspace owner (manager)
+        requester_name = requester.get("name") if requester else "Unknown"
+        await notify_workspace_owner(
+            shift.get("workspace_id"),
+            f"New Swap Request from {requester_name}",
+            f"{requester_name} wants to swap shift on {shift.get('date')} ({shift.get('start_time')}-{shift.get('end_time')}) with {target.get('name') if target else 'another member'}.",
+            "swap_request",
+            background_tasks,
+        )
         
         return {"success": True, "request": swap_request}
     except HTTPException:
@@ -666,6 +739,46 @@ async def reject_swap_request(request_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============== Manager Notifications ==============
+
+@router.get("/manager-notifications/{user_id}")
+async def get_manager_notifications(user_id: str, limit: int = 50):
+    """Get in-app notifications for a manager/owner."""
+    try:
+        notifs = await db.manager_notifications.find(
+            {"user_id": user_id}, {"_id": 0}
+        ).sort("created_at", -1).limit(limit).to_list(limit)
+        unread = sum(1 for n in notifs if not n.get("read"))
+        return {"notifications": notifs, "unread_count": unread}
+    except Exception as e:
+        logger.error(f"Error fetching manager notifications: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/manager-notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str):
+    """Mark a single notification as read."""
+    try:
+        await db.manager_notifications.update_one(
+            {"id": notification_id}, {"$set": {"read": True}}
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/manager-notifications-read-all/{user_id}")
+async def mark_all_notifications_read(user_id: str):
+    """Mark all notifications as read for a user."""
+    try:
+        await db.manager_notifications.update_many(
+            {"user_id": user_id, "read": False}, {"$set": {"read": True}}
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============== Time Off Requests ==============
 
 @router.post("/time-off")
@@ -694,6 +807,16 @@ async def create_time_off_request(request: TimeOffRequest, background_tasks: Bac
         
         await db.time_off_requests.insert_one(time_off)
         time_off.pop("_id", None)
+
+        # Notify workspace owner
+        user_name = user.get("name") if user else "Unknown"
+        await notify_workspace_owner(
+            request.workspace_id,
+            f"New Time-Off Request from {user_name}",
+            f"{user_name} requested {request.type} leave from {request.start_date} to {request.end_date}." + (f" Reason: {request.reason}" if request.reason else ""),
+            "time_off_request",
+            background_tasks,
+        )
         
         return {"success": True, "request": time_off}
     except Exception as e:

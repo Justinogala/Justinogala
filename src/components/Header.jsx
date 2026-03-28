@@ -110,7 +110,7 @@ const Header = () => {
       { label: 'Approvals', href: '/features/approvals', icon: CheckCircle, col: 3, badge: 'NEW' },
       { label: 'IR / SOR Reports', href: '/features/ir-sor', icon: AlertTriangle, col: 3 },
       { label: 'Analytics', href: '/features/analytics', icon: BarChart, col: 3 },
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, col: 3 },
+      { label: 'Dashboard', href: '/features/dashboard', icon: LayoutDashboard, col: 3 },
       { label: 'Billing', href: '/pricing', icon: CreditCard, col: 3 },
     ],
     'Use Cases': [
