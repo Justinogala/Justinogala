@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, Filter, SortAsc, Grid, List as ListIcon, Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, Filter, SortAsc, Grid, List as ListIcon, Plus, Calendar as CalendarIcon, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +19,7 @@ const MeetingsList = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [filterType, setFilterType] = useState('all'); 
+  const [visibleCount, setVisibleCount] = useState(6);
 
   // Process and filter meetings
   const filteredMeetings = useMemo(() => {
@@ -79,12 +80,12 @@ const MeetingsList = ({
             placeholder="Search meetings..." 
             className="pl-9 bg-slate-50 border-slate-200"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(6); }}
           />
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-          <Select value={filterType} onValueChange={setFilterType}>
+          <Select value={filterType} onValueChange={(v) => { setFilterType(v); setVisibleCount(6); }}>
             <SelectTrigger className="w-[140px]">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Filter" />
@@ -97,7 +98,7 @@ const MeetingsList = ({
             </SelectContent>
           </Select>
 
-          <Select value={sortBy} onValueChange={setSortBy}>
+          <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setVisibleCount(6); }}>
             <SelectTrigger className="w-[160px]">
               <SortAsc className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Sort by" />
@@ -150,27 +151,42 @@ const MeetingsList = ({
           </Button>
         </div>
       ) : (
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-          <AnimatePresence>
-            {filteredMeetings.map((meeting) => (
-              <motion.div
-                key={meeting.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
+        <>
+          <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+            <AnimatePresence>
+              {filteredMeetings.slice(0, visibleCount).map((meeting) => (
+                <motion.div
+                  key={meeting.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <MeetingCard 
+                    meeting={meeting}
+                    onView={onView}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+          {filteredMeetings.length > visibleCount && (
+            <div className="flex justify-center pt-2">
+              <Button
+                onClick={() => setVisibleCount(prev => prev + 6)}
+                variant="outline"
+                className="gap-2 text-violet-600 border-violet-200 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-800 dark:hover:bg-violet-900/20"
+                data-testid="view-more-meetings-btn"
               >
-                <MeetingCard 
-                  meeting={meeting}
-                  onView={onView}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                View More ({filteredMeetings.length - visibleCount} remaining)
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
