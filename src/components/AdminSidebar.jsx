@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
@@ -85,6 +85,9 @@ const AdminSidebar = ({ onClose, isMobile }) => {
   const [paymentsOpen, setPaymentsOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef(null);
 
   const handleLogout = async () => {
     await logout();
@@ -94,6 +97,34 @@ const AdminSidebar = ({ onClose, isMobile }) => {
   const toggleCollapse = () => {
     if (!isMobile) setCollapsed(!collapsed);
   };
+
+  // ⌘K / Ctrl+K keyboard shortcut
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
+        setSearchQuery('');
+      }
+      if (e.key === 'Escape') setSearchOpen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Focus input when search opens
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [searchOpen]);
+
+  const handleSearchNav = useCallback((path) => {
+    navigate(path);
+    setSearchOpen(false);
+    setSearchQuery('');
+    if (onClose) onClose();
+  }, [navigate, onClose]);
 
   // Check module-level access using the RBAC module_permissions
   const canAccessModule = (moduleKey) => {
@@ -217,13 +248,102 @@ const AdminSidebar = ({ onClose, isMobile }) => {
       {/* Search Bar */}
       {!collapsed && (
         <div className="px-4 py-3">
-          <div className="flex items-center gap-2 px-3 py-2.5 bg-white/60 dark:bg-slate-800/60 rounded-xl text-gray-400 text-sm cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors group border border-gray-200/50 dark:border-gray-700/50">
+          <div
+            onClick={() => { setSearchOpen(true); setSearchQuery(''); }}
+            className="flex items-center gap-2 px-3 py-2.5 bg-white/60 dark:bg-slate-800/60 rounded-xl text-gray-400 text-sm cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors group border border-gray-200/50 dark:border-gray-700/50"
+            data-testid="admin-search-trigger"
+          >
             <Search className="w-4 h-4" />
             <span className="flex-1">Search admin...</span>
             <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-[10px] font-medium shadow-sm">⌘K</kbd>
           </div>
         </div>
       )}
+
+      {/* Search Command Palette */}
+      <AnimatePresence>
+        {searchOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSearchOpen(false)}
+            />
+            <motion.div
+              className="fixed top-[15%] left-1/2 -translate-x-1/2 w-full max-w-lg z-[61] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden"
+              initial={{ opacity: 0, y: -20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.96 }}
+              transition={{ duration: 0.15 }}
+              data-testid="admin-search-palette"
+            >
+              {/* Search Input */}
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-slate-800">
+                <Search className="w-5 h-5 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search pages, settings, modules..."
+                  className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white placeholder:text-gray-400 outline-none"
+                  data-testid="admin-search-input"
+                />
+                <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-[10px] text-gray-400 font-medium">ESC</kbd>
+              </div>
+
+              {/* Results */}
+              <div className="max-h-[340px] overflow-y-auto py-2">
+                {(() => {
+                  const allLinks = [
+                    ...primaryLinks.map(l => ({ ...l, section: 'Dashboard' })),
+                    ...managementLinks.map(l => ({ ...l, section: 'Management' })),
+                    ...(canSeeBilling ? paymentSubLinks.map(l => ({ ...l, gradient: 'from-amber-500 to-yellow-500', section: 'Billing' })) : []),
+                    ...configLinks.map(l => ({ ...l, section: 'Configuration' })),
+                  ];
+                  const q = searchQuery.toLowerCase().trim();
+                  const results = q
+                    ? allLinks.filter(l => l.label.toLowerCase().includes(q) || l.section.toLowerCase().includes(q))
+                    : allLinks;
+                  
+                  if (results.length === 0) {
+                    return (
+                      <div className="px-4 py-8 text-center text-sm text-gray-400" data-testid="admin-search-empty">
+                        No results found for &ldquo;{searchQuery}&rdquo;
+                      </div>
+                    );
+                  }
+
+                  let lastSection = '';
+                  return results.map((link) => {
+                    const showSection = link.section !== lastSection;
+                    lastSection = link.section;
+                    return (
+                      <React.Fragment key={link.path}>
+                        {showSection && (
+                          <p className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{link.section}</p>
+                        )}
+                        <button
+                          onClick={() => handleSearchNav(link.path)}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-colors text-left"
+                          data-testid={`search-result-${link.path.replace(/\//g, '-')}`}
+                        >
+                          <div className={cn('p-1.5 rounded-lg bg-gradient-to-br', link.gradient || 'from-gray-400 to-gray-500')}>
+                            <link.icon className="w-3.5 h-3.5 text-white" />
+                          </div>
+                          <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">{link.label}</span>
+                          <span className="ml-auto text-[10px] text-gray-300 dark:text-gray-600">{link.section}</span>
+                        </button>
+                      </React.Fragment>
+                    );
+                  });
+                })()}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Navigation */}
       <div className="flex-1 py-2 px-3 space-y-6 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
