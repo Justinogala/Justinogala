@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { pushNotificationService } from '@/services/pushNotificationService';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
 // Reusable toggle item component for mobile-friendly touch targets - moved outside
@@ -39,6 +40,7 @@ const ToggleItem = ({ icon: Icon, iconColor, title, description, checked, onChec
 );
 
 const NotificationSettings = () => {
+  const { user } = useAuth();
   const [permission, setPermission] = useState(() => {
     // Initialize from browser state synchronously
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -78,7 +80,7 @@ const NotificationSettings = () => {
       setPermission(result);
 
       if (result === 'granted') {
-        const sub = await pushNotificationService.subscribe();
+        const sub = await pushNotificationService.subscribe(user?.id);
         if (sub) {
           setSubscribed(true);
           toast({
@@ -88,7 +90,7 @@ const NotificationSettings = () => {
         }
       }
     } else {
-      await pushNotificationService.unsubscribe();
+      await pushNotificationService.unsubscribe(user?.id);
       setSubscribed(false);
       toast({
         title: "Notifications Disabled",

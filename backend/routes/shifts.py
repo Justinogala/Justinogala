@@ -132,7 +132,7 @@ async def send_shift_notification(user_email: str, user_name: str, subject: str,
 
 
 async def notify_workspace_owner(workspace_id: str, title: str, message: str, notif_type: str, background_tasks: BackgroundTasks):
-    """Send in-app + email notification to the workspace owner when a request is submitted."""
+    """Send in-app + email + push notification to the workspace owner when a request is submitted."""
     try:
         ws = await db.workspaces.find_one({"id": workspace_id}, {"_id": 0, "owner_id": 1, "name": 1})
         if not ws:
@@ -164,6 +164,16 @@ async def notify_workspace_owner(workspace_id: str, title: str, message: str, no
                 title,
                 f"<p>{message}</p><p style='margin-top:16px;'><a href='#' style='background:#6366f1;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;'>Review in Munal</a></p>",
             )
+
+        # Send browser push notification
+        from routes.push_notifications import send_push_to_user
+        background_tasks.add_task(
+            send_push_to_user,
+            owner["id"],
+            title,
+            message,
+            f"/workspace/{workspace_id}/shifts",
+        )
     except Exception as e:
         logger.error(f"Error notifying workspace owner: {e}")
 
