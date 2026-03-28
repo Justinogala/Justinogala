@@ -89,7 +89,7 @@ const AdminLoginPage = () => {
         <meta name="description" content="Secure admin portal login" />
       </Helmet>
 
-      <Link to="/" className="flex items-center gap-2 mb-8 z-10 group" data-testid="admin-login-logo">
+      <Link to="/" className="absolute top-6 left-6 flex items-center gap-2 z-10 group" data-testid="admin-login-logo">
         <div className="w-9 h-9 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/40">
           <span className="text-white font-bold text-lg">M</span>
         </div>
