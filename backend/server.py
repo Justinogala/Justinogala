@@ -171,6 +171,7 @@ from routes.dashboard import router as dashboard_router
 from routes.module_permissions import router as module_permissions_router
 from routes.ai_chat import router as ai_chat_router
 from routes.analytics import router as analytics_router
+from routes.time_clock import router as time_clock_router
 
 
 # ============== Include All Routers ==============
@@ -242,6 +243,7 @@ api_router.include_router(dashboard_router)
 api_router.include_router(module_permissions_router)
 api_router.include_router(ai_chat_router)
 api_router.include_router(analytics_router)
+api_router.include_router(time_clock_router)
 
 
 # ============== Include Main Router ==============

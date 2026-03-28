@@ -267,6 +267,11 @@ export default defineConfig({
 			'Cross-Origin-Embedder-Policy': 'credentialless',
 		},
 		allowedHosts: true,
+		watch: {
+			usePolling: true,
+			interval: 1000,
+			ignored: ['**/node_modules/**', '**/.git/**', '**/.emergent/**', '**/test_reports/**'],
+		},
 		proxy: {
 			'/api': {
 				target: 'http://127.0.0.1:8001',
