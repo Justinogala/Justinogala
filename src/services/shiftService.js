@@ -322,6 +322,46 @@ export const deleteTimeEntry = async (entryId, userId) => {
   });
 };
 
+// ============== Time-Off Balance ==============
+
+/**
+ * Get time-off balance for a user
+ */
+export const getTimeOffBalance = async (workspaceId, userId) => {
+  return apiRequest(`/time-off-balance/${workspaceId}/${userId}`);
+};
+
+/**
+ * Update time-off balance allocation
+ */
+export const updateTimeOffBalance = async (data) => {
+  return apiRequest('/time-off-balance', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+};
+
+/**
+ * Export shifts as PDF/HTML report
+ */
+export const downloadPdfExport = async (workspaceId, startDate = null, endDate = null) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+
+  const response = await fetch(`${API_URL}/api/shifts/export-pdf/${workspaceId}?${params.toString()}`);
+  if (!response.ok) throw new Error('PDF export failed');
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shifts_report_${new Date().toISOString().split('T')[0]}.html`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+};
+
 export default {
   createShift,
   getWorkspaceShifts,
@@ -352,4 +392,7 @@ export default {
   getUserTimeEntries,
   getWorkspaceTimesheet,
   deleteTimeEntry,
+  getTimeOffBalance,
+  updateTimeOffBalance,
+  downloadPdfExport,
 };
