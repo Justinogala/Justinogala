@@ -283,26 +283,27 @@ const CalendarPage = () => {
           <div
             key={day.toString()}
             className={cn(
-              "min-h-[120px] p-2 border-b border-r border-gray-200 dark:border-gray-800 cursor-pointer transition-colors",
+              "p-1.5 border-b border-r border-gray-200 dark:border-gray-800 cursor-pointer transition-colors overflow-hidden",
               !isSameMonth(day, monthStart) && "bg-gray-50/50 dark:bg-slate-900/50",
-              isSameDay(day, new Date()) && "bg-indigo-50/50 dark:bg-indigo-900/10",
+              isSameDay(day, new Date()) && "bg-indigo-50/50 dark:bg-indigo-900/10 ring-1 ring-inset ring-indigo-200 dark:ring-indigo-800",
               "hover:bg-gray-100/50 dark:hover:bg-slate-800/50"
             )}
             onClick={() => openCreateModal(currentDay)}
           >
             <div className={cn(
-              "text-sm font-medium mb-1",
-              !isSameMonth(day, monthStart) && "text-gray-400",
-              isSameDay(day, new Date()) && "text-indigo-600 dark:text-indigo-400"
+              "text-xs font-semibold mb-0.5 w-6 h-6 flex items-center justify-center rounded-full",
+              !isSameMonth(day, monthStart) && "text-gray-300 dark:text-gray-600",
+              isSameDay(day, new Date()) && "bg-indigo-600 text-white",
+              isSameMonth(day, monthStart) && !isSameDay(day, new Date()) && "text-gray-700 dark:text-gray-300"
             )}>
               {format(day, 'd')}
             </div>
-            <div className="space-y-1">
-              {dayEvents.slice(0, 3).map(event => (
+            <div className="space-y-0.5">
+              {dayEvents.slice(0, 2).map(event => (
                 <div
                   key={event.id}
                   className={cn(
-                    "text-xs px-2 py-1 rounded truncate cursor-pointer",
+                    "text-[10px] leading-tight px-1.5 py-0.5 rounded truncate cursor-pointer font-medium",
                     EVENT_COLORS[event.color]?.light,
                     EVENT_COLORS[event.color]?.text
                   )}
@@ -315,19 +316,19 @@ const CalendarPage = () => {
                   {!event.all_day && format(parseISO(event.start_time), 'HH:mm')} {event.title}
                 </div>
               ))}
-              {dayEvents.length > 3 && (
-                <div className="text-xs text-gray-500 px-2">+{dayEvents.length - 3} more</div>
+              {dayEvents.length > 2 && (
+                <div className="text-[10px] text-gray-400 px-1.5 font-medium">+{dayEvents.length - 2} more</div>
               )}
             </div>
           </div>
         );
         day = addDays(day, 1);
       }
-      rows.push(<div key={day.toString()} className="grid grid-cols-7">{days}</div>);
+      rows.push(<div key={day.toString()} className="grid grid-cols-7 flex-1 min-h-0">{days}</div>);
       days = [];
     }
     
-    return rows;
+    return <div className="flex flex-col flex-1 min-h-0">{rows}</div>;
   };
 
   const renderWeekView = () => {
@@ -390,7 +391,7 @@ const CalendarPage = () => {
       
       <div className="h-full flex flex-col -m-4 sm:-m-6 lg:-m-8" style={{height: 'calc(100vh - 64px)'}}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
               <CalendarIcon className="w-5 h-5 text-white" />
@@ -440,12 +441,12 @@ const CalendarPage = () => {
         </div>
 
         {/* Calendar Grid */}
-        <div className="flex-1 overflow-auto bg-white dark:bg-slate-950">
+        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-950">
           {/* Week day headers for month view */}
           {view === 'month' && (
-            <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-slate-900 sticky top-0 z-10">
+            <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-slate-900 flex-shrink-0">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="p-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                <div key={day} className="py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                   {day}
                 </div>
               ))}
@@ -457,7 +458,9 @@ const CalendarPage = () => {
               <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : view === 'month' ? (
-            renderMonthView()
+            <div className="flex-1 flex flex-col min-h-0">
+              {renderMonthView()}
+            </div>
           ) : (
             <ScrollArea className="h-full">
               {renderWeekView()}
