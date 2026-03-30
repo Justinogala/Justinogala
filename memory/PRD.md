@@ -5,54 +5,58 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
-### AuthContext Consolidation + Data Health Dashboard + 9th Form Template — March 30, 2026
-- **AuthContext consolidated**: Merged AdminAuthContext into AuthContext.jsx. Single provider, dual hooks (useAuth + useAdminAuth). AdminAuthContext.jsx is now a thin re-export wrapper — zero import changes needed across 13+ components. Removed AdminAuthProvider from App.jsx.
-- **Data Health Dashboard**: New admin page at `/admin/data-health` showing total documents, user health (active/inactive/never logged in), orphaned records, collection stats with progress bars, pending actions, and cleanup buttons.
-- **Backend**: `GET /api/admin/data-health/stats`, `POST /cleanup/orphaned-members`, `POST /cleanup/stale-conversations`
-- **Client Behavior Observation Form**: 9th healthcare template with 19 fields (date, observer, client, setting, behavior type, antecedent, description, intensity, duration, frequency, intervention, response, injuries, follow-up, supervisor notification).
+### Two-Factor Authentication (2FA) — March 30, 2026
+- **TOTP + Email OTP + Recovery Codes**: Admin can choose authenticator app, email OTP, or both
+- **Setup flow**: Enable from Admin > Security Policies → choose method → scan QR / get email code → verify → receive 8 recovery codes
+- **Login flow**: Email/password → 2FA prompt (TOTP/Email/Recovery tabs) → verify → access granted
+- **Disable**: Requires valid TOTP or recovery code to disable
+- **Backend**: 6 endpoints under `/api/admin/2fa/` (status, setup, verify-setup, verify, send-email-otp, disable)
+- **Admin email changed**: `admin@munal.com` → `admin@munal.ai`
+- 100% test pass rate (iteration_93)
+
+### AuthContext Consolidation + Data Health Dashboard + 9th Form — March 30, 2026
+- Merged AdminAuthContext into AuthContext.jsx (single provider, dual hooks)
+- Data Health Dashboard at `/admin/data-health`
+- Client Behavior Observation Form (9th healthcare template, 19 fields)
 - 100% test pass rate (iteration_92)
 
-### Onboarding Walkthrough — March 30, 2026
-- 8-step welcome modal for new users, skip/replay, "Restart Tour" in Settings
-- 100% test pass rate (iteration_91)
-
-### Landing Page Mobile Fix + Demo Video — March 30, 2026
-- Hero image full-width on mobile, nav controls fixed, Sora 2 demo video with "Munal" branding
-- 100% test pass rate (iteration_90)
-
-### Earlier Completed Work
-- Shift Management Phase 1 & 2, Push Notifications, Time Clock Reports, Admin Login Redesign, Command Palette, Calendar UI Fix
+### Onboarding + Landing Page Fix + Demo Video — March 30, 2026
+- 8-step onboarding walkthrough, hero mobile layout fix, Sora 2 demo video
+- 100% test pass rates (iterations 90, 91)
 
 ## Architecture
 ```
-/app/src/context/
-├── AuthContext.jsx             # CONSOLIDATED - handles both user + admin auth
-├── AdminAuthContext.jsx        # Thin re-export wrapper for backward compatibility
-
 /app/backend/routes/
-├── data_health.py             # NEW - Data health stats + cleanup endpoints
-├── forms.py                   # 9 healthcare templates (added Client Behavior Observation)
-├── users.py                   # User CRUD + onboarding
-├── admin_workspaces.py        # Admin workspace mgmt + orphan cleanup
+├── two_factor.py          # NEW - 2FA setup/verify/disable (TOTP + Email OTP)
+├── data_health.py         # Data health stats + cleanup
+├── auth.py                # Login (with 2FA support), register, password reset
+├── users.py               # User CRUD + onboarding
+├── forms.py               # 9 healthcare templates
 
-/app/src/pages/admin/
-├── AdminDataHealthPage.jsx    # NEW - Data health dashboard
-├── AdminStripeSettingsPage.jsx # Refactored
+/app/frontend/src/
+├── components/admin/
+│   ├── TwoFactorSetup.jsx    # NEW - 2FA setup UI (QR code, method selection, recovery codes)
+│   └── TwoFactorVerify.jsx   # NEW - 2FA login verification (TOTP/Email/Recovery tabs)
+├── context/AuthContext.jsx    # Consolidated auth (user + admin)
+├── pages/AdminLoginPage.jsx   # Updated with 2FA flow
 ```
 
-## Key DB Collections
-`users` (onboarding_completed), `workspace_members`, `workspaces`, `form_templates`, `form_submissions`, `time_clock`, `push_subscriptions`, `shifts`, `ai_conversations`, `ai_messages`
+## Key DB Fields (users collection)
+`two_factor_enabled`, `two_factor_method` (totp/email/both), `totp_secret`, `recovery_codes` (hashed), `email_otp_login`, `onboarding_completed`
 
 ## 3rd Party Integrations
-- Resend, OpenAI GPT-5.2, OpenAI Whisper, Object Storage, Sora 2 — all via Emergent LLM Key
+- Resend (Email Delivery + 2FA OTP), OpenAI GPT-5.2, Whisper, Object Storage, Sora 2
 
-## Backlog
-### P3
-- 2FA for admin accounts
-- Additional form templates as needed
+## Dependencies Added
+- `pyotp` (TOTP generation/verification)
+- `qrcode[pil]` (QR code generation for authenticator setup)
 
 ## Test Credentials
-- Super Admin: admin@munal.com / Admin@123456
+- Super Admin: admin@munal.ai / Admin@123456 (2FA currently DISABLED, can enable from Security Policies)
 - Org Admin: orgadmin@munal.com / OrgAdmin@123
 - Org Manager: orgmgr@munal.com / OrgMgr@123
 - Org Member: orgmember@munal.com / OrgMem@123
+
+## Backlog
+- Additional form templates as needed
+- Advanced analytics/reporting
