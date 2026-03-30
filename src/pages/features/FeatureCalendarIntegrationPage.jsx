@@ -2,6 +2,7 @@
 import React from 'react';
 import { Calendar, Clock, Bell, Users } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureCalendarIntegrationPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureCalendarIntegrationPage = () => {
       title="Calendar"
       subtitle="Munal AI Smart Calendar"
       description="Your all-in-one scheduling hub built right into Munal. Plan meetings, manage shifts, track availability, and stay on top of every event — all from one intelligent calendar."
-      heroImage="https://images.unsplash.com/photo-1734945620672-f130427acff7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwxfHxkaWdpdGFsJTIwY2FsZW5kYXIlMjBhcHAlMjBkYXNoYm9hcmQlMjBzY2hlZHVsaW5nfGVufDB8fHx8MTc3NDExMTcxOXww&ixlib=rb-4.1.0&q=85"
+      heroImage={`${API_URL}/api/static/feature_calendar.png`}
       benefits={[
         { icon: Calendar, title: "Unified View", description: "See meetings, shifts, approvals, and deadlines in one calendar." },
         { icon: Clock, title: "Smart Scheduling", description: "AI suggests the best times based on your team's availability." },

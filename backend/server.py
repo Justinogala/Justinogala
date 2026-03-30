@@ -4,6 +4,7 @@ Main application entry point with modular route imports.
 """
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.responses import Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
@@ -85,6 +86,17 @@ async def get_demo_video():
     if not video_path.exists():
         raise HTTPException(status_code=404, detail="Demo video not available yet")
     return FileResponse(str(video_path), media_type="video/mp4", filename="munal-demo.mp4")
+
+
+@api_router.get("/static/{filename}")
+async def serve_static_file(filename: str):
+    """Serve static asset files"""
+    file_path = ROOT_DIR / "static" / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    content_types = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".mp4": "video/mp4"}
+    ext = file_path.suffix.lower()
+    return FileResponse(str(file_path), media_type=content_types.get(ext, "application/octet-stream"))
 
 
 from pydantic import BaseModel as PydanticBaseModel
