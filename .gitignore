@@ -1,9 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# IDE and editors
-.idea/
-.vscode/
-
 # Dependencies
 node_modules/
 /node_modules
@@ -15,6 +9,10 @@ node_modules/
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+
+# IDE and editors
+.idea/
+.vscode/
 
 # Testing
 /coverage
@@ -28,10 +26,12 @@ next-env.d.ts
 # Production builds
 /build
 dist/
-dist
 
-# Environment files (comprehensive coverage)
+# Environment files
+*.env
+*.env.*
 
+# Credentials
 *token.json*
 *credentials.json*
 
@@ -48,7 +48,7 @@ dump.rdb
 
 # Python
 __pycache__/
-*pyc*
+*.pyc
 venv/
 .venv/
 
@@ -56,13 +56,9 @@ venv/
 chainlit.md
 .chainlit
 .ipynb_checkpoints/
-.ac
 
 # Deployment
 .vercel
-
-# Data and databases
-agenthub/agents/youtube/db
 
 # Archive files and large assets
 **/*.zip
@@ -76,246 +72,13 @@ agenthub/agents/youtube/db
 # Build caches
 .cache/
 
-# Mobile development
-android-sdk/ -e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
+# Test reports (generated, not needed for deployment)
+test_reports/
+
+# Backend static large files
+backend/static/*.mp4
+
+# Backup files
+*.backup
+*.bak
+*.old
