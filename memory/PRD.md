@@ -5,70 +5,48 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### P2 Cleanup Tasks — March 30, 2026
+- **AdminStripeSettingsPage refactored**: Extracted 6 sub-components (ApiKeyCard, PriceIdsCard, SetupInstructions, PaymentStatusSidebar, TransactionsTable, StatusBadge), added data-testids, proper useCallback memoization, removed dead imports. 411 → 280 lines main component.
+- **Orphaned workspace_members cleanup**: New endpoint `POST /api/admin/workspaces/cleanup/orphaned-members` finds and removes members referencing deleted workspaces/users.
+- **Removed unused SettingsPage.jsx**: Route `/settings` uses `UserSettingsPage.jsx`; old file was dead code.
+
 ### Onboarding Walkthrough — March 30, 2026
-- **8-step welcome modal** for new users on first login: Welcome, Dashboard, AI Chat, Workspaces, Calendar, Messaging, Shift Management, Completion
-- **Backend persistence**: GET/PUT/DELETE `/api/users/{id}/onboarding` endpoints
-- **Skip & replay**: Users can skip anytime; "Restart Tour" button in Settings > Account tab
-- **localStorage + API sync**: Dual-layer state for instant UX
+- 8-step welcome modal for new users on first login
+- Backend: GET/PUT/DELETE `/api/users/{id}/onboarding` endpoints
+- Skip & replay: "Restart Tour" button in Settings > Account tab
 - 100% test pass rate (iteration_91)
 
-### Landing Page Mobile Fix + Demo Video Branding — March 30, 2026
-- **Hero section mobile layout**: `flex-col-reverse lg:flex-row` so image appears ON TOP of text on mobile
-- **Full-width image**: `max-w-full` on mobile, proper sizing on all viewports
-- **Nav controls fix**: Changed from absolute to relative positioning on mobile to prevent overlapping
-- **Demo video**: Regenerated with Sora 2 showing "Munal" branding
+### Landing Page Mobile Fix + Demo Video — March 30, 2026
+- Hero image full-width on mobile, nav controls no longer overlap
+- Demo video regenerated via Sora 2 with "Munal" branding
 - 100% test pass rate (iteration_90)
 
-### Time Clock Reports Page — March 28, 2026
-- Reports page at `/workspace/{id}/time-clock-reports` with Daily/Weekly/Monthly/Yearly views
-- Role-based access: Admin can generate/export, Manager can view only
-- 100% test pass rate (iteration_89)
-
-### Push Notifications (Browser/PWA) — March 28, 2026
-- Browser push via Web Push (VAPID + pywebpush), 3-layer notifications
-- 100% test pass rate (iteration_88)
-
-### Manager Notifications + Dashboard Feature Page — March 28, 2026
-- In-app + email alerts, ManagerNotificationBell, Dashboard at /features/dashboard
-- 100% test pass rate (iteration_87)
-
-### Shift Management Phase 1 & 2 — March 28, 2026
-- Time clock, time-off/swap/balance/PDF export
-- 100% test pass rates (iterations 85, 86)
+### Shift Management, Notifications, Reports — March 28, 2026
+- Time Clock, Time-Off/Swap, Push Notifications, Time Clock Reports
+- 100% test pass rates (iterations 85-89)
 
 ## Architecture
 ```
 /app/backend/routes/
-├── users.py               # User CRUD + onboarding endpoints
-├── time_clock.py          # Time clock + Reports
-├── push_notifications.py  # Push subscriptions
-├── shifts.py              # Shifts, time-off, swap, balance
+├── users.py               # User CRUD + onboarding
+├── admin_workspaces.py    # Admin workspace mgmt + orphan cleanup
+├── time_clock.py, push_notifications.py, shifts.py
 ├── ai_chat.py, analytics.py, admin.py, auth.py, organizations.py...
 
 /app/frontend/src/
-├── components/
-│   ├── OnboardingWalkthrough.jsx    # 8-step welcome modal
-│   ├── settings/AccountSettingsSection.jsx  # Restart Tour button
-│   └── ...
-├── layouts/UserLayout.jsx           # Renders onboarding
-├── pages/LandingPage.jsx            # Hero carousel with mobile-first layout
+├── components/OnboardingWalkthrough.jsx
+├── pages/admin/AdminStripeSettingsPage.jsx  # Refactored
+├── layouts/UserLayout.jsx
+├── pages/LandingPage.jsx
 ```
 
 ## Key DB Collections
-`users` (includes `onboarding_completed`), `time_clock`, `push_subscriptions`, `manager_notifications`, `time_off_requests`, `time_off_balances`, `shift_swap_requests`, `shifts`, `shift_presets`, `ai_conversations`, `ai_messages`
+`users`, `workspace_members`, `workspaces`, `time_clock`, `push_subscriptions`, `manager_notifications`, `time_off_requests`, `shifts`, `ai_conversations`, `ai_messages`
 
 ## 3rd Party Integrations
-- Resend (Email Delivery)
-- OpenAI GPT-5.2 (AI Chat) — Emergent LLM Key
-- OpenAI Whisper (Voice Chat) — Emergent LLM Key
-- Object Storage (File Uploads) — Emergent LLM Key
-- OpenAI Sora 2 (Video Gen) — Emergent LLM Key
+- Resend, OpenAI GPT-5.2, OpenAI Whisper, Object Storage, Sora 2 — all via Emergent LLM Key
 
 ## Backlog
-### P2
-- Refactor AdminStripeSettingsPage.jsx
-- Clean up orphaned workspace_members
-- Remove unused SettingsPage.jsx (route uses UserSettingsPage.jsx)
 ### P3
 - Consolidate AuthContext/AdminAuthContext
 - 2FA for admin accounts
