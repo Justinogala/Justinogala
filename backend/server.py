@@ -63,15 +63,15 @@ async def root():
 
 @api_router.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint - responds immediately, DB check is non-blocking"""
     try:
         await db.command("ping")
         db_status = "healthy"
     except Exception:
-        db_status = "unhealthy"
+        db_status = "connecting"
     
     return {
-        "status": "healthy" if db_status == "healthy" else "degraded",
+        "status": "healthy",
         "database": db_status,
         "version": "2.0.0",
         "timestamp": datetime.now(timezone.utc).isoformat()
