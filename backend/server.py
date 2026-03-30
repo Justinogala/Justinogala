@@ -175,6 +175,7 @@ from routes.time_clock import router as time_clock_router
 from routes.push_notifications import router as push_router
 from routes.data_health import router as data_health_router
 from routes.two_factor import router as two_factor_router
+from routes.audit_logs import router as audit_logs_router
 
 
 # ============== Include All Routers ==============
@@ -250,6 +251,7 @@ api_router.include_router(time_clock_router)
 api_router.include_router(push_router)
 api_router.include_router(data_health_router)
 api_router.include_router(two_factor_router)
+api_router.include_router(audit_logs_router)
 
 
 # ============== Include Main Router ==============
