@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, Users, CalendarCheck, Bell } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureShiftsPage = () => {
   return (
@@ -8,7 +9,7 @@ const FeatureShiftsPage = () => {
       title="Shifts"
       subtitle="Smart Shift Scheduling"
       description="Plan, assign, and manage team shifts with an intuitive visual scheduler. Automated reminders, swap requests, and coverage tracking keep your workforce running smoothly."
-      heroImage="https://images.unsplash.com/photo-1617131633412-39437b40a16b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwxfHxzaGlmdCUyMHNjaGVkdWxlJTIwY2FsZW5kYXIlMjBwbGFubmluZ3xlbnwwfHx8fDE3NzQxMTA1MDl8MA&ixlib=rb-4.1.0&q=85"
+      heroImage={`${API_URL}/api/static/feature_shifts.png`}
       benefits={[
         { icon: Clock, title: "Visual Scheduler", description: "Drag-and-drop shift planning with day, week, and month views." },
         { icon: Users, title: "Team Coverage", description: "Ensure adequate staffing with real-time coverage tracking and gap alerts." },

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle, GitBranch, Clock, BarChart } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureApprovalsPage = () => {
   return (
@@ -8,7 +9,7 @@ const FeatureApprovalsPage = () => {
       title="Approvals"
       subtitle="Streamlined Workflow Approvals"
       description="Automate your approval workflows with multi-step chains, delegation support, AI-powered insights, and full audit trails. Never lose track of pending requests again."
-      heroImage="https://images.unsplash.com/photo-1644229945454-4fe5a4cc452f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHx3b3JrZmxvdyUyMGFwcHJvdmFsJTIwY2hlY2tsaXN0JTIwYnVzaW5lc3N8ZW58MHx8fHwxNzc0MTEwNTA3fDA&ixlib=rb-4.1.0&q=85"
+      heroImage={`${API_URL}/api/static/feature_approvals.png`}
       benefits={[
         { icon: CheckCircle, title: "Multi-Step Workflows", description: "Create sequential or parallel approval chains with custom conditions." },
         { icon: GitBranch, title: "Smart Delegation", description: "Delegate approvals to substitutes when you're unavailable with full audit trails." },
