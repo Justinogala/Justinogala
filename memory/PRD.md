@@ -5,25 +5,27 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Onboarding Walkthrough — March 30, 2026
+- **8-step welcome modal** for new users on first login: Welcome, Dashboard, AI Chat, Workspaces, Calendar, Messaging, Shift Management, Completion
+- **Backend persistence**: GET/PUT/DELETE `/api/users/{id}/onboarding` endpoints
+- **Skip & replay**: Users can skip anytime; "Restart Tour" button in Settings > Account tab
+- **localStorage + API sync**: Dual-layer state for instant UX
+- 100% test pass rate (iteration_91)
+
 ### Landing Page Mobile Fix + Demo Video Branding — March 30, 2026
-- **Hero section mobile layout**: Changed to `flex-col-reverse lg:flex-row` so image appears ON TOP of text on mobile
-- **Image sizing**: Set `max-w-[280px]` on mobile for proper width matching
-- **Demo video**: Regenerated with Sora 2 showing "Munal" branding (replaced old "Numbus" video)
+- **Hero section mobile layout**: `flex-col-reverse lg:flex-row` so image appears ON TOP of text on mobile
+- **Full-width image**: `max-w-full` on mobile, proper sizing on all viewports
+- **Nav controls fix**: Changed from absolute to relative positioning on mobile to prevent overlapping
+- **Demo video**: Regenerated with Sora 2 showing "Munal" branding
 - 100% test pass rate (iteration_90)
 
 ### Time Clock Reports Page — March 28, 2026
 - Reports page at `/workspace/{id}/time-clock-reports` with Daily/Weekly/Monthly/Yearly views
-- Summary cards: Total Hours, Clock Entries, Team Members, Avg/Person
-- Daily Hours chart (bar chart) + Team Breakdown (progress bars per user)
-- Detailed Entries table with clock in/out times, duration, status
-- Export Report button downloads styled HTML report (Admin only)
 - Role-based access: Admin can generate/export, Manager can view only
 - 100% test pass rate (iteration_89)
 
 ### Push Notifications (Browser/PWA) — March 28, 2026
-- Browser push via Web Push (VAPID + pywebpush)
-- 3-layer notifications: In-app + Email + Browser Push
-- PushNotificationPrompt component, Service Worker push handler
+- Browser push via Web Push (VAPID + pywebpush), 3-layer notifications
 - 100% test pass rate (iteration_88)
 
 ### Manager Notifications + Dashboard Feature Page — March 28, 2026
@@ -31,27 +33,29 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - 100% test pass rate (iteration_87)
 
 ### Shift Management Phase 1 & 2 — March 28, 2026
-- Time clock (Phase 1), Time-off/swap/balance/PDF export (Phase 2)
+- Time clock, time-off/swap/balance/PDF export
 - 100% test pass rates (iterations 85, 86)
 
 ## Architecture
 ```
 /app/backend/routes/
+├── users.py               # User CRUD + onboarding endpoints
 ├── time_clock.py          # Time clock + Reports
 ├── push_notifications.py  # Push subscriptions
-├── shifts.py              # Shifts, time-off, swap, balance, manager notifications
-├── ai_chat.py, analytics.py, admin.py, auth.py, users.py, organizations.py...
+├── shifts.py              # Shifts, time-off, swap, balance
+├── ai_chat.py, analytics.py, admin.py, auth.py, organizations.py...
 
-/app/frontend/src/pages/
-├── TimeClockReportsPage.jsx   # Reports with daily/weekly/monthly/yearly
-├── ShiftManagementPage.jsx    # Full shift management
-├── WorkspaceDetailPage.jsx    # Time clock widget
-├── LandingPage.jsx            # Hero carousel with mobile-first layout
-├── features/FeatureDashboardPage.jsx
+/app/frontend/src/
+├── components/
+│   ├── OnboardingWalkthrough.jsx    # 8-step welcome modal
+│   ├── settings/AccountSettingsSection.jsx  # Restart Tour button
+│   └── ...
+├── layouts/UserLayout.jsx           # Renders onboarding
+├── pages/LandingPage.jsx            # Hero carousel with mobile-first layout
 ```
 
 ## Key DB Collections
-`time_clock`, `push_subscriptions`, `manager_notifications`, `time_off_requests`, `time_off_balances`, `shift_swap_requests`, `shifts`, `shift_presets`, `ai_conversations`, `ai_messages`
+`users` (includes `onboarding_completed`), `time_clock`, `push_subscriptions`, `manager_notifications`, `time_off_requests`, `time_off_balances`, `shift_swap_requests`, `shifts`, `shift_presets`, `ai_conversations`, `ai_messages`
 
 ## 3rd Party Integrations
 - Resend (Email Delivery)
@@ -64,6 +68,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned workspace_members
+- Remove unused SettingsPage.jsx (route uses UserSettingsPage.jsx)
 ### P3
 - Consolidate AuthContext/AdminAuthContext
 - 2FA for admin accounts
