@@ -450,3 +450,68 @@ async def remove_member_from_workspace(workspace_id: str, user_id: str, admin_id
 
 # Import timedelta for recent messages query
 from datetime import timedelta
+
+
+
+@router.post("/cleanup/orphaned-members", tags=["Admin Workspaces"])
+async def cleanup_orphaned_workspace_members():
+    """
+    Find and remove workspace_members that reference
+    non-existent workspaces or non-existent users.
+    """
+    try:
+        # Get all distinct workspace_ids and user_ids from workspace_members
+        all_members = await db.workspace_members.find(
+            {}, {"_id": 0, "workspace_id": 1, "user_id": 1}
+        ).to_list(10000)
+
+        if not all_members:
+            return {"orphaned_count": 0, "deleted": 0, "details": []}
+
+        ws_ids = list({m["workspace_id"] for m in all_members if m.get("workspace_id")})
+        user_ids = list({m["user_id"] for m in all_members if m.get("user_id")})
+
+        # Check which workspaces and users actually exist
+        existing_ws = set()
+        if ws_ids:
+            cursor = db.workspaces.find({"id": {"$in": ws_ids}}, {"id": 1})
+            async for doc in cursor:
+                existing_ws.add(doc["id"])
+
+        existing_users = set()
+        if user_ids:
+            cursor = db.users.find({"id": {"$in": user_ids}}, {"id": 1})
+            async for doc in cursor:
+                existing_users.add(doc["id"])
+
+        # Identify orphaned members
+        orphaned = []
+        for m in all_members:
+            ws_missing = m.get("workspace_id") and m["workspace_id"] not in existing_ws
+            user_missing = m.get("user_id") and m["user_id"] not in existing_users
+            if ws_missing or user_missing:
+                orphaned.append({
+                    "workspace_id": m.get("workspace_id"),
+                    "user_id": m.get("user_id"),
+                    "reason": "workspace_deleted" if ws_missing else "user_deleted",
+                })
+
+        # Delete orphaned records
+        deleted = 0
+        for o in orphaned:
+            result = await db.workspace_members.delete_one({
+                "workspace_id": o["workspace_id"],
+                "user_id": o["user_id"],
+            })
+            deleted += result.deleted_count
+
+        logger.info(f"Workspace members cleanup: found {len(orphaned)} orphaned, deleted {deleted}")
+
+        return {
+            "orphaned_count": len(orphaned),
+            "deleted": deleted,
+            "details": orphaned[:50],  # Return first 50 for review
+        }
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned members: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
