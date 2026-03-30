@@ -7,11 +7,15 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { validatePassword, validatePasswordMatch } from '@/utils/settingsValidation';
-import { Loader2, User, Lock, Building } from 'lucide-react';
+import { Loader2, User, Lock, Building, RotateCcw } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
+import { useToast } from '@/components/ui/use-toast';
 
 const AccountSettingsSection = () => {
   const { user } = useAuth();
   const { updatePassword, loading } = useUserSettings();
+  const { toast } = useToast();
+  const [tourResetting, setTourResetting] = useState(false);
   
   const [passwordForm, setPasswordForm] = useState({
     current: '',
@@ -19,6 +23,21 @@ const AccountSettingsSection = () => {
     confirm: ''
   });
   const [errors, setErrors] = useState({});
+
+  const restartTour = async () => {
+    if (!user?.id) return;
+    setTourResetting(true);
+    try {
+      const apiUrl = getApiUrl();
+      await fetch(`${apiUrl}/api/users/${user.id}/onboarding`, { method: 'DELETE' });
+      localStorage.removeItem(`munal_onboarding_${user.id}`);
+      toast({ title: 'Tour reset! Refresh the page to see the walkthrough again.' });
+    } catch {
+      toast({ title: 'Failed to reset tour', variant: 'destructive' });
+    } finally {
+      setTourResetting(false);
+    }
+  };
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
@@ -161,6 +180,27 @@ const AccountSettingsSection = () => {
             </Button>
           </CardFooter>
         </form>
+      </Card>
+
+      {/* Platform Tour Card */}
+      <Card className="border-border shadow-sm">
+        <CardContent className="flex items-center justify-between p-5">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-white">Platform Tour</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Replay the onboarding walkthrough to rediscover features.</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={restartTour}
+            disabled={tourResetting}
+            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            data-testid="restart-tour-btn"
+          >
+            <RotateCcw className={`w-4 h-4 mr-1.5 ${tourResetting ? 'animate-spin' : ''}`} />
+            {tourResetting ? 'Resetting...' : 'Restart Tour'}
+          </Button>
+        </CardContent>
       </Card>
     </div>
   );
