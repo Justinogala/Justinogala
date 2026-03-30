@@ -103,7 +103,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
   };
 
   return (
-    <section className="relative min-h-[auto] sm:min-h-[78vh] flex items-center overflow-hidden" data-testid="hero-carousel">
+    <section className="relative min-h-[auto] sm:min-h-[78vh] flex flex-col justify-center overflow-hidden" data-testid="hero-carousel">
       {/* Animated background */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -199,7 +199,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
       </div>
 
       {/* Navigation controls - bottom center */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4" data-testid="hero-nav">
+      <div className="relative z-20 flex items-center justify-center gap-4 pb-3 sm:absolute sm:bottom-3 sm:left-1/2 sm:-translate-x-1/2 sm:pb-0" data-testid="hero-nav">
         {/* Pause/Play */}
         <button
           onClick={() => setPaused(!paused)}
