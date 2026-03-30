@@ -1,15 +1,37 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Shield, User } from 'lucide-react';
+import { Bell, Shield, User, RotateCcw } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
+import { useAuth } from '@/context/AuthContext';
+import { getApiUrl } from '@/lib/api';
+import { useToast } from '@/components/ui/use-toast';
 
 const SettingsPage = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [tourResetting, setTourResetting] = useState(false);
+
+  const restartTour = async () => {
+    if (!user?.id) return;
+    setTourResetting(true);
+    try {
+      const apiUrl = getApiUrl();
+      await fetch(`${apiUrl}/api/users/${user.id}/onboarding`, { method: 'DELETE' });
+      localStorage.removeItem(`munal_onboarding_${user.id}`);
+      toast({ title: 'Tour reset! Refresh the page to see the walkthrough again.' });
+    } catch {
+      toast({ title: 'Failed to reset tour', variant: 'destructive' });
+    } finally {
+      setTourResetting(false);
+    }
+  };
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-bg-secondary flex flex-col">
@@ -78,6 +100,27 @@ const SettingsPage = () => {
                       Save Changes
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Restart Tour Card */}
+              <Card className="border-border shadow-sm mt-6">
+                <CardContent className="flex items-center justify-between p-5">
+                  <div>
+                    <p className="font-semibold text-text-primary">Platform Tour</p>
+                    <p className="text-sm text-text-secondary">Replay the onboarding walkthrough to rediscover features.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={restartTour}
+                    disabled={tourResetting}
+                    className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                    data-testid="restart-tour-btn"
+                  >
+                    <RotateCcw className={`w-4 h-4 mr-1.5 ${tourResetting ? 'animate-spin' : ''}`} />
+                    {tourResetting ? 'Resetting...' : 'Restart Tour'}
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>

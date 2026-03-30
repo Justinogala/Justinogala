@@ -190,3 +190,37 @@ async def create_user(user: UserCreate):
     user_doc.pop("_id", None)
     
     return user_doc
+
+
+
+@router.get("/{user_id}/onboarding")
+async def get_onboarding_status(user_id: str):
+    """Check if user has completed onboarding"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "onboarding_completed": 1})
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"onboarding_completed": user.get("onboarding_completed", False)}
+
+
+@router.put("/{user_id}/onboarding")
+async def update_onboarding_status(user_id: str):
+    """Mark onboarding as completed"""
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"onboarding_completed": True, "onboarding_completed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "onboarding_completed": True}
+
+
+@router.delete("/{user_id}/onboarding")
+async def reset_onboarding(user_id: str):
+    """Reset onboarding so user can replay the tour"""
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"onboarding_completed": False}, "$unset": {"onboarding_completed_at": ""}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"success": True, "onboarding_completed": False}

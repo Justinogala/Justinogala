@@ -82,3 +82,7 @@ backend/static/*.mp4
 *.backup
 *.bak
 *.old
+-e 
+# Environment files
+*.env
+*.env.*
