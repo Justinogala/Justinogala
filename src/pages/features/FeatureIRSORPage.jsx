@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, FileText, Shield, BarChart } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureIRSORPage = () => {
   return (
@@ -8,7 +9,7 @@ const FeatureIRSORPage = () => {
       title="IR / SOR Reports"
       subtitle="Incident & Safety Occurrence Reporting"
       description="Report, track, and resolve workplace incidents and safety occurrences with customizable templates, escalation workflows, and compliance-ready documentation."
-      heroImage="https://images.pexels.com/photos/5583617/pexels-photo-5583617.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      heroImage={`${API_URL}/api/static/feature_reports.png`}
       benefits={[
         { icon: AlertTriangle, title: "Quick Reporting", description: "File incident reports in minutes with guided form templates." },
         { icon: Shield, title: "Compliance Ready", description: "Meet regulatory requirements with standardized reporting formats." },
