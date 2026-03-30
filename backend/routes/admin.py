@@ -94,13 +94,20 @@ async def log_audit_event(
     admin_email: Optional[str] = "admin",
     details: Optional[Dict] = None,
     ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None
+    user_agent: Optional[str] = None,
+    severity: str = "info",
+    target_id: Optional[str] = None,
+    target_email: Optional[str] = None,
 ):
     audit_doc = {
+        "id": str(uuid.uuid4()),
         "action": action,
-        "category": category,
-        "admin_id": admin_id,
-        "admin_email": admin_email,
+        "category": category or "system",
+        "severity": severity,
+        "actor_id": admin_id,
+        "actor_email": admin_email,
+        "target_id": target_id,
+        "target_email": target_email,
         "details": details or {},
         "ip_address": ip_address,
         "user_agent": user_agent,
@@ -169,39 +176,7 @@ async def update_admin_settings(update: AdminSettingsUpdate, request: Request):
 
 
 # ============== Audit Logs ==============
-
-@router.get("/audit-logs")
-async def get_audit_logs(
-    category: Optional[str] = None,
-    action: Optional[str] = None,
-    admin_id: Optional[str] = None,
-    user_email: Optional[str] = None,
-    days: int = 30,
-    limit: int = 100
-):
-    """Get audit logs with filtering. Decrypts details at rest."""
-    try:
-        query = {}
-        if category:
-            query["category"] = category
-        if action:
-            query["action"] = {"$regex": action, "$options": "i"}
-        if admin_id:
-            query["admin_id"] = admin_id
-        if user_email:
-            query["user_email"] = {"$regex": user_email, "$options": "i"}
-        
-        logs = await db.audit_logs.find(
-            query, {"_id": 0}
-        ).sort("timestamp", -1).limit(limit).to_list(limit)
-        
-        for log in logs:
-            log["details"] = decrypt_field(log.get("details")) or ""
-        
-        return {"success": True, "logs": logs, "count": len(logs)}
-    except Exception as e:
-        logger.error(f"Error fetching audit logs: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Audit log listing is now handled by /app/backend/routes/audit_logs.py
 
 
 # ============== SMTP Testing ==============
@@ -365,9 +340,12 @@ async def perform_user_action(user_id: str, action_data: UserAccountAction, requ
         await db.users.update_one({"id": user_id}, {"$set": update_data})
         
         await log_audit_event(
-            action=f"User {action}: {user.get('email')}",
-            category="user_management",
+            action=f"user_{action}",
+            category="user_mgmt",
+            severity="warning" if action in ("disable", "set_role_admin") else "info",
             details={"user_id": user_id, "action": action, "reason": action_data.reason},
+            target_id=user_id,
+            target_email=user.get("email"),
             ip_address=get_client_ip(request),
             user_agent=get_user_agent(request)
         )

@@ -13,6 +13,7 @@ import io
 import base64
 import secrets
 import hashlib
+from services.audit import log_audit_event
 
 router = APIRouter(prefix="/admin/2fa", tags=["Admin 2FA"])
 
@@ -241,6 +242,10 @@ async def verify_2fa_setup(req: Verify2FASetupRequest):
     )
 
     logger.info(f"2FA enabled for user {req.user_id} with method: {setup_method}")
+    await log_audit_event(
+        action="2fa_enabled", category="2fa", severity="info",
+        actor_id=req.user_id, details={"method": setup_method},
+    )
     return {
         "success": True,
         "method": setup_method,
@@ -323,6 +328,10 @@ async def verify_2fa_login(req: Verify2FALoginRequest):
         raise HTTPException(status_code=400, detail="Invalid verification code")
 
     logger.info(f"2FA verified for user {req.user_id} via {method_used}")
+    await log_audit_event(
+        action="2fa_verified", category="2fa", severity="info",
+        actor_id=req.user_id, details={"method_used": method_used},
+    )
     return {"success": True, "method_used": method_used}
 
 
@@ -366,4 +375,8 @@ async def disable_2fa(req: Disable2FARequest):
     )
 
     logger.info(f"2FA disabled for user {req.user_id}")
+    await log_audit_event(
+        action="2fa_disabled", category="2fa", severity="warning",
+        actor_id=req.user_id, details={"action": "disabled_by_user"},
+    )
     return {"success": True}

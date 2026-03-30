@@ -13,6 +13,7 @@ import asyncio
 import resend
 import random
 import bcrypt
+from services.audit import log_audit_event, get_client_ip
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, SENDER_EMAIL, logger
 from models import UserCreate, UserLogin, ForgotPasswordRequest, ResetPasswordRequest
@@ -399,12 +400,23 @@ async def login_user(request: Request, credentials: UserLogin, skip_2fa: bool = 
     if not user:
         await log_audit("login_failed", user_email=email,
                         details="User not found", ip=_get_client_ip(request), success=False)
+        await log_audit_event(
+            action="login_failed", category="auth", severity="warning",
+            actor_email=email, details={"reason": "user_not_found"},
+            ip_address=get_client_ip(request),
+        )
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     # Check password (supports both bcrypt hashed and legacy plain-text)
     if not verify_password(credentials.password, user["password"]):
         await log_audit("login_failed", user_id=user.get("id", ""), user_email=email,
                         details="Wrong password", ip=_get_client_ip(request), success=False)
+        await log_audit_event(
+            action="login_failed", category="auth", severity="warning",
+            actor_id=user.get("id"), actor_email=email,
+            details={"reason": "wrong_password"},
+            ip_address=get_client_ip(request),
+        )
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     # Auto-migrate plain-text password to bcrypt on successful login
@@ -483,6 +495,12 @@ async def login_user(request: Request, credentials: UserLogin, skip_2fa: bool = 
 
     await log_audit("login", user_id=user["id"], user_email=user["email"],
                     details="Login successful", ip=_get_client_ip(request))
+    await log_audit_event(
+        action="login_success", category="auth", severity="info",
+        actor_id=user["id"], actor_email=user["email"],
+        details={"role": user.get("role"), "skip_2fa": skip_2fa},
+        ip_address=get_client_ip(request),
+    )
     
     # Return user without password
     user.pop("password", None)
