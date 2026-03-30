@@ -2,6 +2,7 @@
 import React from 'react';
 import { Calendar, Users, Clock, Video } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureMeetingsPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureMeetingsPage = () => {
       title="Meetings"
       subtitle="Smart Meeting Management"
       description="Streamline your entire meeting lifecycle—from scheduling to follow-ups. Ensure every meeting is productive, documented, and actionable."
-      heroImage="https://images.unsplash.com/photo-1643025267097-377a54606081"
+      heroImage={`${API_URL}/api/static/feature_meetings.png`}
       benefits={[
         { icon: Calendar, title: "Easy Scheduling", description: "Schedule meetings in seconds with smart calendar integration." },
         { icon: Video, title: "Seamless Hosting", description: "Launch video calls instantly with one click." },
