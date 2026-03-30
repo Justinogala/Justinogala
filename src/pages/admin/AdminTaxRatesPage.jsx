@@ -256,13 +256,13 @@ const AdminTaxRatesPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-gray-900">
               Tax Rates
             </h1>
-            <p className="text-gray-400 text-sm mt-1">Manage tax rates by country and region</p>
+            <p className="text-gray-500 text-sm mt-1">Manage tax rates by country and region</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchTaxRates} className="border-gray-700">
+            <Button variant="outline" onClick={fetchTaxRates} className="">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
@@ -281,15 +281,15 @@ const AdminTaxRatesPage = () => {
             { label: 'Countries', value: stats.countries, icon: Globe, color: 'from-violet-500 to-purple-500' }
           ].map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-              <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+              <Card className="border border-gray-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className={cn("p-2 rounded-lg bg-gradient-to-br", stat.color)}>
                       <stat.icon className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-2xl font-bold text-white">{stat.value}</span>
+                    <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">{stat.label}</p>
+                  <p className="text-sm text-gray-500 mt-2">{stat.label}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -297,7 +297,7 @@ const AdminTaxRatesPage = () => {
         </div>
 
         {/* Filters */}
-        <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+        <Card className="border border-gray-200">
           <CardContent className="p-4">
             <div className="flex gap-4">
               <div className="flex-1">
@@ -307,12 +307,12 @@ const AdminTaxRatesPage = () => {
                     placeholder="Search tax rates..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-slate-800 border-gray-700"
+                    className="pl-9"
                   />
                 </div>
               </div>
               <Select value={countryFilter} onValueChange={setCountryFilter}>
-                <SelectTrigger className="w-[180px] bg-slate-800 border-gray-700">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Country" />
                 </SelectTrigger>
                 <SelectContent>
@@ -327,9 +327,9 @@ const AdminTaxRatesPage = () => {
         </Card>
 
         {/* Tax Rates Table */}
-        <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+        <Card className="border border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white">All Tax Rates</CardTitle>
+            <CardTitle className="text-gray-900">All Tax Rates</CardTitle>
             <CardDescription>{filteredTaxRates.length} rate(s)</CardDescription>
           </CardHeader>
           <CardContent>
@@ -342,27 +342,27 @@ const AdminTaxRatesPage = () => {
               <div className="flex flex-col items-center justify-center py-12">
                 <Percent className="w-12 h-12 text-gray-600 mb-3" />
                 <p className="text-gray-400">No tax rates found</p>
-                <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="mt-4 border-gray-700">
+                <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="mt-4 ">
                   Add your first tax rate
                 </Button>
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-800">
-                    <TableHead className="text-gray-400">Name</TableHead>
-                    <TableHead className="text-gray-400">Rate</TableHead>
-                    <TableHead className="text-gray-400">Location</TableHead>
-                    <TableHead className="text-gray-400">Type</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Rate</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTaxRates.map((tax) => (
-                    <TableRow key={tax.id} className="border-gray-800 hover:bg-slate-800/50">
+                    <TableRow key={tax.id}>
                       <TableCell>
-                        <div className="font-medium text-white">{tax.name}</div>
+                        <div className="font-medium text-gray-900">{tax.name}</div>
                         {tax.description && (
                           <p className="text-xs text-gray-500 mt-1">{tax.description}</p>
                         )}
@@ -375,7 +375,7 @@ const AdminTaxRatesPage = () => {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Globe className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-300">{getCountryName(tax.country)}</span>
+                          <span className="text-gray-700">{getCountryName(tax.country)}</span>
                           {tax.state && (
                             <Badge variant="outline" className="text-xs border-gray-600">
                               {tax.state}
@@ -424,9 +424,9 @@ const AdminTaxRatesPage = () => {
       <Dialog open={createDialogOpen || editDialogOpen} onOpenChange={(open) => {
         if (!open) { setCreateDialogOpen(false); setEditDialogOpen(false); setSelectedTax(null); resetForm(); }
       }}>
-        <DialogContent className="bg-slate-900 border-gray-800 max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">{editDialogOpen ? 'Edit Tax Rate' : 'Add Tax Rate'}</DialogTitle>
+            <DialogTitle>{editDialogOpen ? 'Edit Tax Rate' : 'Add Tax Rate'}</DialogTitle>
             <DialogDescription>
               {editDialogOpen ? 'Update tax rate details' : 'Create a new tax rate'}
             </DialogDescription>
@@ -434,31 +434,31 @@ const AdminTaxRatesPage = () => {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-gray-300">Name *</Label>
+              <Label className="text-gray-700">Name *</Label>
               <Input
                 placeholder="e.g., US Sales Tax"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-slate-800 border-gray-700"
+                className=""
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Rate (%) *</Label>
+                <Label className="text-gray-700">Rate (%) *</Label>
                 <Input
                   type="number"
                   step="0.01"
                   placeholder="e.g., 8.25"
                   value={formData.rate}
                   onChange={(e) => setFormData({ ...formData, rate: e.target.value })}
-                  className="bg-slate-800 border-gray-700"
+                  className=""
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Country *</Label>
+                <Label className="text-gray-700">Country *</Label>
                 <Select value={formData.country} onValueChange={(v) => setFormData({ ...formData, country: v })}>
-                  <SelectTrigger className="bg-slate-800 border-gray-700">
+                  <SelectTrigger className="">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
@@ -471,28 +471,28 @@ const AdminTaxRatesPage = () => {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">State/Province (Optional)</Label>
+              <Label className="text-gray-700">State/Province (Optional)</Label>
               <Input
                 placeholder="e.g., CA, NY, ON"
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
-                className="bg-slate-800 border-gray-700"
+                className=""
               />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Description</Label>
+              <Label className="text-gray-700">Description</Label>
               <Input
                 placeholder="e.g., California state sales tax"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="bg-slate-800 border-gray-700"
+                className=""
               />
             </div>
             
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-gray-700">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
               <div>
-                <Label className="text-gray-300">Tax Inclusive</Label>
+                <Label className="text-gray-700">Tax Inclusive</Label>
                 <p className="text-xs text-gray-500 mt-0.5">Tax is included in displayed prices</p>
               </div>
               <Switch
@@ -501,8 +501,8 @@ const AdminTaxRatesPage = () => {
               />
             </div>
             
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-gray-700">
-              <Label className="text-gray-300">Active</Label>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <Label className="text-gray-700">Active</Label>
               <Switch
                 checked={formData.is_active}
                 onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
@@ -511,7 +511,7 @@ const AdminTaxRatesPage = () => {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCreateDialogOpen(false); setEditDialogOpen(false); }} className="border-gray-700">
+            <Button variant="outline" onClick={() => { setCreateDialogOpen(false); setEditDialogOpen(false); }} className="">
               Cancel
             </Button>
             <Button onClick={editDialogOpen ? handleUpdate : handleCreate} disabled={saving} className="bg-violet-600 hover:bg-violet-700">

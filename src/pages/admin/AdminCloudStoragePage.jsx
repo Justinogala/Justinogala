@@ -179,7 +179,7 @@ const AdminCloudStoragePage = () => {
             {field.type === 'textarea' ? (
               <textarea
                 id={field.key}
-                className="w-full min-h-[100px] p-3 rounded-md border border-slate-700 bg-slate-800 text-white"
+                className="w-full min-h-[100px] p-3 rounded-md border   text-gray-900"
                 placeholder={field.label}
                 value={formConfig[field.key] || ''}
                 onChange={(e) => handleConfigChange(field.key, e.target.value)}
@@ -191,7 +191,7 @@ const AdminCloudStoragePage = () => {
                 placeholder={field.default || field.label}
                 value={formConfig[field.key] || ''}
                 onChange={(e) => handleConfigChange(field.key, e.target.value)}
-                className="bg-slate-800 border-slate-700"
+                className=""
               />
             )}
           </div>
@@ -212,8 +212,8 @@ const AdminCloudStoragePage = () => {
     <div className="space-y-6" data-testid="admin-cloud-storage-page">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Cloud Storage</h1>
-          <p className="text-slate-400">Configure cloud storage providers for file storage and migration</p>
+          <h1 className="text-2xl font-bold text-gray-900">Cloud Storage</h1>
+          <p className="text-gray-500">Configure cloud storage providers for file storage and migration</p>
         </div>
         <Button variant="outline" onClick={loadData} data-testid="refresh-storage-btn">
           <RefreshCw className="w-4 h-4 mr-2" />
@@ -223,15 +223,15 @@ const AdminCloudStoragePage = () => {
 
       {/* Current Status */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="border border-gray-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-purple-500/20 rounded-lg">
                 <Server className="w-6 h-6 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-400">Current Provider</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-sm text-gray-500">Current Provider</p>
+                <p className="text-lg font-semibold text-gray-900">
                   {providers[currentProvider]?.name || 'GridFS'}
                 </p>
               </div>
@@ -239,15 +239,15 @@ const AdminCloudStoragePage = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="border border-gray-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-blue-500/20 rounded-lg">
                 <Database className="w-6 h-6 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-400">Files in GridFS</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-sm text-gray-500">Files in GridFS</p>
+                <p className="text-lg font-semibold text-gray-900">
                   {(storageStats?.recordings_in_gridfs || 0) + (storageStats?.chat_files_in_gridfs || 0)} files
                 </p>
               </div>
@@ -255,15 +255,15 @@ const AdminCloudStoragePage = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700">
+        <Card className="border border-gray-200">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-green-500/20 rounded-lg">
                 <HardDrive className="w-6 h-6 text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-400">Total Files</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-sm text-gray-500">Total Files</p>
+                <p className="text-lg font-semibold text-gray-900">
                   {(storageStats?.total_recordings || 0) + (storageStats?.total_chat_files || 0)} files
                 </p>
               </div>
@@ -273,12 +273,12 @@ const AdminCloudStoragePage = () => {
       </div>
 
       <Tabs defaultValue="configure" className="space-y-4">
-        <TabsList className="bg-slate-800">
-          <TabsTrigger value="configure" className="data-[state=active]:bg-purple-600">
+        <TabsList>
+          <TabsTrigger value="configure" className="data-[state=active]:bg-purple-600 data-[state=active]:text-gray-900">
             <Settings className="w-4 h-4 mr-2" />
             Configure
           </TabsTrigger>
-          <TabsTrigger value="migrate" className="data-[state=active]:bg-purple-600">
+          <TabsTrigger value="migrate" className="data-[state=active]:bg-purple-600 data-[state=active]:text-gray-900">
             <ArrowRight className="w-4 h-4 mr-2" />
             Migrate
           </TabsTrigger>
@@ -286,9 +286,9 @@ const AdminCloudStoragePage = () => {
 
         {/* Configure Tab */}
         <TabsContent value="configure">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="border border-gray-200">
             <CardHeader>
-              <CardTitle className="text-white">Storage Provider Configuration</CardTitle>
+              <CardTitle className="text-gray-900">Storage Provider Configuration</CardTitle>
               <CardDescription>Select and configure your cloud storage provider</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -296,10 +296,10 @@ const AdminCloudStoragePage = () => {
               <div className="space-y-2">
                 <Label>Select Provider</Label>
                 <Select value={selectedProvider} onValueChange={handleProviderChange}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700" data-testid="provider-select">
+                  <SelectTrigger className="" data-testid="provider-select">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectContent className="">
                     {Object.entries(providers).map(([key, provider]) => {
                       const Icon = PROVIDER_ICONS[key] || Cloud;
                       return (
@@ -316,7 +316,7 @@ const AdminCloudStoragePage = () => {
                     })}
                   </SelectContent>
                 </Select>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-gray-500">
                   {providers[selectedProvider]?.description}
                 </p>
               </div>
@@ -373,9 +373,9 @@ const AdminCloudStoragePage = () => {
 
         {/* Migrate Tab */}
         <TabsContent value="migrate">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="border border-gray-200">
             <CardHeader>
-              <CardTitle className="text-white">Storage Migration</CardTitle>
+              <CardTitle className="text-gray-900">Storage Migration</CardTitle>
               <CardDescription>
                 Migrate files from GridFS to your configured cloud storage provider
               </CardDescription>
@@ -383,9 +383,9 @@ const AdminCloudStoragePage = () => {
             <CardContent className="space-y-6">
               {/* Migration Status */}
               {migrationStatus && migrationStatus.status !== 'not_started' && (
-                <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg">
+                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Migration Status</span>
+                    <span className="text-gray-500">Migration Status</span>
                     <Badge 
                       variant={migrationStatus.status === 'completed' ? 'default' : 'secondary'}
                       className={
@@ -404,7 +404,7 @@ const AdminCloudStoragePage = () => {
                     className="h-2"
                   />
                   
-                  <div className="flex justify-between text-sm text-slate-400">
+                  <div className="flex justify-between text-sm text-gray-500">
                     <span>{migrationStatus.migrated_files} migrated</span>
                     <span>{migrationStatus.failed_files} failed</span>
                     <span>{migrationStatus.total_files} total</span>
@@ -412,14 +412,14 @@ const AdminCloudStoragePage = () => {
                   
                   {/* Current file being processed */}
                   {migrationStatus.status === 'in_progress' && migrationStatus.current_file && (
-                    <div className="text-xs text-slate-500 truncate">
+                    <div className="text-xs text-gray-500 truncate">
                       <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />
                       {migrationStatus.current_file}
                     </div>
                   )}
                   
                   {/* Timestamps */}
-                  <div className="text-xs text-slate-500 space-y-1">
+                  <div className="text-xs text-gray-500 space-y-1">
                     {migrationStatus.started_at && (
                       <p>Started: {new Date(migrationStatus.started_at).toLocaleString()}</p>
                     )}
@@ -441,7 +441,7 @@ const AdminCloudStoragePage = () => {
                                 <li key={i} className="text-red-300">{err}</li>
                               ))}
                               {migrationStatus.errors.length > 10 && (
-                                <li className="text-slate-400">...and {migrationStatus.errors.length - 10} more</li>
+                                <li className="text-gray-500">...and {migrationStatus.errors.length - 10} more</li>
                               )}
                             </ul>
                           </details>
@@ -463,17 +463,17 @@ const AdminCloudStoragePage = () => {
 
               {/* Migration Info */}
               <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-slate-900/50 rounded-lg">
+                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
                   <Database className="w-8 h-8 text-blue-400" />
-                  <ArrowRight className="w-6 h-6 text-slate-500" />
+                  <ArrowRight className="w-6 h-6 text-gray-500" />
                   {React.createElement(PROVIDER_ICONS[currentProvider] || Cloud, {
                     className: "w-8 h-8 text-purple-400"
                   })}
                   <div className="ml-4">
-                    <p className="text-white font-medium">
+                    <p className="text-gray-900 font-medium">
                       GridFS → {providers[currentProvider]?.name}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-gray-500">
                       {(storageStats?.recordings_in_gridfs || 0) + (storageStats?.chat_files_in_gridfs || 0)} files to migrate
                     </p>
                   </div>

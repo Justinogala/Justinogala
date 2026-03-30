@@ -254,13 +254,13 @@ const AdminCouponsPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-gray-900">
               Coupons
             </h1>
-            <p className="text-gray-400 text-sm mt-1">Manage discount codes and promotions</p>
+            <p className="text-gray-500 text-sm mt-1">Manage discount codes and promotions</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchCoupons} className="border-gray-700">
+            <Button variant="outline" onClick={fetchCoupons} className="">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
@@ -279,15 +279,15 @@ const AdminCouponsPage = () => {
             { label: 'Total Uses', value: stats.totalUsed, icon: Users, color: 'from-violet-500 to-purple-500' }
           ].map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-              <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+              <Card className="border border-gray-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className={cn("p-2 rounded-lg bg-gradient-to-br", stat.color)}>
                       <stat.icon className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-2xl font-bold text-white">{stat.value}</span>
+                    <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
                   </div>
-                  <p className="text-sm text-gray-400 mt-2">{stat.label}</p>
+                  <p className="text-sm text-gray-500 mt-2">{stat.label}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -295,7 +295,7 @@ const AdminCouponsPage = () => {
         </div>
 
         {/* Filters */}
-        <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+        <Card className="border border-gray-200">
           <CardContent className="p-4">
             <div className="flex gap-4">
               <div className="flex-1">
@@ -305,12 +305,12 @@ const AdminCouponsPage = () => {
                     placeholder="Search coupons..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 bg-slate-800 border-gray-700"
+                    className="pl-9"
                   />
                 </div>
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px] bg-slate-800 border-gray-700">
+                <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -324,9 +324,9 @@ const AdminCouponsPage = () => {
         </Card>
 
         {/* Coupons Table */}
-        <Card className="bg-slate-900/50 border-white/10 backdrop-blur-sm">
+        <Card className="border border-gray-200">
           <CardHeader>
-            <CardTitle className="text-white">All Coupons</CardTitle>
+            <CardTitle className="text-gray-900">All Coupons</CardTitle>
             <CardDescription>{filteredCoupons.length} coupon(s)</CardDescription>
           </CardHeader>
           <CardContent>
@@ -339,25 +339,25 @@ const AdminCouponsPage = () => {
               <div className="flex flex-col items-center justify-center py-12">
                 <Tag className="w-12 h-12 text-gray-600 mb-3" />
                 <p className="text-gray-400">No coupons found</p>
-                <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="mt-4 border-gray-700">
+                <Button onClick={() => setCreateDialogOpen(true)} variant="outline" className="mt-4 ">
                   Create your first coupon
                 </Button>
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-gray-800">
-                    <TableHead className="text-gray-400">Code</TableHead>
-                    <TableHead className="text-gray-400">Discount</TableHead>
-                    <TableHead className="text-gray-400">Uses</TableHead>
-                    <TableHead className="text-gray-400">Valid Until</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400 text-right">Actions</TableHead>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Discount</TableHead>
+                    <TableHead>Uses</TableHead>
+                    <TableHead>Valid Until</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredCoupons.map((coupon) => (
-                    <TableRow key={coupon.code} className="border-gray-800 hover:bg-slate-800/50">
+                    <TableRow key={coupon.code}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <code className="font-mono font-bold text-violet-400 bg-violet-500/10 px-2 py-1 rounded">
@@ -381,12 +381,12 @@ const AdminCouponsPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-gray-300">{coupon.times_used || 0}</span>
-                        {coupon.max_uses && <span className="text-gray-500">/{coupon.max_uses}</span>}
+                        <span className="text-gray-700">{coupon.times_used || 0}</span>
+                        {coupon.max_uses && <span className="text-gray-400">/{coupon.max_uses}</span>}
                       </TableCell>
                       <TableCell>
                         {coupon.valid_until ? (
-                          <span className="text-gray-300">{new Date(coupon.valid_until).toLocaleDateString()}</span>
+                          <span className="text-gray-700">{new Date(coupon.valid_until).toLocaleDateString()}</span>
                         ) : (
                           <span className="text-gray-500">No expiry</span>
                         )}
@@ -430,9 +430,9 @@ const AdminCouponsPage = () => {
       <Dialog open={createDialogOpen || editDialogOpen} onOpenChange={(open) => {
         if (!open) { setCreateDialogOpen(false); setEditDialogOpen(false); setSelectedCoupon(null); resetForm(); }
       }}>
-        <DialogContent className="bg-slate-900 border-gray-800 max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">{editDialogOpen ? 'Edit Coupon' : 'Create Coupon'}</DialogTitle>
+            <DialogTitle>{editDialogOpen ? 'Edit Coupon' : 'Create Coupon'}</DialogTitle>
             <DialogDescription>
               {editDialogOpen ? 'Update coupon details' : 'Create a new discount coupon'}
             </DialogDescription>
@@ -440,21 +440,21 @@ const AdminCouponsPage = () => {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-gray-300">Coupon Code *</Label>
+              <Label>Coupon Code *</Label>
               <Input
                 placeholder="e.g., SAVE20"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                className="bg-slate-800 border-gray-700 font-mono"
+                className="font-mono"
                 disabled={editDialogOpen}
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Discount Type</Label>
+                <Label className="text-gray-700">Discount Type</Label>
                 <Select value={formData.discount_type} onValueChange={(v) => setFormData({ ...formData, discount_type: v })}>
-                  <SelectTrigger className="bg-slate-800 border-gray-700">
+                  <SelectTrigger className="">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -464,74 +464,74 @@ const AdminCouponsPage = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Discount Value *</Label>
+                <Label className="text-gray-700">Discount Value *</Label>
                 <Input
                   type="number"
                   placeholder={formData.discount_type === 'percentage' ? '20' : '10.00'}
                   value={formData.discount_value}
                   onChange={(e) => setFormData({ ...formData, discount_value: e.target.value })}
-                  className="bg-slate-800 border-gray-700"
+                  className=""
                 />
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label className="text-gray-300">Description</Label>
+              <Label className="text-gray-700">Description</Label>
               <Input
                 placeholder="e.g., Summer sale discount"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="bg-slate-800 border-gray-700"
+                className=""
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Max Total Uses</Label>
+                <Label className="text-gray-700">Max Total Uses</Label>
                 <Input
                   type="number"
                   placeholder="Unlimited"
                   value={formData.max_uses}
                   onChange={(e) => setFormData({ ...formData, max_uses: e.target.value })}
-                  className="bg-slate-800 border-gray-700"
+                  className=""
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Uses Per User</Label>
+                <Label className="text-gray-700">Uses Per User</Label>
                 <Input
                   type="number"
                   placeholder="1"
                   value={formData.max_uses_per_user}
                   onChange={(e) => setFormData({ ...formData, max_uses_per_user: e.target.value })}
-                  className="bg-slate-800 border-gray-700"
+                  className=""
                 />
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-300">Min. Order Amount</Label>
+                <Label className="text-gray-700">Min. Order Amount</Label>
                 <Input
                   type="number"
                   placeholder="0.00"
                   value={formData.min_order_amount}
                   onChange={(e) => setFormData({ ...formData, min_order_amount: e.target.value })}
-                  className="bg-slate-800 border-gray-700"
+                  className=""
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-gray-300">Valid Until</Label>
+                <Label className="text-gray-700">Valid Until</Label>
                 <Input
                   type="date"
                   value={formData.valid_until}
                   onChange={(e) => setFormData({ ...formData, valid_until: e.target.value })}
-                  className="bg-slate-800 border-gray-700"
+                  className=""
                 />
               </div>
             </div>
             
-            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-gray-700">
-              <Label className="text-gray-300">Active</Label>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <Label className="text-gray-700">Active</Label>
               <Switch
                 checked={formData.is_active}
                 onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
@@ -540,7 +540,7 @@ const AdminCouponsPage = () => {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setCreateDialogOpen(false); setEditDialogOpen(false); }} className="border-gray-700">
+            <Button variant="outline" onClick={() => { setCreateDialogOpen(false); setEditDialogOpen(false); }} className="">
               Cancel
             </Button>
             <Button onClick={editDialogOpen ? handleUpdate : handleCreate} disabled={saving} className="bg-violet-600 hover:bg-violet-700">
