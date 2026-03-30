@@ -5,52 +5,51 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
-### P2 Cleanup Tasks — March 30, 2026
-- **AdminStripeSettingsPage refactored**: Extracted 6 sub-components (ApiKeyCard, PriceIdsCard, SetupInstructions, PaymentStatusSidebar, TransactionsTable, StatusBadge), added data-testids, proper useCallback memoization, removed dead imports. 411 → 280 lines main component.
-- **Orphaned workspace_members cleanup**: New endpoint `POST /api/admin/workspaces/cleanup/orphaned-members` finds and removes members referencing deleted workspaces/users.
-- **Removed unused SettingsPage.jsx**: Route `/settings` uses `UserSettingsPage.jsx`; old file was dead code.
+### AuthContext Consolidation + Data Health Dashboard + 9th Form Template — March 30, 2026
+- **AuthContext consolidated**: Merged AdminAuthContext into AuthContext.jsx. Single provider, dual hooks (useAuth + useAdminAuth). AdminAuthContext.jsx is now a thin re-export wrapper — zero import changes needed across 13+ components. Removed AdminAuthProvider from App.jsx.
+- **Data Health Dashboard**: New admin page at `/admin/data-health` showing total documents, user health (active/inactive/never logged in), orphaned records, collection stats with progress bars, pending actions, and cleanup buttons.
+- **Backend**: `GET /api/admin/data-health/stats`, `POST /cleanup/orphaned-members`, `POST /cleanup/stale-conversations`
+- **Client Behavior Observation Form**: 9th healthcare template with 19 fields (date, observer, client, setting, behavior type, antecedent, description, intensity, duration, frequency, intervention, response, injuries, follow-up, supervisor notification).
+- 100% test pass rate (iteration_92)
 
 ### Onboarding Walkthrough — March 30, 2026
-- 8-step welcome modal for new users on first login
-- Backend: GET/PUT/DELETE `/api/users/{id}/onboarding` endpoints
-- Skip & replay: "Restart Tour" button in Settings > Account tab
+- 8-step welcome modal for new users, skip/replay, "Restart Tour" in Settings
 - 100% test pass rate (iteration_91)
 
 ### Landing Page Mobile Fix + Demo Video — March 30, 2026
-- Hero image full-width on mobile, nav controls no longer overlap
-- Demo video regenerated via Sora 2 with "Munal" branding
+- Hero image full-width on mobile, nav controls fixed, Sora 2 demo video with "Munal" branding
 - 100% test pass rate (iteration_90)
 
-### Shift Management, Notifications, Reports — March 28, 2026
-- Time Clock, Time-Off/Swap, Push Notifications, Time Clock Reports
-- 100% test pass rates (iterations 85-89)
+### Earlier Completed Work
+- Shift Management Phase 1 & 2, Push Notifications, Time Clock Reports, Admin Login Redesign, Command Palette, Calendar UI Fix
 
 ## Architecture
 ```
-/app/backend/routes/
-├── users.py               # User CRUD + onboarding
-├── admin_workspaces.py    # Admin workspace mgmt + orphan cleanup
-├── time_clock.py, push_notifications.py, shifts.py
-├── ai_chat.py, analytics.py, admin.py, auth.py, organizations.py...
+/app/src/context/
+├── AuthContext.jsx             # CONSOLIDATED - handles both user + admin auth
+├── AdminAuthContext.jsx        # Thin re-export wrapper for backward compatibility
 
-/app/frontend/src/
-├── components/OnboardingWalkthrough.jsx
-├── pages/admin/AdminStripeSettingsPage.jsx  # Refactored
-├── layouts/UserLayout.jsx
-├── pages/LandingPage.jsx
+/app/backend/routes/
+├── data_health.py             # NEW - Data health stats + cleanup endpoints
+├── forms.py                   # 9 healthcare templates (added Client Behavior Observation)
+├── users.py                   # User CRUD + onboarding
+├── admin_workspaces.py        # Admin workspace mgmt + orphan cleanup
+
+/app/src/pages/admin/
+├── AdminDataHealthPage.jsx    # NEW - Data health dashboard
+├── AdminStripeSettingsPage.jsx # Refactored
 ```
 
 ## Key DB Collections
-`users`, `workspace_members`, `workspaces`, `time_clock`, `push_subscriptions`, `manager_notifications`, `time_off_requests`, `shifts`, `ai_conversations`, `ai_messages`
+`users` (onboarding_completed), `workspace_members`, `workspaces`, `form_templates`, `form_submissions`, `time_clock`, `push_subscriptions`, `shifts`, `ai_conversations`, `ai_messages`
 
 ## 3rd Party Integrations
 - Resend, OpenAI GPT-5.2, OpenAI Whisper, Object Storage, Sora 2 — all via Emergent LLM Key
 
 ## Backlog
 ### P3
-- Consolidate AuthContext/AdminAuthContext
 - 2FA for admin accounts
-- Client Behavior Observation Form (9th template)
+- Additional form templates as needed
 
 ## Test Credentials
 - Super Admin: admin@munal.com / Admin@123456
