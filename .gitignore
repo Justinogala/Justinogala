@@ -27,13 +27,14 @@ next-env.d.ts
 /build
 dist/
 
-# Environment files
-*.env
-*.env.*
+# Environment files (local overrides only, NOT the main .env files)
+.env.local
+.env.*.local
 
 # Credentials
 *token.json*
 *credentials.json*
+memory/test_credentials.md
 
 # Logs and debug files
 npm-debug.log*
@@ -82,35 +83,3 @@ backend/static/*.mp4
 *.backup
 *.bak
 *.old
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
