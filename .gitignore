@@ -27,10 +27,6 @@ next-env.d.ts
 /build
 dist/
 
-# Environment files
-*.env
-*.env.*
-
 # Credentials
 *token.json*
 *credentials.json*
@@ -82,31 +78,6 @@ backend/static/*.mp4
 *.backup
 *.bak
 *.old
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
+
+# Test credentials (sensitive)
+memory/test_credentials.md
