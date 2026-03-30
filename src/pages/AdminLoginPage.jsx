@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ShieldCheck, Loader2, AlertCircle, Eye, EyeOff, Lock, Fingerprint, Shield } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import TwoFactorVerify from '@/components/admin/TwoFactorVerify';
 
 const AdminLoginPage = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [twoFactorData, setTwoFactorData] = useState(null); // { userId, method }
   
   const { login, isAuthenticated, loading, error, clearError } = useAdminAuth();
   const navigate = useNavigate();
@@ -51,6 +53,12 @@ const AdminLoginPage = () => {
 
     const result = await login(formData.email, formData.password);
     
+    if (result.requires_2fa) {
+      // Show 2FA verification screen
+      setTwoFactorData({ userId: result.user_id, method: result.two_factor_method });
+      return;
+    }
+
     if (result.success) {
       toast({
         title: "Welcome back",
@@ -62,6 +70,18 @@ const AdminLoginPage = () => {
         variant: "destructive",
         title: "Login Failed",
         description: result.error || "Invalid credentials. Please try again."
+      });
+    }
+  };
+
+  const handle2FASuccess = async () => {
+    // After 2FA verification, complete the login
+    const result = await login(formData.email, formData.password, true); // skip2fa flag
+    if (result.success) {
+      toast({
+        title: "Welcome back",
+        description: "Admin session initialized with 2FA verification.",
+        className: "bg-green-600 text-white border-none"
       });
     }
   };
@@ -143,6 +163,16 @@ const AdminLoginPage = () => {
         </Link>
 
         <div className="w-full max-w-sm z-10">
+          {/* 2FA Verification Screen */}
+          {twoFactorData ? (
+            <TwoFactorVerify
+              userId={twoFactorData.userId}
+              method={twoFactorData.method}
+              onSuccess={handle2FASuccess}
+              onCancel={() => setTwoFactorData(null)}
+            />
+          ) : (
+          <>
           {/* Header */}
           <div className="text-center mb-8">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/20 mb-5">
@@ -236,6 +266,8 @@ const AdminLoginPage = () => {
               IP Address Logged &amp; Monitored.
             </p>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

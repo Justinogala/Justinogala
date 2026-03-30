@@ -313,18 +313,30 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const adminLogin = async (email, password) => {
+  const adminLogin = async (email, password, skip2fa = false) => {
     setAdminLoading(true);
     setAdminError(null);
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
+      const url = skip2fa ? `${apiUrl}/api/auth/login?skip_2fa=true` : `${apiUrl}/api/auth/login`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       const data = await safeParseJSON(response);
       if (!response.ok) throw new Error(data.detail || 'Invalid email or password');
+
+      // Handle 2FA requirement
+      if (data.requires_2fa && !skip2fa) {
+        setAdminLoading(false);
+        return {
+          success: false,
+          requires_2fa: true,
+          user_id: data.user_id,
+          two_factor_method: data.two_factor_method,
+        };
+      }
 
       const dbUser = data.user;
       const role = (dbUser.role || '').toLowerCase().replace(' ', '_');

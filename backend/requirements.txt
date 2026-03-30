@@ -106,6 +106,7 @@ Pygments==2.19.2
 PyJWT==2.11.0
 pymongo==4.5.0
 PyMuPDF==1.27.2
+pyotp==2.9.0
 pyparsing==3.3.2
 pyphen==0.17.2
 pytest==9.0.2
@@ -117,6 +118,7 @@ python-multipart==0.0.22
 pytokens==0.4.1
 pywebpush==2.3.0
 PyYAML==6.0.3
+qrcode==8.2
 referencing==0.37.0
 regex==2026.1.15
 reportlab==4.4.10
