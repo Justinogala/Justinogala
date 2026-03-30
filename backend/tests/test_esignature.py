@@ -18,7 +18,7 @@ import base64
 import json
 
 # Use public URL for testing
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://shift-mgmt-preview.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://hero-stack-fix.preview.emergentagent.com').rstrip('/')
 
 # Test user ID
 TEST_USER_ID = "3fe4c41c-4f43-4683-98dc-db6de39b842c"

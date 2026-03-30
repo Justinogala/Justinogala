@@ -1,0 +1,27 @@
+<analysis>HeroCarousel.jsxHomePage.jsxLandingPage.jsxHeroCarousel.jsxHomePage.jsxLandingPage.jsxLandingPage.jsxHeroCarousel.jsxflex-col-reverseflex-colmd:flex-roww-fullmax-w-mdintegration_playbook_expert_v2/app/backend/static/demo_video.mp4/app/src/pages/LandingPage.jsx/app/src/components/HeroCarousel.jsxflex-col-reverseflex-colAdminStripeSettingsPage.jsxworkspace_membersAuthContextAdminAuthContext/features/dashboardintegration_playbook_expert_v2/app/backend/static/demo_video.mp4text
+/app/
+├── backend/
+│   ├── routes/
+│   │   ├── time_clock.py           # Newly added
+│   │   ├── push_notifications.py   # Newly added
+│   │   ├── shifts.py               # Updated with time-off/swaps
+│   │   └── ...
+│   └── static/
+│       └── demo_video.mp4          # Needs replacement
+└── frontend/
+    ├── public/
+    │   └── serviceWorker.js        # Updated to handle push events
+    └── src/
+        ├── components/
+        │   ├── AdminSidebar.jsx    # Updated with Command Palette Search
+        │   ├── HeroCarousel.jsx    # CURRENT FOCUS
+        │   └── pwa/
+        │       └── NotificationSettings.jsx
+        ├── pages/
+        │   ├── AdminLoginPage.jsx  # Redesigned (Peach theme)
+        │   ├── TimeClockReportsPage.jsx # Newly added
+        │   ├── LandingPage.jsx     # CURRENT FOCUS
+        │   └── CalendarPage.jsx    # Refactored for proper sizing
+        └── services/
+            └── pushNotificationService.js # Uses VAPID Keys
+pywebpushhttp-ecepy-vapid.envServiceWorkerRegistration.pushManagerCmd+Kworkspace_iduser_idclock_inclock_outtime_clockshift_swap_requeststime_off_requestspush_subscriptionsuser_idpywebpushhttp-ecepy-vapid/app/src/pages/LandingPage.jsx/app/src/components/HeroCarousel.jsx/app/src/pages/AdminLoginPage.jsx/app/src/components/AdminSidebar.jsx/app/src/pages/admin/AdminStripeSettingsPage.jsxAuthContextAdminAuthContextPOST /api/push-notifications/subscribeGET /api/time-clock/reportsflex-colflex-col-reverse.env.envsupervisorctl restart frontend/backendadmin@munal.comAdmin@123456orgadmin@munal.comOrgAdmin@123</analysis>
