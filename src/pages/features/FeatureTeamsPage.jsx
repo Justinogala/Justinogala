@@ -2,6 +2,7 @@
 import React from 'react';
 import { Users, Lock, Settings, Layout } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureTeamsPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureTeamsPage = () => {
       title="Teams"
       subtitle="Robust Team Management"
       description="Scale your collaboration with powerful team structures. Manage workspaces, roles, and permissions to keep everyone organized and secure."
-      heroImage="https://images.unsplash.com/photo-1665938225843-f4126f08d303"
+      heroImage={`${API_URL}/api/static/feature_workspaces.png`}
       benefits={[
         { icon: Layout, title: "Organized Workspaces", description: "Separate environments for different departments or clients." },
         { icon: Users, title: "Role Management", description: "Assign Admin, Member, or Viewer roles easily." },

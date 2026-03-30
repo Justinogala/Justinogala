@@ -2,6 +2,7 @@
 import React from 'react';
 import { FileText, Folder, Upload, ShieldCheck } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureFileManagementPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureFileManagementPage = () => {
       title="File Management"
       subtitle="Secure Cloud Storage"
       description="Store, organize, and share your documents securely. Access your important files from anywhere, integrated directly with your meetings."
-      heroImage="https://images.unsplash.com/photo-1691458594782-2cef9a152bb3"
+      heroImage={`${API_URL}/api/static/feature_files.png`}
       benefits={[
         { icon: Folder, title: "Smart Organization", description: "Keep files sorted with folders and tags." },
         { icon: ShieldCheck, title: "Secure Access", description: "Bank-level encryption for all stored data." },
