@@ -283,27 +283,29 @@ const CalendarPage = () => {
           <div
             key={day.toString()}
             className={cn(
-              "p-1.5 border-b border-r border-gray-200 dark:border-gray-800 cursor-pointer transition-colors overflow-hidden",
-              !isSameMonth(day, monthStart) && "bg-gray-50/50 dark:bg-slate-900/50",
-              isSameDay(day, new Date()) && "bg-indigo-50/50 dark:bg-indigo-900/10 ring-1 ring-inset ring-indigo-200 dark:ring-indigo-800",
-              "hover:bg-gray-100/50 dark:hover:bg-slate-800/50"
+              "min-h-[120px] border border-gray-100 dark:border-gray-800 p-2 cursor-pointer transition-all overflow-hidden",
+              !isSameMonth(day, monthStart) && "bg-gray-50/50 dark:bg-gray-900/50",
+              isSameDay(day, new Date()) && "bg-indigo-50/50 dark:bg-indigo-950/20 ring-1 ring-inset ring-indigo-500",
+              "hover:bg-gray-50 dark:hover:bg-gray-800/50"
             )}
             onClick={() => openCreateModal(currentDay)}
           >
-            <div className={cn(
-              "text-xs font-semibold mb-0.5 w-6 h-6 flex items-center justify-center rounded-full",
-              !isSameMonth(day, monthStart) && "text-gray-300 dark:text-gray-600",
-              isSameDay(day, new Date()) && "bg-indigo-600 text-white",
-              isSameMonth(day, monthStart) && !isSameDay(day, new Date()) && "text-gray-700 dark:text-gray-300"
-            )}>
-              {format(day, 'd')}
+            <div className="flex justify-between items-start mb-1">
+              <span className={cn(
+                "text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full",
+                !isSameMonth(day, monthStart) && "text-gray-400 dark:text-gray-600",
+                isSameDay(day, new Date()) && "bg-indigo-600 text-white",
+                isSameMonth(day, monthStart) && !isSameDay(day, new Date()) && "text-gray-700 dark:text-gray-300"
+              )}>
+                {format(day, 'd')}
+              </span>
             </div>
-            <div className="space-y-0.5">
-              {dayEvents.slice(0, 2).map(event => (
+            <div className="space-y-1">
+              {dayEvents.slice(0, 3).map(event => (
                 <div
                   key={event.id}
                   className={cn(
-                    "text-[10px] leading-tight px-1.5 py-0.5 rounded truncate cursor-pointer font-medium",
+                    "text-xs leading-tight px-2 py-1 rounded truncate cursor-pointer font-medium",
                     EVENT_COLORS[event.color]?.light,
                     EVENT_COLORS[event.color]?.text
                   )}
@@ -316,8 +318,8 @@ const CalendarPage = () => {
                   {!event.all_day && format(parseISO(event.start_time), 'HH:mm')} {event.title}
                 </div>
               ))}
-              {dayEvents.length > 2 && (
-                <div className="text-[10px] text-gray-400 px-1.5 font-medium">+{dayEvents.length - 2} more</div>
+              {dayEvents.length > 3 && (
+                <div className="text-xs text-gray-500 px-2 font-medium">+{dayEvents.length - 3} more</div>
               )}
             </div>
           </div>
@@ -391,80 +393,81 @@ const CalendarPage = () => {
       
       <div className="h-full flex flex-col -m-4 sm:-m-6 lg:-m-8" style={{height: 'calc(100vh - 64px)'}}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
-              <CalendarIcon className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                {format(currentDate, view === 'month' ? 'MMMM yyyy' : view === 'week' ? "'Week of' MMM d, yyyy" : 'EEEE, MMMM d, yyyy')}
-              </h1>
-            </div>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-950 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="icon" onClick={() => navigate('prev')}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => navigate('next')}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              {format(currentDate, view === 'month' ? 'MMMM yyyy' : view === 'week' ? "'Week of' MMM d, yyyy" : 'EEEE, MMMM d, yyyy')}
+            </h1>
           </div>
           
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={goToToday}>Today</Button>
+            
             {/* View Switcher */}
-            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-lg p-1">
+            <div className="flex border rounded-lg overflow-hidden">
               {['month', 'week', 'day'].map(v => (
-                <button
+                <Button
                   key={v}
+                  variant={view === v ? 'default' : 'ghost'}
+                  size="sm"
+                  className="rounded-none capitalize"
                   onClick={() => setView(v)}
-                  className={cn(
-                    "px-3 py-1.5 text-sm font-medium rounded-md transition-colors capitalize",
-                    view === v 
-                      ? "bg-white dark:bg-slate-700 shadow text-gray-900 dark:text-white" 
-                      : "text-gray-500 hover:text-gray-700"
-                  )}
                 >
                   {v}
-                </button>
+                </Button>
               ))}
             </div>
             
-            {/* Navigation */}
-            <div className="flex items-center gap-1 ml-2">
-              <Button variant="outline" size="sm" onClick={() => navigate('prev')}>
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={goToToday}>Today</Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('next')}>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-            
             {/* Create Event */}
-            <Button onClick={() => openCreateModal()} className="ml-2 bg-indigo-600 hover:bg-indigo-700">
+            <Button onClick={() => openCreateModal()} className="bg-purple-600 hover:bg-purple-700">
               <Plus className="w-4 h-4 mr-2" /> New Event
             </Button>
           </div>
         </div>
 
         {/* Calendar Grid */}
-        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-950">
+        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-950 p-6">
           {/* Week day headers for month view */}
           {view === 'month' && (
-            <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-slate-900 flex-shrink-0">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                  {day}
+            <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+              <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="text-center font-medium text-sm text-gray-500 dark:text-gray-400 py-3">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                 </div>
-              ))}
+              ) : (
+                <div className="flex-1 flex flex-col min-h-0">
+                  {renderMonthView()}
+                </div>
+              )}
             </div>
           )}
           
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : view === 'month' ? (
-            <div className="flex-1 flex flex-col min-h-0">
-              {renderMonthView()}
-            </div>
-          ) : (
-            <ScrollArea className="h-full">
-              {renderWeekView()}
-            </ScrollArea>
+          {view !== 'month' && (
+            loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
+              <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden flex-1">
+                <ScrollArea className="h-full">
+                  {renderWeekView()}
+                </ScrollArea>
+              </div>
+            )
           )}
         </div>
       </div>
