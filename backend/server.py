@@ -358,6 +358,22 @@ async def startup_event():
                     logger.info("Admin password migrated to bcrypt")
                 else:
                     logger.info("Admin user already exists")
+            
+            # Migrate ALL users with plaintext passwords to bcrypt
+            import bcrypt as _bc
+            plaintext_users = []
+            async for u in db.users.find({}, {"_id": 0, "email": 1, "password": 1}):
+                pw = u.get("password", "")
+                if pw and not (pw.startswith("$2b$") or pw.startswith("$2a$")):
+                    plaintext_users.append(u["email"])
+            if plaintext_users:
+                for email in plaintext_users:
+                    user_doc = await db.users.find_one({"email": email}, {"_id": 0, "password": 1})
+                    raw_pw = user_doc["password"]
+                    hashed = _bc.hashpw(raw_pw.encode("utf-8"), _bc.gensalt()).decode("utf-8")
+                    await db.users.update_one({"email": email}, {"$set": {"password": hashed}})
+                logger.info(f"Migrated {len(plaintext_users)} user passwords to bcrypt")
+            
         except Exception as seed_err:
             logger.error(f"Admin seed error: {seed_err}")
         
