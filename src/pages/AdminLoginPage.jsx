@@ -167,7 +167,7 @@ const AdminLoginPage = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@munal.com"
+                placeholder="admin@munal.ai"
                 value={formData.email}
                 onChange={handleChange}
                 disabled={loading}

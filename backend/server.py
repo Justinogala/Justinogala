@@ -313,14 +313,14 @@ async def startup_event():
         
         # Seed admin user if not exists
         try:
-            admin = await db.users.find_one({"email": "admin@munal.com"})
+            admin = await db.users.find_one({"email": "admin@munal.ai"})
             if not admin:
                 import uuid
                 import bcrypt
                 hashed_pw = bcrypt.hashpw("Admin@123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 admin_doc = {
                     "id": str(uuid.uuid4()),
-                    "email": "admin@munal.com",
+                    "email": "admin@munal.ai",
                     "password": hashed_pw,
                     "name": "Admin User",
                     "role": "Super_Admin",
@@ -333,12 +333,12 @@ async def startup_event():
                     "updated_at": datetime.now(timezone.utc)
                 }
                 await db.users.insert_one(admin_doc)
-                logger.info("Super Admin user seeded: admin@munal.com")
+                logger.info("Super Admin user seeded: admin@munal.ai")
             else:
                 # Migrate existing admin to Super_Admin if still on old "Admin" role
                 if admin.get("role") == "Admin":
                     await db.users.update_one(
-                        {"email": "admin@munal.com"},
+                        {"email": "admin@munal.ai"},
                         {"$set": {"role": "Super_Admin"}}
                     )
                     logger.info("Migrated admin@munal.com to Super_Admin role")
@@ -348,7 +348,7 @@ async def startup_event():
                     import bcrypt
                     hashed_pw = bcrypt.hashpw(stored_pw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     await db.users.update_one(
-                        {"email": "admin@munal.com"},
+                        {"email": "admin@munal.ai"},
                         {"$set": {"password": hashed_pw}}
                     )
                     logger.info("Admin password migrated to bcrypt")

@@ -512,7 +512,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                {adminUser?.email || 'admin@munal.com'}
+                {adminUser?.email || 'admin@munal.ai'}
               </p>
             </div>
           )}

@@ -6,7 +6,7 @@ const ADMIN_DATA_KEY = 'munal_admin_data';
 
 // Default credentials for initialization
 const DEFAULT_ADMIN = {
-  email: 'admin@munal.com',
+  email: 'admin@munal.ai',
   passwordPlain: 'Admin@123456', 
   name: 'System Administrator'
 };
