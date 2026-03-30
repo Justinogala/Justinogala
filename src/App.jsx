@@ -5,7 +5,6 @@ import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
 // Context Providers
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
-import { AdminAuthProvider } from '@/context/AdminAuthContext';
 import { APIKeyManagementProvider } from '@/context/APIKeyManagementContext';
 import { AdminSettingsProvider } from '@/context/AdminSettingsContext';
 import { NotificationProvider } from '@/context/NotificationContext'; 
@@ -208,6 +207,7 @@ const AdminProfile = lazy(() => import('@/pages/AdminProfile'));
 const AdminContent = lazy(() => import('@/pages/AdminContent'));
 const AdminWorkspace = lazy(() => import('@/pages/AdminWorkspace'));
 const AdminSystemHealthPage = lazy(() => import('@/pages/AdminSystemHealthPage'));
+const AdminDataHealthPage = lazy(() => import('@/pages/admin/AdminDataHealthPage'));
 const AdminTicketsPage = lazy(() => import('@/pages/AdminTicketsPage'));
 const AdminSupportTicketsPage = lazy(() => import('@/pages/AdminSupportTicketsPage'));
 const AdminMessagesPage = lazy(() => import('@/pages/AdminMessagesPage'));
@@ -316,7 +316,6 @@ function App() {
       <ToastContextProvider>
         <ThemeProvider>
           <AuthProvider>
-            <AdminAuthProvider>
               <AdminSettingsProvider>
                 <APIKeyManagementProvider>
                   <Router>
@@ -524,6 +523,7 @@ function App() {
                                 <Route path="profile" element={<AdminProfile />} />
                                 <Route path="content" element={<AdminContent />} />
                                 <Route path="health" element={<AdminSystemHealthPage />} />
+                                <Route path="data-health" element={<AdminDataHealthPage />} />
                                 <Route path="tickets" element={<AdminTicketsPage />} />
                                 <Route path="support-tickets" element={<AdminSupportTicketsPage />} />
                                 <Route path="messages" element={<AdminMessagesPage />} />
@@ -570,7 +570,6 @@ function App() {
               </Router>
             </APIKeyManagementProvider>
           </AdminSettingsProvider>
-        </AdminAuthProvider>
       </AuthProvider>
         </ThemeProvider>
       </ToastContextProvider>

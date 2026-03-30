@@ -1,68 +1,81 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { userDataSyncService } from '@/services/userDataSyncService';
-
 import { getApiUrl, API_URL } from '@/lib/api';
 
 const AuthContext = createContext(null);
 
+// Storage keys
 const SESSIONS_KEY = 'munal_sessions';
 const AUTH_KEY = 'munal_auth';
 const REFRESH_KEY = 'munal_refresh';
 const LAST_ACTIVITY_KEY = 'munal_last_activity';
+const ADMIN_TOKEN_KEY = 'admin_token';
+const ADMIN_USER_KEY = 'admin_user';
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
+// Safe JSON parser
+const safeParseJSON = async (response) => {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Unable to connect to the server. Please try again later.');
+  }
+};
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const AuthProvider = ({ children }) => {
-  // Regular User State
+  // --- Regular User State ---
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // --- Admin State ---
+  const [adminUser, setAdminUser] = useState(null);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(true);
+  const [adminError, setAdminError] = useState(null);
+
+  // ==================== USER AUTH ====================
+
   // Sync with admin changes
   useEffect(() => {
     const handleSync = (e) => {
       const { action, userId, data } = e.detail;
-      
-      // If the current logged-in user is updated by admin, reflect changes
       if (user && user.id === userId) {
         if (action === 'update') {
           setUser(prev => ({ ...prev, ...data }));
         } else if (action === 'delete' || (action === 'update' && data.status === 'Suspended')) {
-          // Auto logout if deleted or suspended
-          logout();
+          userLogout();
         }
       }
     };
-
     const unsubscribe = userDataSyncService.subscribe(handleSync);
     return () => unsubscribe();
   }, [user]);
 
+  // Initialize user session
   useEffect(() => {
     const initializeAuth = async () => {
-      // Check for existing session
       try {
         const sessionJson = localStorage.getItem(SESSIONS_KEY);
         const authUserJson = localStorage.getItem(AUTH_KEY);
-        
+
         if (sessionJson && authUserJson) {
           const session = JSON.parse(sessionJson);
           const sessionAge = new Date() - new Date(session.createdAt);
-          
-          // Session expires after 24 hours
+
           if (sessionAge > 24 * 60 * 60 * 1000) {
             localStorage.removeItem(SESSIONS_KEY);
             localStorage.removeItem(AUTH_KEY);
           } else {
             const foundUser = JSON.parse(authUserJson);
-            
-            // Check if user is suspended
             if (foundUser.status === 'Suspended' || foundUser.status === 'suspended') {
               localStorage.removeItem(SESSIONS_KEY);
               localStorage.removeItem(AUTH_KEY);
-              setUser(null);
-              setIsAuthenticated(false);
             } else {
               setUser(foundUser);
               setIsAuthenticated(true);
@@ -74,17 +87,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem(SESSIONS_KEY);
         localStorage.removeItem(AUTH_KEY);
       }
-
       setLoading(false);
     };
-
     initializeAuth();
   }, []);
 
-  // ---- Inactivity auto-logout (30 min) ----
+  // Inactivity auto-logout
   useEffect(() => {
     if (!isAuthenticated) return;
-
     const trackActivity = () => localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
     events.forEach(e => window.addEventListener(e, trackActivity, { passive: true }));
@@ -99,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem(LAST_ACTIVITY_KEY);
         window.location.href = '/';
       }
-    }, 60_000); // check every minute
+    }, 60_000);
 
     return () => {
       events.forEach(e => window.removeEventListener(e, trackActivity));
@@ -107,7 +117,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, [isAuthenticated]);
 
-  // ---- Token refresh (refresh 2 min before expiry) ----
+  // Token refresh
   useEffect(() => {
     if (!isAuthenticated) return;
     const refreshInterval = setInterval(async () => {
@@ -128,46 +138,24 @@ export const AuthProvider = ({ children }) => {
           if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
         }
       } catch { /* silent */ }
-    }, 22 * 60 * 1000); // refresh every 22 hours (before 24h expiry)
+    }, 22 * 60 * 1000);
     return () => clearInterval(refreshInterval);
   }, [isAuthenticated]);
 
-  
-
-  // Safe JSON parser that handles non-JSON responses
-  const safeParseJSON = async (response) => {
-    const text = await response.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error('Unable to connect to the server. Please try again later.');
-    }
-  };
-
-  // --- Regular User Functions ---
   const login = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
-
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-
       const data = await safeParseJSON(response);
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Invalid email or password");
-      }
+      if (!response.ok) throw new Error(data.detail || "Invalid email or password");
 
       const foundUser = data.user;
-      const session = { 
-        userId: foundUser.id, 
-        token: data.token, 
-        createdAt: new Date().toISOString() 
-      };
+      const session = { userId: foundUser.id, token: data.token, createdAt: new Date().toISOString() };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
       localStorage.setItem(AUTH_KEY, JSON.stringify(foundUser));
       if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
@@ -188,8 +176,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-
-      const url = inviteToken 
+      const url = inviteToken
         ? `${API_URL}/api/auth/register?invite_token=${encodeURIComponent(inviteToken)}`
         : `${API_URL}/api/auth/register`;
 
@@ -198,21 +185,12 @@ export const AuthProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name })
       });
-
       const data = await safeParseJSON(response);
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Registration failed");
-      }
+      if (!response.ok) throw new Error(data.detail || "Registration failed");
 
       const newUser = data.user;
       userDataSyncService.notifyChange('create', newUser.id, newUser);
-
-      const session = { 
-        userId: newUser.id, 
-        token: data.token || uuidv4(), 
-        createdAt: new Date().toISOString() 
-      };
+      const session = { userId: newUser.id, token: data.token || uuidv4(), createdAt: new Date().toISOString() };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
       localStorage.setItem(AUTH_KEY, JSON.stringify(newUser));
       if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
@@ -229,7 +207,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const userLogout = async () => {
     try {
       setLoading(true);
       await delay(300);
@@ -250,33 +228,26 @@ export const AuthProvider = ({ children }) => {
     await delay(500);
     return { success: true, message: "If account exists, password reset email sent." };
   };
-  
+
   const sendOTP = async (email) => {
     await delay(500);
-    console.log(`OTP sent to ${email}`);
     return { success: true, message: "OTP sent to your email." };
   };
 
   const verifyOTP = async (email, otp) => {
     await delay(800);
     if (otp === '123456') {
-       const usersJson = localStorage.getItem(USERS_KEY);
-       const users = usersJson ? JSON.parse(usersJson) : [];
-       const foundUser = users.find(u => u.email === email);
-       
-       if (foundUser) {
-         const session = { 
-           userId: foundUser.id, 
-           token: uuidv4(), 
-           createdAt: new Date().toISOString() 
-         };
-         localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
-         setUser(foundUser);
-         setIsAuthenticated(true);
-         return { success: true, user: foundUser };
-       } else {
-         return { success: false, error: "User not found" };
-       }
+      const usersJson = localStorage.getItem('munal_users');
+      const users = usersJson ? JSON.parse(usersJson) : [];
+      const foundUser = users.find(u => u.email === email);
+      if (foundUser) {
+        const session = { userId: foundUser.id, token: uuidv4(), createdAt: new Date().toISOString() };
+        localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
+        setUser(foundUser);
+        setIsAuthenticated(true);
+        return { success: true, user: foundUser };
+      }
+      return { success: false, error: "User not found" };
     }
     return { success: false, error: "Invalid OTP" };
   };
@@ -289,10 +260,8 @@ export const AuthProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
-      
       const data = await safeParseJSON(response);
       if (!response.ok) throw new Error(data.detail || 'Failed to update profile');
-      
       const updatedUser = data.user || data;
       userDataSyncService.notifyChange('update', user.id, updatedUser);
       setUser(prev => ({ ...prev, ...updatedUser }));
@@ -309,13 +278,11 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       if (!user) throw new Error("No user logged in");
-      
       const response = await fetch(`${API_URL}/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPassword })
       });
-      
       const data = await safeParseJSON(response);
       if (!response.ok) throw new Error(data.detail || 'Failed to update password');
       return { success: true };
@@ -324,23 +291,124 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  // ==================== ADMIN AUTH ====================
+
+  // Initialize admin session
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+      const userStr = localStorage.getItem(ADMIN_USER_KEY);
+      if (token && userStr) {
+        setAdminUser(JSON.parse(userStr));
+        setIsAdminAuthenticated(true);
+      }
+    } catch (err) {
+      console.error('Admin Auth Restoration Error:', err);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+      localStorage.removeItem(ADMIN_USER_KEY);
+    } finally {
+      setAdminLoading(false);
+    }
+  }, []);
+
+  const adminLogin = async (email, password) => {
+    setAdminLoading(true);
+    setAdminError(null);
+    try {
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await safeParseJSON(response);
+      if (!response.ok) throw new Error(data.detail || 'Invalid email or password');
+
+      const dbUser = data.user;
+      const role = (dbUser.role || '').toLowerCase().replace(' ', '_');
+      if (role !== 'admin' && role !== 'super_admin' && role !== 'manager') {
+        throw new Error('Access denied. Admin privileges required.');
+      }
+
+      const adminObj = {
+        id: dbUser.id,
+        email: dbUser.email,
+        username: dbUser.name || dbUser.full_name || 'Admin',
+        name: dbUser.name || dbUser.full_name || 'Admin',
+        role: dbUser.role,
+        module_permissions: dbUser.module_permissions || {},
+        organization_id: dbUser.organization_id || null,
+        org_name: dbUser.org_name || null,
+        org_role: dbUser.org_role || null,
+        plan: dbUser.plan,
+        avatar: dbUser.avatar
+      };
+
+      localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+      localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(adminObj));
+      setAdminUser(adminObj);
+      setIsAdminAuthenticated(true);
+      return { success: true };
+    } catch (err) {
+      setAdminError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
+  const refreshPermissions = async () => {
+    if (!adminUser?.id) return;
+    try {
+      const apiUrl = getApiUrl();
+      const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+      const res = await fetch(`${apiUrl}/api/admin/module-permissions/user/${adminUser.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = { ...adminUser, module_permissions: data.permissions };
+        setAdminUser(updated);
+        localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(updated));
+      }
+    } catch (err) {
+      console.error('Failed to refresh permissions:', err);
+    }
+  };
+
+  const isSuperAdmin = () => {
+    const role = (adminUser?.role || '').toLowerCase().replace(' ', '_');
+    return role === 'super_admin';
+  };
+
+  const hasModuleAccess = (moduleKey) => {
+    if (isSuperAdmin()) return true;
+    return adminUser?.module_permissions?.[moduleKey] === true;
+  };
+
+  const adminLogout = async () => {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem(ADMIN_USER_KEY);
+    setAdminUser(null);
+    setIsAdminAuthenticated(false);
+    return { success: true };
+  };
+
+  const clearAdminError = () => setAdminError(null);
+
+  // ==================== CONTEXT VALUE ====================
 
   const value = {
-    user,
-    setUser,
-    isAuthenticated,
-    setIsAuthenticated,
-    loading,
-    error,
-    login,
-    signup,
-    logout,
-    resetPassword,
-    updateProfile,
-    sendOTP,
-    verifyOTP,
-    updatePassword,
+    // User auth
+    user, setUser, isAuthenticated, setIsAuthenticated, loading, error,
+    login, signup, logout: userLogout, resetPassword, updateProfile,
+    sendOTP, verifyOTP, updatePassword,
+    // Admin auth
+    adminUser, isAdminAuthenticated, adminLoading, adminError,
+    adminLogin, adminLogout, clearAdminError,
+    isSuperAdmin, hasModuleAccess, refreshPermissions,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -348,10 +416,26 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
+};
+
+// Admin hook — returns admin-scoped view of the same context
+export const useAdminAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAdminAuth must be used within an AuthProvider');
+  return {
+    adminUser: context.adminUser,
+    isAuthenticated: context.isAdminAuthenticated,
+    loading: context.adminLoading,
+    error: context.adminError,
+    login: context.adminLogin,
+    logout: context.adminLogout,
+    clearError: context.clearAdminError,
+    isSuperAdmin: context.isSuperAdmin,
+    hasModuleAccess: context.hasModuleAccess,
+    refreshPermissions: context.refreshPermissions,
+  };
 };
 
 export default AuthContext;

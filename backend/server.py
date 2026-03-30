@@ -173,6 +173,7 @@ from routes.ai_chat import router as ai_chat_router
 from routes.analytics import router as analytics_router
 from routes.time_clock import router as time_clock_router
 from routes.push_notifications import router as push_router
+from routes.data_health import router as data_health_router
 
 
 # ============== Include All Routers ==============
@@ -246,6 +247,7 @@ api_router.include_router(ai_chat_router)
 api_router.include_router(analytics_router)
 api_router.include_router(time_clock_router)
 api_router.include_router(push_router)
+api_router.include_router(data_health_router)
 
 
 # ============== Include Main Router ==============
