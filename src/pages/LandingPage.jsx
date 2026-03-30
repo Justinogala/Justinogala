@@ -103,7 +103,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
   };
 
   return (
-    <section className="relative min-h-[55vh] sm:min-h-[78vh] flex items-center overflow-hidden" data-testid="hero-carousel">
+    <section className="relative min-h-[auto] sm:min-h-[78vh] flex items-center overflow-hidden" data-testid="hero-carousel">
       {/* Animated background */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -132,8 +132,8 @@ const HeroCarousel = ({ onDemoOpen }) => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="container mx-auto px-5 sm:px-6 relative z-10 pt-2 pb-10 sm:pb-8">
-        <div className="flex flex-col-reverse lg:flex-row items-center gap-4 sm:gap-8 lg:gap-16">
+      <div className="container mx-auto px-5 sm:px-6 relative z-10 pt-2 pb-8 sm:pb-8">
+        <div className="flex flex-col-reverse lg:flex-row items-center gap-2 sm:gap-8 lg:gap-16">
           {/* Left - Text */}
           <div className="flex-1 text-left">
             <AnimatePresence mode="wait" custom={direction}>
@@ -146,10 +146,10 @@ const HeroCarousel = ({ onDemoOpen }) => {
                 exit="exit"
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               >
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-3 sm:mb-6">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-2 sm:mb-6">
                   {slide.headline}
                 </h1>
-                <p className="text-base sm:text-xl text-gray-500 mb-5 sm:mb-8 max-w-xl leading-relaxed">
+                <p className="text-base sm:text-xl text-gray-500 mb-3 sm:mb-8 max-w-xl leading-relaxed">
                   {slide.description}
                 </p>
                 <div className="flex flex-row items-center gap-3">
@@ -191,7 +191,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[280px] sm:max-w-xs lg:max-w-sm xl:max-w-md h-auto object-contain mix-blend-multiply opacity-90"
+                className="w-full max-w-full sm:max-w-xs lg:max-w-sm xl:max-w-md h-auto object-contain mix-blend-multiply opacity-90"
               />
             </AnimatePresence>
           </div>
