@@ -133,7 +133,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
 
       {/* Content */}
       <div className="container mx-auto px-5 sm:px-6 relative z-10 pt-2 pb-10 sm:pb-8">
-        <div className="flex flex-col lg:flex-row items-center gap-4 sm:gap-8 lg:gap-16">
+        <div className="flex flex-col-reverse lg:flex-row items-center gap-4 sm:gap-8 lg:gap-16">
           {/* Left - Text */}
           <div className="flex-1 text-left">
             <AnimatePresence mode="wait" custom={direction}>
@@ -191,7 +191,7 @@ const HeroCarousel = ({ onDemoOpen }) => {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full max-w-[220px] sm:max-w-xs lg:max-w-sm xl:max-w-md h-auto object-contain mix-blend-multiply opacity-90"
+                className="w-full max-w-[280px] sm:max-w-xs lg:max-w-sm xl:max-w-md h-auto object-contain mix-blend-multiply opacity-90"
               />
             </AnimatePresence>
           </div>
