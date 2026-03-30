@@ -388,7 +388,7 @@ async def resend_verification(data: dict):
 
 @router.post("/login")
 @limiter.limit("10/minute")
-async def login_user(request: Request, credentials: UserLogin):
+async def login_user(request: Request, credentials: UserLogin, skip_2fa: bool = False):
     """Login a user and return JWT token"""
     email = guard_mongo_query(credentials.email.lower())
     user = await db.users.find_one(
@@ -429,6 +429,37 @@ async def login_user(request: Request, credentials: UserLogin):
     
     # Check if using temporary password
     requires_password_change = user.get("requires_password_change", False)
+    
+    # Check if 2FA is enabled
+    if user.get("two_factor_enabled") and not skip_2fa:
+        two_fa_method = user.get("two_factor_method", "totp")
+        # For email/both methods, auto-send email OTP
+        if two_fa_method in ("email", "both"):
+            from routes.two_factor import generate_email_otp, send_2fa_email
+            otp = generate_email_otp()
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {
+                    "email_otp_login": otp,
+                    "email_otp_login_expires": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(),
+                }}
+            )
+            await send_2fa_email(user["email"], otp)
+
+        # Strip sensitive fields
+        user.pop("password", None)
+        user.pop("totp_secret", None)
+        user.pop("totp_secret_pending", None)
+        user.pop("recovery_codes", None)
+        user.pop("email_otp_login", None)
+        user.pop("email_otp_login_expires", None)
+
+        return {
+            "requires_2fa": True,
+            "two_factor_method": two_fa_method,
+            "user_id": user["id"],
+            "user": {"id": user["id"], "email": user["email"], "name": user.get("name", "")},
+        }
     
     # Generate tokens
     token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))

@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Separator } from '@/components/ui/separator';
 
 import { getApiUrl, API_URL } from '@/lib/api';
+import TwoFactorSetup from '@/components/admin/TwoFactorSetup';
 
 const AdminSecurityPolicies = () => {
   const { toast } = useToast();
@@ -311,6 +312,9 @@ const AdminSecurityPolicies = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Two-Factor Authentication */}
+      <TwoFactorSetup />
     </div>
   );
 };
