@@ -8,7 +8,7 @@ import os
 import json
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://hero-stack-fix.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://admin-audit-hub-1.preview.emergentagent.com')
 
 class TestCouponsAPI:
     """Test Admin Coupons CRUD operations"""

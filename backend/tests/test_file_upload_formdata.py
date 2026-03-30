@@ -24,7 +24,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://hero-stack-fix.preview.emergentagent.com"
+    BASE_URL = "https://admin-audit-hub-1.preview.emergentagent.com"
 
 
 class TestHealthCheck:
