@@ -1,6 +1,6 @@
 
 export const ADMIN_CREDENTIALS = {
-  email: "admin@munal.com",
+  email: "admin@munal.ai",
   password: "adminPassword123!"
 };
 

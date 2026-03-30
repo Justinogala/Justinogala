@@ -1,30 +1,16 @@
-# Munal AI Test Credentials
+# Munal Test Credentials
 
-## Super Admin
-- Email: admin@munal.com
-- Password: Admin@123456
-- Role: Super_Admin
-- Organization: None (platform-wide)
+## Admin Accounts
+- Super Admin: `admin@munal.ai` / `Admin@123456`
+- Org Admin: `orgadmin@munal.com` / `OrgAdmin@123`
 
-## Organization Admin
-- Email: orgadmin@munal.com
-- Password: OrgAdmin@123
-- Role: Admin
-- Organization: Munal Healthcare
+## User Accounts
+- Org Manager: `orgmgr@munal.com` / `OrgMgr@123`
+- Org Member: `orgmember@munal.com` / `OrgMem@123`
 
-## Organization Manager
-- Email: orgmgr@munal.com
-- Password: OrgMgr@123
-- Role: Manager
-- Organization: Munal Healthcare
-
-## Organization Member
-- Email: orgmember@munal.com
-- Password: OrgMem@123
-- Role: User
-- Organization: Munal Healthcare
-
-## Auth Storage Keys (Frontend)
-- `munal_sessions`: JSON with `{ userId, token, createdAt }`
-- `munal_auth`: JSON user object
+## Auth Storage Keys
+- `munal_sessions`: Session with userId, token, createdAt
+- `munal_auth`: Full JSON user object
 - `munal_refresh`: Refresh token string
+- `admin_token`: Admin JWT token
+- `admin_user`: Admin user JSON object
