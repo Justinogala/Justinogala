@@ -242,6 +242,33 @@ HEALTHCARE_FORM_TEMPLATES = [
         ],
         "is_system": True, "recipient_emails": [],
     },
+    # 9. Client Behavior Observation Form
+    {
+        "name": "Client Behavior Observation Form",
+        "description": "Document observed client behaviors for treatment planning and compliance. Complete this form during or immediately after observing a significant behavior. Use objective, measurable language. All observations are confidential.",
+        "fields": [
+            {"id": "observation_date", "label": "Date of observation", "type": "date", "required": True, "placeholder": "", "options": [], "description": ""},
+            {"id": "observation_time", "label": "Time of observation", "type": "text", "required": True, "placeholder": "e.g. 3:45 PM", "options": [], "description": ""},
+            {"id": "observer_name", "label": "Observer name", "type": "text", "required": True, "placeholder": "Enter your full name", "options": [], "description": ""},
+            {"id": "client_initials", "label": "Client initials", "type": "text", "required": True, "placeholder": "e.g. J.D.", "options": [], "description": "Use initials only for confidentiality"},
+            {"id": "observation_setting", "label": "Setting / Environment", "type": "dropdown", "required": True, "placeholder": "Select setting", "options": ["Residential - Common Area", "Residential - Bedroom", "Residential - Kitchen/Dining", "Day Program", "Community Outing", "Medical Appointment", "Classroom / Therapy Room", "Vehicle / Transit", "Outdoor / Recreation Area", "Other"], "description": "Where did the behavior occur?"},
+            {"id": "persons_present", "label": "Other persons present", "type": "textarea", "required": True, "placeholder": "List staff and other clients (use initials for clients)", "options": [], "description": "Who was present when the behavior occurred?"},
+            {"id": "behavior_type", "label": "Behavior type", "type": "dropdown", "required": True, "placeholder": "Select behavior type", "options": ["Verbal Aggression", "Physical Aggression", "Self-Injurious Behavior", "Property Destruction", "Elopement / Wandering", "Non-Compliance / Refusal", "Social Withdrawal", "Repetitive / Stereotypic Behavior", "Inappropriate Social Behavior", "Positive / Adaptive Behavior", "Anxiety / Agitation", "Other"], "description": ""},
+            {"id": "antecedent", "label": "Antecedent (What happened before the behavior?)", "type": "textarea", "required": True, "placeholder": "Describe the events, triggers, or circumstances that occurred immediately before the behavior", "options": [], "description": "Include environmental factors, interactions, demands, transitions, etc."},
+            {"id": "behavior_description", "label": "Behavior description (What exactly did the client do?)", "type": "textarea", "required": True, "placeholder": "Describe the behavior in specific, observable, and measurable terms", "options": [], "description": "Avoid interpretations. Document only what you saw and heard."},
+            {"id": "behavior_intensity", "label": "Intensity level", "type": "dropdown", "required": True, "placeholder": "Select intensity", "options": ["1 - Mild (minimal disruption, easily redirected)", "2 - Moderate (noticeable disruption, required intervention)", "3 - Severe (significant disruption, safety concern)", "4 - Crisis (immediate danger, emergency response needed)"], "description": ""},
+            {"id": "duration", "label": "Duration of behavior", "type": "text", "required": True, "placeholder": "e.g. 5 minutes, 30 seconds, ongoing for 2 hours", "options": [], "description": "How long did the behavior last?"},
+            {"id": "frequency", "label": "Frequency (if recurring)", "type": "text", "required": False, "placeholder": "e.g. 3 times during shift, first occurrence today", "options": [], "description": "How many times did this behavior occur during the observation period?"},
+            {"id": "intervention_used", "label": "Intervention / Response", "type": "dropdown", "required": True, "placeholder": "Select primary intervention", "options": ["Verbal Redirection", "Physical Proximity", "Environmental Modification", "De-escalation Techniques", "Planned Ignoring", "Positive Reinforcement", "Time-Out / Cool-Down", "Physical Intervention / Restraint", "PRN Medication Administered", "Emergency Services Called", "No Intervention Needed", "Other"], "description": ""},
+            {"id": "intervention_details", "label": "Intervention details", "type": "textarea", "required": True, "placeholder": "Describe exactly what you did in response to the behavior and the steps taken", "options": [], "description": ""},
+            {"id": "client_response", "label": "Consequence / Client response (What happened after intervention?)", "type": "textarea", "required": True, "placeholder": "Describe the client's response to the intervention and the outcome", "options": [], "description": "Include how long it took for the client to return to baseline"},
+            {"id": "injuries_reported", "label": "Were there any injuries?", "type": "yesno", "required": True, "placeholder": "", "options": ["Yes", "No"], "description": ""},
+            {"id": "injury_details", "label": "Injury details (if any)", "type": "textarea", "required": False, "placeholder": "Describe any injuries to client, staff, or others and first aid provided", "options": [], "description": "If yes, also complete a separate Incident Report Form"},
+            {"id": "follow_up_actions", "label": "Recommended follow-up actions", "type": "textarea", "required": False, "placeholder": "e.g. Update behavior plan, schedule team meeting, consult BCBA, adjust environment", "options": [], "description": ""},
+            {"id": "supervisor_notified", "label": "Was supervisor / behavior analyst notified?", "type": "yesno", "required": True, "placeholder": "", "options": ["Yes", "No"], "description": ""},
+        ],
+        "is_system": True, "recipient_emails": [],
+    },
 ]
 
 

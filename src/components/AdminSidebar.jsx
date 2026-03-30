@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Users, CreditCard, Ticket, MessageSquare, LogOut,
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
-  Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList
+  Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList,
+  HeartPulse
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -171,6 +172,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
   // Config links with module keys
   const allConfigLinks = [
     { icon: Activity, label: 'Monitoring', path: '/admin/monitoring', gradient: 'from-green-500 to-emerald-500', moduleKey: 'monitoring' },
+    { icon: HeartPulse, label: 'Data Health', path: '/admin/data-health', gradient: 'from-rose-500 to-red-500', moduleKey: 'monitoring' },
     { icon: Lock, label: 'Security Policies', path: '/admin/security-policies', gradient: 'from-red-500 to-rose-500', moduleKey: 'security_policies' },
     { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500', moduleKey: 'meeting_analytics' },
     { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500', moduleKey: 'cloud_storage' },
