@@ -2,6 +2,7 @@
 import React from 'react';
 import { MessageSquare, Share2, Smile, Bell } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureChatMessagingPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureChatMessagingPage = () => {
       title="Chat & Messaging"
       subtitle="Seamless Team Communication"
       description="Keep the conversation going before, during, and after meetings. A centralized hub for all your team's text-based collaboration."
-      heroImage="https://images.unsplash.com/photo-1531497258014-b5736f376b1b"
+      heroImage={`${API_URL}/api/static/feature_messaging.png`}
       benefits={[
         { icon: MessageSquare, title: "Instant Messaging", description: "Real-time direct messages and group channels." },
         { icon: Share2, title: "File Sharing", description: "Drag and drop files to share instantly with the team." },
