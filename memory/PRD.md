@@ -5,15 +5,19 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Landing Page Mobile Fix + Demo Video Branding — March 30, 2026
+- **Hero section mobile layout**: Changed to `flex-col-reverse lg:flex-row` so image appears ON TOP of text on mobile
+- **Image sizing**: Set `max-w-[280px]` on mobile for proper width matching
+- **Demo video**: Regenerated with Sora 2 showing "Munal" branding (replaced old "Numbus" video)
+- 100% test pass rate (iteration_90)
+
 ### Time Clock Reports Page — March 28, 2026
-- **Reports page** at `/workspace/{id}/time-clock-reports` with Daily/Weekly/Monthly/Yearly views
-- **Summary cards**: Total Hours, Clock Entries, Team Members, Avg/Person
-- **Daily Hours chart** (bar chart) + **Team Breakdown** (progress bars per user)
-- **Detailed Entries table** with clock in/out times, duration, status
-- **Export Report** button downloads styled HTML report (Admin only)
-- **Role-based access**: Admin can generate/export, Manager can view only, Users see "Access Restricted"
-- **Navigation links**: "Reports" button in Shift Management header, "View Full Reports" in Time Clock card
-- Backend: 2 new endpoints in `/api/time-clock/reports/`
+- Reports page at `/workspace/{id}/time-clock-reports` with Daily/Weekly/Monthly/Yearly views
+- Summary cards: Total Hours, Clock Entries, Team Members, Avg/Person
+- Daily Hours chart (bar chart) + Team Breakdown (progress bars per user)
+- Detailed Entries table with clock in/out times, duration, status
+- Export Report button downloads styled HTML report (Admin only)
+- Role-based access: Admin can generate/export, Manager can view only
 - 100% test pass rate (iteration_89)
 
 ### Push Notifications (Browser/PWA) — March 28, 2026
@@ -42,20 +46,28 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ├── TimeClockReportsPage.jsx   # Reports with daily/weekly/monthly/yearly
 ├── ShiftManagementPage.jsx    # Full shift management
 ├── WorkspaceDetailPage.jsx    # Time clock widget
+├── LandingPage.jsx            # Hero carousel with mobile-first layout
 ├── features/FeatureDashboardPage.jsx
 ```
 
 ## Key DB Collections
 `time_clock`, `push_subscriptions`, `manager_notifications`, `time_off_requests`, `time_off_balances`, `shift_swap_requests`, `shifts`, `shift_presets`, `ai_conversations`, `ai_messages`
 
+## 3rd Party Integrations
+- Resend (Email Delivery)
+- OpenAI GPT-5.2 (AI Chat) — Emergent LLM Key
+- OpenAI Whisper (Voice Chat) — Emergent LLM Key
+- Object Storage (File Uploads) — Emergent LLM Key
+- OpenAI Sora 2 (Video Gen) — Emergent LLM Key
+
 ## Backlog
-### P1
-- Demo video branding fix ("Numbus" → "Munal")
 ### P2
 - Refactor AdminStripeSettingsPage.jsx
 - Clean up orphaned workspace_members
 ### P3
-- Consolidate AuthContext/AdminAuthContext, 2FA, Client Behavior Observation Form
+- Consolidate AuthContext/AdminAuthContext
+- 2FA for admin accounts
+- Client Behavior Observation Form (9th template)
 
 ## Test Credentials
 - Super Admin: admin@munal.com / Admin@123456
