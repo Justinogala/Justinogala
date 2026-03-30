@@ -1,27 +1,30 @@
-<analysis>HeroCarousel.jsxHomePage.jsxLandingPage.jsxHeroCarousel.jsxHomePage.jsxLandingPage.jsxLandingPage.jsxHeroCarousel.jsxflex-col-reverseflex-colmd:flex-roww-fullmax-w-mdintegration_playbook_expert_v2/app/backend/static/demo_video.mp4/app/src/pages/LandingPage.jsx/app/src/components/HeroCarousel.jsxflex-col-reverseflex-colAdminStripeSettingsPage.jsxworkspace_membersAuthContextAdminAuthContext/features/dashboardintegration_playbook_expert_v2/app/backend/static/demo_video.mp4text
+<analysis>shift-mgmt-previewadmin.pyflex-col-reverse.gitignoreworkspace_membersAdminAuthContextAuthContextAuthFormContaineradmin@munal.comadmin@munal.aiaudit_logstext
 /app/
 ├── backend/
 │   ├── routes/
-│   │   ├── time_clock.py           # Newly added
-│   │   ├── push_notifications.py   # Newly added
-│   │   ├── shifts.py               # Updated with time-off/swaps
+│   │   ├── audit_logs.py           # NEW
+│   │   ├── data_health.py          # NEW
+│   │   ├── two_factor.py           # NEW
 │   │   └── ...
+│   ├── services/
+│   │   └── audit.py                # NEW - Audit logging utility
 │   └── static/
-│       └── demo_video.mp4          # Needs replacement
+│       └── demo_video.mp4          # Updated via Sora 2
 └── frontend/
-    ├── public/
-    │   └── serviceWorker.js        # Updated to handle push events
     └── src/
         ├── components/
-        │   ├── AdminSidebar.jsx    # Updated with Command Palette Search
-        │   ├── HeroCarousel.jsx    # CURRENT FOCUS
-        │   └── pwa/
-        │       └── NotificationSettings.jsx
-        ├── pages/
-        │   ├── AdminLoginPage.jsx  # Redesigned (Peach theme)
-        │   ├── TimeClockReportsPage.jsx # Newly added
-        │   ├── LandingPage.jsx     # CURRENT FOCUS
-        │   └── CalendarPage.jsx    # Refactored for proper sizing
-        └── services/
-            └── pushNotificationService.js # Uses VAPID Keys
-pywebpushhttp-ecepy-vapid.envServiceWorkerRegistration.pushManagerCmd+Kworkspace_iduser_idclock_inclock_outtime_clockshift_swap_requeststime_off_requestspush_subscriptionsuser_idpywebpushhttp-ecepy-vapid/app/src/pages/LandingPage.jsx/app/src/components/HeroCarousel.jsx/app/src/pages/AdminLoginPage.jsx/app/src/components/AdminSidebar.jsx/app/src/pages/admin/AdminStripeSettingsPage.jsxAuthContextAdminAuthContextPOST /api/push-notifications/subscribeGET /api/time-clock/reportsflex-colflex-col-reverse.env.envsupervisorctl restart frontend/backendadmin@munal.comAdmin@123456orgadmin@munal.comOrgAdmin@123</analysis>
+        │   ├── OnboardingWalkthrough.jsx       # NEW
+        │   ├── admin/
+        │   │   ├── TwoFactorSetup.jsx          # NEW
+        │   │   └── TwoFactorVerify.jsx         # NEW
+        │   └── auth/
+        │       └── AuthFormContainer.jsx       # Updated for mobile logo
+        ├── context/
+        │   ├── AuthContext.jsx                 # Consolidated (Handles both User/Admin)
+        │   └── AdminAuthContext.jsx            # Now a thin re-export wrapper
+        └── pages/
+            └── admin/
+                ├── AdminAuditLogsPage.jsx      # NEW
+                ├── AdminDataHealthPage.jsx     # NEW
+                └── AdminSecurityPolicies.jsx   # Updated with 2FA UI
+pyotprequires_2fa: trueskip_2falog_audit_eventactor_idip_addressseveritydetailsuseAuthuseAdminAuthAuthContextuserstwo_factor{enabled: bool, method: str, secret: str, recovery_codes: list}onboarding_completed: boolaudit_logsactioncategoryactordetailstimestamppyotpqrcode/app/backend/routes/auth.py/app/src/context/AuthContext.jsx/app/src/pages/AdminLoginPage.jsx/app/memory/test_credentials.md/app/backend/routes/admin.pyadmin_users.pyadmin_billing.pyPOST /api/auth/loginskip_2faPOST /api/2fa/setupPOST /api/2fa/verifyGET /api/admin/audit-logsGET /api/admin/data-health/statsadmin@munal.aiAdmin@123456admin@munal.com/admin/security-policies/api/healthstatus: healthy.gitignoreadmin@munal.aiAdmin@123456orgmember@munal.comOrgMem@123</analysis>
