@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, Zap, Filter, Smartphone } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureNotificationsPage = () => {
   return (
@@ -8,7 +9,7 @@ const FeatureNotificationsPage = () => {
       title="Notifications"
       subtitle="Stay in the Loop, Always"
       description="Never miss what matters. Real-time notifications for messages, approvals, meetings, shifts, and more — delivered in-app, via email, or push notifications."
-      heroImage="https://images.unsplash.com/photo-1606495813362-8efff01b8573?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHwxfHxub3RpZmljYXRpb25zJTIwYWxlcnRzJTIwbW9iaWxlJTIwcGhvbmV8ZW58MHx8fHwxNzc0MTEwNTExfDA&ixlib=rb-4.1.0&q=85"
+      heroImage={`${API_URL}/api/static/feature_notifications.png`}
       benefits={[
         { icon: Bell, title: "Real-Time Alerts", description: "Instant notifications the moment something needs your attention." },
         { icon: Filter, title: "Smart Filtering", description: "Customize which notifications you receive and how you receive them." },

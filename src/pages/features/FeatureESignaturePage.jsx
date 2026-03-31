@@ -1,6 +1,7 @@
 import React from 'react';
 import { PenLine, Shield, Clock, FileCheck } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureESignaturePage = () => {
   return (
@@ -8,7 +9,7 @@ const FeatureESignaturePage = () => {
       title="eSignature"
       subtitle="Legally Binding Digital Signatures"
       description="Sign documents digitally with full legal compliance under Canadian law. Send, track, and manage electronic signatures with complete audit trails and secure storage."
-      heroImage="https://images.pexels.com/photos/48195/document-agreement-documents-sign-48195.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+      heroImage={`${API_URL}/api/static/feature_esignature.png`}
       benefits={[
         { icon: PenLine, title: "Draw or Type", description: "Sign with your mouse, touchscreen, or type your name for instant signatures." },
         { icon: Shield, title: "Legally Compliant", description: "Fully compliant with Canadian PIPEDA and provincial electronic commerce acts." },

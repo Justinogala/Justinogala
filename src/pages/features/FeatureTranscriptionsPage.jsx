@@ -2,6 +2,7 @@
 import React from 'react';
 import { FileText, Mic, Search, Globe } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureTranscriptionsPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureTranscriptionsPage = () => {
       title="Transcriptions"
       subtitle="AI-Powered Transcriptions"
       description="Turn your voice conversations into accurate, searchable text instantly. Never take manual notes again and capture every detail with precision."
-      heroImage="https://images.unsplash.com/photo-1631233212817-01a955f2f04d"
+      heroImage={`${API_URL}/api/static/feature_transcriptions.png`}
       benefits={[
         { icon: Mic, title: "99% Accuracy", description: "State-of-the-art AI models ensure precise speech-to-text conversion." },
         { icon: Globe, title: "Multi-language", description: "Support for over 30+ languages and dialects." },
