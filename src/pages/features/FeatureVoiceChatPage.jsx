@@ -2,6 +2,7 @@
 import React from 'react';
 import { Mic, Radio, Headphones, Zap } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureVoiceChatPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureVoiceChatPage = () => {
       title="Voice Chat"
       subtitle="Instant Voice Collaboration"
       description="Sometimes typing isn't enough. Jump into crystal-clear voice channels for quick syncs, spontaneous ideas, and social hangouts."
-      heroImage="https://images.unsplash.com/photo-1667635279278-6018adc775b8"
+      heroImage={`${API_URL}/api/static/feature_voicechat.png`}
       benefits={[
         { icon: Zap, title: "Low Latency", description: "Real-time communication with zero lag." },
         { icon: Mic, title: "Crystal Clear", description: "High-fidelity audio ensures every nuance is heard." },

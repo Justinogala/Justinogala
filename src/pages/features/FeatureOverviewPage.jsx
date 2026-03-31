@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { API_URL } from '@/lib/api';
 import {
   Mic, Video, Search, MessageSquare, Users, FileText,
   BarChart, Calendar, LayoutGrid, ArrowRight, Volume2,
@@ -96,7 +97,7 @@ const FeatureOverviewPage = () => {
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative">
                   <div className="absolute inset-0 bg-gradient-to-tr from-violet-600 to-purple-700 rounded-2xl blur-3xl -z-10 opacity-20" />
                   <img
-                    src="https://images.unsplash.com/photo-1703676802787-4130c9fa7f33?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwxfHxwcm9kdWN0aXZpdHklMjBzb2Z0d2FyZSUyMHBsYXRmb3JtJTIwbGFwdG9wJTIwbW9kZXJuJTIwd29ya3NwYWNlfGVufDB8fHx8MTc3NDU2OTIxNnww&ixlib=rb-4.1.0&q=85"
+                    src={`${API_URL}/api/static/feature_search.png`}
                     alt="Munal platform features"
                     className="rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 w-full object-cover aspect-video hover:scale-[1.02] transition-transform duration-500"
                     loading="lazy"

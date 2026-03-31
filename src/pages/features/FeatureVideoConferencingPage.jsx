@@ -2,6 +2,7 @@
 import React from 'react';
 import { Video, Monitor, Users, Shield } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureVideoConferencingPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureVideoConferencingPage = () => {
       title="Video Conferencing"
       subtitle="Crystal Clear Video Calls"
       description="Experience high-definition video meetings designed for collaboration. Connect with your team from anywhere with reliable, secure conferencing."
-      heroImage="https://images.unsplash.com/photo-1588196749597-9ff075ee6b5b"
+      heroImage={`${API_URL}/api/static/feature_videoconf.png`}
       benefits={[
         { icon: Video, title: "HD Quality", description: "Crisp 1080p video and crystal clear audio fidelity." },
         { icon: Monitor, title: "Screen Sharing", description: "Share your screen, window, or specific tab easily." },

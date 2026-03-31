@@ -2,6 +2,7 @@
 import React from 'react';
 import { Search, Filter, Clock, Zap } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
+import { API_URL } from '@/lib/api';
 
 const FeatureSearchPage = () => {
   return (
@@ -9,7 +10,7 @@ const FeatureSearchPage = () => {
       title="Search"
       subtitle="Intelligent Global Search"
       description="Stop digging through folders. Instantly find meetings, transcripts, messages, and files with our powerful, AI-driven search engine."
-      heroImage="https://images.unsplash.com/photo-1675022991860-ad46e3e9c150"
+      heroImage={`${API_URL}/api/static/feature_search.png`}
       benefits={[
         { icon: Search, title: "Full-Text Search", description: "Search deep inside transcript contents, not just titles." },
         { icon: Filter, title: "Advanced Filters", description: "Filter by date, participant, meeting type, and more." },
