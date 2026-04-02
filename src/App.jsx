@@ -1,6 +1,6 @@
 
 import React, { Suspense, lazy, useEffect } from 'react';
-import { Route, Routes, BrowserRouter as Router } from 'react-router-dom';
+import { Route, Routes, BrowserRouter as Router, Navigate } from 'react-router-dom';
 
 // Context Providers
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -88,6 +88,7 @@ const TimeClockReportsPage = lazy(() => import('@/pages/TimeClockReportsPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
 const ESignaturePage = lazy(() => import('@/pages/ESignaturePage'));
 const PDFEditorPage = lazy(() => import('@/pages/PDFEditorPage'));
+const DocHubPage = lazy(() => import('@/pages/DocHubPage'));
 const ApprovalsPage = lazy(() => import('@/pages/ApprovalsPage'));
 const OrgDashboardPage = lazy(() => import('@/pages/OrgDashboardPage'));
 
@@ -411,8 +412,9 @@ function App() {
                                 <Route path="/voice-chat" element={<VoiceChatPage />} />
                                 <Route path="/video-call" element={<VideoCallPage />} />
                                 <Route path="/files" element={<FileManagementPage />} />
-                                <Route path="/esignature" element={<ESignaturePage />} />
-                                <Route path="/pdf-editor" element={<PDFEditorPage />} />
+                                <Route path="/dochub" element={<DocHubPage />} />
+                                <Route path="/esignature" element={<Navigate to="/dochub?tab=esignature" replace />} />
+                                <Route path="/pdf-editor" element={<Navigate to="/dochub?tab=pdf-editor" replace />} />
                                 <Route path="/approvals" element={<ApprovalsPage />} />
                                 <Route path="/org-dashboard" element={<OrgDashboardPage />} />
                                 

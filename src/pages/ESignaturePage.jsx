@@ -530,10 +530,12 @@ const PdfToWordConverter = ({ onBack, userId }) => {
 };
 
 // ============ Main Page ============
-const ESignaturePage = () => {
+const ESignaturePage = ({ embedded }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const Wrapper = embedded ? React.Fragment : PageTransition;
 
   // View mode: 'esignature' or 'wordtopdf'
   const [viewMode, setViewMode] = useState('esignature');
@@ -757,7 +759,7 @@ const ESignaturePage = () => {
   const currentPagePlacements = placements.filter(p => p.page === currentPage - 1);
 
   return (
-    <PageTransition>
+    <Wrapper>
       {viewMode === 'wordtopdf' ? (
         <WordToPdfConverter onBack={() => { setViewMode('esignature'); loadConversionHistory(); }} userId={user?.id} />
       ) : viewMode === 'pdftoword' ? (
@@ -771,7 +773,7 @@ const ESignaturePage = () => {
           </div>
           <div className="flex items-center gap-2">
             <ESignatureTermsOfService />
-            <Button variant="outline" size="sm" onClick={() => navigate('/pdf-editor')} className="border-violet-200 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-950/40" data-testid="pdf-editor-btn">
+            <Button variant="outline" size="sm" onClick={() => navigate('/dochub?tab=pdf-editor')} className="border-violet-200 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-950/40" data-testid="pdf-editor-btn">
               <Pencil className="w-3.5 h-3.5 mr-1.5" /> PDF Editor
             </Button>
             <Button variant="outline" size="sm" onClick={() => setViewMode('wordtopdf')} className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40" data-testid="word-to-pdf-btn">
@@ -1161,7 +1163,7 @@ const ESignaturePage = () => {
         </Tabs>
       </div>
       )}
-    </PageTransition>
+    </Wrapper>
   );
 };
 

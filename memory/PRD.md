@@ -45,6 +45,12 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### DocHub Merge — April 2, 2026
+- Merged eSignature + PDF Editor into a single "DocHub" page with tabbed interface
+- Single sidebar entry replaces two separate items
+- Old routes `/esignature` and `/pdf-editor` redirect to `/dochub` with correct tab
+- Both tools render embedded within DocHub without double PageTransition wrappers
+
 ### Dashboard Footer & Whitespace Fix — April 2, 2026
 - Added beautiful page termination footer to User Dashboard (gradient divider, brand tagline, quick nav links)
 - Fixed excessive whitespace: grid `items-start` + removed `h-full` from MeetingListSection/RecentFilesSection
