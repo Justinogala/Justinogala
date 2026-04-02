@@ -3,70 +3,75 @@
 ## Original Problem Statement
 Build a comprehensive AI-powered meeting companion platform with workspace management, admin dashboards, ICT support tracking, forms module, and real-time chat messaging.
 
-## Recent Changes
-
-### 2FA E2E Testing — March 30, 2026
-- Full end-to-end testing of 2FA feature completed with **100% pass rate** (Iteration 95)
-- Backend: 17/17 API tests passed (TOTP setup, verify, login verify, recovery codes, disable)
-- Frontend: All UI elements verified (TwoFactorSetup, TwoFactorVerify, AdminLoginPage 2FA flow)
-- 2FA remains DISABLED on admin account for easy access
-
-### Two-Factor Authentication (2FA) — March 30, 2026
-- **TOTP + Email OTP + Recovery Codes**: Admin can choose authenticator app, email OTP, or both
-- **Setup flow**: Enable from Admin > Security Policies → choose method → scan QR / get email code → verify → receive 8 recovery codes
-- **Login flow**: Email/password → 2FA prompt (TOTP/Email/Recovery tabs) → verify → access granted
-- **Disable**: Requires valid TOTP or recovery code to disable
-- **Backend**: 6 endpoints under `/api/admin/2fa/` (status, setup, verify-setup, verify, send-email-otp, disable)
-- **Admin email changed**: `admin@munal.com` → `admin@munal.ai`
-
-### AuthContext Consolidation + Data Health Dashboard + 9th Form — March 30, 2026
-- Merged AdminAuthContext into AuthContext.jsx (single provider, dual hooks)
-- Data Health Dashboard at `/admin/data-health`
-- Client Behavior Observation Form (9th healthcare template, 19 fields)
-
-### Onboarding + Landing Page Fix + Demo Video — March 30, 2026
-- 8-step onboarding walkthrough, hero mobile layout fix, Sora 2 demo video
-
 ## Architecture
 ```
 /app/backend/routes/
-├── two_factor.py          # 2FA setup/verify/disable (TOTP + Email OTP)
+├── two_factor.py          # Admin 2FA setup/verify/disable
+├── user_two_factor.py     # User 2FA setup/verify/disable + enforcement check (NEW)
 ├── data_health.py         # Data health stats + cleanup
 ├── audit_logs.py          # Admin audit logging
-├── auth.py                # Login (with 2FA support), register, password reset
-├── users.py               # User CRUD + onboarding
-├── forms.py               # 9 healthcare templates
+├── auth.py                # Login (with 2FA for ALL roles), register, password reset
+├── admin.py               # Admin routes + 2FA enforcement toggle (NEW endpoints)
 
 /app/frontend/src/
-├── components/admin/
-│   ├── TwoFactorSetup.jsx    # 2FA setup UI (QR code, method selection, recovery codes)
-│   └── TwoFactorVerify.jsx   # 2FA login verification (TOTP/Email/Recovery tabs)
-├── context/AuthContext.jsx    # Consolidated auth (user + admin)
-├── pages/AdminLoginPage.jsx   # Updated with 2FA flow
-├── pages/admin/
-│   ├── AdminSecurityPolicies.jsx  # Security settings + TwoFactorSetup
-│   ├── AdminAuditLogsPage.jsx     # Audit log viewer
-│   └── AdminDataHealthPage.jsx    # Data health dashboard
+├── components/
+│   ├── UserTwoFactorSetup.jsx    # NEW - User 2FA setup (Settings > Security)
+│   ├── UserTwoFactorVerify.jsx   # NEW - User 2FA login verification
+│   ├── admin/
+│   │   ├── TwoFactorSetup.jsx    # Admin 2FA setup
+│   │   └── TwoFactorVerify.jsx   # Admin 2FA login verification
+├── context/AuthContext.jsx        # Updated: loginWithSkip2FA function
+├── pages/
+│   ├── LoginPage.jsx              # Updated: 2FA verification step
+│   ├── UserSettingsPage.jsx       # Updated: Security tab with UserTwoFactorSetup
+│   └── admin/AdminSecurityPolicies.jsx  # Updated: org-wide 2FA enforcement toggle
 ```
 
-## Key DB Fields (users collection)
-`two_factor_enabled`, `two_factor_method` (totp/email/both), `totp_secret`, `recovery_codes` (hashed), `email_otp_login`, `onboarding_completed`
+## Recent Changes
+
+### User 2FA for All Roles — April 2, 2026
+- Extended 2FA (TOTP + Email OTP + Recovery Codes) to ALL user roles (Admin, Manager, Member)
+- **Backend**: 7 new endpoints under `/api/user/2fa/` (status, setup, verify-setup, verify, send-email-otp, disable, enforcement)
+- **Admin Enforcement**: Toggle in Security Policies to force all users to enable 2FA (stored in `admin_settings` collection)
+- **Frontend LoginPage**: Now shows `UserTwoFactorVerify` component when `requires_2fa` returned from login
+- **Frontend Settings**: New "Security" tab with `UserTwoFactorSetup` component
+- **AuthContext**: Added `loginWithSkip2FA` function for post-2FA login completion
+- Testing: 100% pass rate (21/21 backend, all frontend verified) — Iteration 96
+
+### Feature Page Image Replacement — March 31, 2026
+- Replaced ALL stock images across 15 feature pages with real app screenshots
+- Screenshots served via `/api/static/{filename}` endpoint
+- Added static file serving endpoint to server.py
+
+### Production Deployment Fix — March 30, 2026
+- Fixed `.gitignore` blocking `.env` files from deployment
+- Added `load_dotenv(override=True)` to ensure Atlas MONGO_URL takes priority over platform-injected URLs
+- Fixed plaintext passwords in Atlas DB with bcrypt hashing
+- Added startup migration to auto-hash plaintext passwords
+
+### Admin Theme Fix — March 30, 2026
+- Fixed Coupons, Tax Rates, Cloud Storage pages from dark to bright theme
+
+## Key DB Schema
+- `users`: `two_factor_enabled`, `two_factor_method` (totp/email/both), `totp_secret`, `recovery_codes` (hashed)
+- `admin_settings`: `{key: "2fa_enforcement", enforced: bool}` — org-wide 2FA enforcement
+- `audit_logs`: System event tracking
+
+## Key API Endpoints
+- User 2FA: `/api/user/2fa/status/{id}`, `/api/user/2fa/setup`, `/api/user/2fa/verify-setup`, `/api/user/2fa/verify`, `/api/user/2fa/disable`
+- Admin Enforcement: `GET/POST /api/admin/2fa-enforcement`
+- Login: `POST /api/auth/login` (returns `requires_2fa` when enabled), `POST /api/auth/login?skip_2fa=true`
 
 ## 3rd Party Integrations
-- Resend (Email Delivery + 2FA OTP), OpenAI GPT-5.2, Whisper, Object Storage, Sora 2
-
-## Dependencies Added
-- `pyotp` (TOTP generation/verification)
-- `qrcode[pil]` (QR code generation for authenticator setup)
+- OpenAI GPT-5.2 (AI Chat), Sora 2 (Video Gen), Resend (Emails/2FA OTP) — all via Emergent LLM Key
 
 ## Test Credentials
-- Super Admin: admin@munal.ai / Admin@123456 (2FA currently DISABLED, can enable from Security Policies)
-- Org Admin: orgadmin@munal.com / OrgAdmin@123
-- Org Manager: orgmgr@munal.com / OrgMgr@123
+- Super Admin: admin@munal.ai / Admin@123456 (2FA disabled)
+- Regular User: justinoo2001@gmail.com / Ogala@2023 (2FA disabled after testing)
 - Org Member: orgmember@munal.com / OrgMem@123
 
 ## Backlog (Prioritized)
-- P2: Refactor `admin.py` (~1800 lines) into smaller domain-specific route files
+- P2: Refactor `admin.py` (~1850 lines) into smaller domain-specific route files
 - P3: Automated weekly Data Health email digest
-- P3: Additional form templates as needed
+- P3: Additional form templates
 - P3: Advanced analytics/reporting
