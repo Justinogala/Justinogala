@@ -190,6 +190,7 @@ from routes.two_factor import router as two_factor_router
 from routes.user_two_factor import router as user_two_factor_router
 from routes.audit_logs import router as audit_logs_router
 from routes.admin_2fa_dashboard import router as admin_2fa_dashboard_router, run_2fa_auto_reminders
+from routes.admin_compliance import router as admin_compliance_router
 from scheduled.data_health_digest import run_data_health_digest
 
 
@@ -269,6 +270,7 @@ api_router.include_router(two_factor_router)
 api_router.include_router(user_two_factor_router)
 api_router.include_router(audit_logs_router)
 api_router.include_router(admin_2fa_dashboard_router)
+api_router.include_router(admin_compliance_router)
 
 
 # ============== Include Main Router ==============

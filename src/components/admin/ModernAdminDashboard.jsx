@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import MetricsCard from '@/components/admin/MetricsCard';
+import ComplianceScoreWidget from '@/components/admin/ComplianceScoreWidget';
 import UserGrowthChart from '@/components/admin/UserGrowthChart';
 import RevenueChart from '@/components/admin/RevenueChart';
 import QuickActionsSection from '@/components/admin/QuickActionsSection';
@@ -65,6 +66,11 @@ const ModernAdminDashboard = () => {
             Overview of your platform performance and system health.
           </p>
         </div>
+      </motion.div>
+
+      {/* Security Compliance Score */}
+      <motion.div variants={item}>
+        <ComplianceScoreWidget />
       </motion.div>
 
       {/* Metrics Row */}
