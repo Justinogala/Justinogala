@@ -13,9 +13,10 @@ import { useAuth } from '@/context/AuthContext';
 import AuthSidebar from '@/components/auth/AuthSidebar';
 import AuthFormContainer from '@/components/auth/AuthFormContainer';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
+import UserTwoFactorVerify from '@/components/UserTwoFactorVerify';
 
 const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, loginWithSkip2FA } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -26,6 +27,10 @@ const LoginPage = () => {
   // Change password modal state
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [tempCredentials, setTempCredentials] = useState({ email: '', password: '' });
+
+  // 2FA state
+  const [show2FA, setShow2FA] = useState(false);
+  const [twoFactorData, setTwoFactorData] = useState(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm();
   
@@ -38,6 +43,19 @@ const LoginPage = () => {
     try {
       const result = await login(data.email, data.password);
       
+      if (result.requires_2fa) {
+        setTwoFactorData({
+          userId: result.user_id,
+          method: result.two_factor_method,
+          email: result.email || data.email,
+          password: data.password,
+          userEmail: result.user?.email || data.email,
+        });
+        setShow2FA(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (result.success) {
         // Check if user must change password
         if (result.user?.must_change_password) {
@@ -59,6 +77,24 @@ const LoginPage = () => {
       setAuthError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handle2FAVerified = async () => {
+    // After 2FA verification, complete the login with skip_2fa
+    const result = await loginWithSkip2FA(twoFactorData.email, twoFactorData.password);
+    if (result.success) {
+      if (result.user?.must_change_password) {
+        setTempCredentials({ email: twoFactorData.email, password: twoFactorData.password });
+        setShow2FA(false);
+        setShowChangePassword(true);
+        return;
+      }
+      toast({ title: "Welcome back!", description: "You have successfully logged in to Munal AI." });
+      navigate(from, { replace: true });
+    } else {
+      setAuthError(result.error || 'Login failed after 2FA');
+      setShow2FA(false);
     }
   };
 
@@ -117,14 +153,24 @@ const LoginPage = () => {
 
       {/* Right Form Section */}
       <AuthFormContainer
-        heading="Sign in"
-        subheading="Welcome back to Munal AI! Please enter your details."
-        footerLink={{
+        heading={show2FA ? "Verify Your Identity" : "Sign in"}
+        subheading={show2FA ? "Enter your two-factor authentication code to continue." : "Welcome back to Munal AI! Please enter your details."}
+        footerLink={show2FA ? null : {
           text: "Don't have an account?",
           linkText: "Sign up",
           onClick: () => navigate('/signup')
         }}
       >
+        {show2FA ? (
+          <UserTwoFactorVerify
+            userId={twoFactorData.userId}
+            method={twoFactorData.method}
+            userEmail={twoFactorData.userEmail}
+            onVerified={handle2FAVerified}
+            onCancel={() => { setShow2FA(false); setTwoFactorData(null); }}
+          />
+        ) : (
+        <>
         {authError && (
           <div className="bg-red-50 text-red-600 border border-red-200 p-4 rounded-xl flex items-start gap-3 text-sm animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -223,6 +269,8 @@ const LoginPage = () => {
             </Button>
           </div>
         </form>
+        </>
+        )}
       </AuthFormContainer>
     </div>
   );

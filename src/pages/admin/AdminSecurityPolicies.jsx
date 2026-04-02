@@ -20,10 +20,45 @@ const AdminSecurityPolicies = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [enforce2FA, setEnforce2FA] = useState(false);
+  const [enforcementLoading, setEnforcementLoading] = useState(false);
 
   useEffect(() => {
     fetchPolicies();
+    fetch2FAEnforcement();
   }, []);
+
+  const fetch2FAEnforcement = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/2fa-enforcement`);
+      if (res.ok) {
+        const data = await res.json();
+        setEnforce2FA(data.enforced);
+      }
+    } catch (err) {
+      console.error('Failed to fetch 2FA enforcement:', err);
+    }
+  };
+
+  const toggleEnforce2FA = async (checked) => {
+    setEnforcementLoading(true);
+    try {
+      const adminData = JSON.parse(localStorage.getItem('munal_admin_auth') || '{}');
+      const res = await fetch(`${API_URL}/api/admin/2fa-enforcement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminData.token}` },
+        body: JSON.stringify({ enforce: checked }),
+      });
+      if (res.ok) {
+        setEnforce2FA(checked);
+        toast({ title: checked ? '2FA Enforced' : '2FA Enforcement Disabled', description: checked ? 'All users will be required to enable 2FA.' : 'Users can now optionally use 2FA.' });
+      }
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Failed to update enforcement' });
+    } finally {
+      setEnforcementLoading(false);
+    }
+  };
 
   const fetchPolicies = async () => {
     try {
@@ -310,6 +345,37 @@ const AdminSecurityPolicies = () => {
               <div className="text-xs text-slate-500">Max Meeting Duration</div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* 2FA Enforcement for All Users */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-orange-500" />
+            <CardTitle>Organization-Wide 2FA</CardTitle>
+          </div>
+          <CardDescription>Require all users (Admin, Manager, Member) to enable two-factor authentication</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div>
+              <div className="font-medium text-gray-900 dark:text-white">Enforce 2FA for all users</div>
+              <p className="text-sm text-gray-500 mt-0.5">When enabled, all users must set up 2FA. They cannot disable it.</p>
+            </div>
+            <Switch
+              data-testid="enforce-2fa-toggle"
+              checked={enforce2FA}
+              onCheckedChange={toggleEnforce2FA}
+              disabled={enforcementLoading}
+            />
+          </div>
+          {enforce2FA && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              Users who haven't enabled 2FA will see a prompt in their Settings page.
+            </div>
+          )}
         </CardContent>
       </Card>
 

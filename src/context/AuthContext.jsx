@@ -154,6 +154,19 @@ export const AuthProvider = ({ children }) => {
       const data = await safeParseJSON(response);
       if (!response.ok) throw new Error(data.detail || "Invalid email or password");
 
+      // Handle 2FA requirement
+      if (data.requires_2fa) {
+        return {
+          success: false,
+          requires_2fa: true,
+          two_factor_method: data.two_factor_method,
+          user_id: data.user_id,
+          user: data.user,
+          email,
+          password,
+        };
+      }
+
       const foundUser = data.user;
       const session = { userId: foundUser.id, token: data.token, createdAt: new Date().toISOString() };
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
@@ -167,6 +180,32 @@ export const AuthProvider = ({ children }) => {
       const msg = err.message || 'Login failed. Please try again.';
       setError(msg);
       return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithSkip2FA = async (email, password) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/api/auth/login?skip_2fa=true`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await safeParseJSON(response);
+      if (!response.ok) throw new Error(data.detail || "Login failed");
+      const foundUser = data.user;
+      const session = { userId: foundUser.id, token: data.token, createdAt: new Date().toISOString() };
+      localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
+      localStorage.setItem(AUTH_KEY, JSON.stringify(foundUser));
+      if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+      localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+      setUser(foundUser);
+      setIsAuthenticated(true);
+      return { success: true, user: foundUser };
+    } catch (err) {
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
@@ -415,7 +454,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     // User auth
     user, setUser, isAuthenticated, setIsAuthenticated, loading, error,
-    login, signup, logout: userLogout, resetPassword, updateProfile,
+    login, loginWithSkip2FA, signup, logout: userLogout, resetPassword, updateProfile,
     sendOTP, verifyOTP, updatePassword,
     // Admin auth
     adminUser, isAdminAuthenticated, adminLoading, adminError,

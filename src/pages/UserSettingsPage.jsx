@@ -3,16 +3,19 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Bell, Shield, AlertTriangle, Music } from 'lucide-react';
+import { User, Bell, Shield, AlertTriangle, Music, Lock } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import AccountSettingsSection from '@/components/settings/AccountSettingsSection';
 import NotificationsSettingsSection from '@/components/settings/NotificationsSettingsSection';
 import PrivacySettingsSection from '@/components/settings/PrivacySettingsSection';
 import DangerZoneSection from '@/components/settings/DangerZoneSection';
 import CallRingtoneSettings from '@/components/video/CallRingtoneSettings';
+import UserTwoFactorSetup from '@/components/UserTwoFactorSetup';
+import { useAuth } from '@/context/AuthContext';
 
 const UserSettingsPage = () => {
   const [activeTab, setActiveTab] = useState("account");
+  const { user } = useAuth();
 
   const tabVariants = {
     hidden: { opacity: 0, y: 10 },
@@ -64,6 +67,13 @@ const UserSettingsPage = () => {
                 Privacy
               </TabsTrigger>
               <TabsTrigger 
+                value="security"
+                className="data-[state=active]:bg-violet-100 dark:data-[state=active]:bg-violet-900/30 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 rounded-lg px-4 py-2 transition-all hover:text-violet-600"
+              >
+                <Lock className="w-4 h-4 mr-2 hidden sm:inline" />
+                Security
+              </TabsTrigger>
+              <TabsTrigger 
                 value="danger"
                 className="data-[state=active]:bg-red-50 dark:data-[state=active]:bg-red-950/20 data-[state=active]:text-red-600 hover:text-red-500 transition-all rounded-lg px-4 py-2"
               >
@@ -93,6 +103,10 @@ const UserSettingsPage = () => {
 
               <TabsContent value="privacy" className="mt-0 focus-visible:outline-none">
                 <PrivacySettingsSection />
+              </TabsContent>
+
+              <TabsContent value="security" className="mt-0 focus-visible:outline-none">
+                <UserTwoFactorSetup user={user} />
               </TabsContent>
 
               <TabsContent value="danger" className="mt-0 focus-visible:outline-none">
