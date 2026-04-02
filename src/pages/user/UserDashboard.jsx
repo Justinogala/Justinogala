@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Plus, FileText, Shield, Zap, Lock,
+  Users, Plus, FileText, Zap,
   ArrowUpRight, Sparkles, Calendar, Video, Mic,
   MessageSquare, ChevronRight, Crown, PenTool, BarChart3,
   Briefcase, ArrowRight, Bell, CheckCircle2, Clock
@@ -320,45 +320,6 @@ const UserDashboard = () => {
           <motion.div variants={item} className="lg:col-span-4 space-y-4">
             <TranscriptionWidget />
             <UserPaymentDashboardWidget />
-
-            {/* Security Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800" data-testid="security-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
-                  <Shield className="w-4 h-4 text-emerald-500" />
-                  Security
-                </h3>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold uppercase">
-                  Secure
-                </span>
-              </div>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 group hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" onClick={() => navigate('/profile')} data-testid="security-password-link">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm">
-                      <Lock className="w-3.5 h-3.5 text-gray-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Password</p>
-                      <p className="text-[11px] text-gray-400">Changed 30d ago</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 group hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" onClick={() => navigate('/profile')} data-testid="security-2fa-link">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm">
-                      <Shield className="w-3.5 h-3.5 text-gray-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-200">2FA Auth</p>
-                      <p className="text-[11px] text-amber-600">Not enabled</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium text-violet-600 dark:text-violet-400">Enable</span>
-                </div>
-              </div>
-            </div>
 
             <APIStatus />
           </motion.div>
