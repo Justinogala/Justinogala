@@ -44,6 +44,15 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Compliance Score Trend Tracking — April 2, 2026
+- **Backend**: `compliance_snapshots` collection stores weekly score snapshots
+  - `GET /api/admin/compliance-score/history` returns last 12 weeks, trend direction/change
+  - `POST /api/admin/compliance-score/snapshot` for manual snapshots
+  - APScheduler auto-captures snapshot every Monday 10:30 AM UTC
+  - Auto-seeds initial snapshot on first `/compliance-score` call
+- **Frontend**: Sparkline SVG chart with area fill, interactive dots with tooltips (score + date), trend badge (up/down/flat), manual Snapshot button
+- Testing: 100% (14/14 backend, all frontend verified) — Iteration 100
+
 ### Compliance Score Widget — April 2, 2026
 - **Backend**: `GET /api/admin/compliance-score` computes real-time security health score (0-100)
   - 2FA Adoption (40% weight), Password Strength (30%), Login Anomaly (30%)
@@ -77,11 +86,12 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Key DB Schema
 - `users`: `two_factor_enabled`, `two_factor_method`, `totp_secret`, `recovery_codes`
+- `compliance_snapshots`: Weekly security score snapshots `{score, grade, breakdown, taken_at}`
 - `admin_settings`: `{key: "2fa_enforcement"}`, `{key: "2fa_auto_reminder", enabled, last_run, last_result}`
 - `audit_logs`: System event tracking
 
 ## Key API Endpoints
-- Compliance Score: `GET /api/admin/compliance-score`
+- Compliance Score: `GET /api/admin/compliance-score`, `GET /compliance-score/history`, `POST /compliance-score/snapshot`
 - 2FA Dashboard: `GET /api/admin/2fa-dashboard/stats`, `POST /send-reminders`, `POST /auto-reminder`
 - User 2FA: `/api/user/2fa/status/{id}`, `/setup`, `/verify-setup`, `/verify`, `/disable`
 - Admin Enforcement: `GET/POST /api/admin/2fa-enforcement`
