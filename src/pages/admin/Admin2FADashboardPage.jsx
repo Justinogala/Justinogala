@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Shield, ShieldCheck, ShieldAlert, Users, Send, Loader2,
-  RefreshCw, CheckCircle2, AlertTriangle, Lock, Mail
+  RefreshCw, CheckCircle2, AlertTriangle, Lock, Mail, Clock, Bell
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { API_URL } from '@/lib/api';
@@ -26,6 +28,7 @@ const Admin2FADashboardPage = () => {
   const [sending, setSending] = useState(false);
   const [selected, setSelected] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [togglingAuto, setTogglingAuto] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,6 +85,32 @@ const Admin2FADashboardPage = () => {
     }
   };
 
+  const toggleAutoReminder = async (checked) => {
+    setTogglingAuto(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/2fa-dashboard/auto-reminder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: checked }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setStats(prev => ({
+        ...prev,
+        auto_reminder: { ...prev.auto_reminder, enabled: checked },
+      }));
+      toast({
+        title: checked ? 'Auto-Reminder Enabled' : 'Auto-Reminder Disabled',
+        description: checked
+          ? 'Non-compliant users will receive weekly 2FA reminders automatically.'
+          : 'Weekly auto-reminders have been turned off.',
+      });
+    } catch {
+      toast({ variant: 'destructive', title: 'Failed to update auto-reminder' });
+    } finally {
+      setTogglingAuto(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]" data-testid="2fa-dashboard-loading">
@@ -92,7 +121,7 @@ const Admin2FADashboardPage = () => {
 
   if (!stats) return null;
 
-  const { total_users, total_enabled, total_disabled, adoption_rate, by_role, enforced, non_2fa_users } = stats;
+  const { total_users, total_enabled, total_disabled, adoption_rate, by_role, enforced, non_2fa_users, auto_reminder } = stats;
 
   return (
     <div className="space-y-6 p-1" data-testid="2fa-dashboard">
@@ -175,6 +204,45 @@ const Admin2FADashboardPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Auto-Reminder Card */}
+      <Card className="border-border" data-testid="auto-reminder-card">
+        <CardContent className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center">
+                <Bell className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-text-primary">Weekly Auto-Reminder</h3>
+                <p className="text-xs text-text-secondary">
+                  Automatically email non-compliant users every Monday at 10 AM UTC.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {auto_reminder?.last_run && (
+                <span className="text-xs text-text-secondary flex items-center gap-1" data-testid="auto-reminder-last-run">
+                  <Clock className="w-3 h-3" />
+                  Last run: {new Date(auto_reminder.last_run).toLocaleString()}
+                </span>
+              )}
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="auto-reminder-toggle"
+                  checked={auto_reminder?.enabled || false}
+                  onCheckedChange={toggleAutoReminder}
+                  disabled={togglingAuto}
+                  data-testid="auto-reminder-toggle"
+                />
+                <Label htmlFor="auto-reminder-toggle" className="text-sm font-medium">
+                  {auto_reminder?.enabled ? 'On' : 'Off'}
+                </Label>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* By-Role Breakdown */}
       <Card className="border-border" data-testid="role-breakdown">
