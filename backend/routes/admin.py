@@ -1817,3 +1817,35 @@ async def delete_broadcast(broadcast_id: str):
     except Exception as e:
         logger.error(f"Error deleting broadcast: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ── 2FA Enforcement ──
+
+@router.get("/2fa-enforcement")
+async def get_2fa_enforcement():
+    """Get org-wide 2FA enforcement setting"""
+    settings = await db.admin_settings.find_one({"key": "2fa_enforcement"}, {"_id": 0})
+    return {"enforced": settings.get("enforced", False) if settings else False}
+
+
+@router.post("/2fa-enforcement")
+async def set_2fa_enforcement(request: Request):
+    """Toggle org-wide 2FA enforcement"""
+    body = await request.json()
+    enforce = bool(body.get("enforce", False))
+    
+    await db.admin_settings.update_one(
+        {"key": "2fa_enforcement"},
+        {"$set": {"key": "2fa_enforcement", "enforced": enforce, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    
+    from services.audit import log_audit_event
+    await log_audit_event(
+        action="2fa_enforcement_changed", category="2fa", severity="warning",
+        details={"enforced": enforce},
+    )
+    
+    logger.info(f"2FA enforcement set to: {enforce}")
+    return {"success": True, "enforced": enforce}
