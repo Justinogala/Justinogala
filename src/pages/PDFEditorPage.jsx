@@ -67,11 +67,13 @@ const MiniSignaturePad = ({ onSave, onClose }) => {
 };
 
 // ── Main PDF Editor Page ──
-const PDFEditorPage = () => {
+const PDFEditorPage = ({ embedded }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const userId = user?.id || user?.user_id || '';
+
+  const Wrapper = embedded ? React.Fragment : PageTransition;
 
   // Document state
   const [docId, setDocId] = useState(null);
@@ -424,13 +426,15 @@ const PDFEditorPage = () => {
   // ── No document loaded ──
   if (!pdfUrl) {
     return (
-      <PageTransition>
+      <Wrapper>
         <div className="max-w-5xl mx-auto p-6 space-y-6" data-testid="pdf-editor-empty">
-          <div className="flex items-center gap-3 mb-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/esignature')} data-testid="back-to-esignature">
-              <ArrowLeft className="w-4 h-4 mr-1" /> eSignature
-            </Button>
-          </div>
+          {!embedded && (
+            <div className="flex items-center gap-3 mb-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dochub')} data-testid="back-to-dochub">
+                <ArrowLeft className="w-4 h-4 mr-1" /> DocHub
+              </Button>
+            </div>
+          )}
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2">
               <FileText className="w-6 h-6 text-violet-600" /> PDF Editor
@@ -566,7 +570,7 @@ const PDFEditorPage = () => {
             </div>
           )}
         </div>
-      </PageTransition>
+      </Wrapper>
     );
   }
 

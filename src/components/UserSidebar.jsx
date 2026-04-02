@@ -50,8 +50,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: MessageSquare, label: 'Chat', path: '/workspace/chat', gradient: 'from-pink-500 to-rose-500' },
     { icon: MessageSquare, label: 'Messages', path: '/messages', gradient: 'from-sky-500 to-blue-500' },
     { icon: HardDrive, label: 'Files', path: '/files', gradient: 'from-slate-500 to-gray-500' },
-    { icon: PenLine, label: 'eSignature', path: '/esignature', badge: 'NEW', gradient: 'from-emerald-500 to-teal-500' },
-    { icon: FileText, label: 'PDF Editor', path: '/pdf-editor', gradient: 'from-violet-500 to-purple-500' },
+    { icon: PenLine, label: 'DocHub', path: '/dochub', badge: 'NEW', gradient: 'from-emerald-500 to-teal-500' },
     { icon: FileCheck2, label: 'Approvals', path: '/approvals', badge: 'NEW', gradient: 'from-violet-500 to-indigo-500' },
     { icon: FileWarning, label: 'IR / SOR Reports', path: '/reports', badge: 'NEW', gradient: 'from-red-500 to-orange-500' },
   ];
