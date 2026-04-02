@@ -1,0 +1,411 @@
+"""
+PDF Template Generation — creates professional pre-filled PDF templates
+using PyMuPDF (fitz). Each template is a multi-page document with
+proper formatting, headers, sections, and placeholder fields.
+"""
+import fitz  # PyMuPDF
+import io
+from datetime import datetime
+
+
+TEMPLATES = {
+    "nda": {
+        "id": "nda",
+        "name": "Non-Disclosure Agreement",
+        "description": "Standard NDA for protecting confidential information between two parties.",
+        "category": "Legal",
+        "icon": "shield",
+        "fields": ["party_a", "party_b", "effective_date", "confidential_info"],
+    },
+    "employment_contract": {
+        "id": "employment_contract",
+        "name": "Employment Contract",
+        "description": "Formal employment agreement covering position, compensation, and terms.",
+        "category": "HR",
+        "icon": "briefcase",
+        "fields": ["employer", "employee", "position", "salary", "start_date"],
+    },
+    "freelance_agreement": {
+        "id": "freelance_agreement",
+        "name": "Freelance Agreement",
+        "description": "Independent contractor agreement for freelance project work.",
+        "category": "Business",
+        "icon": "pen-tool",
+        "fields": ["client", "freelancer", "project_scope", "payment_terms", "deadline"],
+    },
+    "invoice": {
+        "id": "invoice",
+        "name": "Invoice",
+        "description": "Professional invoice template with itemized billing and payment details.",
+        "category": "Finance",
+        "icon": "receipt",
+        "fields": ["company", "client", "invoice_number", "items", "due_date"],
+    },
+    "service_agreement": {
+        "id": "service_agreement",
+        "name": "Service Agreement",
+        "description": "Agreement for ongoing professional services between provider and client.",
+        "category": "Business",
+        "icon": "handshake",
+        "fields": ["provider", "client", "services", "duration", "fees"],
+    },
+    "lease_agreement": {
+        "id": "lease_agreement",
+        "name": "Lease Agreement",
+        "description": "Residential or commercial property lease with terms and conditions.",
+        "category": "Real Estate",
+        "icon": "home",
+        "fields": ["landlord", "tenant", "property_address", "rent", "lease_period"],
+    },
+}
+
+
+PURPLE = (0.4, 0.2, 0.6)
+
+
+def _header(page, w, title, subtitle=None):
+    """Draw a styled header bar."""
+    rect = fitz.Rect(0, 0, w, 70)
+    page.draw_rect(rect, color=None, fill=PURPLE)
+    page.insert_text(fitz.Point(50, 45), title, fontsize=22, fontname="helv", color=(1, 1, 1))
+    if subtitle:
+        page.insert_text(fitz.Point(50, 62), subtitle, fontsize=9, fontname="helv", color=(0.85, 0.85, 0.95))
+
+
+def _section(page, y, w, title):
+    """Draw a section heading with underline."""
+    page.insert_text(fitz.Point(50, y), title, fontsize=12, fontname="helv", color=PURPLE)
+    page.draw_line(fitz.Point(50, y + 4), fitz.Point(w - 50, y + 4), color=(0.8, 0.75, 0.9), width=0.5)
+    return y + 20
+
+
+def _field(page, y, label, placeholder="____________________________"):
+    """Draw a labeled field with placeholder."""
+    page.insert_text(fitz.Point(50, y), f"{label}:", fontsize=10, fontname="helv", color=(0.3, 0.3, 0.3))
+    page.insert_text(fitz.Point(200, y), placeholder, fontsize=10, fontname="helv", color=(0.6, 0.6, 0.6))
+    return y + 22
+
+
+def _paragraph(page, y, w, text, fontsize=9.5):
+    """Insert a wrapped paragraph of text."""
+    max_w = w - 100
+    words = text.split()
+    line = ""
+    for word in words:
+        test = f"{line} {word}".strip()
+        # Approximate char width
+        if len(test) * fontsize * 0.5 > max_w:
+            page.insert_text(fitz.Point(50, y), line, fontsize=fontsize, fontname="helv", color=(0.2, 0.2, 0.2))
+            y += fontsize + 4
+            line = word
+        else:
+            line = test
+    if line:
+        page.insert_text(fitz.Point(50, y), line, fontsize=fontsize, fontname="helv", color=(0.2, 0.2, 0.2))
+        y += fontsize + 4
+    return y + 6
+
+
+def _signature_block(page, y, label_left, label_right, w):
+    """Draw dual signature blocks."""
+    mid = w / 2
+    page.draw_line(fitz.Point(50, y), fitz.Point(mid - 30, y), color=(0.4, 0.4, 0.4), width=0.5)
+    page.draw_line(fitz.Point(mid + 30, y), fitz.Point(w - 50, y), color=(0.4, 0.4, 0.4), width=0.5)
+    page.insert_text(fitz.Point(50, y + 14), label_left, fontsize=9, fontname="helv", color=(0.4, 0.4, 0.4))
+    page.insert_text(fitz.Point(mid + 30, y + 14), label_right, fontsize=9, fontname="helv", color=(0.4, 0.4, 0.4))
+    page.insert_text(fitz.Point(50, y + 30), "Date: ________________", fontsize=8, fontname="helv", color=(0.5, 0.5, 0.5))
+    page.insert_text(fitz.Point(mid + 30, y + 30), "Date: ________________", fontsize=8, fontname="helv", color=(0.5, 0.5, 0.5))
+    return y + 50
+
+
+def _footer(page, w, h, text="Generated by Munal AI"):
+    page.draw_line(fitz.Point(50, h - 40), fitz.Point(w - 50, h - 40), color=(0.85, 0.85, 0.85), width=0.3)
+    page.insert_text(fitz.Point(50, h - 25), text, fontsize=7, fontname="helv", color=(0.6, 0.6, 0.6))
+    page.insert_text(fitz.Point(w - 150, h - 25), f"Page 1", fontsize=7, fontname="helv", color=(0.6, 0.6, 0.6))
+
+
+def generate_nda(fields: dict) -> bytes:
+    doc = fitz.open()
+    page = doc.new_page(width=612, height=792)
+    w, h = 612, 792
+    _header(page, w, "NON-DISCLOSURE AGREEMENT", "Confidentiality & Non-Disclosure")
+
+    y = 100
+    y = _section(page, y, w, "Parties")
+    y = _field(page, y, "Disclosing Party", fields.get("party_a", "[Party A Name]"))
+    y = _field(page, y, "Receiving Party", fields.get("party_b", "[Party B Name]"))
+    y = _field(page, y, "Effective Date", fields.get("effective_date", "[Date]"))
+    y += 10
+
+    y = _section(page, y, w, "Recitals")
+    y = _paragraph(page, y, w, "WHEREAS, the Disclosing Party possesses certain confidential and proprietary information relating to its business operations, technology, products, and services; and WHEREAS, the Receiving Party desires to receive certain confidential information for the purpose of evaluating a potential business relationship;")
+    y = _paragraph(page, y, w, "NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, the parties agree as follows:")
+    y += 5
+
+    y = _section(page, y, w, "1. Definition of Confidential Information")
+    y = _paragraph(page, y, w, f"\"Confidential Information\" shall mean all information disclosed by the Disclosing Party to the Receiving Party, including but not limited to: {fields.get('confidential_info', '[Description of confidential information]')}. This includes all technical data, trade secrets, business plans, financial information, customer lists, and any other proprietary information.")
+    y += 5
+
+    y = _section(page, y, w, "2. Obligations of Receiving Party")
+    y = _paragraph(page, y, w, "The Receiving Party agrees to: (a) hold the Confidential Information in strict confidence; (b) not disclose any Confidential Information to any third party without prior written consent; (c) use the Confidential Information solely for the purpose stated herein; (d) protect the Confidential Information using the same degree of care it uses to protect its own confidential information, but in no event less than reasonable care.")
+    y += 5
+
+    y = _section(page, y, w, "3. Term and Duration")
+    y = _paragraph(page, y, w, "This Agreement shall remain in effect for a period of two (2) years from the Effective Date, unless terminated earlier by either party with thirty (30) days written notice. The obligations of confidentiality shall survive termination for an additional period of three (3) years.")
+    y += 5
+
+    y = _section(page, y, w, "4. Return of Information")
+    y = _paragraph(page, y, w, "Upon termination of this Agreement or upon request of the Disclosing Party, the Receiving Party shall promptly return or destroy all copies of the Confidential Information and provide written certification of such return or destruction.")
+    y += 15
+
+    y = _section(page, y, w, "Signatures")
+    y = _signature_block(page, y + 10, "Disclosing Party Signature", "Receiving Party Signature", w)
+
+    _footer(page, w, h)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def generate_employment_contract(fields: dict) -> bytes:
+    doc = fitz.open()
+    page = doc.new_page(width=612, height=792)
+    w, h = 612, 792
+    _header(page, w, "EMPLOYMENT CONTRACT", "Employment Agreement")
+
+    y = 100
+    y = _section(page, y, w, "Parties")
+    y = _field(page, y, "Employer", fields.get("employer", "[Company Name]"))
+    y = _field(page, y, "Employee", fields.get("employee", "[Employee Full Name]"))
+    y = _field(page, y, "Position/Title", fields.get("position", "[Job Title]"))
+    y = _field(page, y, "Start Date", fields.get("start_date", "[Start Date]"))
+    y += 10
+
+    y = _section(page, y, w, "1. Position and Duties")
+    y = _paragraph(page, y, w, f"The Employer hereby employs the Employee as {fields.get('position', '[Job Title]')}. The Employee shall perform all duties and responsibilities associated with this position, as well as any additional duties reasonably assigned by the Employer. The Employee shall devote their full professional time, attention, and energy to the performance of their duties.")
+    y += 5
+
+    y = _section(page, y, w, "2. Compensation")
+    y = _paragraph(page, y, w, f"The Employee shall receive an annual salary of {fields.get('salary', '[Amount]')}, payable in accordance with the Employer's standard payroll schedule, subject to applicable deductions and withholdings. The Employer may, at its discretion, provide additional benefits including health insurance, retirement contributions, and performance bonuses.")
+    y += 5
+
+    y = _section(page, y, w, "3. Employment Term")
+    y = _paragraph(page, y, w, "This employment is at-will, meaning either party may terminate the employment relationship at any time, with or without cause, upon providing fourteen (14) days written notice. The Employer reserves the right to terminate employment immediately for cause, including but not limited to misconduct, breach of company policy, or failure to perform duties.")
+    y += 5
+
+    y = _section(page, y, w, "4. Confidentiality")
+    y = _paragraph(page, y, w, "The Employee agrees to maintain the confidentiality of all proprietary information, trade secrets, client data, and business strategies of the Employer, both during and after the term of employment. Violation of this provision may result in immediate termination and legal action.")
+    y += 5
+
+    y = _section(page, y, w, "5. Benefits and Leave")
+    y = _paragraph(page, y, w, "The Employee shall be entitled to standard company benefits as outlined in the Employee Handbook, including paid time off, sick leave, and holidays. Benefits are subject to the terms and conditions of the applicable benefit plans and may be modified by the Employer from time to time.")
+    y += 15
+
+    y = _section(page, y, w, "Signatures")
+    y = _signature_block(page, y + 10, "Employer Signature", "Employee Signature", w)
+
+    _footer(page, w, h)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def generate_freelance_agreement(fields: dict) -> bytes:
+    doc = fitz.open()
+    page = doc.new_page(width=612, height=792)
+    w, h = 612, 792
+    _header(page, w, "FREELANCE AGREEMENT", "Independent Contractor Agreement")
+
+    y = 100
+    y = _section(page, y, w, "Parties")
+    y = _field(page, y, "Client", fields.get("client", "[Client Name]"))
+    y = _field(page, y, "Freelancer", fields.get("freelancer", "[Freelancer Name]"))
+    y = _field(page, y, "Project Deadline", fields.get("deadline", "[Deadline Date]"))
+    y += 10
+
+    y = _section(page, y, w, "1. Scope of Work")
+    y = _paragraph(page, y, w, f"The Freelancer agrees to provide the following services: {fields.get('project_scope', '[Detailed description of project deliverables and milestones]')}. The Freelancer shall complete all work in a professional and timely manner, meeting the quality standards agreed upon by both parties.")
+    y += 5
+
+    y = _section(page, y, w, "2. Payment Terms")
+    y = _paragraph(page, y, w, f"The Client agrees to compensate the Freelancer as follows: {fields.get('payment_terms', '[Payment amount, schedule, and method]')}. Payment shall be made within thirty (30) days of invoice receipt. Late payments shall accrue interest at a rate of 1.5% per month.")
+    y += 5
+
+    y = _section(page, y, w, "3. Intellectual Property")
+    y = _paragraph(page, y, w, "Upon full payment, all intellectual property rights in the deliverables shall transfer to the Client. The Freelancer retains the right to display the work in their portfolio. The Freelancer warrants that all work is original and does not infringe upon any third-party rights.")
+    y += 5
+
+    y = _section(page, y, w, "4. Independent Contractor Status")
+    y = _paragraph(page, y, w, "The Freelancer is an independent contractor and not an employee of the Client. The Freelancer shall be responsible for their own taxes, insurance, and work equipment. Neither party has the authority to bind the other in any way.")
+    y += 5
+
+    y = _section(page, y, w, "5. Termination")
+    y = _paragraph(page, y, w, "Either party may terminate this agreement with seven (7) days written notice. In the event of termination, the Client shall pay for all work completed up to the date of termination. The Freelancer shall deliver all completed work upon termination.")
+    y += 15
+
+    y = _section(page, y, w, "Signatures")
+    y = _signature_block(page, y + 10, "Client Signature", "Freelancer Signature", w)
+
+    _footer(page, w, h)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def generate_invoice(fields: dict) -> bytes:
+    doc = fitz.open()
+    page = doc.new_page(width=612, height=792)
+    w, h = 612, 792
+    _header(page, w, "INVOICE", f"Invoice #{fields.get('invoice_number', 'INV-0001')}")
+
+    y = 100
+    # Two-column info
+    y = _section(page, y, w, "From")
+    y = _field(page, y, "Company", fields.get("company", "[Your Company Name]"))
+    y += 5
+    y = _section(page, y, w, "Bill To")
+    y = _field(page, y, "Client", fields.get("client", "[Client Name]"))
+    y = _field(page, y, "Invoice Number", fields.get("invoice_number", "INV-0001"))
+    y = _field(page, y, "Due Date", fields.get("due_date", "[Due Date]"))
+    y += 15
+
+    # Items table header
+    y = _section(page, y, w, "Items")
+    page.draw_rect(fitz.Rect(50, y - 5, w - 50, y + 15), color=None, fill=(0.95, 0.93, 0.98))
+    page.insert_text(fitz.Point(55, y + 10), "Description", fontsize=9, fontname="helv", color=(0.3, 0.3, 0.3))
+    page.insert_text(fitz.Point(320, y + 10), "Qty", fontsize=9, fontname="helv", color=(0.3, 0.3, 0.3))
+    page.insert_text(fitz.Point(380, y + 10), "Unit Price", fontsize=9, fontname="helv", color=(0.3, 0.3, 0.3))
+    page.insert_text(fitz.Point(480, y + 10), "Amount", fontsize=9, fontname="helv", color=(0.3, 0.3, 0.3))
+    y += 25
+
+    items = fields.get("items", [
+        {"description": "[Item/Service Description]", "qty": "1", "price": "$0.00", "amount": "$0.00"},
+        {"description": "[Item/Service Description]", "qty": "1", "price": "$0.00", "amount": "$0.00"},
+        {"description": "[Item/Service Description]", "qty": "1", "price": "$0.00", "amount": "$0.00"},
+    ])
+    for item in items:
+        page.insert_text(fitz.Point(55, y), str(item.get("description", "")), fontsize=9, fontname="helv", color=(0.2, 0.2, 0.2))
+        page.insert_text(fitz.Point(325, y), str(item.get("qty", "1")), fontsize=9, fontname="helv", color=(0.2, 0.2, 0.2))
+        page.insert_text(fitz.Point(385, y), str(item.get("price", "$0.00")), fontsize=9, fontname="helv", color=(0.2, 0.2, 0.2))
+        page.insert_text(fitz.Point(485, y), str(item.get("amount", "$0.00")), fontsize=9, fontname="helv", color=(0.2, 0.2, 0.2))
+        page.draw_line(fitz.Point(50, y + 5), fitz.Point(w - 50, y + 5), color=(0.9, 0.9, 0.9), width=0.3)
+        y += 20
+
+    # Totals
+    y += 10
+    page.draw_line(fitz.Point(380, y), fitz.Point(w - 50, y), color=(0.4, 0.4, 0.4), width=0.5)
+    y += 16
+    page.insert_text(fitz.Point(385, y), "Subtotal:", fontsize=10, fontname="helv", color=(0.3, 0.3, 0.3))
+    page.insert_text(fitz.Point(485, y), "$0.00", fontsize=10, fontname="helv", color=(0.2, 0.2, 0.2))
+    y += 18
+    page.insert_text(fitz.Point(385, y), "Tax:", fontsize=10, fontname="helv", color=(0.3, 0.3, 0.3))
+    page.insert_text(fitz.Point(485, y), "$0.00", fontsize=10, fontname="helv", color=(0.2, 0.2, 0.2))
+    y += 20
+    page.draw_rect(fitz.Rect(380, y - 5, w - 50, y + 15), color=None, fill=(0.95, 0.93, 0.98))
+    page.insert_text(fitz.Point(385, y + 10), "TOTAL:", fontsize=11, fontname="helv", color=PURPLE)
+    page.insert_text(fitz.Point(485, y + 10), "$0.00", fontsize=11, fontname="helv", color=PURPLE)
+    y += 40
+
+    y = _section(page, y, w, "Payment Instructions")
+    y = _paragraph(page, y, w, "Please make payment via bank transfer or check. Payment is due within 30 days of invoice date. Please include the invoice number as reference. Late payments may be subject to a 1.5% monthly finance charge.")
+
+    _footer(page, w, h)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def generate_service_agreement(fields: dict) -> bytes:
+    doc = fitz.open()
+    page = doc.new_page(width=612, height=792)
+    w, h = 612, 792
+    _header(page, w, "SERVICE AGREEMENT", "Professional Services Contract")
+
+    y = 100
+    y = _section(page, y, w, "Parties")
+    y = _field(page, y, "Service Provider", fields.get("provider", "[Provider Name]"))
+    y = _field(page, y, "Client", fields.get("client", "[Client Name]"))
+    y = _field(page, y, "Duration", fields.get("duration", "[Contract Duration]"))
+    y += 10
+
+    y = _section(page, y, w, "1. Services")
+    y = _paragraph(page, y, w, f"The Service Provider agrees to provide the following services: {fields.get('services', '[Detailed description of services to be provided]')}. Services shall be performed in a professional and workmanlike manner consistent with industry standards.")
+    y += 5
+
+    y = _section(page, y, w, "2. Fees and Payment")
+    y = _paragraph(page, y, w, f"The Client agrees to pay the Service Provider: {fields.get('fees', '[Fee structure and payment schedule]')}. All fees are exclusive of applicable taxes. Invoices shall be issued monthly and are payable within thirty (30) days of receipt.")
+    y += 5
+
+    y = _section(page, y, w, "3. Term and Termination")
+    y = _paragraph(page, y, w, "This Agreement shall commence on the date of execution and continue for the duration specified above, unless terminated earlier. Either party may terminate this Agreement with thirty (30) days written notice. Upon termination, the Client shall pay for all services rendered up to the termination date.")
+    y += 5
+
+    y = _section(page, y, w, "4. Limitation of Liability")
+    y = _paragraph(page, y, w, "The Service Provider's total liability under this Agreement shall not exceed the total fees paid by the Client in the twelve (12) months preceding the claim. Neither party shall be liable for indirect, incidental, special, consequential, or punitive damages.")
+    y += 5
+
+    y = _section(page, y, w, "5. Governing Law")
+    y = _paragraph(page, y, w, "This Agreement shall be governed by and construed in accordance with the laws of the jurisdiction in which the Service Provider is located. Any disputes arising under this Agreement shall be resolved through good-faith negotiation, and if necessary, binding arbitration.")
+    y += 15
+
+    y = _section(page, y, w, "Signatures")
+    y = _signature_block(page, y + 10, "Service Provider", "Client", w)
+
+    _footer(page, w, h)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def generate_lease_agreement(fields: dict) -> bytes:
+    doc = fitz.open()
+    page = doc.new_page(width=612, height=792)
+    w, h = 612, 792
+    _header(page, w, "LEASE AGREEMENT", "Property Lease Contract")
+
+    y = 100
+    y = _section(page, y, w, "Parties & Property")
+    y = _field(page, y, "Landlord", fields.get("landlord", "[Landlord Name]"))
+    y = _field(page, y, "Tenant", fields.get("tenant", "[Tenant Name]"))
+    y = _field(page, y, "Property Address", fields.get("property_address", "[Full Property Address]"))
+    y = _field(page, y, "Monthly Rent", fields.get("rent", "[$Amount]"))
+    y = _field(page, y, "Lease Period", fields.get("lease_period", "[Start Date] to [End Date]"))
+    y += 10
+
+    y = _section(page, y, w, "1. Premises")
+    y = _paragraph(page, y, w, "The Landlord hereby leases to the Tenant, and the Tenant hereby leases from the Landlord, the above-described premises for residential use only. The Tenant shall not use the premises for any unlawful purpose or in violation of any applicable zoning ordinance.")
+    y += 5
+
+    y = _section(page, y, w, "2. Rent")
+    y = _paragraph(page, y, w, f"The Tenant agrees to pay monthly rent of {fields.get('rent', '[$Amount]')}, due on the first day of each calendar month. Late payment (after the 5th) shall incur a late fee of 5% of the monthly rent. Rent shall be paid via check or electronic transfer to the Landlord.")
+    y += 5
+
+    y = _section(page, y, w, "3. Security Deposit")
+    y = _paragraph(page, y, w, "Upon signing this Agreement, the Tenant shall pay a security deposit equal to one month's rent. The deposit shall be returned within thirty (30) days of lease termination, less any deductions for damages beyond normal wear and tear, unpaid rent, or cleaning fees.")
+    y += 5
+
+    y = _section(page, y, w, "4. Maintenance and Repairs")
+    y = _paragraph(page, y, w, "The Tenant shall maintain the premises in clean and habitable condition. The Landlord shall be responsible for major repairs and structural maintenance. The Tenant shall promptly report any damage or needed repairs to the Landlord.")
+    y += 5
+
+    y = _section(page, y, w, "5. Termination")
+    y = _paragraph(page, y, w, "This lease may be terminated by either party with sixty (60) days written notice prior to the end of the lease term. Early termination by the Tenant may result in forfeiture of the security deposit unless otherwise agreed upon in writing.")
+    y += 15
+
+    y = _section(page, y, w, "Signatures")
+    y = _signature_block(page, y + 10, "Landlord Signature", "Tenant Signature", w)
+
+    _footer(page, w, h)
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+GENERATORS = {
+    "nda": generate_nda,
+    "employment_contract": generate_employment_contract,
+    "freelance_agreement": generate_freelance_agreement,
+    "invoice": generate_invoice,
+    "service_agreement": generate_service_agreement,
+    "lease_agreement": generate_lease_agreement,
+}
