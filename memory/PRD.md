@@ -45,6 +45,15 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Custom PDF Templates for Admins — April 2, 2026
+- Admins can upload branded PDF templates with defined fillable fields via `/api/admin/pdf-templates` CRUD
+- Custom templates appear in user-facing PDF Editor gallery alongside builtin templates (blue gradient, "Custom" badge)
+- Users clicking a custom template see a fill-in modal with inputs for each admin-defined field
+- Generated PDFs overlay field values on the first page using PyMuPDF
+- `AdminPDFTemplatesPage.jsx` for admin management (create/edit/toggle/delete)
+- Fill modal in `PDFEditorPage.jsx` with backdrop dismiss, cancel/generate buttons
+- Testing: 100% (23/23 backend, all frontend verified) — Iteration 103
+
 ### PDF Templates — April 2, 2026
 - 6 pre-made document templates: NDA, Employment Contract, Freelance Agreement, Invoice, Service Agreement, Lease Agreement
 - Each generates a professional multi-section PDF with PyMuPDF (headers, sections, fields, signature blocks, footers)
@@ -105,10 +114,12 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ## Key DB Schema
 - `users`: `two_factor_enabled`, `two_factor_method`, `totp_secret`, `recovery_codes`
 - `compliance_snapshots`: Weekly security score snapshots `{score, grade, breakdown, taken_at}`
+- `custom_pdf_templates`: `{ id, name, description, category, fields[], pdf_data, page_count, is_active, created_at }`
 - `admin_settings`: `{key: "2fa_enforcement"}`, `{key: "2fa_auto_reminder", enabled, last_run, last_result}`
 - `audit_logs`: System event tracking
 
 ## Key API Endpoints
+- Admin PDF Templates: `GET/POST /api/admin/pdf-templates`, `GET/PUT/DELETE /api/admin/pdf-templates/{id}`
 - PDF Editor: `POST /api/pdf-editor/upload`, `GET /documents`, `GET/DELETE /documents/{id}`, `GET /documents/{id}/pdf`, `PUT /annotations`, `POST /save-edited`, `GET /download`
 - Compliance Score: `GET /api/admin/compliance-score`, `GET /compliance-score/history`, `POST /compliance-score/snapshot`
 - 2FA Dashboard: `GET /api/admin/2fa-dashboard/stats`, `POST /send-reminders`, `POST /auto-reminder`
@@ -126,5 +137,6 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Standard User: justinogala@outlook.com / 4edfdukD@1
 
 ## Backlog (Prioritized)
+- P2: Custom PDF Templates - COMPLETED (April 2, 2026)
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
