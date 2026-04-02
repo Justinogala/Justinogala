@@ -45,6 +45,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### File Converter (DocHub) — April 2, 2026
+- Built 11 file format conversions: PDF↔JPG/PNG/Word, Word/Excel/PPTX/Image→PDF, PNG↔JPG
+- Backend route `/api/converter/convert` with multipart upload, supports up to 50MB files
+- Uses PyMuPDF, Pillow, pdf2docx, python-docx, openpyxl, python-pptx
+- Frontend: Converter tab in DocHub with categorized grid, dropzone upload, convert & download flow
+- Testing: 100% (12/12 backend, all frontend verified) — Iteration 104
+
 ### DocHub Merge — April 2, 2026
 - Merged eSignature + PDF Editor into a single "DocHub" page with tabbed interface
 - Single sidebar entry replaces two separate items
