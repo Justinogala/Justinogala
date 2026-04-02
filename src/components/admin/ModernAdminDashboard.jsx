@@ -181,6 +181,34 @@ const ModernAdminDashboard = () => {
       <motion.div variants={item} className="grid grid-cols-1">
          <APIDocumentationSection />
       </motion.div>
+
+      {/* Dashboard Footer */}
+      <motion.div variants={item} className="mt-2" data-testid="admin-dashboard-footer">
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-gray-200/60 dark:border-gray-800/60" />
+          </div>
+          <div className="relative flex justify-center">
+            <div className="px-4 py-1 bg-gray-50 dark:bg-slate-950 rounded-full">
+              <div className="w-8 h-1 rounded-full bg-gradient-to-r from-violet-400 via-indigo-400 to-purple-400 opacity-60" />
+            </div>
+          </div>
+        </div>
+        <div className="text-center pt-6 pb-4">
+          <p className="text-xs text-gray-400 dark:text-gray-500 tracking-wide">
+            Munal AI &middot; Admin Console
+          </p>
+          <div className="flex items-center justify-center gap-4 mt-3">
+            <Link to="/admin/users" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Users</Link>
+            <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <Link to="/admin/settings" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Settings</Link>
+            <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <Link to="/admin/reports" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Reports</Link>
+            <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <Link to="/admin/security-policies" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Security</Link>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 };
