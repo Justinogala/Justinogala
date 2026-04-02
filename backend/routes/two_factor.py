@@ -332,6 +332,13 @@ async def verify_2fa_login(req: Verify2FALoginRequest):
         action="2fa_verified", category="2fa", severity="info",
         actor_id=req.user_id, details={"method_used": method_used},
     )
+
+    # Store 2FA session timestamp (for 24h grace period)
+    await db.users.update_one(
+        {"id": req.user_id},
+        {"$set": {"last_2fa_verified": datetime.now(timezone.utc).isoformat()}}
+    )
+
     return {"success": True, "method_used": method_used}
 
 
