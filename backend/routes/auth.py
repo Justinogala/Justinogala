@@ -548,6 +548,24 @@ async def refresh_access_token(request: Request):
             raise HTTPException(status_code=401, detail="User not found")
         if user.get("status") == "Suspended":
             raise HTTPException(status_code=403, detail="Account suspended")
+
+        # Enforce 2FA re-verification every 24 hours for non-admin users
+        user_role = (user.get("role") or "User").lower().replace(" ", "_")
+        if user.get("two_factor_enabled") and user_role not in ("admin", "super_admin"):
+            last_verified = user.get("last_2fa_verified")
+            if last_verified:
+                try:
+                    verified_at = datetime.fromisoformat(last_verified)
+                    if verified_at.tzinfo is None:
+                        verified_at = verified_at.replace(tzinfo=timezone.utc)
+                    if datetime.now(timezone.utc) - verified_at > timedelta(hours=24):
+                        raise HTTPException(status_code=401, detail="2fa_session_expired")
+                except (ValueError, TypeError):
+                    raise HTTPException(status_code=401, detail="2fa_session_expired")
+            else:
+                # No 2FA session recorded — force re-verification
+                raise HTTPException(status_code=401, detail="2fa_session_expired")
+
         new_token = create_jwt_token(user["id"], user["email"], user.get("role", "User"))
         new_refresh, _ = create_refresh_token(user["id"])
         return {"token": new_token, "refresh_token": new_refresh}

@@ -63,6 +63,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const sessionJson = localStorage.getItem(SESSIONS_KEY);
         const authUserJson = localStorage.getItem(AUTH_KEY);
+        const refreshToken = localStorage.getItem(REFRESH_KEY);
 
         if (sessionJson && authUserJson) {
           const session = JSON.parse(sessionJson);
@@ -77,8 +78,45 @@ export const AuthProvider = ({ children }) => {
               localStorage.removeItem(SESSIONS_KEY);
               localStorage.removeItem(AUTH_KEY);
             } else {
-              setUser(foundUser);
-              setIsAuthenticated(true);
+              // Validate refresh token (checks 2FA 24h window on backend)
+              if (refreshToken) {
+                try {
+                  const res = await fetch(`${API_URL}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    session.token = data.token;
+                    session.createdAt = new Date().toISOString();
+                    localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
+                    if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+                    setUser(foundUser);
+                    setIsAuthenticated(true);
+                  } else {
+                    const errData = await res.json().catch(() => ({}));
+                    if (errData.detail === '2fa_session_expired') {
+                      // 2FA session expired — clear and require re-login
+                      localStorage.removeItem(SESSIONS_KEY);
+                      localStorage.removeItem(AUTH_KEY);
+                      localStorage.removeItem(REFRESH_KEY);
+                      localStorage.removeItem(LAST_ACTIVITY_KEY);
+                    } else {
+                      // Other refresh error — still allow cached session
+                      setUser(foundUser);
+                      setIsAuthenticated(true);
+                    }
+                  }
+                } catch {
+                  // Network error — allow cached session
+                  setUser(foundUser);
+                  setIsAuthenticated(true);
+                }
+              } else {
+                setUser(foundUser);
+                setIsAuthenticated(true);
+              }
             }
           }
         }
@@ -136,6 +174,18 @@ export const AuthProvider = ({ children }) => {
           session.createdAt = new Date().toISOString();
           localStorage.setItem(SESSIONS_KEY, JSON.stringify(session));
           if (data.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+        } else {
+          // Check if 2FA session expired — force re-login
+          const errData = await res.json().catch(() => ({}));
+          if (errData.detail === '2fa_session_expired') {
+            localStorage.removeItem(SESSIONS_KEY);
+            localStorage.removeItem(AUTH_KEY);
+            localStorage.removeItem(REFRESH_KEY);
+            localStorage.removeItem(LAST_ACTIVITY_KEY);
+            setUser(null);
+            setIsAuthenticated(false);
+            window.location.href = '/login';
+          }
         }
       } catch { /* silent */ }
     }, 22 * 60 * 1000);
