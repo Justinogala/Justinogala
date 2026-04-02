@@ -59,28 +59,29 @@ const AdminLayout = () => {
 
             {/* Page Footer */}
             <div className="max-w-7xl mx-auto mt-8" data-testid="admin-page-footer">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t border-gray-200/60 dark:border-gray-800/60" />
-                </div>
-                <div className="relative flex justify-center">
-                  <div className="px-4 py-1 bg-gradient-to-br from-gray-50 via-slate-50 to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 rounded-full">
-                    <div className="w-8 h-1 rounded-full bg-gradient-to-r from-violet-400 via-indigo-400 to-purple-400 opacity-60" />
+              <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-indigo-50 via-violet-50/80 to-purple-50 dark:from-indigo-950/40 dark:via-violet-950/30 dark:to-purple-950/40 border border-indigo-100/60 dark:border-indigo-800/30 px-6 py-8">
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-300/50 to-transparent dark:via-indigo-500/30" />
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-violet-200/30 to-transparent dark:from-violet-700/10 rounded-full blur-2xl" />
+                <div className="absolute top-0 left-8 w-20 h-20 bg-gradient-to-br from-indigo-200/20 to-transparent dark:from-indigo-700/10 rounded-full blur-xl" />
+                <div className="relative text-center">
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center shadow-sm shadow-indigo-300/50">
+                      <span className="text-white text-[10px] font-bold">M</span>
+                    </div>
+                    <span className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Admin Console</span>
                   </div>
-                </div>
-              </div>
-              <div className="text-center pt-6 pb-10">
-                <p className="text-xs text-gray-400 dark:text-gray-500 tracking-wide">
-                  Munal AI &middot; Admin Console
-                </p>
-                <div className="flex items-center justify-center gap-4 mt-3">
-                  <Link to="/admin/users" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Users</Link>
-                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
-                  <Link to="/admin/settings" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Settings</Link>
-                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
-                  <Link to="/admin/reports" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Reports</Link>
-                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
-                  <Link to="/admin/security-policies" className="text-[11px] text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-400 transition-colors">Security</Link>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wide">
+                    Munal AI &middot; Control Center
+                  </p>
+                  <div className="flex items-center justify-center gap-4 mt-4">
+                    <Link to="/admin/users" className="text-[11px] text-indigo-500/70 hover:text-indigo-600 dark:text-indigo-400/60 dark:hover:text-indigo-300 transition-colors font-medium">Users</Link>
+                    <span className="w-1 h-1 rounded-full bg-indigo-300/60 dark:bg-indigo-600/40" />
+                    <Link to="/admin/settings" className="text-[11px] text-indigo-500/70 hover:text-indigo-600 dark:text-indigo-400/60 dark:hover:text-indigo-300 transition-colors font-medium">Settings</Link>
+                    <span className="w-1 h-1 rounded-full bg-indigo-300/60 dark:bg-indigo-600/40" />
+                    <Link to="/admin/reports" className="text-[11px] text-indigo-500/70 hover:text-indigo-600 dark:text-indigo-400/60 dark:hover:text-indigo-300 transition-colors font-medium">Reports</Link>
+                    <span className="w-1 h-1 rounded-full bg-indigo-300/60 dark:bg-indigo-600/40" />
+                    <Link to="/admin/security-policies" className="text-[11px] text-indigo-500/70 hover:text-indigo-600 dark:text-indigo-400/60 dark:hover:text-indigo-300 transition-colors font-medium">Security</Link>
+                  </div>
                 </div>
               </div>
             </div>
