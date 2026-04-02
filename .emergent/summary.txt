@@ -1,29 +1,32 @@
-<analysis>.gitignoretesting_agent_v3_forkadmin.py.gitignore*.env.gitignoreserver.pyload_dotenv(override=True)config.pyCalendarPage.jsx/app/backend/static/server.pyUserSettingsPage.jsxUserTwoFactorSetupUserTwoFactorVerifyLoginPage.jsxAuthContext.jsxrequires_2fa.env.gitignoreload_dotenv(override=True)0.0.0.0/0text
+<analysis>admin_pdf_templates.pypdf_editor.pyAdminPDFTemplatesPage.jsxPDFEditorPage.jsxtesting_agent_v3_fork/app/src/pages/PDFEditorPage.jsxFillTemplateModaladmin.pypdf_editortext
 /app/
 ├── backend/
 │   ├── routes/
-│   │   ├── auth.py                 
-│   │   ├── two_factor.py           # Admin 2FA
-│   │   └── user_two_factor.py      # NEW - User 2FA routes
-│   ├── static/
-│   │   ├── feature_*.png           # NEW - Real app screenshots for feature pages
-│   │   └── demo_video.mp4          
-│   └── server.py                   # Updated with static file mount & startup password migration
+│   │   ├── admin.py                    # Now a thin shell exporting the modular files below
+│   │   ├── admin_settings.py           # Refactored from admin.py
+│   │   ├── admin_users.py              # Refactored from admin.py
+│   │   ├── admin_billing.py            # Refactored from admin.py
+│   │   ├── admin_monitoring.py         # Refactored from admin.py
+│   │   ├── admin_storage.py            # Refactored from admin.py
+│   │   ├── admin_video.py              # Refactored from admin.py
+│   │   ├── admin_messages.py           # Refactored from admin.py
+│   │   ├── admin_compliance.py         # NEW - Compliance score logic
+│   │   ├── pdf_editor.py               # NEW - PDF Editor CRUD & generation
+│   │   └── admin_pdf_templates.py      # NEW - Admin Custom PDF templates
+│   ├── services/
+│   │   └── pdf_templates.py            # NEW - PyMuPDF generation logic
+│   ├── scheduled/
+│   │   └── data_health_digest.py       # NEW - Weekly health digest
+│   └── server.py                       # Updated with APScheduler jobs
 └── frontend/
     └── src/
-        ├── components/
-        │   ├── UserTwoFactorSetup.jsx      # NEW
-        │   └── UserTwoFactorVerify.jsx     # NEW
-        ├── context/
-        │   └── AuthContext.jsx             # Updated for skip_2fa logic
-        └── pages/
-            ├── LoginPage.jsx               # Updated for 2FA UI block
-            ├── UserSettingsPage.jsx        # Updated with Security/2FA tab
-            ├── CalendarPage.jsx            # UI completely redesigned
-            ├── admin/
-            │   ├── AdminCouponsPage.jsx    # UI Brightened
-            │   ├── AdminTaxRatesPage.jsx   # UI Brightened
-            │   └── AdminCloudStoragePage.jsx # UI Brightened
-            └── features/
-                └── Feature*.jsx            # 15 pages updated to use /api/static/ images
-/app/backend/static/server.pyGET /api/static/{filename}FileResponserequires_2faUserTwoFactorVerifystartup_eventserver.pyb$a$userstotp_secret_pendingtwo_factor_setup_methodtwo_factor_enabledtwo_factor_methodtotp_secret/app/backend/routes/user_two_factor.py/app/src/components/UserTwoFactorSetup.jsx/app/src/components/UserTwoFactorVerify.jsx/app/src/pages/UserSettingsPage.jsx/app/src/pages/LoginPage.jsx/app/backend/server.py/app/.gitignore/app/backend/routes/admin.pyGET /api/static/{filename}POST /api/user/2fa/setupverify-setupverifydisablesend-email-otpPOST /api/admin/2fa-enforcement.gitignore.envconfig.pyload_dotenv(override=True)0.0.0.0/0bcrypt.hashpw0.0.0.0/0admin@munal.aiAdmin@123456orgadmin@munal.comOrgAdmin@123justinoo2001@gmail.comOgala@2023justinogala@outlook.com4edfdukD@1</analysis>
+        ├── components/admin/
+        │   └── ComplianceScoreWidget.jsx # NEW
+        ├── pages/
+        │   ├── PDFEditorPage.jsx       # NEW - PDF Editor & Template Gallery
+        │   ├── admin/
+        │   │   ├── Admin2FADashboardPage.jsx     # NEW
+        │   │   └── AdminPDFTemplatesPage.jsx     # NEW
+        │   └── user/
+        │       └── UserDashboard.jsx   # Cleaned up (removed 2FA block)
+APSchedulerserver.pypdf-libreact-pdfPyMuPDFfitzcompliance_snapshots{ score, grade, breakdown, taken_at }pdf_editor_documents{ id, user_id, filename, size, page_count, annotations }pdf_templates{ id, name, description, category, file_data, fields, created_by, created_at }pdf-libPyMuPDFfitz/app/backend/routes/admin_pdf_templates.py/app/src/pages/admin/AdminPDFTemplatesPage.jsx/app/src/pages/PDFEditorPage.jsx/app/backend/routes/pdf_editor.pyadmin.pyGET /api/admin/compliance-scorePOST /api/admin/compliance-score/snapshotGET /api/pdf-editor/templatesPOST /api/pdf-editor/templates/generateGET /api/admin/pdf-templatesfitzfitz.pdfcolor[colorname]rebeccapurpleKeyError(0.4, 0.2, 0.6)pdf_editormodule_permissions@app.on_event(startup)server.py/app/memory/PRD.md/app/test_reports/iteration_97.json/app/test_reports/iteration_102.jsonadmin@munal.aiAdmin@123456orgadmin@munal.comOrgAdmin@123justinoo2001@gmail.comOgala@2023justinogala@outlook.com4edfdukD@1/app/src/pages/PDFEditorPage.jsxFillTemplateModalPDFEditorPage.jsx</analysis>

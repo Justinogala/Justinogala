@@ -101,6 +101,8 @@ const PDFEditorPage = () => {
   // Templates
   const [templates, setTemplates] = useState([]);
   const [generatingTemplate, setGeneratingTemplate] = useState(null);
+  const [fillModal, setFillModal] = useState(null); // {templateId, fields: [...]}
+  const [fillValues, setFillValues] = useState({});
 
   // Saved docs list
   const [savedDocs, setSavedDocs] = useState([]);
@@ -126,13 +128,33 @@ const PDFEditorPage = () => {
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
   // Generate from template
-  const generateFromTemplate = async (templateId) => {
+  const handleTemplateClick = (tpl) => {
+    if (generatingTemplate) return;
+    // If template has fillable fields, show the fill-in modal
+    if (tpl.fields && tpl.fields.length > 0 && tpl.source === 'custom') {
+      const initial = {};
+      tpl.fields.forEach(f => { initial[f] = ''; });
+      setFillValues(initial);
+      setFillModal(tpl);
+    } else {
+      generateFromTemplate(tpl.id, {});
+    }
+  };
+
+  const submitFillModal = () => {
+    if (!fillModal) return;
+    generateFromTemplate(fillModal.id, fillValues);
+    setFillModal(null);
+    setFillValues({});
+  };
+
+  const generateFromTemplate = async (templateId, fields = {}) => {
     setGeneratingTemplate(templateId);
     try {
       const res = await fetch(`${API_URL}/api/pdf-editor/templates/${templateId}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, fields: {} }),
+        body: JSON.stringify({ user_id: userId, fields }),
       });
       if (!res.ok) throw new Error((await res.json()).detail || 'Generation failed');
       const data = await res.json();
@@ -441,25 +463,29 @@ const PDFEditorPage = () => {
                   <Card
                     key={tpl.id}
                     className="border-border hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700 transition-all cursor-pointer group"
-                    onClick={() => !generatingTemplate && generateFromTemplate(tpl.id)}
+                    onClick={() => handleTemplateClick(tpl)}
                     data-testid={`template-card-${tpl.id}`}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tpl.source === 'custom' ? 'bg-gradient-to-br from-indigo-500 to-blue-600' : 'bg-gradient-to-br from-violet-500 to-purple-600'}`}>
                           {tpl.icon === 'shield' && <Shield className="w-5 h-5 text-white" />}
                           {tpl.icon === 'briefcase' && <Briefcase className="w-5 h-5 text-white" />}
                           {tpl.icon === 'pen-tool' && <PenTool className="w-5 h-5 text-white" />}
                           {tpl.icon === 'receipt' && <Receipt className="w-5 h-5 text-white" />}
                           {tpl.icon === 'handshake' && <Handshake className="w-5 h-5 text-white" />}
                           {tpl.icon === 'home' && <Home className="w-5 h-5 text-white" />}
+                          {tpl.icon === 'file-text' && <FileText className="w-5 h-5 text-white" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                             {tpl.name}
                           </p>
                           <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{tpl.description}</p>
-                          <span className="inline-block text-[10px] font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 px-1.5 py-0.5 rounded mt-1.5">{tpl.category}</span>
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className="inline-block text-[10px] font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 px-1.5 py-0.5 rounded">{tpl.category}</span>
+                            {tpl.source === 'custom' && <span className="inline-block text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded">Custom</span>}
+                          </div>
                         </div>
                         {generatingTemplate === tpl.id && <Loader2 className="w-4 h-4 animate-spin text-violet-500 mt-1" />}
                       </div>

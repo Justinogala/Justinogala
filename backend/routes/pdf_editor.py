@@ -11,6 +11,7 @@ import base64
 
 from config import db, logger
 from security import limiter
+import fitz
 
 router = APIRouter(prefix="/pdf-editor", tags=["PDF Editor"])
 
@@ -33,7 +34,6 @@ async def upload_pdf(
     file: UploadFile = File(...),
 ):
     """Upload a PDF for editing."""
-    import fitz
 
     ext = os.path.splitext(file.filename)[1].lower()
     if ext != ".pdf":
@@ -197,40 +197,84 @@ async def delete_pdf_document(doc_id: str):
 
 @router.get("/templates")
 async def list_templates():
-    """List all available PDF templates."""
+    """List all available PDF templates (built-in + active custom)."""
     from services.pdf_templates import TEMPLATES
-    templates = [
+    builtin = [
         {"id": t["id"], "name": t["name"], "description": t["description"],
-         "category": t["category"], "icon": t["icon"], "fields": t["fields"]}
+         "category": t["category"], "icon": t["icon"], "fields": t["fields"],
+         "source": "builtin"}
         for t in TEMPLATES.values()
     ]
-    return {"templates": templates}
+    # Merge active custom templates
+    cursor = db.custom_pdf_templates.find(
+        {"is_active": True},
+        {"_id": 0, "pdf_data": 0}
+    ).sort("created_at", -1)
+    custom = []
+    async for doc in cursor:
+        custom.append({
+            "id": doc["id"],
+            "name": doc["name"],
+            "description": doc.get("description", ""),
+            "category": doc.get("category", "Custom"),
+            "icon": "file-text",
+            "fields": doc.get("fields", []),
+            "source": "custom",
+            "page_count": doc.get("page_count"),
+        })
+    return {"templates": builtin + custom}
 
 
 @router.post("/templates/{template_id}/generate")
 @limiter.limit("10/minute")
 async def generate_from_template(template_id: str, request: Request):
-    """Generate a PDF from a template, save it, and return the document."""
+    """Generate a PDF from a built-in or custom template."""
     from services.pdf_templates import TEMPLATES, GENERATORS
-
-    if template_id not in TEMPLATES:
-        raise HTTPException(status_code=404, detail="Template not found")
 
     body = await request.json()
     user_id = body.get("user_id")
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
-
     fields = body.get("fields", {})
-    generator = GENERATORS[template_id]
-    pdf_bytes = generator(fields)
 
-    template = TEMPLATES[template_id]
+    # Check built-in templates first
+    if template_id in TEMPLATES:
+        generator = GENERATORS[template_id]
+        pdf_bytes = generator(fields)
+        template_name = TEMPLATES[template_id]["name"]
+    else:
+        # Check custom templates
+        custom = await db.custom_pdf_templates.find_one({"id": template_id})
+        if not custom:
+            raise HTTPException(status_code=404, detail="Template not found")
+
+        # Use the custom template's PDF as base and overlay field values
+        base_pdf = base64.b64decode(custom["pdf_data"])
+        pdf_doc = fitz.open(stream=base_pdf, filetype="pdf")
+
+        # Overlay field values on the first page
+        if fields and pdf_doc.page_count > 0:
+            page = pdf_doc[0]
+            w = page.rect.width
+            y_start = 100
+            for i, (label, value) in enumerate(fields.items()):
+                if not value:
+                    continue
+                y = y_start + i * 22
+                page.insert_text(
+                    fitz.Point(50, y),
+                    f"{label}: {value}",
+                    fontsize=10, fontname="helv", color=(0.15, 0.15, 0.15),
+                )
+
+        pdf_bytes = pdf_doc.tobytes()
+        pdf_doc.close()
+        template_name = custom["name"]
+
     doc_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
-    filename = f"{template['name'].replace(' ', '_')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.pdf"
+    filename = f"{template_name.replace(' ', '_')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.pdf"
 
-    import fitz
     temp_pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
     page_count = len(temp_pdf)
     temp_pdf.close()
@@ -244,7 +288,7 @@ async def generate_from_template(template_id: str, request: Request):
         "pdf_data": base64.b64encode(pdf_bytes).decode("utf-8"),
         "annotations": [],
         "template_id": template_id,
-        "template_name": template["name"],
+        "template_name": template_name,
         "created_at": now,
         "updated_at": now,
     }
@@ -258,6 +302,6 @@ async def generate_from_template(template_id: str, request: Request):
             "page_count": page_count,
             "size": len(pdf_bytes),
             "template_id": template_id,
-            "template_name": template["name"],
+            "template_name": template_name,
         }
     }
