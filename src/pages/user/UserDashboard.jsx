@@ -311,7 +311,7 @@ const UserDashboard = () => {
         </motion.div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           <motion.div variants={item} className="lg:col-span-8 space-y-4">
             <MeetingListSection refreshTrigger={refreshMeetingsTrigger} />
             <RecentFilesSection refreshTrigger={refreshFilesTrigger} />
@@ -324,6 +324,34 @@ const UserDashboard = () => {
             <APIStatus />
           </motion.div>
         </div>
+
+        {/* Dashboard Footer */}
+        <motion.div variants={item} className="mt-2" data-testid="dashboard-footer">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-gray-200/60 dark:border-gray-800/60" />
+            </div>
+            <div className="relative flex justify-center">
+              <div className="px-4 py-1 bg-gray-50 dark:bg-slate-950 rounded-full">
+                <div className="w-8 h-1 rounded-full bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 opacity-60" />
+              </div>
+            </div>
+          </div>
+          <div className="text-center pt-6 pb-10">
+            <p className="text-xs text-gray-400 dark:text-gray-500 tracking-wide">
+              Munal AI &middot; Your all-in-one meeting companion
+            </p>
+            <div className="flex items-center justify-center gap-4 mt-3">
+              <button onClick={() => navigate('/meetings')} className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">Meetings</button>
+              <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+              <button onClick={() => navigate('/workspaces')} className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">Workspaces</button>
+              <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+              <button onClick={() => navigate('/messages')} className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">AI Assistant</button>
+              <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+              <button onClick={() => navigate('/settings')} className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">Settings</button>
+            </div>
+          </div>
+        </motion.div>
       </motion.div>
 
       <NewMeetingModal
