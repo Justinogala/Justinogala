@@ -244,6 +244,7 @@ const AdminWorkspaceDetailPage = lazy(() => import('@/pages/admin/AdminWorkspace
 const AdminWorkspacesPage = lazy(() => import('@/pages/admin/AdminWorkspacesPage'));
 const AdminChatModerationPage = lazy(() => import('@/pages/admin/AdminChatModerationPage'));
 const Admin2FADashboardPage = lazy(() => import('@/pages/admin/Admin2FADashboardPage'));
+const AdminPDFTemplatesPage = lazy(() => import('@/pages/admin/AdminPDFTemplatesPage'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
@@ -547,6 +548,7 @@ function App() {
                                 <Route path="monitoring" element={<AdminMonitoringDashboard />} />
                                 <Route path="security-policies" element={<AdminSecurityPolicies />} />
                                 <Route path="2fa-dashboard" element={<Admin2FADashboardPage />} />
+                                <Route path="pdf-templates" element={<AdminPDFTemplatesPage />} />
                                 <Route path="meeting-analytics" element={<AdminMeetingAnalytics />} />
                                 <Route path="cloud-storage" element={<AdminCloudStoragePage />} />
                                 <Route path="video-history" element={<AdminVideoHistoryPage />} />
