@@ -14,6 +14,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ├── admin_storage.py            # Cloud storage config, migration
 ├── admin_video.py              # Video history, video API key settings
 ├── admin_messages.py           # Chat, internal messages, exports, broadcasts
+├── admin_compliance.py         # Compliance score endpoint (2FA + password + login anomaly)
 ├── admin_2fa_dashboard.py      # 2FA adoption stats, reminders, auto-reminder scheduler
 ├── two_factor.py               # Admin 2FA setup/verify/disable
 ├── user_two_factor.py          # User 2FA setup/verify/disable + enforcement check
@@ -37,10 +38,19 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 │   ├── UserSettingsPage.jsx
 │   └── admin/
 │       ├── Admin2FADashboardPage.jsx   # 2FA dashboard with auto-reminder toggle
+│       ├── ComplianceScoreWidget.jsx   # Security health score on admin dashboard
 │       └── AdminSecurityPolicies.jsx
 ```
 
 ## Recent Changes
+
+### Compliance Score Widget — April 2, 2026
+- **Backend**: `GET /api/admin/compliance-score` computes real-time security health score (0-100)
+  - 2FA Adoption (40% weight), Password Strength (30%), Login Anomaly (30%)
+  - Returns grade (A-F), breakdown with sub-scores and detail counts
+- **Frontend**: `ComplianceScoreWidget.jsx` with circular SVG score ring, 3 sub-score progress bars, quick links
+- **Placement**: Top of admin dashboard (ModernAdminDashboard.jsx), above metrics row
+- Testing: 100% (9/9 backend, all frontend verified) — Iteration 99
 
 ### Scheduled Auto-Reminders + Admin Refactor + Data Health Digest — April 2, 2026
 - **2FA Auto-Reminder**: Added weekly auto-reminder (Mondays 10 AM UTC) that emails all non-2FA users when enabled. Admin toggle in 2FA Dashboard stores setting in `admin_settings` collection.
@@ -71,6 +81,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - `audit_logs`: System event tracking
 
 ## Key API Endpoints
+- Compliance Score: `GET /api/admin/compliance-score`
 - 2FA Dashboard: `GET /api/admin/2fa-dashboard/stats`, `POST /send-reminders`, `POST /auto-reminder`
 - User 2FA: `/api/user/2fa/status/{id}`, `/setup`, `/verify-setup`, `/verify`, `/disable`
 - Admin Enforcement: `GET/POST /api/admin/2fa-enforcement`
