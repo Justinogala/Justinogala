@@ -72,7 +72,7 @@ const RecentFilesSection = ({ refreshTrigger }) => {
   const usagePercent = stats.total > 0 ? (stats.used / stats.total) * 100 : 0;
 
   return (
-    <div className="glass-panel rounded-2xl p-6 h-full flex flex-col">
+    <div className="glass-panel rounded-2xl p-6 flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">

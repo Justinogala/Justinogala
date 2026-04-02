@@ -45,6 +45,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Dashboard Footer & Whitespace Fix — April 2, 2026
+- Added beautiful page termination footer to User Dashboard (gradient divider, brand tagline, quick nav links)
+- Fixed excessive whitespace: grid `items-start` + removed `h-full` from MeetingListSection/RecentFilesSection
+- Dashboard now ends clearly with visual boundary
+
 ### Custom PDF Templates for Admins — April 2, 2026
 - Admins can upload branded PDF templates with defined fillable fields via `/api/admin/pdf-templates` CRUD
 - Custom templates appear in user-facing PDF Editor gallery alongside builtin templates (blue gradient, "Custom" badge)

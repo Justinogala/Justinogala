@@ -55,7 +55,7 @@ const MeetingListSection = ({ refreshTrigger }) => {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-4 h-full flex flex-col">
+    <div className="glass-panel rounded-2xl p-4 flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
