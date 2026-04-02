@@ -29,6 +29,15 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### 2FA Adoption Dashboard — April 2, 2026
+- Built admin dashboard for monitoring 2FA compliance across the organization
+- **Backend**: 2 new endpoints under `/api/admin/2fa-dashboard/` (stats, send-reminders)
+- **Stats endpoint**: Aggregates 2FA enabled/disabled by role, computes adoption rate, returns list of non-compliant users
+- **Send reminders**: Sends Resend-powered emails to selected or all non-2FA users prompting them to enable 2FA
+- **Frontend**: New `Admin2FADashboardPage.jsx` with stat cards, role breakdown with progress bars, user table with select/send
+- **Sidebar**: Added link under Configuration section near Security Policies
+- Testing: 100% pass rate (15/15 backend, all frontend verified) — Iteration 97
+
 ### User 2FA for All Roles — April 2, 2026
 - Extended 2FA (TOTP + Email OTP + Recovery Codes) to ALL user roles (Admin, Manager, Member)
 - **Backend**: 7 new endpoints under `/api/user/2fa/` (status, setup, verify-setup, verify, send-email-otp, disable, enforcement)
@@ -58,6 +67,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - `audit_logs`: System event tracking
 
 ## Key API Endpoints
+- 2FA Dashboard: `GET /api/admin/2fa-dashboard/stats`, `POST /api/admin/2fa-dashboard/send-reminders`
 - User 2FA: `/api/user/2fa/status/{id}`, `/api/user/2fa/setup`, `/api/user/2fa/verify-setup`, `/api/user/2fa/verify`, `/api/user/2fa/disable`
 - Admin Enforcement: `GET/POST /api/admin/2fa-enforcement`
 - Login: `POST /api/auth/login` (returns `requires_2fa` when enabled), `POST /api/auth/login?skip_2fa=true`
