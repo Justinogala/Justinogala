@@ -6,82 +6,85 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ## Architecture
 ```
 /app/backend/routes/
-├── two_factor.py          # Admin 2FA setup/verify/disable
-├── user_two_factor.py     # User 2FA setup/verify/disable + enforcement check (NEW)
-├── data_health.py         # Data health stats + cleanup
-├── audit_logs.py          # Admin audit logging
-├── auth.py                # Login (with 2FA for ALL roles), register, password reset
-├── admin.py               # Admin routes + 2FA enforcement toggle (NEW endpoints)
+├── admin.py                    # Thin re-export shell (composites all admin_*.py routers)
+├── admin_settings.py           # Settings CRUD, SMTP test, 2FA enforcement, security policies
+├── admin_users.py              # User listing, activity, account actions, meeting analytics
+├── admin_billing.py            # Coupons, tax rates
+├── admin_monitoring.py         # Dashboard stats, system health
+├── admin_storage.py            # Cloud storage config, migration
+├── admin_video.py              # Video history, video API key settings
+├── admin_messages.py           # Chat, internal messages, exports, broadcasts
+├── admin_2fa_dashboard.py      # 2FA adoption stats, reminders, auto-reminder scheduler
+├── two_factor.py               # Admin 2FA setup/verify/disable
+├── user_two_factor.py          # User 2FA setup/verify/disable + enforcement check
+├── data_health.py              # Data health stats + cleanup
+├── audit_logs.py               # Admin audit logging
+├── auth.py                     # Login (with 2FA for ALL roles), register, password reset
 
-/app/frontend/src/
+/app/backend/scheduled/
+├── data_health_digest.py       # Weekly data health email digest to super admins
+
+/app/src/
 ├── components/
-│   ├── UserTwoFactorSetup.jsx    # NEW - User 2FA setup (Settings > Security)
-│   ├── UserTwoFactorVerify.jsx   # NEW - User 2FA login verification
+│   ├── UserTwoFactorSetup.jsx
+│   ├── UserTwoFactorVerify.jsx
 │   ├── admin/
-│   │   ├── TwoFactorSetup.jsx    # Admin 2FA setup
-│   │   └── TwoFactorVerify.jsx   # Admin 2FA login verification
-├── context/AuthContext.jsx        # Updated: loginWithSkip2FA function
+│   │   ├── TwoFactorSetup.jsx
+│   │   └── TwoFactorVerify.jsx
+├── context/AuthContext.jsx
 ├── pages/
-│   ├── LoginPage.jsx              # Updated: 2FA verification step
-│   ├── UserSettingsPage.jsx       # Updated: Security tab with UserTwoFactorSetup
-│   └── admin/AdminSecurityPolicies.jsx  # Updated: org-wide 2FA enforcement toggle
+│   ├── LoginPage.jsx
+│   ├── UserSettingsPage.jsx
+│   └── admin/
+│       ├── Admin2FADashboardPage.jsx   # 2FA dashboard with auto-reminder toggle
+│       └── AdminSecurityPolicies.jsx
 ```
 
 ## Recent Changes
 
+### Scheduled Auto-Reminders + Admin Refactor + Data Health Digest — April 2, 2026
+- **2FA Auto-Reminder**: Added weekly auto-reminder (Mondays 10 AM UTC) that emails all non-2FA users when enabled. Admin toggle in 2FA Dashboard stores setting in `admin_settings` collection.
+- **Admin.py Refactor**: Split ~1850-line admin.py into 7 domain-specific files (admin_settings, admin_users, admin_billing, admin_monitoring, admin_storage, admin_video, admin_messages). admin.py is now a thin re-export shell. All endpoints remain identical.
+- **Data Health Digest**: New scheduled job (Mondays 9:30 AM UTC) sends comprehensive data health summary email to all super admins via Resend. Covers user activation trends, orphaned records, stale data, collection sizes.
+- **APScheduler**: Now runs 4 jobs: escalations (hourly), weekly digest (Mon 9 AM), data health digest (Mon 9:30 AM), 2FA auto-reminders (Mon 10 AM).
+- Testing: 100% pass rate (17/17 backend, all frontend verified) — Iteration 98
+
 ### 2FA Adoption Dashboard — April 2, 2026
 - Built admin dashboard for monitoring 2FA compliance across the organization
-- **Backend**: 2 new endpoints under `/api/admin/2fa-dashboard/` (stats, send-reminders)
-- **Stats endpoint**: Aggregates 2FA enabled/disabled by role, computes adoption rate, returns list of non-compliant users
-- **Send reminders**: Sends Resend-powered emails to selected or all non-2FA users prompting them to enable 2FA
-- **Frontend**: New `Admin2FADashboardPage.jsx` with stat cards, role breakdown with progress bars, user table with select/send
-- **Sidebar**: Added link under Configuration section near Security Policies
-- Testing: 100% pass rate (15/15 backend, all frontend verified) — Iteration 97
+- **Backend**: 3 endpoints under `/api/admin/2fa-dashboard/` (stats, send-reminders, auto-reminder)
+- **Frontend**: Admin2FADashboardPage.jsx with stat cards, role breakdown, auto-reminder toggle, user table
+- Testing: 100% — Iteration 97
 
 ### User 2FA for All Roles — April 2, 2026
-- Extended 2FA (TOTP + Email OTP + Recovery Codes) to ALL user roles (Admin, Manager, Member)
-- **Backend**: 7 new endpoints under `/api/user/2fa/` (status, setup, verify-setup, verify, send-email-otp, disable, enforcement)
-- **Admin Enforcement**: Toggle in Security Policies to force all users to enable 2FA (stored in `admin_settings` collection)
-- **Frontend LoginPage**: Now shows `UserTwoFactorVerify` component when `requires_2fa` returned from login
-- **Frontend Settings**: New "Security" tab with `UserTwoFactorSetup` component
-- **AuthContext**: Added `loginWithSkip2FA` function for post-2FA login completion
-- Testing: 100% pass rate (21/21 backend, all frontend verified) — Iteration 96
+- Extended 2FA to ALL user roles. Login intercepts when requires_2fa is true.
+- Testing: 100% — Iteration 96
 
 ### Feature Page Image Replacement — March 31, 2026
 - Replaced ALL stock images across 15 feature pages with real app screenshots
-- Screenshots served via `/api/static/{filename}` endpoint
-- Added static file serving endpoint to server.py
 
 ### Production Deployment Fix — March 30, 2026
-- Fixed `.gitignore` blocking `.env` files from deployment
-- Added `load_dotenv(override=True)` to ensure Atlas MONGO_URL takes priority over platform-injected URLs
-- Fixed plaintext passwords in Atlas DB with bcrypt hashing
-- Added startup migration to auto-hash plaintext passwords
-
-### Admin Theme Fix — March 30, 2026
-- Fixed Coupons, Tax Rates, Cloud Storage pages from dark to bright theme
+- Fixed .gitignore, Atlas DB connection override, plaintext password migration
 
 ## Key DB Schema
-- `users`: `two_factor_enabled`, `two_factor_method` (totp/email/both), `totp_secret`, `recovery_codes` (hashed)
-- `admin_settings`: `{key: "2fa_enforcement", enforced: bool}` — org-wide 2FA enforcement
+- `users`: `two_factor_enabled`, `two_factor_method`, `totp_secret`, `recovery_codes`
+- `admin_settings`: `{key: "2fa_enforcement"}`, `{key: "2fa_auto_reminder", enabled, last_run, last_result}`
 - `audit_logs`: System event tracking
 
 ## Key API Endpoints
-- 2FA Dashboard: `GET /api/admin/2fa-dashboard/stats`, `POST /api/admin/2fa-dashboard/send-reminders`
-- User 2FA: `/api/user/2fa/status/{id}`, `/api/user/2fa/setup`, `/api/user/2fa/verify-setup`, `/api/user/2fa/verify`, `/api/user/2fa/disable`
+- 2FA Dashboard: `GET /api/admin/2fa-dashboard/stats`, `POST /send-reminders`, `POST /auto-reminder`
+- User 2FA: `/api/user/2fa/status/{id}`, `/setup`, `/verify-setup`, `/verify`, `/disable`
 - Admin Enforcement: `GET/POST /api/admin/2fa-enforcement`
-- Login: `POST /api/auth/login` (returns `requires_2fa` when enabled), `POST /api/auth/login?skip_2fa=true`
+- Login: `POST /api/auth/login` (returns `requires_2fa` when enabled)
 
 ## 3rd Party Integrations
 - OpenAI GPT-5.2 (AI Chat), Sora 2 (Video Gen), Resend (Emails/2FA OTP) — all via Emergent LLM Key
 
 ## Test Credentials
-- Super Admin: admin@munal.ai / Admin@123456 (2FA disabled)
-- Regular User: justinoo2001@gmail.com / Ogala@2023 (2FA disabled after testing)
-- Org Member: orgmember@munal.com / OrgMem@123
+- Super Admin: admin@munal.ai / Admin@123456
+- Regular User: justinoo2001@gmail.com / Ogala@2023
+- Org Admin: orgadmin@munal.com / OrgAdmin@123
+- Standard User: justinogala@outlook.com / 4edfdukD@1
 
 ## Backlog (Prioritized)
-- P2: Refactor `admin.py` (~1850 lines) into smaller domain-specific route files
-- P3: Automated weekly Data Health email digest
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
