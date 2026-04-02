@@ -191,3 +191,73 @@ async def delete_pdf_document(doc_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Document not found")
     return {"success": True}
+
+
+# ── Templates ──
+
+@router.get("/templates")
+async def list_templates():
+    """List all available PDF templates."""
+    from services.pdf_templates import TEMPLATES
+    templates = [
+        {"id": t["id"], "name": t["name"], "description": t["description"],
+         "category": t["category"], "icon": t["icon"], "fields": t["fields"]}
+        for t in TEMPLATES.values()
+    ]
+    return {"templates": templates}
+
+
+@router.post("/templates/{template_id}/generate")
+@limiter.limit("10/minute")
+async def generate_from_template(template_id: str, request: Request):
+    """Generate a PDF from a template, save it, and return the document."""
+    from services.pdf_templates import TEMPLATES, GENERATORS
+
+    if template_id not in TEMPLATES:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    body = await request.json()
+    user_id = body.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+
+    fields = body.get("fields", {})
+    generator = GENERATORS[template_id]
+    pdf_bytes = generator(fields)
+
+    template = TEMPLATES[template_id]
+    doc_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    filename = f"{template['name'].replace(' ', '_')}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.pdf"
+
+    import fitz
+    temp_pdf = fitz.open(stream=pdf_bytes, filetype="pdf")
+    page_count = len(temp_pdf)
+    temp_pdf.close()
+
+    doc = {
+        "id": doc_id,
+        "user_id": user_id,
+        "filename": filename,
+        "size": len(pdf_bytes),
+        "page_count": page_count,
+        "pdf_data": base64.b64encode(pdf_bytes).decode("utf-8"),
+        "annotations": [],
+        "template_id": template_id,
+        "template_name": template["name"],
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.pdf_editor_documents.insert_one(doc)
+
+    return {
+        "success": True,
+        "document": {
+            "id": doc_id,
+            "filename": filename,
+            "page_count": page_count,
+            "size": len(pdf_bytes),
+            "template_id": template_id,
+            "template_name": template["name"],
+        }
+    }

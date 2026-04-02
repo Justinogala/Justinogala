@@ -7,7 +7,8 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import {
   Upload, Type, PenLine, Highlighter, StickyNote, Download, Save,
   Trash2, ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut,
-  RotateCcw, ArrowLeft, FileText, Plus, X, Square, Undo2, Camera
+  RotateCcw, ArrowLeft, FileText, Plus, X, Square, Undo2, Camera,
+  Shield, Briefcase, PenTool, Receipt, Handshake, Home, LayoutTemplate
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -97,24 +98,57 @@ const PDFEditorPage = () => {
   const [textInput, setTextInput] = useState('');
   const [textPos, setTextPos] = useState(null);
 
+  // Templates
+  const [templates, setTemplates] = useState([]);
+  const [generatingTemplate, setGeneratingTemplate] = useState(null);
+
   // Saved docs list
   const [savedDocs, setSavedDocs] = useState([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
 
   const fileInputRef = useRef(null);
 
-  // Load saved docs
+  // Load saved docs + templates
   const loadDocs = useCallback(async () => {
     if (!userId) return;
     setLoadingDocs(true);
     try {
-      const res = await fetch(`${API_URL}/api/pdf-editor/documents?user_id=${userId}`);
-      if (res.ok) { const d = await res.json(); setSavedDocs(d.documents || []); }
+      const [docsRes, tplRes] = await Promise.all([
+        fetch(`${API_URL}/api/pdf-editor/documents?user_id=${userId}`),
+        fetch(`${API_URL}/api/pdf-editor/templates`),
+      ]);
+      if (docsRes.ok) { const d = await docsRes.json(); setSavedDocs(d.documents || []); }
+      if (tplRes.ok) { const t = await tplRes.json(); setTemplates(t.templates || []); }
     } catch { /* silent */ }
     finally { setLoadingDocs(false); }
   }, [userId]);
 
   useEffect(() => { loadDocs(); }, [loadDocs]);
+
+  // Generate from template
+  const generateFromTemplate = async (templateId) => {
+    setGeneratingTemplate(templateId);
+    try {
+      const res = await fetch(`${API_URL}/api/pdf-editor/templates/${templateId}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, fields: {} }),
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Generation failed');
+      const data = await res.json();
+      setDocId(data.document.id);
+      setPdfUrl(`${API_URL}/api/pdf-editor/documents/${data.document.id}/pdf`);
+      setAnnotations([]);
+      setCurrentPage(1);
+      // Fetch raw bytes for pdf-lib
+      const pdfRes = await fetch(`${API_URL}/api/pdf-editor/documents/${data.document.id}/pdf`);
+      if (pdfRes.ok) { const buf = await pdfRes.arrayBuffer(); setPdfBytes(new Uint8Array(buf)); }
+      toast({ title: 'Template Ready', description: `${data.document.template_name} created. Edit and fill in the placeholders.` });
+      loadDocs();
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Template generation failed', description: err.message });
+    } finally { setGeneratingTemplate(null); }
+  };
 
   // Upload
   const handleUpload = async (e) => {
@@ -394,6 +428,47 @@ const PDFEditorPage = () => {
             </CardContent>
           </Card>
           <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleUpload} data-testid="pdf-file-input" />
+
+          {/* Template Gallery */}
+          {templates.length > 0 && (
+            <div data-testid="template-gallery">
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1 flex items-center gap-2">
+                <LayoutTemplate className="w-4 h-4 text-violet-500" /> Start from a Template
+              </h2>
+              <p className="text-xs text-gray-400 mb-3">Pick a pre-made document and fill in the details in the editor.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {templates.map(tpl => (
+                  <Card
+                    key={tpl.id}
+                    className="border-border hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700 transition-all cursor-pointer group"
+                    onClick={() => !generatingTemplate && generateFromTemplate(tpl.id)}
+                    data-testid={`template-card-${tpl.id}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                          {tpl.icon === 'shield' && <Shield className="w-5 h-5 text-white" />}
+                          {tpl.icon === 'briefcase' && <Briefcase className="w-5 h-5 text-white" />}
+                          {tpl.icon === 'pen-tool' && <PenTool className="w-5 h-5 text-white" />}
+                          {tpl.icon === 'receipt' && <Receipt className="w-5 h-5 text-white" />}
+                          {tpl.icon === 'handshake' && <Handshake className="w-5 h-5 text-white" />}
+                          {tpl.icon === 'home' && <Home className="w-5 h-5 text-white" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                            {tpl.name}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{tpl.description}</p>
+                          <span className="inline-block text-[10px] font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 px-1.5 py-0.5 rounded mt-1.5">{tpl.category}</span>
+                        </div>
+                        {generatingTemplate === tpl.id && <Loader2 className="w-4 h-4 animate-spin text-violet-500 mt-1" />}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Saved documents */}
           {savedDocs.length > 0 && (
