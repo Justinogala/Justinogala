@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import UserSidebar from '@/components/UserSidebar';
 import UserHeader from '@/components/UserHeader';
@@ -57,6 +57,34 @@ const UserLayout = () => {
           <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden pb-safe">
             <div className="max-w-7xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
                <Outlet />
+            </div>
+
+            {/* Page Footer */}
+            <div className="max-w-7xl mx-auto mt-8" data-testid="page-footer">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t border-gray-200/60 dark:border-gray-800/60" />
+                </div>
+                <div className="relative flex justify-center">
+                  <div className="px-4 py-1 bg-gray-50 dark:bg-slate-950 rounded-full">
+                    <div className="w-8 h-1 rounded-full bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 opacity-60" />
+                  </div>
+                </div>
+              </div>
+              <div className="text-center pt-6 pb-10">
+                <p className="text-xs text-gray-400 dark:text-gray-500 tracking-wide">
+                  Munal AI &middot; Your all-in-one meeting companion
+                </p>
+                <div className="flex items-center justify-center gap-4 mt-3">
+                  <Link to="/meetings" className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">Meetings</Link>
+                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+                  <Link to="/workspaces" className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">Workspaces</Link>
+                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+                  <Link to="/messages" className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">AI Assistant</Link>
+                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+                  <Link to="/settings" className="text-[11px] text-gray-400 hover:text-indigo-500 dark:text-gray-500 dark:hover:text-indigo-400 transition-colors">Settings</Link>
+                </div>
+              </div>
             </div>
           </main>
         </div>
