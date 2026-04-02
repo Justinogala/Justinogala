@@ -190,7 +190,7 @@ from routes.two_factor import router as two_factor_router
 from routes.user_two_factor import router as user_two_factor_router
 from routes.audit_logs import router as audit_logs_router
 from routes.admin_2fa_dashboard import router as admin_2fa_dashboard_router, run_2fa_auto_reminders
-from routes.admin_compliance import router as admin_compliance_router
+from routes.admin_compliance import router as admin_compliance_router, take_compliance_snapshot
 from scheduled.data_health_digest import run_data_health_digest
 
 
@@ -330,11 +330,13 @@ async def startup_event():
             scheduler.add_job(run_weekly_digest, 'cron', day_of_week='mon', hour=9, minute=0, id='weekly_digest')
             scheduler.add_job(run_2fa_auto_reminders, 'cron', day_of_week='mon', hour=10, minute=0, id='2fa_auto_reminders')
             scheduler.add_job(run_data_health_digest, 'cron', day_of_week='mon', hour=9, minute=30, id='data_health_digest')
+            scheduler.add_job(take_compliance_snapshot, 'cron', day_of_week='mon', hour=10, minute=30, id='compliance_snapshot')
             scheduler.start()
             logger.info("Escalation scheduler started (runs every 1 hour)")
             logger.info("Weekly digest scheduler started (runs every Monday 9 AM UTC)")
             logger.info("2FA auto-reminder scheduler started (runs every Monday 10 AM UTC)")
             logger.info("Data health digest scheduler started (runs every Monday 9:30 AM UTC)")
+            logger.info("Compliance snapshot scheduler started (runs every Monday 10:30 AM UTC)")
         except Exception as sched_err:
             logger.error(f"Escalation scheduler failed to start: {sched_err}")
         
