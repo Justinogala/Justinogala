@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PenLine, FileText } from 'lucide-react';
+import { PenLine, FileText, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PageTransition from '@/components/PageTransition';
 import ESignaturePage from '@/pages/ESignaturePage';
 import PDFEditorPage from '@/pages/PDFEditorPage';
+import FileConverterPage from '@/pages/FileConverterPage';
 
 const tabs = [
   { id: 'esignature', label: 'eSignature', icon: PenLine },
   { id: 'pdf-editor', label: 'PDF Editor', icon: FileText },
+  { id: 'converter', label: 'Converter', icon: RefreshCw },
 ];
 
 const DocHubPage = () => {
@@ -55,6 +57,7 @@ const DocHubPage = () => {
         {/* Tab Content */}
         {activeTab === 'esignature' && <ESignaturePage embedded />}
         {activeTab === 'pdf-editor' && <PDFEditorPage embedded />}
+        {activeTab === 'converter' && <FileConverterPage />}
       </div>
     </PageTransition>
   );

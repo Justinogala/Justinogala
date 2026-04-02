@@ -44,6 +44,7 @@ google-auth-httplib2==0.3.0
 google-genai==1.63.0
 google-generativeai==0.8.6
 googleapis-common-protos==1.72.0
+greenlet==3.3.2
 grpcio==1.78.0
 grpcio-status==1.71.2
 h11==0.16.0
@@ -89,6 +90,7 @@ pathspec==1.0.4
 pdf2docx==0.5.12
 pillow==12.1.1
 platformdirs==4.9.2
+playwright==1.58.0
 pluggy==1.6.0
 propcache==0.4.1
 proto-plus==1.27.1
@@ -101,6 +103,7 @@ pycparser==3.0
 pydantic==2.12.5
 pydantic_core==2.41.5
 pydyf==0.12.1
+pyee==13.0.1
 pyflakes==3.4.0
 Pygments==2.19.2
 PyJWT==2.11.0
@@ -115,6 +118,7 @@ python-docx==1.2.0
 python-dotenv==1.2.1
 python-jose==3.5.0
 python-multipart==0.0.22
+python-pptx==1.0.2
 pytokens==0.4.1
 pywebpush==2.3.0
 PyYAML==6.0.3
@@ -159,6 +163,7 @@ weasyprint==68.1
 webencodings==0.5.1
 websockets==15.0.1
 wrapt==2.1.2
+xlsxwriter==3.2.9
 yarl==1.22.0
 zipp==3.23.0
 zopfli==0.4.1
