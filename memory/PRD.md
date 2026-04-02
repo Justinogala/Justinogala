@@ -14,6 +14,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ├── admin_storage.py            # Cloud storage config, migration
 ├── admin_video.py              # Video history, video API key settings
 ├── admin_messages.py           # Chat, internal messages, exports, broadcasts
+├── pdf_editor.py               # PDF Editor CRUD (upload, annotate, save, download)
 ├── admin_compliance.py         # Compliance score endpoint (2FA + password + login anomaly)
 ├── admin_2fa_dashboard.py      # 2FA adoption stats, reminders, auto-reminder scheduler
 ├── two_factor.py               # Admin 2FA setup/verify/disable
@@ -43,6 +44,15 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ```
 
 ## Recent Changes
+
+### PDF Editor — April 2, 2026
+- **Backend**: Full CRUD API at `/api/pdf-editor/*` (upload, list, get, stream PDF, save annotations, save edited PDF, download, delete)
+- PDFs stored in MongoDB (base64), supports annotations as JSON, edited PDFs baked with pdf-lib on client export
+- **Frontend**: `PDFEditorPage.jsx` with tools (Select, Text, Draw, Highlight, Note, Signature), color picker, zoom, page nav, save/export
+- Signature mini-pad for drawing signatures and placing on PDF
+- Button on eSignature page + sidebar link for all users
+- `pdf_editor` added to module permissions system for super admin role control
+- Testing: 94% backend (17/18), 100% frontend — Iteration 101
 
 ### Compliance Score Trend Tracking — April 2, 2026
 - **Backend**: `compliance_snapshots` collection stores weekly score snapshots
@@ -91,6 +101,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - `audit_logs`: System event tracking
 
 ## Key API Endpoints
+- PDF Editor: `POST /api/pdf-editor/upload`, `GET /documents`, `GET/DELETE /documents/{id}`, `GET /documents/{id}/pdf`, `PUT /annotations`, `POST /save-edited`, `GET /download`
 - Compliance Score: `GET /api/admin/compliance-score`, `GET /compliance-score/history`, `POST /compliance-score/snapshot`
 - 2FA Dashboard: `GET /api/admin/2fa-dashboard/stats`, `POST /send-reminders`, `POST /auto-reminder`
 - User 2FA: `/api/user/2fa/status/{id}`, `/setup`, `/verify-setup`, `/verify`, `/disable`
