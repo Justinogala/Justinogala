@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -6,7 +7,7 @@ import {
   Upload, PenLine, Type, Calendar as CalIcon, Download,
   Trash2, ChevronLeft, ChevronRight, Loader2, Check, X, Save,
   FileText, History, Plus, GripVertical, ZoomIn, ZoomOut, RotateCcw,
-  FileUp, RefreshCw, ArrowLeft, FileOutput, FileInput
+  FileUp, RefreshCw, ArrowLeft, FileOutput, FileInput, Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -532,6 +533,7 @@ const PdfToWordConverter = ({ onBack, userId }) => {
 const ESignaturePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // View mode: 'esignature' or 'wordtopdf'
   const [viewMode, setViewMode] = useState('esignature');
@@ -769,6 +771,9 @@ const ESignaturePage = () => {
           </div>
           <div className="flex items-center gap-2">
             <ESignatureTermsOfService />
+            <Button variant="outline" size="sm" onClick={() => navigate('/pdf-editor')} className="border-violet-200 text-violet-600 hover:bg-violet-50 dark:border-violet-800 dark:text-violet-400 dark:hover:bg-violet-950/40" data-testid="pdf-editor-btn">
+              <Pencil className="w-3.5 h-3.5 mr-1.5" /> PDF Editor
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setViewMode('wordtopdf')} className="border-indigo-200 text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-950/40" data-testid="word-to-pdf-btn">
               <FileOutput className="w-3.5 h-3.5 mr-1.5" /> Word to PDF
             </Button>

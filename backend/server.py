@@ -175,6 +175,7 @@ from routes.reports import router as reports_router, check_escalations
 from routes.approvals import run_weekly_digest
 from routes.admin_reports import router as admin_reports_router
 from routes.esignature import router as esignature_router
+from routes.pdf_editor import router as pdf_editor_router
 from routes.approvals import router as approvals_router
 from routes.organizations import router as organizations_router
 from routes.forms import router as forms_router
@@ -255,6 +256,7 @@ api_router.include_router(admin_shifts_router)
 api_router.include_router(reports_router)
 api_router.include_router(admin_reports_router)
 api_router.include_router(esignature_router)
+api_router.include_router(pdf_editor_router)
 api_router.include_router(approvals_router)
 api_router.include_router(organizations_router)
 api_router.include_router(admin_forms_router, prefix="/admin")

@@ -87,6 +87,7 @@ const ShiftManagementPage = lazy(() => import('@/pages/ShiftManagementPage'));
 const TimeClockReportsPage = lazy(() => import('@/pages/TimeClockReportsPage'));
 const FileManagementPage = lazy(() => import('@/pages/FileManagementPage'));
 const ESignaturePage = lazy(() => import('@/pages/ESignaturePage'));
+const PDFEditorPage = lazy(() => import('@/pages/PDFEditorPage'));
 const ApprovalsPage = lazy(() => import('@/pages/ApprovalsPage'));
 const OrgDashboardPage = lazy(() => import('@/pages/OrgDashboardPage'));
 
@@ -410,6 +411,7 @@ function App() {
                                 <Route path="/video-call" element={<VideoCallPage />} />
                                 <Route path="/files" element={<FileManagementPage />} />
                                 <Route path="/esignature" element={<ESignaturePage />} />
+                                <Route path="/pdf-editor" element={<PDFEditorPage />} />
                                 <Route path="/approvals" element={<ApprovalsPage />} />
                                 <Route path="/org-dashboard" element={<OrgDashboardPage />} />
                                 

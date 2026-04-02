@@ -24,6 +24,7 @@ ALL_MODULES = [
     "monitoring", "security_policies", "meeting_analytics", "cloud_storage",
     "video_settings", "stripe_settings", "video_history", "api_settings",
     "transcription_settings", "integrations", "audit_logs", "general_settings",
+    "pdf_editor",
     # Super admin only
     "module_permissions"
 ]
@@ -55,6 +56,7 @@ MODULE_LABELS = {
     "integrations": "Integrations",
     "audit_logs": "Audit Logs",
     "general_settings": "General Settings",
+    "pdf_editor": "PDF Editor",
     "module_permissions": "Module Permissions",
 }
 
@@ -67,6 +69,7 @@ MODULE_GROUPS = {
     "Configuration": ["monitoring", "security_policies", "meeting_analytics", "cloud_storage",
                        "video_settings", "stripe_settings", "video_history", "api_settings",
                        "transcription_settings", "integrations", "audit_logs", "general_settings"],
+    "Tools": ["pdf_editor"],
     "Super Admin": ["module_permissions"],
 }
 
@@ -87,6 +90,7 @@ DEFAULT_TEMPLATES = {
         "video_history": False, "api_settings": False,
         "transcription_settings": False, "integrations": False,
         "audit_logs": False, "general_settings": False,
+        "pdf_editor": True,
         "module_permissions": False,
     },
     "manager": {
@@ -103,6 +107,7 @@ DEFAULT_TEMPLATES = {
         "video_history": False, "api_settings": False,
         "transcription_settings": False, "integrations": False,
         "audit_logs": False, "general_settings": False,
+        "pdf_editor": True,
         "module_permissions": False,
     },
 }
