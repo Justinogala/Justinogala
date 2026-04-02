@@ -45,6 +45,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### PDF Templates — April 2, 2026
+- 6 pre-made document templates: NDA, Employment Contract, Freelance Agreement, Invoice, Service Agreement, Lease Agreement
+- Each generates a professional multi-section PDF with PyMuPDF (headers, sections, fields, signature blocks, footers)
+- Template gallery on PDF Editor empty state with cards showing name, description, category badge, icon
+- Click to generate and open directly in the editor for filling/editing
+- `GET /api/pdf-editor/templates` + `POST /api/pdf-editor/templates/{id}/generate`
+- Testing: 100% (16/16 backend, all frontend verified) — Iteration 102
+
 ### PDF Editor — April 2, 2026
 - **Backend**: Full CRUD API at `/api/pdf-editor/*` (upload, list, get, stream PDF, save annotations, save edited PDF, download, delete)
 - PDFs stored in MongoDB (base64), supports annotations as JSON, edited PDFs baked with pdf-lib on client export
