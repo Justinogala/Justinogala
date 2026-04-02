@@ -174,6 +174,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: Activity, label: 'Monitoring', path: '/admin/monitoring', gradient: 'from-green-500 to-emerald-500', moduleKey: 'monitoring' },
     { icon: HeartPulse, label: 'Data Health', path: '/admin/data-health', gradient: 'from-rose-500 to-red-500', moduleKey: 'monitoring' },
     { icon: Lock, label: 'Security Policies', path: '/admin/security-policies', gradient: 'from-red-500 to-rose-500', moduleKey: 'security_policies' },
+    { icon: Shield, label: '2FA Dashboard', path: '/admin/2fa-dashboard', gradient: 'from-violet-500 to-purple-500', moduleKey: 'security_policies' },
     { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500', moduleKey: 'meeting_analytics' },
     { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500', moduleKey: 'cloud_storage' },
     { icon: Video, label: 'Video Settings', path: '/admin/video-settings', gradient: 'from-fuchsia-500 to-pink-500', moduleKey: 'video_settings' },

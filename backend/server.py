@@ -189,6 +189,7 @@ from routes.data_health import router as data_health_router
 from routes.two_factor import router as two_factor_router
 from routes.user_two_factor import router as user_two_factor_router
 from routes.audit_logs import router as audit_logs_router
+from routes.admin_2fa_dashboard import router as admin_2fa_dashboard_router
 
 
 # ============== Include All Routers ==============
@@ -266,6 +267,7 @@ api_router.include_router(data_health_router)
 api_router.include_router(two_factor_router)
 api_router.include_router(user_two_factor_router)
 api_router.include_router(audit_logs_router)
+api_router.include_router(admin_2fa_dashboard_router)
 
 
 # ============== Include Main Router ==============

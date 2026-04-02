@@ -1,30 +1,29 @@
-<analysis>shift-mgmt-previewadmin.pyflex-col-reverse.gitignoreworkspace_membersAdminAuthContextAuthContextAuthFormContaineradmin@munal.comadmin@munal.aiaudit_logstext
+<analysis>.gitignoretesting_agent_v3_forkadmin.py.gitignore*.env.gitignoreserver.pyload_dotenv(override=True)config.pyCalendarPage.jsx/app/backend/static/server.pyUserSettingsPage.jsxUserTwoFactorSetupUserTwoFactorVerifyLoginPage.jsxAuthContext.jsxrequires_2fa.env.gitignoreload_dotenv(override=True)0.0.0.0/0text
 /app/
 ├── backend/
 │   ├── routes/
-│   │   ├── audit_logs.py           # NEW
-│   │   ├── data_health.py          # NEW
-│   │   ├── two_factor.py           # NEW
-│   │   └── ...
-│   ├── services/
-│   │   └── audit.py                # NEW - Audit logging utility
-│   └── static/
-│       └── demo_video.mp4          # Updated via Sora 2
+│   │   ├── auth.py                 
+│   │   ├── two_factor.py           # Admin 2FA
+│   │   └── user_two_factor.py      # NEW - User 2FA routes
+│   ├── static/
+│   │   ├── feature_*.png           # NEW - Real app screenshots for feature pages
+│   │   └── demo_video.mp4          
+│   └── server.py                   # Updated with static file mount & startup password migration
 └── frontend/
     └── src/
         ├── components/
-        │   ├── OnboardingWalkthrough.jsx       # NEW
-        │   ├── admin/
-        │   │   ├── TwoFactorSetup.jsx          # NEW
-        │   │   └── TwoFactorVerify.jsx         # NEW
-        │   └── auth/
-        │       └── AuthFormContainer.jsx       # Updated for mobile logo
+        │   ├── UserTwoFactorSetup.jsx      # NEW
+        │   └── UserTwoFactorVerify.jsx     # NEW
         ├── context/
-        │   ├── AuthContext.jsx                 # Consolidated (Handles both User/Admin)
-        │   └── AdminAuthContext.jsx            # Now a thin re-export wrapper
+        │   └── AuthContext.jsx             # Updated for skip_2fa logic
         └── pages/
-            └── admin/
-                ├── AdminAuditLogsPage.jsx      # NEW
-                ├── AdminDataHealthPage.jsx     # NEW
-                └── AdminSecurityPolicies.jsx   # Updated with 2FA UI
-pyotprequires_2fa: trueskip_2falog_audit_eventactor_idip_addressseveritydetailsuseAuthuseAdminAuthAuthContextuserstwo_factor{enabled: bool, method: str, secret: str, recovery_codes: list}onboarding_completed: boolaudit_logsactioncategoryactordetailstimestamppyotpqrcode/app/backend/routes/auth.py/app/src/context/AuthContext.jsx/app/src/pages/AdminLoginPage.jsx/app/memory/test_credentials.md/app/backend/routes/admin.pyadmin_users.pyadmin_billing.pyPOST /api/auth/loginskip_2faPOST /api/2fa/setupPOST /api/2fa/verifyGET /api/admin/audit-logsGET /api/admin/data-health/statsadmin@munal.aiAdmin@123456admin@munal.com/admin/security-policies/api/healthstatus: healthy.gitignoreadmin@munal.aiAdmin@123456orgmember@munal.comOrgMem@123</analysis>
+            ├── LoginPage.jsx               # Updated for 2FA UI block
+            ├── UserSettingsPage.jsx        # Updated with Security/2FA tab
+            ├── CalendarPage.jsx            # UI completely redesigned
+            ├── admin/
+            │   ├── AdminCouponsPage.jsx    # UI Brightened
+            │   ├── AdminTaxRatesPage.jsx   # UI Brightened
+            │   └── AdminCloudStoragePage.jsx # UI Brightened
+            └── features/
+                └── Feature*.jsx            # 15 pages updated to use /api/static/ images
+/app/backend/static/server.pyGET /api/static/{filename}FileResponserequires_2faUserTwoFactorVerifystartup_eventserver.pyb$a$userstotp_secret_pendingtwo_factor_setup_methodtwo_factor_enabledtwo_factor_methodtotp_secret/app/backend/routes/user_two_factor.py/app/src/components/UserTwoFactorSetup.jsx/app/src/components/UserTwoFactorVerify.jsx/app/src/pages/UserSettingsPage.jsx/app/src/pages/LoginPage.jsx/app/backend/server.py/app/.gitignore/app/backend/routes/admin.pyGET /api/static/{filename}POST /api/user/2fa/setupverify-setupverifydisablesend-email-otpPOST /api/admin/2fa-enforcement.gitignore.envconfig.pyload_dotenv(override=True)0.0.0.0/0bcrypt.hashpw0.0.0.0/0admin@munal.aiAdmin@123456orgadmin@munal.comOrgAdmin@123justinoo2001@gmail.comOgala@2023justinogala@outlook.com4edfdukD@1</analysis>
