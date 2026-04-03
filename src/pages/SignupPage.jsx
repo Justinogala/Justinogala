@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Loader2, Eye, EyeOff, AlertCircle, ArrowRight, Check, Chrome, Mail, Building2, User } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle, ArrowRight, Check, Mail, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,13 +109,6 @@ const SignupPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleGoogleSignup = () => {
-    toast({
-      title: "Coming Soon",
-      description: "Google signup for Munal AI is currently in development.",
-    });
   };
 
   return (
@@ -343,16 +336,6 @@ const SignupPage = () => {
                   {accountType === 'organization' ? 'Create Organization' : 'Get Started'} <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
-            </Button>
-
-            <Button 
-              type="button" 
-              variant="outline"
-              className="w-full h-12 bg-white hover:bg-slate-50 text-slate-700 border-slate-200 font-medium rounded-xl text-base transition-all hover:border-[#7C3AED]/30 hover:bg-purple-50"
-              onClick={handleGoogleSignup}
-            >
-              <Chrome className="mr-2 h-5 w-5 text-slate-900" />
-              Sign up with Google
             </Button>
           </div>
         </form>
