@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { FileUp, Download, Loader2, ArrowRight, FileText, Image, Table, Presentation, X, CheckCircle2 } from 'lucide-react';
+import { FileUp, Download, Loader2, ArrowRight, FileText, Image, Table, Presentation, X, CheckCircle2, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,16 @@ const CATEGORIES = [
     items: [
       { id: 'png-to-jpg', from: 'PNG', to: 'JPG', accept: '.png' },
       { id: 'jpg-to-png', from: 'JPG', to: 'PNG', accept: '.jpg,.jpeg' },
+    ],
+  },
+  {
+    name: 'eBook',
+    icon: BookOpen,
+    color: 'from-amber-500 to-orange-500',
+    items: [
+      { id: 'epub-to-mobi', from: 'EPUB', to: 'MOBI', accept: '.epub' },
+      { id: 'mobi-to-epub', from: 'MOBI', to: 'EPUB', accept: '.mobi' },
+      { id: 'epub-to-pdf', from: 'EPUB', to: 'PDF', accept: '.epub' },
     ],
   },
 ];
