@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { FileUp, Download, Loader2, ArrowRight, FileText, Image, X, CheckCircle2, BookOpen, Trash2, Plus, Layers } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { FileUp, Download, Loader2, ArrowRight, FileText, Image, X, CheckCircle2, BookOpen, Trash2, Plus, Layers, Clock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
 const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
@@ -69,13 +70,74 @@ const triggerDownload = (blob, filename) => {
   URL.revokeObjectURL(url);
 };
 
+const _timeAgo = (date) => {
+  const s = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return date.toLocaleDateString();
+};
+
 const FileConverterPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const fileRef = useRef(null);
   const [selected, setSelected] = useState(null);
   const [files, setFiles] = useState([]);
   const [converting, setConverting] = useState(false);
   const [done, setDone] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const token = (() => {
+    try {
+      const s = localStorage.getItem('munal_sessions');
+      return s ? JSON.parse(s).token : '';
+    } catch { return ''; }
+  })();
+
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/converter/history?limit=20`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.history || []);
+      }
+    } catch { /* silent */ }
+    finally { setHistoryLoading(false); }
+  }, [token]);
+
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  const handleRedownload = async (id, name) => {
+    try {
+      const res = await fetch(`${API_URL}/api/converter/history/${id}/download`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('File no longer available');
+      const blob = await res.blob();
+      triggerDownload(blob, name);
+    } catch (err) {
+      toast({ title: 'Download failed', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteHistory = async (id) => {
+    try {
+      await fetch(`${API_URL}/api/converter/history/${id}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      setHistory(prev => prev.filter(r => r.id !== id));
+    } catch { /* silent */ }
+  };
 
   const isBatch = files.length > 1;
   const isMerge = selected && MERGE_TYPES.has(selected.id);
@@ -123,7 +185,10 @@ const FileConverterPage = () => {
         formData.append('file', files[0]);
         formData.append('conversion_type', selected.id);
 
-        const res = await fetch(`${API_URL}/api/converter/convert`, { method: 'POST', body: formData });
+        const res = await fetch(`${API_URL}/api/converter/convert`, {
+          method: 'POST', body: formData,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.detail || 'Conversion failed');
@@ -139,7 +204,10 @@ const FileConverterPage = () => {
         files.forEach(f => formData.append('files', f));
         formData.append('conversion_type', selected.id);
 
-        const res = await fetch(`${API_URL}/api/converter/batch-convert`, { method: 'POST', body: formData });
+        const res = await fetch(`${API_URL}/api/converter/batch-convert`, {
+          method: 'POST', body: formData,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.detail || 'Batch conversion failed');
@@ -153,6 +221,7 @@ const FileConverterPage = () => {
       }
 
       setDone(true);
+      fetchHistory(); // Refresh history
       const msg = isBatch
         ? isMerge
           ? `${files.length} images merged into one PDF`
@@ -360,6 +429,61 @@ const FileConverterPage = () => {
           </div>
         </div>
       ))}
+
+      {/* Conversion History */}
+      {history.length > 0 && (
+        <div data-testid="converter-history">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center">
+                <Clock className="w-3.5 h-3.5 text-white" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Recent Conversions</h3>
+            </div>
+            <button onClick={fetchHistory} className="text-xs text-gray-400 hover:text-violet-500 transition-colors flex items-center gap-1" data-testid="converter-history-refresh">
+              <RefreshCw className={cn("w-3 h-3", historyLoading && "animate-spin")} /> Refresh
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {history.map((record) => {
+              const fromTo = record.conversion_type.replace('-to-', ' → ').toUpperCase();
+              const date = new Date(record.created_at);
+              const timeAgo = _timeAgo(date);
+              return (
+                <div key={record.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-800/60 group" data-testid={`history-${record.id}`}>
+                  <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{record.original_name}</p>
+                    <p className="text-[10px] text-gray-400">
+                      {fromTo} &middot; {formatSize(record.output_size)} &middot; {record.file_count > 1 ? `${record.file_count} files &middot; ` : ''}{timeAgo}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {record.downloadable && (
+                      <button
+                        onClick={() => handleRedownload(record.id, record.output_name)}
+                        className="p-1.5 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
+                        title="Re-download"
+                        data-testid={`history-download-${record.id}`}
+                      >
+                        <Download className="w-3.5 h-3.5 text-violet-500" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteHistory(record.id)}
+                      className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      title="Delete"
+                      data-testid={`history-delete-${record.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
