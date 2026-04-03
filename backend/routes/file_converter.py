@@ -9,6 +9,7 @@ import zipfile
 import logging
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
+from typing import List
 import fitz  # PyMuPDF
 from PIL import Image
 
@@ -94,6 +95,144 @@ async def convert_file(
     except Exception as e:
         logger.error(f"Conversion error ({conversion_type}): {e}")
         raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
+
+
+# ── Batch image merge helpers ─────────────────────────────────
+MERGE_TO_PDF_TYPES = {"jpg-to-pdf", "png-to-pdf", "image-to-pdf"}
+
+
+@router.post("/batch-convert")
+async def batch_convert(
+    files: List[UploadFile] = File(...),
+    conversion_type: str = Form(...),
+):
+    """Convert multiple files at once. Images→PDF merges into one PDF. Others zip individually."""
+    if conversion_type not in ALLOWED_CONVERSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported conversion: {conversion_type}")
+    if len(files) < 1:
+        raise HTTPException(status_code=400, detail="No files provided")
+    if len(files) > 50:
+        raise HTTPException(status_code=400, detail="Max 50 files per batch")
+
+    total_size = 0
+    file_buffers = []
+    for f in files:
+        data = await f.read()
+        total_size += len(data)
+        if total_size > 100 * 1024 * 1024:  # 100MB total
+            raise HTTPException(status_code=400, detail="Total batch size exceeds 100MB")
+        file_buffers.append((f.filename or "file", data))
+
+    try:
+        # Images → combined PDF
+        if conversion_type in MERGE_TO_PDF_TYPES:
+            return _batch_images_to_pdf(file_buffers)
+
+        # All other conversions → convert each, return ZIP
+        return await _batch_individual(file_buffers, conversion_type)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Batch conversion error ({conversion_type}): {e}")
+        raise HTTPException(status_code=500, detail=f"Batch conversion failed: {str(e)}")
+
+
+def _batch_images_to_pdf(file_buffers):
+    """Merge multiple images into a single PDF."""
+    pdf = fitz.open()
+    for fname, img_data in file_buffers:
+        try:
+            img = fitz.open(stream=img_data, filetype="png")  # auto-detects
+            pdfbytes = img.convert_to_pdf()
+            img_pdf = fitz.open("pdf", pdfbytes)
+            pdf.insert_pdf(img_pdf)
+            img.close()
+            img_pdf.close()
+        except Exception as e:
+            logger.warning(f"Skipping {fname}: {e}")
+    if len(pdf) == 0:
+        raise HTTPException(status_code=400, detail="No valid images found")
+    pdf_bytes = pdf.tobytes()
+    pdf.close()
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="combined.pdf"'},
+    )
+
+
+async def _batch_individual(file_buffers, conversion_type):
+    """Convert each file individually and return a ZIP."""
+    buf = io.BytesIO()
+    ext_map = {
+        "pdf-to-jpg": "jpg", "pdf-to-png": "png", "pdf-to-word": "docx",
+        "word-to-pdf": "pdf", "excel-to-pdf": "pdf", "pptx-to-pdf": "pdf",
+        "png-to-jpg": "jpg", "jpg-to-png": "png",
+        "epub-to-mobi": "mobi", "mobi-to-epub": "epub", "epub-to-pdf": "pdf",
+    }
+    target_ext = ext_map.get(conversion_type, "bin")
+
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fname, file_data in file_buffers:
+            base_name = os.path.splitext(fname)[0]
+            try:
+                response = _convert_single(file_data, base_name, conversion_type)
+                # Read the streaming response body
+                content = b""
+                async for chunk in response.body_iterator:
+                    if isinstance(chunk, str):
+                        content += chunk.encode()
+                    else:
+                        content += chunk
+
+                # PDF→images may return a zip — handle nested zip
+                disposition = response.headers.get("content-disposition", "")
+                if ".zip" in disposition:
+                    inner_zip = zipfile.ZipFile(io.BytesIO(content))
+                    for inner_name in inner_zip.namelist():
+                        zf.writestr(inner_name, inner_zip.read(inner_name))
+                    inner_zip.close()
+                else:
+                    zf.writestr(f"{base_name}.{target_ext}", content)
+            except Exception as e:
+                logger.warning(f"Batch: skipping {fname}: {e}")
+                zf.writestr(f"{base_name}_ERROR.txt", f"Conversion failed: {str(e)}")
+
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="batch_converted.zip"'},
+    )
+
+
+def _convert_single(file_data: bytes, name: str, conversion_type: str):
+    """Route a single file to the correct converter, return a StreamingResponse."""
+    if conversion_type == "pdf-to-jpg":
+        return _pdf_to_images(file_data, name, "jpeg")
+    elif conversion_type == "pdf-to-png":
+        return _pdf_to_images(file_data, name, "png")
+    elif conversion_type == "pdf-to-word":
+        return _pdf_to_word(file_data, name)
+    elif conversion_type in ("jpg-to-pdf", "png-to-pdf", "image-to-pdf"):
+        return _image_to_pdf(file_data, name)
+    elif conversion_type == "word-to-pdf":
+        return _word_to_pdf(file_data, name)
+    elif conversion_type == "excel-to-pdf":
+        return _excel_to_pdf(file_data, name)
+    elif conversion_type == "pptx-to-pdf":
+        return _pptx_to_pdf(file_data, name)
+    elif conversion_type == "png-to-jpg":
+        return _convert_image_format(file_data, name, "jpeg")
+    elif conversion_type == "jpg-to-png":
+        return _convert_image_format(file_data, name, "png")
+    elif conversion_type == "epub-to-mobi":
+        return _calibre_convert(file_data, name, ".epub", ".mobi", "application/x-mobipocket-ebook")
+    elif conversion_type == "mobi-to-epub":
+        return _calibre_convert(file_data, name, ".mobi", ".epub", "application/epub+zip")
+    elif conversion_type == "epub-to-pdf":
+        return _epub_to_pdf(file_data, name)
+    raise HTTPException(status_code=400, detail="Conversion not implemented")
 
 
 # ── PDF to Images ──────────────────────────────────────────────

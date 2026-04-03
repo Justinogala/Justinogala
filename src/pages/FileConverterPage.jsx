@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
-import { FileUp, Download, Loader2, ArrowRight, FileText, Image, Table, Presentation, X, CheckCircle2, BookOpen } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { FileUp, Download, Loader2, ArrowRight, FileText, Image, X, CheckCircle2, BookOpen, Trash2, Plus, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+
+const MERGE_TYPES = new Set(['jpg-to-pdf', 'png-to-pdf', 'image-to-pdf']);
 
 const CATEGORIES = [
   {
@@ -50,67 +52,113 @@ const CATEGORIES = [
   },
 ];
 
+const formatSize = (bytes) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const triggerDownload = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 const FileConverterPage = () => {
   const { toast } = useToast();
   const fileRef = useRef(null);
   const [selected, setSelected] = useState(null);
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [converting, setConverting] = useState(false);
   const [done, setDone] = useState(false);
 
+  const isBatch = files.length > 1;
+  const isMerge = selected && MERGE_TYPES.has(selected.id);
+
   const handleSelect = (item) => {
     setSelected(item);
-    setFile(null);
+    setFiles([]);
     setDone(false);
   };
 
   const handleFileChange = (e) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      if (f.size > 50 * 1024 * 1024) {
-        toast({ title: 'File too large', description: 'Maximum file size is 50MB', variant: 'destructive' });
-        return;
-      }
-      setFile(f);
-      setDone(false);
+    const newFiles = Array.from(e.target.files || []);
+    if (!newFiles.length) return;
+
+    const totalSize = [...files, ...newFiles].reduce((s, f) => s + f.size, 0);
+    if (totalSize > 100 * 1024 * 1024) {
+      toast({ title: 'Too large', description: 'Total batch size cannot exceed 100MB', variant: 'destructive' });
+      return;
     }
+    if (files.length + newFiles.length > 50) {
+      toast({ title: 'Too many files', description: 'Maximum 50 files per batch', variant: 'destructive' });
+      return;
+    }
+
+    setFiles(prev => [...prev, ...newFiles]);
+    setDone(false);
+    // Reset input so same file can be re-added
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const removeFile = (index) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+    setDone(false);
   };
 
   const handleConvert = async () => {
-    if (!file || !selected) return;
+    if (!files.length || !selected) return;
     setConverting(true);
     setDone(false);
+
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('conversion_type', selected.id);
+      if (files.length === 1) {
+        // Single file — use original endpoint
+        const formData = new FormData();
+        formData.append('file', files[0]);
+        formData.append('conversion_type', selected.id);
 
-      const res = await fetch(`${API_URL}/api/converter/convert`, {
-        method: 'POST',
-        body: formData,
-      });
+        const res = await fetch(`${API_URL}/api/converter/convert`, { method: 'POST', body: formData });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Conversion failed');
+        }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Conversion failed');
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?(.+?)"?$/);
+        triggerDownload(blob, match ? match[1] : `converted.${selected.to.toLowerCase()}`);
+      } else {
+        // Batch — use batch endpoint
+        const formData = new FormData();
+        files.forEach(f => formData.append('files', f));
+        formData.append('conversion_type', selected.id);
+
+        const res = await fetch(`${API_URL}/api/converter/batch-convert`, { method: 'POST', body: formData });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Batch conversion failed');
+        }
+
+        const blob = await res.blob();
+        const disposition = res.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?(.+?)"?$/);
+        const defaultName = isMerge ? 'combined.pdf' : 'batch_converted.zip';
+        triggerDownload(blob, match ? match[1] : defaultName);
       }
 
-      const blob = await res.blob();
-      const disposition = res.headers.get('Content-Disposition') || '';
-      const filenameMatch = disposition.match(/filename="?(.+?)"?$/);
-      const filename = filenameMatch ? filenameMatch[1] : `converted_${selected.to.toLowerCase()}`;
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
       setDone(true);
-      toast({ title: 'Conversion complete', description: `Your file has been converted to ${selected.to}` });
+      const msg = isBatch
+        ? isMerge
+          ? `${files.length} images merged into one PDF`
+          : `${files.length} files converted and zipped`
+        : `Your file has been converted to ${selected.to}`;
+      toast({ title: 'Conversion complete', description: msg });
     } catch (err) {
       toast({ title: 'Conversion failed', description: err.message, variant: 'destructive' });
     } finally {
@@ -120,14 +168,40 @@ const FileConverterPage = () => {
 
   const handleReset = () => {
     setSelected(null);
-    setFile(null);
+    setFiles([]);
     setDone(false);
   };
 
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    if (!selected) return;
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    const acceptExts = selected.accept.split(',').map(a => a.trim().toLowerCase());
+    const valid = droppedFiles.filter(f => {
+      const ext = '.' + f.name.split('.').pop().toLowerCase();
+      return acceptExts.some(a => a === ext || (a === '.jpg' && ext === '.jpeg') || (a === '.jpeg' && ext === '.jpg'));
+    });
+    if (!valid.length) {
+      toast({ title: 'Invalid files', description: `Only ${selected.from} files are accepted`, variant: 'destructive' });
+      return;
+    }
+    const totalSize = [...files, ...valid].reduce((s, f) => s + f.size, 0);
+    if (totalSize > 100 * 1024 * 1024) {
+      toast({ title: 'Too large', description: 'Total batch size cannot exceed 100MB', variant: 'destructive' });
+      return;
+    }
+    setFiles(prev => [...prev, ...valid].slice(0, 50));
+    setDone(false);
+  }, [selected, files, toast]);
+
+  const handleDragOver = useCallback((e) => { e.preventDefault(); }, []);
+
   // Active conversion view
   if (selected) {
+    const totalSize = files.reduce((s, f) => s + f.size, 0);
+
     return (
-      <div data-testid="converter-active" className="max-w-lg mx-auto">
+      <div data-testid="converter-active" className="max-w-xl mx-auto">
         <button
           onClick={handleReset}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6 transition-colors"
@@ -136,48 +210,99 @@ const FileConverterPage = () => {
           <X className="w-3.5 h-3.5" /> Back to all conversions
         </button>
 
-        <div className="glass-panel rounded-2xl p-8 text-center space-y-6">
+        <div className="glass-panel rounded-2xl p-8 space-y-6">
+          {/* Header */}
           <div className="flex items-center justify-center gap-3">
             <span className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-700 text-sm font-semibold text-gray-700 dark:text-gray-200">{selected.from}</span>
             <ArrowRight className="w-5 h-5 text-violet-500" />
             <span className="px-3 py-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/40 text-sm font-semibold text-violet-700 dark:text-violet-300">{selected.to}</span>
+            {isMerge && (
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-[10px] font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                <Layers className="w-3 h-3" /> Merge
+              </span>
+            )}
           </div>
 
           <input
             ref={fileRef}
             type="file"
             accept={selected.accept}
+            multiple
             onChange={handleFileChange}
             className="hidden"
             data-testid="converter-file-input"
           />
 
-          {!file ? (
+          {/* Dropzone */}
+          {files.length === 0 ? (
             <div
               onClick={() => fileRef.current?.click()}
-              className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-10 cursor-pointer hover:border-violet-300 dark:hover:border-violet-600 transition-colors group"
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-10 cursor-pointer hover:border-violet-300 dark:hover:border-violet-600 transition-colors group text-center"
               data-testid="converter-dropzone"
             >
               <FileUp className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 group-hover:text-violet-400 transition-colors" />
               <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                Click to select a <strong>{selected.from}</strong> file
+                Drop <strong>{selected.from}</strong> files here or click to browse
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Max 50MB</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Select multiple files for batch conversion &middot; Max 50 files, 100MB total
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-800 rounded-xl px-4 py-3" data-testid="converter-file-info">
-                <FileText className="w-5 h-5 text-violet-500 flex-shrink-0" />
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{file.name}</p>
-                  <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
-                </div>
-                {done && <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />}
+              {/* File list */}
+              <div className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1" data-testid="converter-file-list">
+                {files.map((f, i) => (
+                  <div key={`${f.name}-${i}`} className="flex items-center gap-2.5 bg-gray-50 dark:bg-slate-800 rounded-lg px-3 py-2 group" data-testid={`converter-file-${i}`}>
+                    <FileText className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{f.name}</p>
+                    </div>
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">{formatSize(f.size)}</span>
+                    {!converting && (
+                      <button
+                        onClick={() => removeFile(i)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                        data-testid={`converter-remove-${i}`}
+                      >
+                        <Trash2 className="w-3 h-3 text-red-400" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" size="sm" onClick={() => { setFile(null); setDone(false); }}>
-                  Change file
+              {/* Summary bar */}
+              <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 px-1">
+                <span data-testid="converter-file-count">{files.length} file{files.length > 1 ? 's' : ''} &middot; {formatSize(totalSize)}</span>
+                {!converting && (
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="flex items-center gap-1 text-violet-500 hover:text-violet-600 transition-colors"
+                    data-testid="converter-add-more-btn"
+                  >
+                    <Plus className="w-3 h-3" /> Add more
+                  </button>
+                )}
+              </div>
+
+              {/* Batch info */}
+              {isBatch && (
+                <div className="text-center">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {isMerge
+                      ? 'All images will be merged into a single PDF document.'
+                      : 'Each file will be converted individually. You\'ll get a ZIP file.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2 justify-center pt-1">
+                <Button variant="outline" size="sm" onClick={() => { setFiles([]); setDone(false); }}>
+                  Clear all
                 </Button>
                 <Button
                   className="bg-violet-600 hover:bg-violet-700 text-white"
@@ -186,14 +311,21 @@ const FileConverterPage = () => {
                   data-testid="converter-convert-btn"
                 >
                   {converting ? (
-                    <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Converting...</>
+                    <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Converting {files.length} file{files.length > 1 ? 's' : ''}...</>
                   ) : done ? (
                     <><Download className="w-4 h-4 mr-1.5" /> Download Again</>
                   ) : (
-                    <><ArrowRight className="w-4 h-4 mr-1.5" /> Convert & Download</>
+                    <><ArrowRight className="w-4 h-4 mr-1.5" /> Convert{isBatch ? ` ${files.length} Files` : ''} & Download</>
                   )}
                 </Button>
               </div>
+
+              {done && (
+                <div className="flex items-center justify-center gap-2 text-sm text-green-600 dark:text-green-400" data-testid="converter-done">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {isBatch ? (isMerge ? 'Files merged successfully' : 'Batch conversion complete') : 'Conversion complete'}
+                </div>
+              )}
             </div>
           )}
         </div>
