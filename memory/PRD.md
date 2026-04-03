@@ -45,6 +45,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Batch File Conversion — April 3, 2026
+- Batch endpoint: POST /api/converter/batch-convert — accepts multiple files
+- Image→PDF merge mode: combines all images into a single multi-page PDF
+- All other conversions: converts each file individually, returns ZIP archive
+- Frontend: multi-file selection, drag & drop, file list with remove, "Merge" badge for image→PDF
+- Limits: max 50 files, 100MB total
+- Testing: 100% (14/14 backend, all frontend verified) — Iteration 106
+
 ### File Converter Expansion — April 3, 2026
 - Improved Excel→PDF: proper table grid with cell borders, header background, alternating row colors
 - Improved PPTX→PDF: extracts and renders embedded images alongside text  
