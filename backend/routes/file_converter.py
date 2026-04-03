@@ -3,15 +3,19 @@ File Converter API — handles format conversions between PDF, Word, Image, Exce
 """
 import io
 import os
+import base64
 import subprocess
 import tempfile
+import uuid
 import zipfile
 import logging
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from datetime import datetime, timezone
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from typing import List
+from typing import List, Optional
 import fitz  # PyMuPDF
 from PIL import Image
+from config import db
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/converter", tags=["converter"])
@@ -49,8 +53,110 @@ async def get_supported_conversions():
     }
 
 
+MAX_HISTORY_FILE_SIZE = 15 * 1024 * 1024  # Only store files < 15MB for re-download
+
+
+async def _save_history(user_id: str, conversion_type: str, original_name: str,
+                        original_size: int, output_data: bytes, output_name: str, file_count: int = 1):
+    """Store a conversion record with the output file for re-download."""
+    record = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "conversion_type": conversion_type,
+        "original_name": original_name,
+        "original_size": original_size,
+        "output_name": output_name,
+        "output_size": len(output_data),
+        "file_count": file_count,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    # Only store file data if small enough
+    if len(output_data) <= MAX_HISTORY_FILE_SIZE:
+        record["output_data"] = base64.b64encode(output_data).decode()
+        record["downloadable"] = True
+    else:
+        record["downloadable"] = False
+
+    await db.conversion_history.insert_one(record)
+    # Keep only last 50 per user
+    count = await db.conversion_history.count_documents({"user_id": user_id})
+    if count > 50:
+        oldest = await db.conversion_history.find({"user_id": user_id}, {"_id": 1}).sort("created_at", 1).limit(count - 50).to_list(100)
+        if oldest:
+            await db.conversion_history.delete_many({"_id": {"$in": [r["_id"] for r in oldest]}})
+
+    return record["id"]
+
+
+def _extract_user_id(request: Request) -> str:
+    """Best-effort user ID from auth header."""
+    auth = request.headers.get("authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            import jwt
+            payload = jwt.decode(auth[7:], options={"verify_signature": False})
+            return payload.get("sub", "anonymous")
+        except Exception:
+            pass
+    return "anonymous"
+
+
+@router.get("/history")
+async def get_conversion_history(request: Request, limit: int = Query(20, le=50)):
+    """Get recent conversion history for the current user."""
+    user_id = _extract_user_id(request)
+    records = await db.conversion_history.find(
+        {"user_id": user_id},
+        {"_id": 0, "output_data": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    return {"history": records}
+
+
+@router.get("/history/{record_id}/download")
+async def download_history_item(record_id: str, request: Request):
+    """Re-download a previously converted file."""
+    user_id = _extract_user_id(request)
+    record = await db.conversion_history.find_one(
+        {"id": record_id, "user_id": user_id},
+        {"_id": 0}
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    if not record.get("downloadable") or not record.get("output_data"):
+        raise HTTPException(status_code=410, detail="File no longer available for download")
+
+    data = base64.b64decode(record["output_data"])
+    output_name = record.get("output_name", "converted_file")
+
+    # Determine MIME type
+    ext = output_name.rsplit(".", 1)[-1].lower() if "." in output_name else ""
+    mime_map = {
+        "pdf": "application/pdf", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+        "png": "image/png", "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "mobi": "application/x-mobipocket-ebook", "epub": "application/epub+zip",
+        "zip": "application/zip",
+    }
+    mime = mime_map.get(ext, "application/octet-stream")
+
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="{output_name}"'},
+    )
+
+
+@router.delete("/history/{record_id}")
+async def delete_history_item(record_id: str, request: Request):
+    user_id = _extract_user_id(request)
+    result = await db.conversion_history.delete_one({"id": record_id, "user_id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Record not found")
+    return {"success": True}
+
+
 @router.post("/convert")
 async def convert_file(
+    request: Request,
     file: UploadFile = File(...),
     conversion_type: str = Form(...),
 ):
@@ -64,32 +170,30 @@ async def convert_file(
     original_name = os.path.splitext(file.filename or "file")[0]
 
     try:
-        if conversion_type == "pdf-to-jpg":
-            return _pdf_to_images(file_data, original_name, "jpeg")
-        elif conversion_type == "pdf-to-png":
-            return _pdf_to_images(file_data, original_name, "png")
-        elif conversion_type == "pdf-to-word":
-            return _pdf_to_word(file_data, original_name)
-        elif conversion_type in ("jpg-to-pdf", "png-to-pdf", "image-to-pdf"):
-            return _image_to_pdf(file_data, original_name)
-        elif conversion_type == "word-to-pdf":
-            return _word_to_pdf(file_data, original_name)
-        elif conversion_type == "excel-to-pdf":
-            return _excel_to_pdf(file_data, original_name)
-        elif conversion_type == "pptx-to-pdf":
-            return _pptx_to_pdf(file_data, original_name)
-        elif conversion_type == "png-to-jpg":
-            return _convert_image_format(file_data, original_name, "jpeg")
-        elif conversion_type == "jpg-to-png":
-            return _convert_image_format(file_data, original_name, "png")
-        elif conversion_type == "epub-to-mobi":
-            return _calibre_convert(file_data, original_name, ".epub", ".mobi", "application/x-mobipocket-ebook")
-        elif conversion_type == "mobi-to-epub":
-            return _calibre_convert(file_data, original_name, ".mobi", ".epub", "application/epub+zip")
-        elif conversion_type == "epub-to-pdf":
-            return _epub_to_pdf(file_data, original_name)
-        else:
-            raise HTTPException(status_code=400, detail="Conversion not implemented")
+        response = _convert_single(file_data, original_name, conversion_type)
+
+        # Read output for history storage
+        output_bytes = b""
+        async for chunk in response.body_iterator:
+            output_bytes += chunk if isinstance(chunk, bytes) else chunk.encode()
+
+        # Extract filename from response headers
+        disposition = response.headers.get("content-disposition", "")
+        match = disposition.split('filename="')[-1].rstrip('"') if 'filename="' in disposition else f"{original_name}.out"
+
+        # Save to history (fire-and-forget)
+        user_id = _extract_user_id(request)
+        try:
+            await _save_history(user_id, conversion_type, file.filename or original_name,
+                                len(file_data), output_bytes, match)
+        except Exception as e:
+            logger.warning(f"Failed to save history: {e}")
+
+        return StreamingResponse(
+            io.BytesIO(output_bytes),
+            media_type=response.media_type,
+            headers=dict(response.headers),
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -103,6 +207,7 @@ MERGE_TO_PDF_TYPES = {"jpg-to-pdf", "png-to-pdf", "image-to-pdf"}
 
 @router.post("/batch-convert")
 async def batch_convert(
+    request: Request,
     files: List[UploadFile] = File(...),
     conversion_type: str = Form(...),
 ):
@@ -126,10 +231,32 @@ async def batch_convert(
     try:
         # Images → combined PDF
         if conversion_type in MERGE_TO_PDF_TYPES:
-            return _batch_images_to_pdf(file_buffers)
+            response = _batch_images_to_pdf(file_buffers)
+        else:
+            # All other conversions → convert each, return ZIP
+            response = await _batch_individual(file_buffers, conversion_type)
 
-        # All other conversions → convert each, return ZIP
-        return await _batch_individual(file_buffers, conversion_type)
+        # Read output for history
+        output_bytes = b""
+        async for chunk in response.body_iterator:
+            output_bytes += chunk if isinstance(chunk, bytes) else chunk.encode()
+
+        disposition = response.headers.get("content-disposition", "")
+        output_name = disposition.split('filename="')[-1].rstrip('"') if 'filename="' in disposition else "batch_converted"
+        first_name = file_buffers[0][0] if file_buffers else "batch"
+
+        user_id = _extract_user_id(request)
+        try:
+            await _save_history(user_id, conversion_type, first_name,
+                                total_size, output_bytes, output_name, file_count=len(file_buffers))
+        except Exception as e:
+            logger.warning(f"Failed to save batch history: {e}")
+
+        return StreamingResponse(
+            io.BytesIO(output_bytes),
+            media_type=response.media_type,
+            headers=dict(response.headers),
+        )
     except HTTPException:
         raise
     except Exception as e:
