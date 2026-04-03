@@ -45,6 +45,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### Conversion History + Login Cleanup — April 3, 2026
+- Removed "Sign in with Google" button from login page
+- Added conversion history: tracks all conversions per user in MongoDB (conversion_history collection)
+- History shows in Converter tab: original filename, conversion type, output size, time ago
+- Re-download available for files < 15MB, delete per record, auto-prunes to last 50 per user
+- Endpoints: GET /api/converter/history, GET .../history/{id}/download, DELETE .../history/{id}
+- Testing: 100% (16/16 backend, all frontend verified) — Iteration 107
+
 ### Batch File Conversion — April 3, 2026
 - Batch endpoint: POST /api/converter/batch-convert — accepts multiple files
 - Image→PDF merge mode: combines all images into a single multi-page PDF
