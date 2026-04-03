@@ -45,6 +45,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Recent Changes
 
+### File Converter Expansion — April 3, 2026
+- Improved Excel→PDF: proper table grid with cell borders, header background, alternating row colors
+- Improved PPTX→PDF: extracts and renders embedded images alongside text  
+- New eBook category: EPUB↔MOBI (Calibre CLI), EPUB→PDF (native ebooklib + PyMuPDF, 6x9 book format)
+- Total: 14 conversions available
+- Added: ebooklib, Calibre CLI (ebook-convert), xvfb, xauth system packages
+- Testing: 100% (21/21 backend, all frontend verified) — Iteration 105
+
 ### File Converter (DocHub) — April 2, 2026
 - Built 11 file format conversions: PDF↔JPG/PNG/Word, Word/Excel/PPTX/Image→PDF, PNG↔JPG
 - Backend route `/api/converter/convert` with multipart upload, supports up to 50MB files
