@@ -219,6 +219,19 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Vite build config: Capacitor plugins externalized in rollupOptions
 - Web build + Capacitor sync verified (9 plugins for both Android and iOS)
 
+### App Store Submission Preparation — April 4, 2026
+- Generated Munal-branded app icons (15 Android mipmap PNGs + iOS 1024x1024)
+- Generated branded splash screens (11 Android portrait/landscape + 3 iOS sizes)
+- Android: AndroidManifest with permissions (camera, notifications, audio, storage), deep linking, FCM config, network security config
+- Android: build.gradle with release signing config, ProGuard (minify+shrink), ABI splits
+- iOS: Info.plist with all privacy descriptions (camera, photo, microphone), ATS, deep linking, background modes
+- iOS: App.entitlements with push notifications and associated domains
+- Store assets: Play Store icon (512px), App Store icon (1024px), Feature graphic (1024x500)
+- Store metadata: Full listing JSON with descriptions, keywords, categories
+- Comprehensive submission checklist (STORE_SUBMISSION_CHECKLIST.md) for both Play Store and App Store
+- Scripts: generate-app-icons.py, generate-store-screenshots.py
+- Testing: 100% (Iteration 110)
+
 ## Backlog (Prioritized)
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
