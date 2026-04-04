@@ -235,7 +235,7 @@ const LoginPage = () => {
             </Link>
           </div>
 
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4 pt-2 pb-[180px] sm:pb-4">
             <Button 
               type="submit" 
               className="w-full h-12 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl text-base shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300" 
