@@ -25,8 +25,8 @@ const trademarkSections = [
     id: 'ownership',
     icon: Stamp,
     title: 'Trademark Ownership',
-    summary: 'Munal, Munal AI, and associated logos are trademarks of Jiffix Inc. All trademarks are protected under applicable intellectual property laws.',
-    fullContent: `The following trademarks, service marks, and trade names are owned by Jiffix Inc. and are protected under Canadian, United States, and international trademark laws:
+    summary: 'Munal, Munal AI, and associated logos are trademarks of Munal AI Inc. All trademarks are protected under applicable intellectual property laws.',
+    fullContent: `The following trademarks, service marks, and trade names are owned by Munal AI Inc. and are protected under Canadian, United States, and international trademark laws:
 
 - Munal (word mark)
 - Munal AI (word mark)
@@ -35,16 +35,16 @@ const trademarkSections = [
 - "Your AI Meeting Companion" (tagline)
 - "Smarter Meetings, Better Outcomes" (tagline)
 
-These marks are registered or pending registration with the Canadian Intellectual Property Office (CIPO) and the United States Patent and Trademark Office (USPTO). Use of these marks without prior written authorization from Jiffix Inc. is strictly prohibited.
+These marks are registered or pending registration with the Canadian Intellectual Property Office (CIPO) and the United States Patent and Trademark Office (USPTO). Use of these marks without prior written authorization from Munal AI Inc. is strictly prohibited.
 
-All trademarks not owned by Jiffix Inc. that appear on the Munal AI website or in our materials are the property of their respective owners. Their inclusion does not imply any affiliation with, or endorsement by, Jiffix Inc.`
+All trademarks not owned by Munal AI Inc. that appear on the Munal AI website or in our materials are the property of their respective owners. Their inclusion does not imply any affiliation with, or endorsement by, Munal AI Inc.`
   },
   {
     id: 'permitted-use',
     icon: FileCheck,
     title: 'Permitted Uses',
     summary: 'You may reference Munal AI trademarks for informational, editorial, or descriptive purposes provided you follow our usage guidelines.',
-    fullContent: `Jiffix Inc. permits limited use of Munal AI trademarks under the following conditions:
+    fullContent: `Munal AI Inc. permits limited use of Munal AI trademarks under the following conditions:
 
 - Descriptive Reference: You may use "Munal" or "Munal AI" in plain text to truthfully refer to or describe Munal AI products and services. For example: "This application integrates with Munal AI for meeting transcription."
 
@@ -58,20 +58,20 @@ In all permitted uses, you must:
   1. Use the trademark as an adjective followed by a generic noun (e.g., "Munal AI platform," not just "Munal").
   2. Not alter the trademark in any way (no abbreviations, translations, or modifications).
   3. Include an appropriate trademark attribution notice.
-  4. Not use the trademark in a way that suggests Jiffix Inc. sponsors or endorses your product or service.`
+  4. Not use the trademark in a way that suggests Munal AI Inc. sponsors or endorses your product or service.`
   },
   {
     id: 'prohibited-use',
     icon: Ban,
     title: 'Prohibited Uses',
     summary: 'You may not use Munal AI trademarks in ways that could confuse customers, imply false endorsement, or damage the reputation of the brand.',
-    fullContent: `The following uses of Munal AI trademarks are expressly prohibited without prior written consent from Jiffix Inc.:
+    fullContent: `The following uses of Munal AI trademarks are expressly prohibited without prior written consent from Munal AI Inc.:
 
 - Company or Product Names: You may not incorporate "Munal," "Munal AI," or any confusingly similar variation into your own company name, product name, service name, domain name, or social media handle.
 
 - Logos and Design Marks: You may not reproduce, modify, or use the Munal AI logos or design marks without explicit written authorization. This includes creating derivative works based on our logos.
 
-- Misleading Association: You may not use our trademarks in any manner that suggests partnership, sponsorship, endorsement, or affiliation with Jiffix Inc. unless such a relationship exists and is documented.
+- Misleading Association: You may not use our trademarks in any manner that suggests partnership, sponsorship, endorsement, or affiliation with Munal AI Inc. unless such a relationship exists and is documented.
 
 - Domain Names: Registering domain names that include "Munal" or "Munal AI" (e.g., munal-tools.com, munalai-alternative.com) is prohibited.
 
@@ -105,7 +105,7 @@ In all permitted uses, you must:
   • Animate the logo without written approval
   • Separate the "M" icon from the wordmark unless specifically authorized
 
-For press or media use, approved logo files and brand assets are available on our Press page. Contact press@jiffix.ca for additional formats or use cases.`
+For press or media use, approved logo files and brand assets are available on our Press page. Contact press@munal.ai for additional formats or use cases.`
   },
   {
     id: 'third-party',
@@ -123,27 +123,27 @@ Third-party marks referenced include, but are not limited to:
 - Apple, Safari, macOS — trademarks of Apple Inc.
 - Stripe — trademark of Stripe, Inc.
 
-Jiffix Inc. is not affiliated with, sponsored by, or endorsed by any of these companies unless explicitly stated in a partnership announcement. If you are a trademark owner and believe your mark is being used improperly on our platform, please contact us at legal@jiffix.ca.`
+Munal AI Inc. is not affiliated with, sponsored by, or endorsed by any of these companies unless explicitly stated in a partnership announcement. If you are a trademark owner and believe your mark is being used improperly on our platform, please contact us at legal@munal.ai.`
   },
   {
     id: 'enforcement',
     icon: Scale,
     title: 'Enforcement & Reporting',
-    summary: 'Jiffix Inc. actively monitors and enforces its trademark rights. If you encounter unauthorized use of Munal AI trademarks, please report it to our legal team.',
-    fullContent: `Jiffix Inc. takes the protection of its intellectual property seriously and actively monitors for unauthorized use of its trademarks:
+    summary: 'Munal AI Inc. actively monitors and enforces its trademark rights. If you encounter unauthorized use of Munal AI trademarks, please report it to our legal team.',
+    fullContent: `Munal AI Inc. takes the protection of its intellectual property seriously and actively monitors for unauthorized use of its trademarks:
 
 - Monitoring: We use automated tools and periodic manual reviews to identify unauthorized use of Munal AI trademarks across the internet, including websites, social media, app stores, and domain registrations.
 
-- Cease & Desist: If unauthorized use is identified, Jiffix Inc. will issue a cease-and-desist notice requesting immediate removal or correction of the infringing use.
+- Cease & Desist: If unauthorized use is identified, Munal AI Inc. will issue a cease-and-desist notice requesting immediate removal or correction of the infringing use.
 
 - Legal Action: Continued unauthorized use after notification may result in legal proceedings under applicable trademark laws, including claims for injunctive relief, damages, and recovery of legal fees.
 
-- UDRP: For domain name disputes, Jiffix Inc. may file complaints under the Uniform Domain-Name Dispute-Resolution Policy (UDRP) with an approved dispute resolution provider.
+- UDRP: For domain name disputes, Munal AI Inc. may file complaints under the Uniform Domain-Name Dispute-Resolution Policy (UDRP) with an approved dispute resolution provider.
 
 Reporting Trademark Misuse:
 If you encounter what you believe to be unauthorized or improper use of Munal AI trademarks, we appreciate your help. Please report it to:
 
-  Email: legal@jiffix.ca
+  Email: legal@munal.ai
   Subject line: "Trademark Concern — [Brief Description]"
   Include: The URL or location of the suspected misuse, a screenshot if possible, and a brief description of the concern.
 
@@ -164,9 +164,9 @@ We review all reports and take appropriate action in a timely manner. We may fol
 
 - Logos: Do not include the Munal AI logo in your project's repository, assets, or distribution without explicit written authorization.
 
-- Not Official: Community projects must clearly state that they are not official Munal AI products and are not endorsed by Jiffix Inc., unless such endorsement has been formally granted.
+- Not Official: Community projects must clearly state that they are not official Munal AI products and are not endorsed by Munal AI Inc., unless such endorsement has been formally granted.
 
-For questions about using Munal AI trademarks in open-source or community projects, contact devrel@jiffix.ca before publishing.`
+For questions about using Munal AI trademarks in open-source or community projects, contact devrel@munal.ai before publishing.`
   }
 ];
 
@@ -202,7 +202,7 @@ const Trademarks = () => {
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="trademarks-title">Trademarks</h1>
           <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-            Guidelines for the proper use of Munal AI trademarks, logos, and brand assets owned by Jiffix Inc.
+            Guidelines for the proper use of Munal AI trademarks, logos, and brand assets owned by Munal AI Inc.
           </p>
         </div>
       </section>
@@ -242,7 +242,7 @@ const Trademarks = () => {
             {/* Main */}
             <main className="flex-1 max-w-3xl">
               <p className="text-gray-600 dark:text-gray-300 mb-8">
-                This page sets forth the guidelines for use of Jiffix Inc. trademarks, including the Munal and Munal AI names, logos, and associated brand elements. These guidelines protect both the integrity of our brand and the trust of our users and partners.
+                This page sets forth the guidelines for use of Munal AI Inc. trademarks, including the Munal and Munal AI names, logos, and associated brand elements. These guidelines protect both the integrity of our brand and the trust of our users and partners.
               </p>
 
               {/* Quick Reference Card */}
@@ -338,13 +338,13 @@ const Trademarks = () => {
                     </p>
                     <div className="space-y-1 text-sm">
                       <p className="text-gray-600 dark:text-gray-400">
-                        General: <a href="mailto:legal@jiffix.ca" className="text-slate-700 dark:text-slate-300 hover:underline font-medium">legal@jiffix.ca</a>
+                        General: <a href="mailto:legal@munal.ai" className="text-slate-700 dark:text-slate-300 hover:underline font-medium">legal@munal.ai</a>
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Press & Media: <a href="mailto:press@jiffix.ca" className="text-slate-700 dark:text-slate-300 hover:underline font-medium">press@jiffix.ca</a>
+                        Press & Media: <a href="mailto:press@munal.ai" className="text-slate-700 dark:text-slate-300 hover:underline font-medium">press@munal.ai</a>
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        Developer Relations: <a href="mailto:devrel@jiffix.ca" className="text-slate-700 dark:text-slate-300 hover:underline font-medium">devrel@jiffix.ca</a>
+                        Developer Relations: <a href="mailto:devrel@munal.ai" className="text-slate-700 dark:text-slate-300 hover:underline font-medium">devrel@munal.ai</a>
                       </p>
                     </div>
                   </div>
@@ -354,7 +354,7 @@ const Trademarks = () => {
               {/* Attribution notice */}
               <div className="mt-6 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-500">
-                  &copy; {new Date().getFullYear()} Jiffix Inc. All rights reserved. Munal, Munal AI, and the Munal logo are trademarks of Jiffix Inc.
+                  &copy; {new Date().getFullYear()} Munal AI Inc. All rights reserved. Munal, Munal AI, and the Munal logo are trademarks of Munal AI Inc.
                 </p>
               </div>
             </main>

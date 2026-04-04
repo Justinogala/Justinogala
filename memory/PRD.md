@@ -232,6 +232,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Scripts: generate-app-icons.py, generate-store-screenshots.py
 - Testing: 100% (Iteration 110)
 
+### Remaining Store Submission Items — April 4, 2026
+- Android signing keystore: generation script (`scripts/generate-keystore.sh`), keystore.properties template, build.gradle auto-reads credentials
+- Privacy Policy & Terms rebranded from Jiffix to Munal AI across ALL legal pages (Privacy, Terms, Security, Trademarks, ManageCookies, eSignature Terms, About, Admin Login, Footer)
+- Privacy Policy updated with mobile app sections (device tokens, push notifications, camera, 2FA)
+- Terms updated with 2FA requirements, mobile app usage terms, document hub ownership
+- Store screenshots: 21 placeholders at correct sizes (3 devices x 7 screens) + generation script
+- Final validation: 100% test pass rate (Iteration 111)
+
 ## Backlog (Prioritized)
 - P3: Additional form templates
 - P3: Advanced analytics/reporting

@@ -118,7 +118,7 @@ const Footer = () => {
               </Link>
               <ThemeSwitcher />
               <span className="text-[11px] text-[#767676] dark:text-gray-500">
-                Munal AI is a division of Jiffix Inc.
+                Munal AI
               </span>
             </div>
 
