@@ -142,7 +142,7 @@ const AdminLoginPage = () => {
 
         {/* Bottom */}
         <p className="text-[11px] text-slate-600/50 z-10">
-          Munal AI by Jiffix Inc.
+          Munal AI by Munal AI Inc.
         </p>
       </div>
 

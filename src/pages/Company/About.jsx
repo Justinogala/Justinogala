@@ -56,7 +56,7 @@ const About = () => {
                 We're Building the Future of <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-600">Teamwork</span>
               </h1>
               <p className="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-                Munal AI is a division of Jiffix Inc., on a mission to eliminate busywork so teams can focus on what truly matters — creative, strategic, human work.
+                Munal AI Inc. is on a mission to eliminate busywork so teams can focus on what truly matters — creative, strategic, human work.
               </p>
             </motion.div>
           </div>
@@ -175,7 +175,7 @@ const About = () => {
           </motion.div>
           <div className="max-w-2xl mx-auto space-y-0">
             {[
-              { year: "2024", title: "Founded", desc: "Munal AI launched as an AI transcription tool by Jiffix Inc." },
+              { year: "2024", title: "Founded", desc: "Munal AI launched as an AI transcription tool by Munal AI Inc." },
               { year: "2024", title: "Core Platform", desc: "Added meetings, video calls, workspaces, and team messaging." },
               { year: "2025", title: "Workforce Tools", desc: "Launched approvals, shift scheduling, eSignatures, and IR/SOR reports." },
               { year: "2026", title: "AI & Scale", desc: "GPT-powered analytics, 10k+ teams, multi-language expansion underway." },

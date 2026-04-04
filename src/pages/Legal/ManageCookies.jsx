@@ -360,7 +360,7 @@ const ManageCookies = () => {
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Questions About Cookies?</h3>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">
                   If you have any questions about how Munal AI uses cookies, please contact our Privacy Team at{' '}
-                  <a href="mailto:privacy@jiffix.ca" className="text-amber-700 dark:text-amber-400 hover:underline">privacy@jiffix.ca</a>.
+                  <a href="mailto:privacy@munal.ai" className="text-amber-700 dark:text-amber-400 hover:underline">privacy@munal.ai</a>.
                 </p>
               </div>
             </main>

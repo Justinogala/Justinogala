@@ -26,8 +26,8 @@ const securitySections = [
     id: 'commitment',
     icon: Shield,
     title: 'Our Security Commitment',
-    summary: 'Jiffix Inc. is committed to protecting the confidentiality, integrity, and availability of all data processed through the Munal AI platform.',
-    fullContent: `Security is foundational to everything we build at Jiffix Inc. Munal AI is designed, developed, and operated with a security-first mindset. Our commitment extends across every layer of the platform:
+    summary: 'Munal AI Inc. is committed to protecting the confidentiality, integrity, and availability of all data processed through the Munal AI platform.',
+    fullContent: `Security is foundational to everything we build at Munal AI Inc. Munal AI is designed, developed, and operated with a security-first mindset. Our commitment extends across every layer of the platform:
 
 - Security by Design: Security requirements are integrated into every phase of our software development lifecycle (SDLC), from architecture review through code review, testing, and deployment.
 
@@ -125,10 +125,10 @@ const securitySections = [
     id: 'incident-response',
     icon: AlertTriangle,
     title: 'Incident Response',
-    summary: 'Jiffix Inc. maintains a formal incident response plan with defined roles, escalation procedures, communication protocols, and post-incident review processes.',
+    summary: 'Munal AI Inc. maintains a formal incident response plan with defined roles, escalation procedures, communication protocols, and post-incident review processes.',
     fullContent: `We are prepared to detect, respond to, and recover from security incidents swiftly and effectively:
 
-- Incident Response Plan: Jiffix Inc. maintains a documented Incident Response Plan (IRP) that defines roles, responsibilities, escalation procedures, and communication protocols for security incidents.
+- Incident Response Plan: Munal AI Inc. maintains a documented Incident Response Plan (IRP) that defines roles, responsibilities, escalation procedures, and communication protocols for security incidents.
 
 - Detection: Our monitoring systems are configured to detect indicators of compromise, including unauthorized access attempts, data exfiltration patterns, malware signatures, and system anomalies.
 
@@ -138,7 +138,7 @@ const securitySections = [
 
 - Investigation: A thorough investigation is conducted to determine the root cause, scope, and impact of the incident. Forensic evidence is preserved for analysis and potential legal proceedings.
 
-- Notification: In the event of a data breach affecting personal information, Jiffix Inc. will notify affected users and relevant regulatory authorities within the timeframes required by applicable laws (typically 72 hours under GDPR, and as soon as feasible under PIPEDA).
+- Notification: In the event of a data breach affecting personal information, Munal AI Inc. will notify affected users and relevant regulatory authorities within the timeframes required by applicable laws (typically 72 hours under GDPR, and as soon as feasible under PIPEDA).
 
 - Recovery: Affected systems are restored to a known-good state using verified backups and clean deployments. Additional security controls may be implemented to prevent recurrence.
 
@@ -149,9 +149,9 @@ const securitySections = [
     icon: FileCheck,
     title: 'Compliance & Certifications',
     summary: 'Munal AI is designed to meet the requirements of major privacy and security frameworks including PIPEDA, GDPR, CCPA, and SOC 2 Type II.',
-    fullContent: `Jiffix Inc. is committed to meeting and exceeding industry compliance standards:
+    fullContent: `Munal AI Inc. is committed to meeting and exceeding industry compliance standards:
 
-- PIPEDA: As a Canadian company, Jiffix Inc. complies with the Personal Information Protection and Electronic Documents Act (PIPEDA), ensuring that personal information is collected, used, and disclosed in accordance with Canadian privacy law.
+- PIPEDA: As a Canadian company, Munal AI Inc. complies with the Personal Information Protection and Electronic Documents Act (PIPEDA), ensuring that personal information is collected, used, and disclosed in accordance with Canadian privacy law.
 
 - Provincial Privacy Laws: We comply with applicable provincial privacy legislation, including Alberta's PIPA, British Columbia's PIPA, and Quebec's Law 25.
 
@@ -174,7 +174,7 @@ const securitySections = [
 
 - Data Ownership: You retain full ownership of all data you input into Munal AI, including meeting recordings, transcriptions, notes, forms, and documents. We do not claim any intellectual property rights over your content.
 
-- No Data Selling: Jiffix Inc. does not sell, rent, or trade personal information to third parties for marketing or advertising purposes. Period.
+- No Data Selling: Munal AI Inc. does not sell, rent, or trade personal information to third parties for marketing or advertising purposes. Period.
 
 - AI Training: Your data is not used to train or improve our AI models without your explicit, informed consent. Meeting transcriptions, recordings, and notes are processed solely to provide the requested service.
 
@@ -203,9 +203,9 @@ const securitySections = [
 
 - Secure Development Practices: Our development team follows secure coding guidelines based on OWASP Top 10 and SANS Top 25. Code reviews include security-focused review criteria, and automated static analysis tools scan for common vulnerability patterns.
 
-- Responsible Disclosure: We welcome reports from security researchers who discover potential vulnerabilities in our platform. If you believe you have found a security vulnerability, please report it to security@jiffix.ca. We commit to acknowledging reports within 48 hours, providing regular status updates, and publicly crediting researchers (with permission) after remediation.
+- Responsible Disclosure: We welcome reports from security researchers who discover potential vulnerabilities in our platform. If you believe you have found a security vulnerability, please report it to security@munal.ai. We commit to acknowledging reports within 48 hours, providing regular status updates, and publicly crediting researchers (with permission) after remediation.
 
-- Bug Bounty: Qualifying vulnerability reports may be eligible for our bug bounty program. Contact security@jiffix.ca for program details and scope.`
+- Bug Bounty: Qualifying vulnerability reports may be eligible for our bug bounty program. Contact security@munal.ai for program details and scope.`
   },
   {
     id: 'updates',
@@ -222,13 +222,13 @@ const securitySections = [
 
 - Status Page: Our public status page provides real-time information about platform availability and any ongoing incidents.
 
-- Communication Channels: Security-related communications are delivered through official Jiffix Inc. email addresses (@jiffix.ca). We will never ask for your password or sensitive information via email.
+- Communication Channels: Security-related communications are delivered through official Munal AI Inc. email addresses (@munal.ai). We will never ask for your password or sensitive information via email.
 
 Contact our security team:
-  - General Security: security@jiffix.ca
-  - Vulnerability Reports: security@jiffix.ca
-  - Privacy Inquiries: privacy@jiffix.ca
-  - Compliance Requests: legal@jiffix.ca`
+  - General Security: security@munal.ai
+  - Vulnerability Reports: security@munal.ai
+  - Privacy Inquiries: privacy@munal.ai
+  - Compliance Requests: legal@munal.ai`
   }
 ];
 
@@ -264,7 +264,7 @@ const SecurityPage = () => {
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4" data-testid="security-page-title">Security</h1>
           <p className="text-emerald-100 text-lg max-w-2xl mx-auto">
-            How Jiffix Inc. protects your data, your privacy, and your trust across the Munal AI platform.
+            How Munal AI Inc. protects your data, your privacy, and your trust across the Munal AI platform.
           </p>
         </div>
       </section>
@@ -318,7 +318,7 @@ const SecurityPage = () => {
             {/* Main */}
             <main className="flex-1 max-w-3xl">
               <p className="text-gray-600 dark:text-gray-300 mb-8">
-                This page describes the security measures, policies, and practices that Jiffix Inc. employs to protect the Munal AI platform and your data. For additional details, enterprise customers may request our full Security Whitepaper or SOC 2 audit report.
+                This page describes the security measures, policies, and practices that Munal AI Inc. employs to protect the Munal AI platform and your data. For additional details, enterprise customers may request our full Security Whitepaper or SOC 2 audit report.
               </p>
 
               <div className="space-y-4">
@@ -381,10 +381,10 @@ const SecurityPage = () => {
                 </p>
                 <div className="space-y-1 text-sm">
                   <p className="text-gray-600 dark:text-gray-400">
-                    Security Team: <a href="mailto:security@jiffix.ca" className="text-emerald-700 dark:text-emerald-400 hover:underline font-medium">security@jiffix.ca</a>
+                    Security Team: <a href="mailto:security@munal.ai" className="text-emerald-700 dark:text-emerald-400 hover:underline font-medium">security@munal.ai</a>
                   </p>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Privacy Team: <a href="mailto:privacy@jiffix.ca" className="text-emerald-700 dark:text-emerald-400 hover:underline font-medium">privacy@jiffix.ca</a>
+                    Privacy Team: <a href="mailto:privacy@munal.ai" className="text-emerald-700 dark:text-emerald-400 hover:underline font-medium">privacy@munal.ai</a>
                   </p>
                 </div>
               </div>
@@ -392,7 +392,7 @@ const SecurityPage = () => {
               {/* Last updated */}
               <div className="mt-6 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-center">
                 <p className="text-xs text-gray-500 dark:text-gray-500">
-                  Last updated: March 2026. This page is reviewed and updated quarterly. &copy; {new Date().getFullYear()} Jiffix Inc. All rights reserved.
+                  Last updated: March 2026. This page is reviewed and updated quarterly. &copy; {new Date().getFullYear()} Munal AI Inc. All rights reserved.
                 </p>
               </div>
             </main>
