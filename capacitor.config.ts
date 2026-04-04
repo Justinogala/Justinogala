@@ -5,9 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Munal AI',
   webDir: 'dist',
   server: {
-    // For development, point to your live server
-    // Comment this out for production builds
-    // url: 'https://your-production-url.com',
+    // Point to your live server so the app always loads the latest version
+    url: 'https://munal-mobile-wrap.preview.emergentagent.com',
     androidScheme: 'https',
     iosScheme: 'https',
   },
