@@ -24,7 +24,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://custom-templates-7.preview.emergentagent.com"
+    BASE_URL = "https://munal-mobile-wrap.preview.emergentagent.com"
 
 
 class TestHealthCheck:

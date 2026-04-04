@@ -8,7 +8,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://custom-templates-7.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://munal-mobile-wrap.preview.emergentagent.com')
 BASE_URL = BASE_URL.rstrip('/')
 
 ADMIN_REPORT_ENDPOINT = f"{BASE_URL}/api/admin/reports/generate"

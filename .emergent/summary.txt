@@ -1,32 +1,28 @@
-<analysis>admin_pdf_templates.pypdf_editor.pyAdminPDFTemplatesPage.jsxPDFEditorPage.jsxtesting_agent_v3_fork/app/src/pages/PDFEditorPage.jsxFillTemplateModaladmin.pypdf_editortext
+<analysis>/app/src/utils/native.jsnative.js/app/src/utils/native.jsApp.jsxmain.jsxPDFEditorPage.jsxUserLayout.jsxAdminLayout.jsxDocHubPage.jsxfile_converter.pyLoginPage.jsxSignupPage.jsxtext
 /app/
+├── android/                            # NEW - Capacitor Android project
+├── ios/                                # NEW - Capacitor iOS project
+├── capacitor.config.ts                 # NEW - Capacitor config
 ├── backend/
 │   ├── routes/
-│   │   ├── admin.py                    # Now a thin shell exporting the modular files below
-│   │   ├── admin_settings.py           # Refactored from admin.py
-│   │   ├── admin_users.py              # Refactored from admin.py
-│   │   ├── admin_billing.py            # Refactored from admin.py
-│   │   ├── admin_monitoring.py         # Refactored from admin.py
-│   │   ├── admin_storage.py            # Refactored from admin.py
-│   │   ├── admin_video.py              # Refactored from admin.py
-│   │   ├── admin_messages.py           # Refactored from admin.py
-│   │   ├── admin_compliance.py         # NEW - Compliance score logic
-│   │   ├── pdf_editor.py               # NEW - PDF Editor CRUD & generation
-│   │   └── admin_pdf_templates.py      # NEW - Admin Custom PDF templates
-│   ├── services/
-│   │   └── pdf_templates.py            # NEW - PyMuPDF generation logic
-│   ├── scheduled/
-│   │   └── data_health_digest.py       # NEW - Weekly health digest
-│   └── server.py                       # Updated with APScheduler jobs
+│   │   ├── auth.py                     # Updated with 24h 2FA refresh logic
+│   │   ├── two_factor.py               # Updated
+│   │   ├── file_converter.py           # NEW - Robust multi-format file converter
+│   │   └── pdf_editor.py
+│   └── server.py
 └── frontend/
     └── src/
-        ├── components/admin/
-        │   └── ComplianceScoreWidget.jsx # NEW
+        ├── context/
+        │   └── AuthContext.jsx         # Updated to handle 2fa_session_expired
+        ├── layouts/
+        │   ├── UserLayout.jsx          # Updated with global footer
+        │   └── AdminLayout.jsx         # Updated with global footer
         ├── pages/
-        │   ├── PDFEditorPage.jsx       # NEW - PDF Editor & Template Gallery
-        │   ├── admin/
-        │   │   ├── Admin2FADashboardPage.jsx     # NEW
-        │   │   └── AdminPDFTemplatesPage.jsx     # NEW
-        │   └── user/
-        │       └── UserDashboard.jsx   # Cleaned up (removed 2FA block)
-APSchedulerserver.pypdf-libreact-pdfPyMuPDFfitzcompliance_snapshots{ score, grade, breakdown, taken_at }pdf_editor_documents{ id, user_id, filename, size, page_count, annotations }pdf_templates{ id, name, description, category, file_data, fields, created_by, created_at }pdf-libPyMuPDFfitz/app/backend/routes/admin_pdf_templates.py/app/src/pages/admin/AdminPDFTemplatesPage.jsx/app/src/pages/PDFEditorPage.jsx/app/backend/routes/pdf_editor.pyadmin.pyGET /api/admin/compliance-scorePOST /api/admin/compliance-score/snapshotGET /api/pdf-editor/templatesPOST /api/pdf-editor/templates/generateGET /api/admin/pdf-templatesfitzfitz.pdfcolor[colorname]rebeccapurpleKeyError(0.4, 0.2, 0.6)pdf_editormodule_permissions@app.on_event(startup)server.py/app/memory/PRD.md/app/test_reports/iteration_97.json/app/test_reports/iteration_102.jsonadmin@munal.aiAdmin@123456orgadmin@munal.comOrgAdmin@123justinoo2001@gmail.comOgala@2023justinogala@outlook.com4edfdukD@1/app/src/pages/PDFEditorPage.jsxFillTemplateModalPDFEditorPage.jsx</analysis>
+        │   ├── DocHubPage.jsx          # NEW - Merged Doc Hub
+        │   ├── FileConverterPage.jsx   # NEW - File converter UI & History
+        │   ├── ESignaturePage.jsx      # Updated (embedded mode)
+        │   └── PDFEditorPage.jsx       # Updated (embedded mode & custom templates)
+        ├── utils/
+        │   └── native.js               # NEW - Capacitor initialization wrapper
+        └── App.jsx                     # Updated routing for DocHub
+@capacitor/cli@capacitor/corePyMuPDFfitzpython-pptxopenpyxlebooklibcalibreebook-convertlast_2fa_verifiedconversion_history{ user_id, original_name, converted_name, conversion_type, file_data (GridFS/Binary), created_at }userslast_2fa_verified@capacitor/cli@capacitor/corepython-pptxXlsxWriterebooklibcalibreapt-get/app/src/pages/DocHubPage.jsx/app/src/pages/FileConverterPage.jsx/app/backend/routes/file_converter.py/app/src/context/AuthContext.jsx/app/src/layouts/UserLayout.jsx/app/src/utils/native.js/app/capacitor.config.tsfile_converter.pyservices/converters/POST /api/converter/convertPOST /api/converter/batch-convertGET /api/converter/historyGET /api/converter/history/{id}/downloadDELETE /api/converter/history/{id}ebook-convertxvfb-runebooklibfitzimport.meta.env.VITE_...process.env.REACT_APP_.../app/memory/PRD.md/app/test_reports/iteration_103.json/app/test_reports/iteration_107.jsonnative.jsadmin@munal.aiAdmin@123456orgadmin@munal.comOrgAdmin@123orgmgr@munal.comOrgMgr@123justinogala@outlook.com4edfdukD@1/app/src/utils/native.jsApp.jsxmain.jsx</analysis>
