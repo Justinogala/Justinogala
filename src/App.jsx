@@ -31,6 +31,7 @@ import { HeroSlideProvider } from '@/contexts/HeroSlideContext';
 // Services
 import { audioRingingService } from '@/services/audioRingingService';
 import { registerServiceWorker } from '@/utils/serviceWorkerManager';
+import { initNativeApp } from '@/utils/native';
 
 // PWA
 import InstallPrompt from '@/components/pwa/InstallPrompt';
@@ -253,6 +254,7 @@ const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
 function App() {
   useEffect(() => {
     registerServiceWorker();
+    initNativeApp().catch(() => {});
     const handleInteraction = () => {
       audioRingingService.resumeContext();
       window.removeEventListener('click', handleInteraction);
