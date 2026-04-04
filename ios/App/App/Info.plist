@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Munal AI</string>
+	<string>Munal AI</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,5 +45,52 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<!-- Privacy Descriptions (required by App Store) -->
+	<key>NSCameraUsageDescription</key>
+	<string>Munal AI needs camera access to scan documents and take photos for your meetings and workspace.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Munal AI needs photo library access to upload images and documents to your workspace.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Munal AI needs permission to save exported documents and images to your photo library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Munal AI needs microphone access for meeting transcription and voice notes.</string>
+
+	<!-- App Transport Security -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+
+	<!-- URL Scheme for deep linking -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>munal</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Associated Domains (requires capability) -->
+	<!-- Enable in Xcode: Signing & Capabilities > Associated Domains -->
+	<!-- Add: applinks:munal.ai -->
+
+	<!-- Background Modes for Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

@@ -1,0 +1,36 @@
+{
+  "app_name": "Munal AI",
+  "short_description": "AI-powered meeting companion — transcribe, summarize, and collaborate intelligently.",
+  "full_description": "Munal AI is your all-in-one AI-powered meeting companion that transforms how teams capture, organize, and act on meeting insights.\n\nKEY FEATURES:\n\n--- Smart Meeting Management ---\n- Record and transcribe meetings with high-accuracy AI\n- Automatic summaries with key decisions and context\n- Extract and assign action items automatically\n- Schedule and manage meetings in one place\n\n--- AI Assistant ---\n- Chat with AI to get instant answers about your meetings\n- Generate reports, summaries, and follow-ups\n- Smart search across all your meeting content\n\n--- Document Hub ---\n- Built-in PDF editor with annotations and drawing tools\n- Electronic signatures for contracts and agreements\n- File format converter (PDF, Word, Excel, PowerPoint, EPUB, and more)\n- Batch file conversion support\n- Custom document templates\n\n--- Workspaces ---\n- Create shared workspaces for your teams\n- Real-time collaboration on documents\n- Organized file management with search\n\n--- Enterprise Security ---\n- Two-factor authentication (2FA)\n- Role-based access control (Admin, Manager, User)\n- Organization management\n- Audit logging and compliance tracking\n\nMunal AI helps teams save hours every week by eliminating manual note-taking, automating follow-ups, and keeping everyone aligned. Whether you're a startup team or an enterprise organization, Munal AI scales with your needs.\n\nDownload now and transform your meetings into actionable outcomes.",
+  "category_android": "Productivity",
+  "category_ios": "Productivity",
+  "subcategory_ios": "Business",
+  "keywords": "meeting, transcription, AI, notes, summary, action items, collaboration, workspace, PDF editor, e-signature, productivity, document, converter",
+  "privacy_policy_url": "https://munal.ai/legal/privacy",
+  "terms_of_service_url": "https://munal.ai/legal/terms",
+  "support_email": "support@munal.ai",
+  "website": "https://munal.ai",
+  "developer_name": "Munal AI",
+  "content_rating": "Everyone",
+  "target_age": "18+",
+  "pricing": "Free",
+  "in_app_purchases": false,
+  "whats_new_v1": "Welcome to Munal AI!\n\n- AI-powered meeting transcription and summarization\n- Smart action item extraction\n- Built-in Document Hub with PDF editor, e-signatures, and file converter\n- Collaborative workspaces\n- Enterprise-grade security with 2FA\n- Dark mode support",
+  "screenshots_required": {
+    "android": {
+      "phone": "Min 2, max 8 screenshots (16:9 or 9:16, min 320px, max 3840px)",
+      "tablet_7": "Optional (min 320px)",
+      "tablet_10": "Optional (min 1200x1920 or 1920x1200)"
+    },
+    "ios": {
+      "iphone_6_7": "1290x2796 or 2796x1290",
+      "iphone_6_5": "1284x2778 or 2778x1284",
+      "ipad_12_9": "2048x2732 or 2732x2048 (required if supporting iPad)"
+    }
+  },
+  "assets": {
+    "app_icon_512": "store-assets/play-store-icon-512.png",
+    "app_icon_1024": "store-assets/app-store-icon-1024.png",
+    "feature_graphic": "store-assets/feature-graphic-1024x500.png"
+  }
+}
