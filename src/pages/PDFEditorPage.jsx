@@ -46,15 +46,18 @@ const MiniSignaturePad = ({ onSave, onClose }) => {
   };
 
   return (
-    <div className="absolute z-50 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl shadow-2xl p-4 w-80" data-testid="signature-pad-modal">
+    <div className="absolute z-50 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl shadow-2xl p-3 sm:p-4 w-[calc(100vw-48px)] max-w-[320px]" data-testid="signature-pad-modal">
       <p className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-200">Draw Signature</p>
       <canvas
         ref={canvasRef} width={280} height={100}
-        className="border border-gray-300 dark:border-slate-600 rounded-lg bg-white cursor-crosshair"
+        className="border border-gray-300 dark:border-slate-600 rounded-lg bg-white cursor-crosshair w-full touch-none"
         onMouseDown={(e) => { setDrawing(true); const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }}
         onMouseMove={(e) => { if (!drawing) return; const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e1b4b'; ctx.lineTo(p.x, p.y); ctx.stroke(); }}
         onMouseUp={() => setDrawing(false)}
         onMouseLeave={() => setDrawing(false)}
+        onTouchStart={(e) => { e.preventDefault(); setDrawing(true); const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }}
+        onTouchMove={(e) => { e.preventDefault(); if (!drawing) return; const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e1b4b'; ctx.lineTo(p.x, p.y); ctx.stroke(); }}
+        onTouchEnd={() => setDrawing(false)}
         data-testid="signature-canvas"
       />
       <div className="flex gap-2 mt-2">
@@ -427,7 +430,7 @@ const PDFEditorPage = ({ embedded }) => {
   if (!pdfUrl) {
     return (
       <Wrapper>
-        <div className="max-w-5xl mx-auto p-6 space-y-6" data-testid="pdf-editor-empty">
+        <div className="max-w-5xl mx-auto px-2 sm:p-6 space-y-6" data-testid="pdf-editor-empty">
           {!embedded && (
             <div className="flex items-center gap-3 mb-2">
               <Button variant="ghost" size="sm" onClick={() => navigate('/dochub')} data-testid="back-to-dochub">
@@ -579,66 +582,71 @@ const PDFEditorPage = ({ embedded }) => {
     <PageTransition>
       <div className="flex flex-col h-[calc(100vh-64px)]" data-testid="pdf-editor">
         {/* Toolbar */}
-        <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 px-4 py-2 flex items-center gap-2 flex-wrap" data-testid="pdf-editor-toolbar">
-          <Button variant="ghost" size="sm" onClick={() => { setPdfUrl(null); setDocId(null); setPdfBytes(null); setAnnotations([]); }} data-testid="close-editor-btn">
-            <X className="w-4 h-4 mr-1" /> Close
-          </Button>
-          <div className="w-px h-6 bg-gray-200 dark:bg-slate-700" />
-
-          {/* Tools */}
-          {TOOLS.map(t => (
-            <Button
-              key={t.id} variant={activeTool === t.id ? 'default' : 'ghost'} size="sm"
-              onClick={() => setActiveTool(t.id)}
-              className={activeTool === t.id ? 'bg-violet-600 text-white hover:bg-violet-700' : ''}
-              data-testid={`tool-${t.id}`}
-            >
-              <t.icon className="w-4 h-4 mr-1" /> {t.label}
+        <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 px-2 sm:px-4 py-2" data-testid="pdf-editor-toolbar">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide pb-1 sm:pb-0">
+            <Button variant="ghost" size="sm" onClick={() => { setPdfUrl(null); setDocId(null); setPdfBytes(null); setAnnotations([]); }} data-testid="close-editor-btn" className="flex-shrink-0">
+              <X className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Close</span>
             </Button>
-          ))}
+            <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 flex-shrink-0" />
 
-          <div className="w-px h-6 bg-gray-200 dark:bg-slate-700" />
+            {/* Tools */}
+            {TOOLS.map(t => (
+              <Button
+                key={t.id} variant={activeTool === t.id ? 'default' : 'ghost'} size="sm"
+                onClick={() => setActiveTool(t.id)}
+                className={`flex-shrink-0 min-h-[40px] ${activeTool === t.id ? 'bg-violet-600 text-white hover:bg-violet-700' : ''}`}
+                data-testid={`tool-${t.id}`}
+              >
+                <t.icon className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">{t.label}</span>
+              </Button>
+            ))}
 
-          {/* Colors */}
-          {COLORS.map(c => (
-            <button
-              key={c}
-              className={`w-6 h-6 rounded-full border-2 transition-transform ${activeColor === c ? 'border-gray-800 dark:border-white scale-110' : 'border-transparent'}`}
-              style={{ backgroundColor: c }}
-              onClick={() => setActiveColor(c)}
-              data-testid={`color-${c}`}
-            />
-          ))}
+            <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 flex-shrink-0" />
 
-          <div className="w-px h-6 bg-gray-200 dark:bg-slate-700" />
+            {/* Colors */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {COLORS.map(c => (
+                <button
+                  key={c}
+                  className={`w-6 h-6 rounded-full border-2 transition-transform flex-shrink-0 ${activeColor === c ? 'border-gray-800 dark:border-white scale-110' : 'border-transparent'}`}
+                  style={{ backgroundColor: c }}
+                  onClick={() => setActiveColor(c)}
+                  data-testid={`color-${c}`}
+                />
+              ))}
+            </div>
 
-          <Button variant="ghost" size="sm" onClick={undo} disabled={annotations.length === 0} data-testid="undo-btn">
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} data-testid="upload-new-btn">
-            <Plus className="w-4 h-4 mr-1" /> New
-          </Button>
-          <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
+            <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 flex-shrink-0" />
 
-          <div className="flex-1" />
+            <Button variant="ghost" size="sm" onClick={undo} disabled={annotations.length === 0} data-testid="undo-btn" className="flex-shrink-0">
+              <Undo2 className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} data-testid="upload-new-btn" className="flex-shrink-0">
+              <Plus className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">New</span>
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleUpload} />
 
-          {/* Zoom */}
-          <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))} data-testid="zoom-out-btn">
-            <ZoomOut className="w-4 h-4" />
-          </Button>
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
-          <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.min(2, z + 0.1))} data-testid="zoom-in-btn">
-            <ZoomIn className="w-4 h-4" />
-          </Button>
+            <div className="flex-1 min-w-2" />
 
-          <div className="w-px h-6 bg-gray-200 dark:bg-slate-700" />
+            {/* Zoom — hidden on small screens, shown on sm+ */}
+            <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+              <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))} data-testid="zoom-out-btn">
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
+              <Button variant="ghost" size="sm" onClick={() => setZoom(z => Math.min(2, z + 0.1))} data-testid="zoom-in-btn">
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <div className="w-px h-6 bg-gray-200 dark:bg-slate-700" />
+            </div>
 
-          <Button variant="outline" size="sm" onClick={saveAnnotations} disabled={saving} data-testid="save-btn">
-            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />} Save
-          </Button>
-          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={downloadEdited} disabled={saving} data-testid="download-btn">
-            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Download className="w-4 h-4 mr-1" />} Export PDF
-          </Button>
+            <Button variant="outline" size="sm" onClick={saveAnnotations} disabled={saving} data-testid="save-btn" className="flex-shrink-0">
+              {saving ? <Loader2 className="w-4 h-4 sm:mr-1 animate-spin" /> : <Save className="w-4 h-4 sm:mr-1" />} <span className="hidden sm:inline">Save</span>
+            </Button>
+            <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white flex-shrink-0" onClick={downloadEdited} disabled={saving} data-testid="download-btn">
+              {saving ? <Loader2 className="w-4 h-4 sm:mr-1 animate-spin" /> : <Download className="w-4 h-4 sm:mr-1" />} <span className="hidden sm:inline">Export</span>
+            </Button>
+          </div>
         </div>
 
         {/* Page nav */}
@@ -655,20 +663,23 @@ const PDFEditorPage = ({ embedded }) => {
         </div>
 
         {/* PDF Canvas */}
-        <div className="flex-1 overflow-auto bg-gray-100 dark:bg-slate-950 flex justify-center p-6" data-testid="pdf-canvas-area">
-          <div className="relative" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}>
+        <div className="flex-1 overflow-auto bg-gray-100 dark:bg-slate-950 flex justify-center p-2 sm:p-6" data-testid="pdf-canvas-area">
+          <div className="relative w-full max-w-[700px]" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}>
             <div
               ref={overlayRef}
-              className="relative"
+              className="relative touch-none"
               onClick={handleCanvasClick}
               onMouseDown={handleDrawStart}
               onMouseMove={handleDrawMove}
               onMouseUp={handleDrawEnd}
               onMouseLeave={handleDrawEnd}
+              onTouchStart={(e) => { const touch = e.touches[0]; handleDrawStart({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => e.preventDefault() }); }}
+              onTouchMove={(e) => { const touch = e.touches[0]; handleDrawMove({ clientX: touch.clientX, clientY: touch.clientY }); }}
+              onTouchEnd={handleDrawEnd}
               style={{ cursor: activeTool === 'draw' ? 'crosshair' : activeTool === 'select' ? 'default' : 'pointer' }}
             >
               <Document file={pdfUrl} onLoadSuccess={({ numPages: n }) => setNumPages(n)} loading={<Loader2 className="w-8 h-8 animate-spin text-violet-500" />}>
-                <Page pageNumber={currentPage} width={700} renderTextLayer={false} renderAnnotationLayer={false} />
+                <Page pageNumber={currentPage} width={Math.min(700, typeof window !== 'undefined' ? window.innerWidth - 32 : 700)} renderTextLayer={false} renderAnnotationLayer={false} />
               </Document>
 
               {/* Annotation overlays */}

@@ -87,3 +87,29 @@ body {
 .pt-safe {
   padding-top: env(safe-area-inset-top);
 }
+
+/* Hide scrollbar for horizontal scroll areas */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Capacitor native app adjustments */
+.keyboard-open {
+  /* Shrink content when native keyboard is visible */
+  height: calc(100vh - var(--keyboard-height, 0px));
+  overflow: hidden;
+}
+
+/* Touch-friendly file remove button (always visible on mobile) */
+@media (max-width: 640px) {
+  [data-testid^="converter-remove-"] {
+    opacity: 1 !important;
+  }
+  [data-testid^="saved-doc-"] .opacity-0 {
+    opacity: 1 !important;
+  }
+}

@@ -298,7 +298,14 @@ export default defineConfig({
 				'@babel/parser',
 				'@babel/traverse',
 				'@babel/generator',
-				'@babel/types'
+				'@babel/types',
+				// Capacitor plugins — only available in native builds, not web
+				'@capacitor/splash-screen',
+				'@capacitor/status-bar',
+				'@capacitor/keyboard',
+				'@capacitor/app',
+				'@capacitor/push-notifications',
+				'@capacitor/camera',
 			],
 			output: {
 				manualChunks: {

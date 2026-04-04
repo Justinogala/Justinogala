@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { userDataSyncService } from '@/services/userDataSyncService';
 import { getApiUrl, API_URL } from '@/lib/api';
+import { registerDeviceWithBackend } from '@/utils/native';
 
 const AuthContext = createContext(null);
 
@@ -225,6 +226,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
       setUser(foundUser);
       setIsAuthenticated(true);
+      // Register native device for push notifications
+      registerDeviceWithBackend(foundUser.id, API_URL);
       return { success: true, user: foundUser };
     } catch (err) {
       const msg = err.message || 'Login failed. Please try again.';

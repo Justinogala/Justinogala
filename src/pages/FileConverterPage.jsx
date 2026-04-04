@@ -270,7 +270,7 @@ const FileConverterPage = () => {
     const totalSize = files.reduce((s, f) => s + f.size, 0);
 
     return (
-      <div data-testid="converter-active" className="max-w-xl mx-auto">
+      <div data-testid="converter-active" className="max-w-xl mx-auto px-1 sm:px-0">
         <button
           onClick={handleReset}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-6 transition-colors"
@@ -279,7 +279,7 @@ const FileConverterPage = () => {
           <X className="w-3.5 h-3.5" /> Back to all conversions
         </button>
 
-        <div className="glass-panel rounded-2xl p-8 space-y-6">
+        <div className="glass-panel rounded-2xl p-4 sm:p-8 space-y-6">
           {/* Header */}
           <div className="flex items-center justify-center gap-3">
             <span className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-slate-700 text-sm font-semibold text-gray-700 dark:text-gray-200">{selected.from}</span>
@@ -308,7 +308,7 @@ const FileConverterPage = () => {
               onClick={() => fileRef.current?.click()}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
-              className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-10 cursor-pointer hover:border-violet-300 dark:hover:border-violet-600 transition-colors group text-center"
+              className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-6 sm:p-10 cursor-pointer hover:border-violet-300 dark:hover:border-violet-600 transition-colors group text-center"
               data-testid="converter-dropzone"
             >
               <FileUp className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 group-hover:text-violet-400 transition-colors" />
@@ -418,7 +418,7 @@ const FileConverterPage = () => {
               <button
                 key={item.id}
                 onClick={() => handleSelect(item)}
-                className="group flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-800/60 hover:border-violet-200 dark:hover:border-violet-700 hover:shadow-sm transition-all text-left"
+                className="group flex items-center gap-2 px-3 py-3 sm:py-2.5 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-800/60 hover:border-violet-200 dark:hover:border-violet-700 hover:shadow-sm transition-all text-left min-h-[44px]"
                 data-testid={`converter-${item.id}`}
               >
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
@@ -458,24 +458,24 @@ const FileConverterPage = () => {
                       {fromTo} &middot; {formatSize(record.output_size)} &middot; {record.file_count > 1 ? `${record.file_count} files &middot; ` : ''}{timeAgo}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
                     {record.downloadable && (
                       <button
                         onClick={() => handleRedownload(record.id, record.output_name)}
-                        className="p-1.5 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
+                        className="p-2 sm:p-1.5 hover:bg-violet-100 dark:hover:bg-violet-900/30 rounded-lg transition-colors"
                         title="Re-download"
                         data-testid={`history-download-${record.id}`}
                       >
-                        <Download className="w-3.5 h-3.5 text-violet-500" />
+                        <Download className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-violet-500" />
                       </button>
                     )}
                     <button
                       onClick={() => handleDeleteHistory(record.id)}
-                      className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      className="p-2 sm:p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                       title="Delete"
                       data-testid={`history-delete-${record.id}`}
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-red-400" />
                     </button>
                   </div>
                 </div>

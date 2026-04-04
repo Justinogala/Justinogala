@@ -3,12 +3,13 @@
 - [- Shared EchoNote AI](/sharedmeeting): No description available
 - [| Munal](/sharedrecording): No description available
 - [| Munal](/transcriptiondetail): No description available
+- [| Munal](/workspacedetail): No description available
 - [| Munal AI](/meetingroom): No description available
-- [| Settings](/workspacedetail): No description available
 - [| Support - Munal](/usersupportticketdetail): No description available
 - [404: Page Not Found - Munal](/notfound): No description available
 - [Active Meeting | Munal AI](/meetingcall): Secure high-quality video conferencing session.
 - [Admin Login | Munal](/adminlogin): Secure admin portal login
+- [AI Chat - Munal AI](/aichat): No description available
 - [AI Summarization - Munal](/summarization): Generate concise summaries, action items, and key points from transcripts.
 - [Analytics Dashboard - Munal](/analyticsdashboard): No description available
 - [API Configuration | Munal](/apikeyconfiguration): No description available
@@ -32,7 +33,6 @@
 - [Meetings | Munal AI](/meetings): Manage your video conferences, schedule meetings, and view history.
 - [Messages - Admin | Munal AI](/adminmessages): No description available
 - [Messages | Munal](/chatmessages): No description available
-- [Munal - AI-Powered Workforce & Collaboration Platform](/landing): No description available
 - [Munal - Transform Your Meetings](/home): No description available
 - [My Meetings - Munal](/meetinglist): No description available
 - [My Profile - Munal](/userprofile): No description available
@@ -46,7 +46,6 @@
 - [Recent Chats | Munal](/recentchats): No description available
 - [Reports - Munal](/reportmanagement): No description available
 - [Reset Password - Munal](/passwordreset): No description available
-- [Settings - Munal](/settings): Manage your account settings and preferences.
 - [Settings - Munal](/usersettings): Manage your account settings, notifications, and privacy.
 - [Shift Management |](/shiftmanagement): No description available
 - [Sign Up - Munal AI](/signup): Create your Munal AI account to start automating your meeting notes.

@@ -41,15 +41,15 @@ const CookieConsent = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed bottom-0 left-0 right-0 z-[100] p-4 sm:p-6"
+          className="fixed bottom-0 left-0 right-0 z-[100] p-3 sm:p-6"
           data-testid="cookie-consent"
         >
           <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-black/10 border border-gray-200 dark:border-gray-800 overflow-hidden">
             {/* Main banner */}
-            <div className="p-5 sm:p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex-shrink-0 mt-0.5">
-                  <Cookie className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <div className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2 sm:p-2.5 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex-shrink-0 mt-0.5">
+                  <Cookie className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">We use cookies to improve your experience</h3>
@@ -105,7 +105,7 @@ const CookieConsent = () => {
               </div>
 
               {/* Buttons */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mt-5 sm:justify-end">
+              <div className="flex flex-row items-center gap-2 sm:gap-3 mt-4 sm:mt-5 sm:justify-end flex-wrap">
                 <button
                   onClick={() => setShowManage(!showManage)}
                   className="px-4 py-2 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
