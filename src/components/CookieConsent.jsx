@@ -48,13 +48,13 @@ const CookieConsent = () => {
             {/* Main banner */}
             <div className="p-4 sm:p-6">
               <div className="flex items-start gap-3 sm:gap-4">
-                <div className="p-2 sm:p-2.5 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex-shrink-0 mt-0.5">
+                <div className="p-2 sm:p-2.5 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex-shrink-0 mt-0.5 hidden sm:block">
                   <Cookie className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">We use cookies to improve your experience</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                    We use cookies and similar technologies to personalize content, analyze traffic, and improve our services. You can choose to accept all cookies, reject non-essential ones, or manage your preferences.
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1">We use cookies</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2 sm:line-clamp-none">
+                    We use cookies to personalize content and improve our services. Accept, reject, or manage your preferences.
                   </p>
 
                   {/* Manage panel */}
@@ -105,34 +105,34 @@ const CookieConsent = () => {
               </div>
 
               {/* Buttons */}
-              <div className="flex flex-row items-center gap-2 sm:gap-3 mt-4 sm:mt-5 sm:justify-end flex-wrap">
+              <div className="flex items-center gap-2 mt-3 sm:mt-5 sm:justify-end flex-wrap">
                 <button
                   onClick={() => setShowManage(!showManage)}
-                  className="px-4 py-2 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
                   data-testid="cookie-manage-btn"
                 >
-                  {showManage ? 'Save Preferences' : 'Manage Cookies'}
+                  {showManage ? 'Save' : 'Manage'}
                 </button>
                 {showManage ? (
                   <button
                     onClick={handleSavePrefs}
-                    className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors"
+                    className="px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors"
                     data-testid="cookie-save-btn"
                   >
-                    Save Preferences
+                    Save
                   </button>
                 ) : (
                   <>
                     <button
                       onClick={handleReject}
-                      className="px-5 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                      className="px-3 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-xl transition-colors"
                       data-testid="cookie-reject-btn"
                     >
                       Reject
                     </button>
                     <button
                       onClick={handleAccept}
-                      className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-colors"
+                      className="px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-colors"
                       data-testid="cookie-accept-btn"
                     >
                       Accept

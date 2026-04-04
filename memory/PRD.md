@@ -186,7 +186,39 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - On native: Handles splash screen, status bar, keyboard, back button, push notifications, camera
 - Testing: 100% (Iteration 108)
 
+### Mobile-Responsive Optimization — April 4, 2026
+- DocHub tabs: horizontally scrollable on mobile with `-mx-4 px-4` overflow pattern
+- PDF Editor toolbar: scrollable toolbar with icon-only mode on mobile (`hidden sm:inline` for labels)
+- PDF Editor canvas: responsive width via `Math.min(700, window.innerWidth - 32)` 
+- PDF Editor: touch events added (onTouchStart/Move/End) for drawing on mobile
+- Signature pad: touch events, responsive width, mobile-friendly sizing
+- File Converter: compact dropzone, touch-friendly 44px min-height targets
+- Conversion history: download/delete buttons always visible on mobile (not hover-only)
+- Cookie consent: compact mobile layout (hidden icon, shorter text, inline buttons)
+- Login/Signup pages: bottom padding to prevent cookie consent overlap on mobile
+- UserLayout: `pt-safe` class for iOS notch
+- Footer links: flex-wrap for mobile
+- CSS: scrollbar-hide, keyboard-open, Capacitor safe area utilities
+- Testing: 100% backend, 100% frontend (Iteration 109 + self-test)
+
+### Push Notification Backend (FCM) — April 4, 2026
+- Extended `push_notifications.py` with FCM device token CRUD endpoints
+- `POST /api/push/register-device` — register Android/iOS device tokens (upsert)
+- `GET /api/push/devices/{user_id}` — list registered devices
+- `DELETE /api/push/unregister-device/{user_id}` — remove device tokens
+- `GET /api/push/status/{user_id}` — combined web + mobile push status
+- Unified `send_push_to_user()` sends to both web (VAPID) and mobile (FCM)
+- FCM_SERVER_KEY is placeholder (MOCK) — set in .env when Firebase project is created
+- Frontend `registerDeviceWithBackend()` in native.js, called from AuthContext after login
+- Testing: 100% (12/12 backend tests passed)
+
+### Native Build Preparation — April 4, 2026
+- Created `build-native.sh` — automated build script for web→native
+- Created `MOBILE_BUILD_GUIDE.md` — comprehensive guide for APK/IPA builds
+- Added npm scripts: `cap:sync`, `cap:android`, `cap:ios`, `cap:build-apk`
+- Vite build config: Capacitor plugins externalized in rollupOptions
+- Web build + Capacitor sync verified (9 plugins for both Android and iOS)
+
 ## Backlog (Prioritized)
-- P2: Custom PDF Templates - COMPLETED (April 2, 2026)
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
