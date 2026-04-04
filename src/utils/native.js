@@ -1,111 +1,91 @@
 /**
  * Capacitor native platform initialization.
- * This file sets up native features (splash screen, status bar, push notifications,
- * keyboard handling) when running as a native mobile app.
- * Safe to import on web — all calls are no-ops when Capacitor is not available.
+ * @capacitor/core is installed as a frontend dependency.
+ * Plugin imports use runtime string construction to prevent Vite static analysis.
+ * On web, initNativeApp() is a fast no-op.
  */
 import { Capacitor } from '@capacitor/core';
 
 export const isNative = Capacitor.isNativePlatform();
-export const platform = Capacitor.getPlatform(); // 'android' | 'ios' | 'web'
+export const platform = Capacitor.getPlatform();
+
+// Helper: runtime string prevents Vite from analyzing these imports
+const cap = (plugin) => `@capacitor/${plugin}`;
 
 export async function initNativeApp() {
   if (!isNative) return;
 
-  // Splash Screen — hide after app is ready
-  const { SplashScreen } = await import('@capacitor/splash-screen');
-  await SplashScreen.hide();
+  try {
+    const { SplashScreen } = await import(cap('splash-screen'));
+    await SplashScreen.hide();
+  } catch { /* not installed */ }
 
-  // Status Bar
-  const { StatusBar, Style } = await import('@capacitor/status-bar');
-  await StatusBar.setStyle({ style: Style.Dark });
-  if (platform === 'android') {
-    await StatusBar.setBackgroundColor({ color: '#1a1025' });
-  }
+  try {
+    const { StatusBar, Style } = await import(cap('status-bar'));
+    await StatusBar.setStyle({ style: Style.Dark });
+    if (platform === 'android') {
+      await StatusBar.setBackgroundColor({ color: '#1a1025' });
+    }
+  } catch { /* not installed */ }
 
-  // Keyboard — adjust viewport on iOS
   if (platform === 'ios') {
-    const { Keyboard } = await import('@capacitor/keyboard');
-    Keyboard.addListener('keyboardWillShow', () => {
-      document.body.classList.add('keyboard-open');
-    });
-    Keyboard.addListener('keyboardWillHide', () => {
-      document.body.classList.remove('keyboard-open');
-    });
+    try {
+      const { Keyboard } = await import(cap('keyboard'));
+      Keyboard.addListener('keyboardWillShow', () => document.body.classList.add('keyboard-open'));
+      Keyboard.addListener('keyboardWillHide', () => document.body.classList.remove('keyboard-open'));
+    } catch { /* not installed */ }
   }
 
-  // App — handle back button on Android
   if (platform === 'android') {
-    const { App } = await import('@capacitor/app');
-    App.addListener('backButton', ({ canGoBack }) => {
-      if (canGoBack) {
-        window.history.back();
-      } else {
-        App.exitApp();
-      }
-    });
+    try {
+      const { App } = await import(cap('app'));
+      App.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) window.history.back();
+        else App.exitApp();
+      });
+    } catch { /* not installed */ }
   }
 }
 
-/**
- * Register for push notifications.
- * Call this after user has logged in.
- */
 export async function registerPushNotifications(onTokenReceived) {
   if (!isNative) return null;
-
-  const { PushNotifications } = await import('@capacitor/push-notifications');
-  const permission = await PushNotifications.requestPermissions();
-
-  if (permission.receive === 'granted') {
-    await PushNotifications.register();
-
-    PushNotifications.addListener('registration', (token) => {
-      if (onTokenReceived) onTokenReceived(token.value);
-    });
-
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('Push received:', notification);
-    });
-
-    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('Push action:', action);
-    });
+  try {
+    const { PushNotifications } = await import(cap('push-notifications'));
+    const permission = await PushNotifications.requestPermissions();
+    if (permission.receive === 'granted') {
+      await PushNotifications.register();
+      PushNotifications.addListener('registration', (token) => {
+        if (onTokenReceived) onTokenReceived(token.value);
+      });
+      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log('Push received:', notification);
+      });
+      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        console.log('Push action:', action);
+      });
+    }
+    return permission;
+  } catch {
+    return null;
   }
-
-  return permission;
 }
 
-/**
- * Take a photo using the device camera.
- */
 export async function takePhoto() {
   if (!isNative) return null;
-
-  const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-  const image = await Camera.getPhoto({
-    quality: 90,
-    allowEditing: false,
-    resultType: CameraResultType.Uri,
-    source: CameraSource.Camera,
-  });
-
-  return image;
+  try {
+    const { Camera, CameraResultType, CameraSource } = await import(cap('camera'));
+    return await Camera.getPhoto({ quality: 90, allowEditing: false, resultType: CameraResultType.Uri, source: CameraSource.Camera });
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Pick a photo from the gallery.
- */
 export async function pickPhoto() {
   if (!isNative) return null;
-
-  const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
-  const image = await Camera.getPhoto({
-    quality: 90,
-    allowEditing: false,
-    resultType: CameraResultType.Uri,
-    source: CameraSource.Photos,
-  });
-
-  return image;
+  try {
+    const { Camera, CameraResultType, CameraSource } = await import(cap('camera'));
+    return await Camera.getPhoto({ quality: 90, allowEditing: false, resultType: CameraResultType.Uri, source: CameraSource.Photos });
+  } catch {
+    return null;
+  }
 }
