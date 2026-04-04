@@ -178,6 +178,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Org Admin: orgadmin@munal.com / OrgAdmin@123
 - Standard User: justinogala@outlook.com / 4edfdukD@1
 
+### Capacitor Mobile Integration — April 4, 2026
+- Wired up `native.js` into `App.jsx` (imported + called `initNativeApp()` in useEffect)
+- Installed `@capacitor/core@6.2.1` as a frontend dependency for Vite resolution
+- Plugin imports use runtime string construction (`cap()` helper) to prevent Vite static analysis of optional native-only packages
+- On web: `isNative` is false, `initNativeApp()` returns immediately (no-op)
+- On native: Handles splash screen, status bar, keyboard, back button, push notifications, camera
+- Testing: 100% (Iteration 108)
+
 ## Backlog (Prioritized)
 - P2: Custom PDF Templates - COMPLETED (April 2, 2026)
 - P3: Additional form templates
