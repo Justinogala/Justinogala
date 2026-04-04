@@ -18,23 +18,15 @@ android {
 
     signingConfigs {
         release {
-            // Configure these for release builds:
-            // Option A: Environment variables (recommended for CI/CD)
-            // storeFile file(System.getenv("KEYSTORE_PATH") ?: "munal-release.keystore")
-            // storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
-            // keyAlias System.getenv("KEY_ALIAS") ?: "munal"
-            // keyPassword System.getenv("KEY_PASSWORD") ?: ""
-            //
-            // Option B: Local keystore.properties file (add to .gitignore)
-            // def keystorePropertiesFile = rootProject.file("keystore.properties")
-            // if (keystorePropertiesFile.exists()) {
-            //     def keystoreProperties = new Properties()
-            //     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-            //     storeFile file(keystoreProperties['storeFile'])
-            //     storePassword keystoreProperties['storePassword']
-            //     keyAlias keystoreProperties['keyAlias']
-            //     keyPassword keystoreProperties['keyPassword']
-            // }
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                def keystoreProperties = new Properties()
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
         }
     }
 
@@ -46,8 +38,10 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Uncomment after configuring signingConfigs.release:
-            // signingConfig signingConfigs.release
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 

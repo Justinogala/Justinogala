@@ -24,18 +24,22 @@ const privacyData = [
     id: 'information-collection',
     icon: Database,
     title: 'Information We Collect',
-    summary: 'We collect information you provide directly to us, such as when you create an account, make a purchase, or contact us for support.',
-    fullContent: `We collect information you provide directly to us, such as when you create an account, make a purchase, or contact us for support. This includes:
+    summary: 'We collect information you provide directly to us, such as when you create an account, use our services, or contact us for support.',
+    fullContent: `We collect information you provide directly to us, such as when you create an account, use our services, or contact us for support. This includes:
 
 • Account Information: When you register for an account, we collect your name, email address, password, and optionally your profile picture and phone number.
 
-• Payment Information: If you make a purchase, we collect payment card numbers, bank account information, and billing address. Payment processing is handled by our secure third-party payment processors.
+• Organization Information: If you create or join an organization, we collect the organization name, domain, and team member details you provide.
 
-• Meeting Data: We collect meeting recordings, transcriptions, and notes that you create using our services. This content belongs to you and is stored securely.
+• Meeting Data: We collect meeting recordings, transcriptions, summaries, and notes that you create using our services. This content belongs to you and is stored securely.
+
+• Document Data: Files you upload to our Document Hub (PDFs, Word documents, signatures, converted files) are stored on our servers to provide our services.
 
 • Usage Information: We automatically collect information about how you interact with our services, including the features you use, the actions you take, and the time and duration of your activities.
 
 • Device Information: We collect information about the device you use to access our services, including hardware model, operating system, unique device identifiers, and mobile network information.
+
+• Mobile App Data: When using our mobile app, we may collect additional information including device tokens for push notifications, camera access for document scanning, and local storage data for offline functionality.
 
 • Log Information: We collect log files that record the time of access, pages viewed, IP address, and referring URL.`
   },
@@ -56,7 +60,11 @@ const privacyData = [
 
 • AI Processing: To process your meeting recordings and generate transcriptions, summaries, and insights using our AI technology. This processing is done securely and your data is not used to train our AI models without your explicit consent.
 
-• Security: To detect, investigate, and prevent fraudulent transactions, abuse, and other illegal activities, and to protect the rights and property of Jiffix and others.
+• Push Notifications: To send you timely notifications about meetings, workspace updates, and important alerts through our mobile app.
+
+• Security: To detect, investigate, and prevent fraudulent transactions, abuse, and other illegal activities, and to protect the rights and property of Munal AI and others.
+
+• Two-Factor Authentication: To verify your identity and protect your account using email-based verification codes.
 
 • Legal Compliance: To comply with legal obligations and respond to lawful requests from public authorities.`
   },
@@ -69,13 +77,13 @@ const privacyData = [
 
 • With Your Consent: We may share information when you give us explicit permission to do so.
 
-• Service Providers: We share information with third-party service providers who perform services on our behalf, such as payment processing, data analysis, email delivery, hosting, customer service, and marketing assistance. These providers are contractually obligated to protect your information.
+• Within Your Organization: If you are part of an organization on Munal AI, workspace content and meeting data may be shared with other members of your organization based on permissions set by your administrators.
+
+• Service Providers: We share information with third-party service providers who perform services on our behalf, such as AI processing (OpenAI), email delivery (Resend), hosting, and data storage. These providers are contractually obligated to protect your information.
 
 • Business Transfers: If we are involved in a merger, acquisition, or sale of all or a portion of our assets, your information may be transferred as part of that transaction.
 
 • Legal Requirements: We may disclose information if required to do so by law or in response to valid requests by public authorities (e.g., a court or government agency).
-
-• Protection of Rights: We may disclose information where we believe it is necessary to investigate, prevent, or take action regarding potential violations of our policies, suspected fraud, situations involving potential threats to the safety of any person, or as evidence in litigation.
 
 • Aggregated Data: We may share aggregated, non-personally identifiable information publicly and with our partners. This data cannot be used to identify you personally.`
   },
@@ -86,19 +94,19 @@ const privacyData = [
     summary: 'We implement industry-standard security measures to protect your personal information against unauthorized access, alteration, or destruction.',
     fullContent: `We take the security of your personal information seriously and implement appropriate technical and organizational measures to protect it:
 
-• Encryption: All data transmitted between your device and our servers is encrypted using TLS 1.3. Data at rest is encrypted using AES-256 encryption.
+• Encryption: All data transmitted between your device and our servers is encrypted using HTTPS/TLS. Data at rest is encrypted using industry-standard encryption.
 
-• Access Controls: We implement strict access controls to ensure that only authorized personnel can access your personal information, and only on a need-to-know basis.
+• Two-Factor Authentication: We offer and encourage two-factor authentication (2FA) for all accounts, with mandatory 2FA for administrator accounts.
 
-• Infrastructure Security: Our services are hosted on secure cloud infrastructure with regular security audits, penetration testing, and vulnerability assessments.
+• Access Controls: We implement role-based access controls (Admin, Manager, User) to ensure that only authorized personnel can access appropriate information.
 
-• Employee Training: All employees undergo security awareness training and are bound by confidentiality obligations.
+• Session Management: We implement secure session handling with automatic expiry and the ability to manage active sessions.
+
+• Infrastructure Security: Our services are hosted on secure cloud infrastructure with regular security monitoring.
+
+• Mobile Security: Our mobile apps enforce HTTPS-only connections and implement certificate pinning for secure communication.
 
 • Incident Response: We have established procedures for detecting, reporting, and responding to security incidents. In the event of a data breach, we will notify affected users in accordance with applicable laws.
-
-• Data Backup: We maintain regular backups of your data to prevent loss and ensure business continuity.
-
-• Compliance: We comply with industry standards including SOC 2 Type II and GDPR requirements.
 
 While we strive to protect your personal information, no method of transmission over the Internet or electronic storage is 100% secure. We cannot guarantee absolute security.`
   },
@@ -107,19 +115,17 @@ While we strive to protect your personal information, no method of transmission 
     icon: Cookie,
     title: 'Cookies and Tracking Technologies',
     summary: 'We use cookies and similar tracking technologies to collect information about your browsing activities and to personalize your experience.',
-    fullContent: `We use cookies and similar tracking technologies to collect and use personal information about you. These technologies help us understand how you use our services and enable certain features:
+    fullContent: `We use cookies and similar tracking technologies to collect and use personal information about you:
 
 • Essential Cookies: These cookies are necessary for the website to function and cannot be switched off. They are usually set in response to actions made by you, such as logging in or filling in forms.
 
-• Performance Cookies: These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us know which pages are the most and least popular.
+• Performance Cookies: These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site.
 
 • Functional Cookies: These cookies enable the website to provide enhanced functionality and personalization, such as remembering your preferences and settings.
 
-• Targeting Cookies: These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.
+• Mobile App Storage: Our mobile apps use local storage and secure device storage to maintain your session and cache frequently accessed data for better performance.
 
-• Analytics: We use Google Analytics and similar services to understand how visitors interact with our website. You can opt out of Google Analytics by installing the Google Analytics opt-out browser add-on.
-
-You can control and manage cookies in your browser settings. Please note that removing or blocking cookies may impact your user experience and some features may not function properly.`
+You can control and manage cookies in your browser settings or through our cookie preferences panel. You can also manage notification preferences for our mobile app through your device settings.`
   },
   {
     id: 'your-rights',
@@ -132,38 +138,38 @@ You can control and manage cookies in your browser settings. Please note that re
 
 • Correction: You have the right to request that we correct any inaccurate or incomplete personal information.
 
-• Deletion: You have the right to request that we delete your personal information, subject to certain exceptions provided by law.
+• Deletion: You have the right to request that we delete your personal information, subject to certain exceptions provided by law. You can delete your account through Settings.
 
-• Data Portability: You have the right to receive your personal information in a structured, commonly used, and machine-readable format, and to transmit that data to another controller.
+• Data Portability: You have the right to export your meeting data, documents, and notes in standard formats.
 
-• Opt-Out: You can opt out of receiving promotional emails by clicking the "unsubscribe" link in any email. You may also opt out of certain data collection by adjusting your account settings.
+• Push Notification Opt-Out: You can disable push notifications at any time through your device settings or within the Munal AI app settings.
 
-• Restrict Processing: You have the right to request that we restrict the processing of your personal information in certain circumstances.
+• Camera & Microphone: You can revoke camera and microphone permissions at any time through your device settings.
 
-• Object: You have the right to object to our processing of your personal information in certain circumstances.
+• Opt-Out: You can opt out of receiving promotional emails by clicking the "unsubscribe" link in any email.
 
 • Withdraw Consent: Where we rely on your consent to process your personal information, you have the right to withdraw that consent at any time.
 
-To exercise any of these rights, please contact us at privacy@jiffix.ca. We will respond to your request within 30 days.`
+To exercise any of these rights, please contact us at privacy@munal.ai. We will respond to your request within 30 days.`
   },
   {
     id: 'data-retention',
     icon: Lock,
     title: 'Data Retention',
     summary: 'We retain your personal information for as long as necessary to provide our services and fulfill the purposes described in this policy.',
-    fullContent: `We retain your personal information for as long as necessary to fulfill the purposes for which it was collected and to comply with our legal obligations:
+    fullContent: `We retain your personal information for as long as necessary to fulfill the purposes for which it was collected:
 
 • Account Data: We retain your account information for as long as your account is active. If you delete your account, we will delete your personal information within 30 days, except as required by law.
 
-• Meeting Data: Recordings, transcriptions, and notes are retained according to your account settings. Free accounts have limited retention periods, while paid accounts can retain data indefinitely.
+• Meeting Data: Recordings, transcriptions, and notes are retained according to your account settings and plan.
+
+• Document Data: Files uploaded to Document Hub, converted files, and e-signatures are retained until you delete them or your account is closed.
+
+• Conversion History: File conversion records are retained for 90 days to enable re-downloads, then automatically purged.
+
+• Device Tokens: Mobile push notification tokens are retained while your account is active and removed upon logout or account deletion.
 
 • Usage Data: We retain usage data for up to 24 months for analytics purposes, after which it is anonymized or deleted.
-
-• Payment Records: We retain payment transaction records for 7 years to comply with accounting and tax regulations.
-
-• Legal Hold: If we are involved in litigation or a government investigation, we may be required to retain your information beyond our standard retention periods.
-
-• Backup Data: Backup copies may be retained for up to 90 days after deletion from our primary systems.
 
 You can request deletion of your data at any time by contacting us or through your account settings.`
   },
@@ -172,40 +178,32 @@ You can request deletion of your data at any time by contacting us or through yo
     icon: Globe,
     title: 'International Data Transfers',
     summary: 'Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place.',
-    fullContent: `Jiffix is based in Canada, and we process and store information in Canada and other countries. Your information may be transferred to, and processed in, countries other than the country in which you reside:
+    fullContent: `Munal AI processes and stores information on secure cloud infrastructure. Your information may be transferred to, and processed in, countries other than the country in which you reside:
 
-• Transfer Mechanisms: When we transfer personal information outside of the European Economic Area (EEA), UK, or Switzerland, we ensure appropriate safeguards are in place, such as Standard Contractual Clauses approved by the European Commission.
+• Transfer Mechanisms: When we transfer personal information internationally, we ensure appropriate safeguards are in place, such as Standard Contractual Clauses or equivalent mechanisms.
 
-• Privacy Shield: While the EU-US Privacy Shield framework is no longer valid for transfers, we have implemented alternative transfer mechanisms to ensure continued compliance.
+• AI Processing: Meeting transcription and AI features are processed through our AI service providers, which may involve international data transfer. All transfers are encrypted and governed by data processing agreements.
 
-• Data Localization: For certain enterprise customers, we offer data localization options to keep your data within specific geographic regions.
-
-• Adequacy Decisions: We may rely on adequacy decisions issued by relevant authorities when transferring data to countries deemed to provide adequate protection.
-
-• Your Consent: In some cases, we may transfer your data based on your explicit consent.
-
-By using our services, you consent to the transfer of your information to Canada and other countries which may have different data protection rules than your country. We will take steps to ensure that your information receives an adequate level of protection in the jurisdictions in which we process it.`
+• By using our services, you consent to the transfer of your information as described in this policy. We will take steps to ensure that your information receives an adequate level of protection in the jurisdictions in which we process it.`
   },
   {
     id: 'policy-updates',
     icon: Bell,
     title: 'Changes to This Policy',
     summary: 'We may update this Privacy Policy from time to time. We will notify you of any significant changes by email or through our services.',
-    fullContent: `We may update this Privacy Policy from time to time to reflect changes in our practices, technologies, legal requirements, or other factors:
+    fullContent: `We may update this Privacy Policy from time to time to reflect changes in our practices, technologies, or legal requirements:
 
-• Notification: If we make material changes to this policy, we will notify you by email (sent to the email address associated with your account) or by means of a notice on our website prior to the change becoming effective.
+• Notification: If we make material changes to this policy, we will notify you by email or through a notification in our app prior to the change becoming effective.
 
-• Review: We encourage you to periodically review this page for the latest information on our privacy practices. Your continued use of our services after the effective date of the revised policy constitutes your acceptance of the changes.
+• Review: We encourage you to periodically review this page for the latest information on our privacy practices.
 
-• Version History: We maintain a version history of this policy, which you can request by contacting us.
-
-• Material Changes: Material changes include any changes that affect the way we collect, use, or share your personal information, or changes to your rights under this policy.
+• Material Changes: Material changes include any changes that affect the way we collect, use, or share your personal information.
 
 • Effective Date: The "Last Updated" date at the top of this policy indicates when the policy was last revised.
 
-If you disagree with any changes to this policy, you should stop using our services and delete your account. Your continued use of our services after the changes take effect constitutes your acceptance of the revised policy.
+If you disagree with any changes to this policy, you should stop using our services and delete your account.
 
-For questions about this policy, please contact us at privacy@jiffix.ca.`
+For questions about this policy, please contact us at privacy@munal.ai.`
   }
 ];
 
@@ -240,7 +238,7 @@ const Privacy = () => {
       <section className="bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 py-16">
         <div className="container mx-auto px-6 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Privacy Policy</h1>
-          <p className="text-indigo-100 text-lg">Last Updated: March 3, 2026</p>
+          <p className="text-indigo-100 text-lg">Last Updated: April 4, 2026</p>
         </div>
       </section>
 
@@ -278,7 +276,7 @@ const Privacy = () => {
             {/* Content Area */}
             <main className="flex-1 max-w-3xl">
               <p className="text-gray-600 dark:text-gray-300 mb-8">
-                Your privacy is important to us. This Privacy Policy explains how Jiffix Inc. (&ldquo;Jiffix&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) collects, uses, and protects your personal information when you use Munal AI services.
+                Your privacy is important to us. This Privacy Policy explains how Munal AI (&ldquo;Munal&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) collects, uses, and protects your personal information when you use Munal AI services, including our web application and mobile apps.
               </p>
 
               <div className="space-y-4">
@@ -346,7 +344,7 @@ const Privacy = () => {
                 </p>
                 <div className="space-y-1 text-sm">
                   <p className="text-gray-600 dark:text-gray-400">
-                    Email: <a href="mailto:privacy@jiffix.ca" className="text-indigo-600 dark:text-indigo-400 hover:underline">privacy@jiffix.ca</a>
+                    Email: <a href="mailto:privacy@munal.ai" className="text-indigo-600 dark:text-indigo-400 hover:underline">privacy@munal.ai</a>
                   </p>
                 </div>
               </div>
