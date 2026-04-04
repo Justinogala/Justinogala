@@ -62,11 +62,43 @@ export async function registerPushNotifications(onTokenReceived) {
       });
       PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
         console.log('Push action:', action);
+        // Navigate to the URL if present
+        if (action.notification?.data?.url) {
+          window.location.href = action.notification.data.url;
+        }
       });
     }
     return permission;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Register device token with backend for FCM push notifications.
+ * Call after login when user ID is available.
+ */
+export async function registerDeviceWithBackend(userId, apiUrl) {
+  if (!isNative) return;
+  try {
+    await registerPushNotifications(async (token) => {
+      try {
+        await fetch(`${apiUrl}/api/push/register-device`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            token,
+            platform,
+            device_name: `${platform} device`,
+          }),
+        });
+      } catch {
+        // Silent fail — push registration is non-critical
+      }
+    });
+  } catch {
+    // Silent fail
   }
 }
 

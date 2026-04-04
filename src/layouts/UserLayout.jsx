@@ -22,7 +22,7 @@ const UserLayout = () => {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Helmet>
       
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex font-sans transition-colors duration-200">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex font-sans transition-colors duration-200 pt-safe">
         
         {/* Mobile Sidebar Overlay */}
         <AnimatePresence>
@@ -75,13 +75,13 @@ const UserLayout = () => {
                   <p className="text-xs text-gray-500 dark:text-gray-400 tracking-wide">
                     Your all-in-one meeting companion
                   </p>
-                  <div className="flex items-center justify-center gap-4 mt-4">
+                  <div className="flex items-center justify-center gap-3 sm:gap-4 mt-4 flex-wrap">
                     <Link to="/meetings" className="text-[11px] text-violet-500/70 hover:text-violet-600 dark:text-violet-400/60 dark:hover:text-violet-300 transition-colors font-medium">Meetings</Link>
-                    <span className="w-1 h-1 rounded-full bg-violet-300/60 dark:bg-violet-600/40" />
+                    <span className="w-1 h-1 rounded-full bg-violet-300/60 dark:bg-violet-600/40 hidden sm:block" />
                     <Link to="/workspaces" className="text-[11px] text-violet-500/70 hover:text-violet-600 dark:text-violet-400/60 dark:hover:text-violet-300 transition-colors font-medium">Workspaces</Link>
-                    <span className="w-1 h-1 rounded-full bg-violet-300/60 dark:bg-violet-600/40" />
+                    <span className="w-1 h-1 rounded-full bg-violet-300/60 dark:bg-violet-600/40 hidden sm:block" />
                     <Link to="/messages" className="text-[11px] text-violet-500/70 hover:text-violet-600 dark:text-violet-400/60 dark:hover:text-violet-300 transition-colors font-medium">AI Assistant</Link>
-                    <span className="w-1 h-1 rounded-full bg-violet-300/60 dark:bg-violet-600/40" />
+                    <span className="w-1 h-1 rounded-full bg-violet-300/60 dark:bg-violet-600/40 hidden sm:block" />
                     <Link to="/settings" className="text-[11px] text-violet-500/70 hover:text-violet-600 dark:text-violet-400/60 dark:hover:text-violet-300 transition-colors font-medium">Settings</Link>
                   </div>
                 </div>

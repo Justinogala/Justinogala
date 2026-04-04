@@ -35,23 +35,25 @@ const DocHubPage = () => {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex gap-1 p-1 bg-gray-100/80 dark:bg-slate-800/80 rounded-xl w-fit mb-6" data-testid="dochub-tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                activeTab === tab.id
-                  ? "bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400 shadow-sm"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              )}
-              data-testid={`dochub-tab-${tab.id}`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 scrollbar-hide">
+          <div className="flex gap-1 p-1 bg-gray-100/80 dark:bg-slate-800/80 rounded-xl w-fit min-w-0" data-testid="dochub-tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap min-h-[44px]",
+                  activeTab === tab.id
+                    ? "bg-white dark:bg-slate-700 text-violet-600 dark:text-violet-400 shadow-sm"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                )}
+                data-testid={`dochub-tab-${tab.id}`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab Content */}
