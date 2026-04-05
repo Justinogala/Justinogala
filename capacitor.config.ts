@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     // Point to your live server so the app always loads the latest version
-    url: 'https://munal-mobile-wrap.preview.emergentagent.com',
+    url: 'https://munal-app-release.preview.emergentagent.com',
     androidScheme: 'https',
     iosScheme: 'https',
   },
