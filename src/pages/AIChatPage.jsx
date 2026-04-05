@@ -30,7 +30,8 @@ import {
   CheckCheck,
   ImageIcon,
   FileIcon,
-  StopCircle
+  StopCircle,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
@@ -87,8 +88,15 @@ function CodeBlock({ inline, className, children, ...props }) {
   );
 }
 
-function ChatMessage({ message }) {
+function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCurrentlyStreaming }) {
   const isUser = message.role === 'user';
+  const [msgCopied, setMsgCopied] = useState(false);
+
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(message.content || '');
+    setMsgCopied(true);
+    setTimeout(() => setMsgCopied(false), 2000);
+  };
 
   return (
     <div className={cn("flex gap-3 px-4 py-4", isUser ? "justify-end" : "")} data-testid={`chat-message-${message.role}`}>
@@ -140,6 +148,30 @@ function ChatMessage({ message }) {
             </div>
           )}
         </div>
+        {/* Action buttons for assistant messages */}
+        {!isUser && !message.isThinking && !message.isStreaming && message.content && (
+          <div className="flex items-center gap-1 mt-1.5 ml-1">
+            <button
+              onClick={handleCopyMessage}
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              title="Copy response"
+              data-testid="copy-response-btn"
+            >
+              {msgCopied ? <CheckCheck className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+            {isLastAssistant && onRegenerate && !isCurrentlyStreaming && (
+              <button
+                onClick={onRegenerate}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-md text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-xs"
+                title="Regenerate response"
+                data-testid="regenerate-response-btn"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Regenerate</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {isUser && (
         <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -173,6 +205,7 @@ export default function AIChatPage() {
   const audioChunksRef = useRef([]);
   const fileInputRef = useRef(null);
   const abortRef = useRef(null);
+  const streamingRef = useRef(false);
 
   // Helper to always get a valid auth token
   const getToken = useCallback(() => {
@@ -219,8 +252,9 @@ export default function AIChatPage() {
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
-  // Load messages for active conversation
+  // Load messages for active conversation (skip during streaming)
   useEffect(() => {
+    if (streamingRef.current) return;
     const t = getToken();
     if (!activeConvId || !t) { setMessages([]); return; }
     setLoadingConv(true);
@@ -228,7 +262,12 @@ export default function AIChatPage() {
       headers: { Authorization: `Bearer ${t}` }
     })
       .then(r => r.json())
-      .then(data => { setMessages(data.messages || []); setLoadingConv(false); })
+      .then(data => {
+        if (!streamingRef.current) {
+          setMessages(data.messages || []);
+        }
+        setLoadingConv(false);
+      })
       .catch(() => setLoadingConv(false));
   }, [activeConvId, getToken]);
 
@@ -326,6 +365,7 @@ export default function AIChatPage() {
     setInput('');
     setUploadedFiles([]);
     setIsStreaming(true);
+    streamingRef.current = true;
 
     const assistantMsg = { id: 'streaming', role: 'assistant', content: '', isThinking: true, isStreaming: false, created_at: new Date().toISOString() };
     setMessages(prev => [...prev, assistantMsg]);
@@ -410,6 +450,7 @@ export default function AIChatPage() {
       }
     } finally {
       setIsStreaming(false);
+      streamingRef.current = false;
       abortRef.current = null;
     }
   };
@@ -418,12 +459,114 @@ export default function AIChatPage() {
     if (abortRef.current) {
       abortRef.current.abort();
       setIsStreaming(false);
+      streamingRef.current = false;
       setMessages(prev => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
         if (last?.isStreaming || last?.isThinking) updated[updated.length - 1] = { ...last, isStreaming: false, isThinking: false };
         return updated;
       });
+    }
+  };
+
+  const regenerateResponse = async () => {
+    if (isStreaming || !activeConvId) return;
+
+    let authToken = token;
+    if (!authToken) {
+      try {
+        const session = JSON.parse(localStorage.getItem('munal_sessions') || '{}');
+        authToken = session.token;
+      } catch { /* ignore */ }
+    }
+    if (!authToken) return;
+
+    // Find the last user message to re-send
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (!lastUserMsg) return;
+
+    // Remove the last assistant message from UI
+    setMessages(prev => {
+      const updated = [...prev];
+      while (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
+        updated.pop();
+      }
+      return updated;
+    });
+
+    setIsStreaming(true);
+    streamingRef.current = true;
+
+    const assistantMsgId = 'streaming';
+    const assistantMsg = { id: assistantMsgId, role: 'assistant', content: '', isThinking: true, isStreaming: false, created_at: new Date().toISOString() };
+    setMessages(prev => [...prev, assistantMsg]);
+
+    try {
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const res = await fetch(`${API}/api/ai-chat/conversations/${activeConvId}/regenerate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+        signal: controller.signal
+      });
+
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      if (!res.body) throw new Error('No response body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'chunk') {
+              fullContent += data.content;
+              setMessages(prev => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last && last.id === 'streaming') {
+                  updated[updated.length - 1] = { ...last, content: fullContent, isThinking: false, isStreaming: true };
+                }
+                return updated;
+              });
+            } else if (data.type === 'done') {
+              setMessages(prev => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last && last.id === 'streaming') {
+                  updated[updated.length - 1] = { ...last, id: data.message_id, isStreaming: false };
+                }
+                return updated;
+              });
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        setMessages(prev => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last?.id === 'streaming') {
+            updated[updated.length - 1] = { ...last, content: 'Sorry, regeneration failed. Please try again.', isStreaming: false, isThinking: false };
+          }
+          return updated;
+        });
+      }
+    } finally {
+      setIsStreaming(false);
+      streamingRef.current = false;
+      abortRef.current = null;
     }
   };
 
@@ -628,9 +771,18 @@ export default function AIChatPage() {
             </div>
           ) : (
             <div className="max-w-4xl mx-auto py-4">
-              {messages.map((msg, i) => (
-                <ChatMessage key={msg.id || i} message={msg} />
-              ))}
+              {messages.map((msg, i) => {
+                const lastAssistantIdx = messages.reduce((acc, m, idx) => m.role === 'assistant' ? idx : acc, -1);
+                return (
+                  <ChatMessage
+                    key={msg.id || i}
+                    message={msg}
+                    isLastAssistant={msg.role === 'assistant' && i === lastAssistantIdx}
+                    onRegenerate={regenerateResponse}
+                    isStreaming={isStreaming}
+                  />
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}

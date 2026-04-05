@@ -255,6 +255,113 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
     )
 
 
+
+# ============== Regenerate Response ==============
+
+@router.post("/conversations/{conv_id}/regenerate")
+async def regenerate_response(conv_id: str, user: dict = Depends(get_current_user)):
+    conv = await db.ai_conversations.find_one({"id": conv_id, "user_id": user["id"]})
+    if not conv:
+        raise HTTPException(404, "Conversation not found")
+
+    # Get all messages
+    all_messages = await db.ai_messages.find(
+        {"conversation_id": conv_id, "role": {"$in": ["user", "assistant"]}},
+        {"_id": 0, "role": 1, "content": 1, "id": 1, "created_at": 1}
+    ).sort("created_at", 1).to_list(length=500)
+
+    if not all_messages:
+        raise HTTPException(400, "No messages to regenerate from")
+
+    # Delete the last assistant message from DB
+    last_assistant = None
+    for msg in reversed(all_messages):
+        if msg["role"] == "assistant":
+            last_assistant = msg
+            break
+
+    if last_assistant:
+        await db.ai_messages.delete_one({"id": last_assistant["id"], "conversation_id": conv_id})
+
+    # Build history without the deleted assistant message
+    history = [m for m in all_messages if m.get("id") != (last_assistant or {}).get("id")]
+
+    # Find the last user message
+    last_user_text = ""
+    for msg in reversed(history):
+        if msg["role"] == "user":
+            last_user_text = msg["content"]
+            break
+
+    if not last_user_text:
+        raise HTTPException(400, "No user message found to regenerate from")
+
+    assistant_msg_id = str(uuid.uuid4())
+
+    async def stream_response():
+        import litellm
+        from emergentintegrations.llm.chat import get_integration_proxy_url
+
+        full_response = ""
+        try:
+            yield f"data: {json.dumps({'type': 'thinking'})}\n\n"
+
+            llm_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            for msg in history[-20:]:
+                llm_messages.append({"role": msg["role"], "content": msg["content"]})
+
+            # Ensure last message is the user message
+            if not llm_messages or llm_messages[-1]["role"] != "user":
+                llm_messages.append({"role": "user", "content": last_user_text})
+
+            params = {
+                "model": "gpt-5.2",
+                "messages": llm_messages,
+                "api_key": EMERGENT_KEY,
+                "stream": True,
+            }
+
+            if EMERGENT_KEY and EMERGENT_KEY.startswith("sk-emergent-"):
+                proxy_url = get_integration_proxy_url()
+                params["api_base"] = proxy_url + "/llm"
+                params["custom_llm_provider"] = "openai"
+
+            response = litellm.completion(**params)
+
+            for chunk in response:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    full_response += delta.content
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': delta.content})}\n\n"
+
+        except Exception as e:
+            logger.error(f"AI Chat regenerate error: {e}")
+            full_response = "I'm sorry, I encountered an error regenerating the response. Please try again."
+            yield f"data: {json.dumps({'type': 'chunk', 'content': full_response})}\n\n"
+
+        # Save new assistant message
+        assistant_msg = {
+            "id": assistant_msg_id,
+            "conversation_id": conv_id,
+            "role": "assistant",
+            "content": full_response,
+            "attachments": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.ai_messages.insert_one(assistant_msg)
+        await db.ai_conversations.update_one(
+            {"id": conv_id},
+            {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+
+        yield f"data: {json.dumps({'type': 'done', 'message_id': assistant_msg_id})}\n\n"
+
+    return StreamingResponse(
+        stream_response(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
 # ============== File Upload ==============
 
 @router.post("/upload")
