@@ -181,53 +181,53 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
     assistant_msg_id = str(uuid.uuid4())
 
     async def stream_response():
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        import litellm
+        from emergentintegrations.llm.chat import get_integration_proxy_url
 
         full_response = ""
         try:
-            # Send immediate "thinking" event so frontend shows feedback instantly
             yield f"data: {json.dumps({'type': 'thinking'})}\n\n"
 
-            chat = LlmChat(
-                api_key=EMERGENT_KEY,
-                session_id=f"munal-aichat-{conv_id}-{assistant_msg_id}",
-                system_message=SYSTEM_PROMPT,
-            )
-            chat.with_model("openai", "gpt-5.2")
+            # Build conversation messages in OpenAI format
+            llm_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            for msg in history[-20:]:
+                llm_messages.append({"role": msg["role"], "content": msg["content"]})
 
-            # Build context from history (last 20 messages)
-            context_messages = history[-20:]
-            context_text = ""
-            for msg in context_messages[:-1]:
-                role_label = "User" if msg["role"] == "user" else "Assistant"
-                context_text += f"{role_label}: {msg['content']}\n\n"
-
-            current_message = user_text
+            current_content = user_text
             if attachments:
                 file_desc = ", ".join([a.get("filename", "file") for a in attachments])
-                current_message += f"\n\n[Attached files: {file_desc}]"
+                current_content += f"\n\n[Attached files: {file_desc}]"
 
-            if context_text:
-                prompt = f"Previous conversation:\n{context_text}\nUser: {current_message}"
+            # Ensure last message is the current user message
+            if llm_messages and llm_messages[-1]["role"] == "user":
+                llm_messages[-1]["content"] = current_content
             else:
-                prompt = current_message
+                llm_messages.append({"role": "user", "content": current_content})
 
-            user_message = UserMessage(text=prompt)
-            response = await chat.send_message(user_message)
-            full_response = response
+            # Build litellm params matching emergentintegrations internals
+            params = {
+                "model": "gpt-5.2",
+                "messages": llm_messages,
+                "api_key": EMERGENT_KEY,
+                "stream": True,
+            }
 
-            # Stream response in chunks for typewriter effect
-            words = full_response.split(" ")
-            chunk_size = 4
-            for i in range(0, len(words), chunk_size):
-                chunk = " ".join(words[i:i+chunk_size])
-                if i > 0:
-                    chunk = " " + chunk
-                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
-                await asyncio.sleep(0.01)
+            if EMERGENT_KEY and EMERGENT_KEY.startswith("sk-emergent-"):
+                proxy_url = get_integration_proxy_url()
+                params["api_base"] = proxy_url + "/llm"
+                params["custom_llm_provider"] = "openai"
+
+            # Real streaming call
+            response = litellm.completion(**params)
+
+            for chunk in response:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    full_response += delta.content
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': delta.content})}\n\n"
 
         except Exception as e:
-            logger.error(f"AI Chat error: {e}")
+            logger.error(f"AI Chat streaming error: {e}")
             full_response = "I'm sorry, I encountered an error processing your request. Please try again."
             yield f"data: {json.dumps({'type': 'chunk', 'content': full_response})}\n\n"
 
