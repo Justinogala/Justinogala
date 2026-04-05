@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Bell, Shield, AlertTriangle, Music, Lock } from 'lucide-react';
+import { User, Bell, Shield, AlertTriangle, Music, Lock, Download } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import AccountSettingsSection from '@/components/settings/AccountSettingsSection';
 import NotificationsSettingsSection from '@/components/settings/NotificationsSettingsSection';
@@ -11,6 +11,7 @@ import PrivacySettingsSection from '@/components/settings/PrivacySettingsSection
 import DangerZoneSection from '@/components/settings/DangerZoneSection';
 import CallRingtoneSettings from '@/components/video/CallRingtoneSettings';
 import UserTwoFactorSetup from '@/components/UserTwoFactorSetup';
+import SoftwareUpdateSection from '@/components/settings/SoftwareUpdateSection';
 import { useAuth } from '@/context/AuthContext';
 
 const UserSettingsPage = () => {
@@ -80,6 +81,14 @@ const UserSettingsPage = () => {
                 <AlertTriangle className="w-4 h-4 mr-2 hidden sm:inline" />
                 Danger
               </TabsTrigger>
+              <TabsTrigger 
+                value="update"
+                className="data-[state=active]:bg-violet-100 dark:data-[state=active]:bg-violet-900/30 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 rounded-lg px-4 py-2 transition-all hover:text-violet-600"
+                data-testid="update-tab"
+              >
+                <Download className="w-4 h-4 mr-2 hidden sm:inline" />
+                Update
+              </TabsTrigger>
             </TabsList>
             
             <motion.div
@@ -111,6 +120,10 @@ const UserSettingsPage = () => {
 
               <TabsContent value="danger" className="mt-0 focus-visible:outline-none">
                 <DangerZoneSection />
+              </TabsContent>
+
+              <TabsContent value="update" className="mt-0 focus-visible:outline-none">
+                <SoftwareUpdateSection />
               </TabsContent>
             </motion.div>
           </Tabs>

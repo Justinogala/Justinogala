@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Save, Lock, Mail, Globe, Shield, Bell, Settings, RefreshCw, Loader2, CheckCircle, TestTube } from 'lucide-react';
+import { Save, Lock, Mail, Globe, Shield, Bell, Settings, RefreshCw, Loader2, CheckCircle, TestTube, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AdminVersionManager from '@/components/settings/AdminVersionManager';
 
 // SaveButton component moved outside to avoid nested component issue
 const SaveButton = ({ section, saving, onSave }) => (
@@ -167,6 +168,10 @@ const AdminSettingsPage = () => {
           <TabsTrigger value="email" className="data-[state=active]:bg-violet-600">Email</TabsTrigger>
           <TabsTrigger value="notifications" className="data-[state=active]:bg-violet-600">Notifications</TabsTrigger>
           <TabsTrigger value="system" className="data-[state=active]:bg-violet-600">System</TabsTrigger>
+          <TabsTrigger value="versions" className="data-[state=active]:bg-violet-600" data-testid="admin-versions-tab">
+            <Package className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
+            Updates
+          </TabsTrigger>
         </TabsList>
 
         {/* General Tab */}
@@ -534,6 +539,17 @@ const AdminSettingsPage = () => {
                 <div className="pt-4 flex justify-end">
                   <SaveButton section="system" saving={saving} onSave={handleSave} />
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        {/* Versions/Updates Tab */}
+        <TabsContent value="versions">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <Card>
+              <CardContent className="p-6">
+                <AdminVersionManager />
               </CardContent>
             </Card>
           </motion.div>
