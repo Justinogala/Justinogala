@@ -271,3 +271,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Frontend: pin icon indicator on pinned items, pin/unpin button on hover, client-side re-sort after toggle
 - Fixed MongoDB projection bug: empty dict returned when querying non-existent fields on older documents
 - Testing: 100% (11/11 backend tests passed) — Iteration 115
+
+### Software Update System — April 5, 2026
+- Modern system update flow in User Settings > Update tab (like iOS/Android updates)
+- Check for updates animation, update available card with version info + release notes, progress bar, cache-clearing reload
+- Admin Version Management: CRUD for version entries (version, title, release notes, critical flag) in Admin Settings > Updates tab
+- Platform-aware: Web does cache-busting reload, mobile links to Play Store / App Store
+- Version comparison logic: newer versions detected correctly
+- Backend endpoints: GET/POST /api/updates/admin/versions, PATCH/DELETE /api/updates/admin/versions/{id}, GET /api/updates/check, GET /api/updates/changelog, POST /api/updates/acknowledge
+- RBAC: Non-admin users blocked from admin endpoints (403)
+- Seed data: v2.0.0 (Munal AI Launch), v2.1.0 (AI Chat Streaming & Search)
+- Testing: 100% (15/15 backend tests passed) — Iteration 116
