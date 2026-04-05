@@ -31,7 +31,8 @@ import {
   ImageIcon,
   FileIcon,
   StopCircle,
-  RefreshCw
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
@@ -198,6 +199,8 @@ export default function AIChatPage() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [loadingConv, setLoadingConv] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -275,6 +278,28 @@ export default function AIChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Search conversations (debounced backend search for message content)
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    const t = getToken();
+    if (!t) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API}/api/ai-chat/conversations/search?q=${encodeURIComponent(searchQuery.trim())}`, {
+          headers: { Authorization: `Bearer ${t}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, getToken]);
 
   const createConversation = async () => {
     const t = getToken();
@@ -668,9 +693,34 @@ export default function AIChatPage() {
             <MessageSquarePlus className="w-4 h-4" />
             New Chat
           </button>
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full pl-9 pr-8 py-2 rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-sm text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500 transition-colors"
+              data-testid="conversation-search-input"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                data-testid="clear-search-btn"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5" data-testid="conversation-list">
-          {conversations.map(conv => (
+          {(() => {
+            const displayConvs = searchResults !== null ? searchResults : conversations;
+            if (displayConvs.length === 0 && searchQuery) {
+              return <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-8 px-4">No matching conversations found</p>;
+            }
+            return displayConvs.map(conv => (
             <div
               key={conv.id}
               className={cn(
@@ -705,8 +755,9 @@ export default function AIChatPage() {
                 </>
               )}
             </div>
-          ))}
-          {conversations.length === 0 && (
+          ));
+          })()}
+          {conversations.length === 0 && !searchQuery && (
             <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-8 px-4">No conversations yet. Start a new chat!</p>
           )}
         </div>

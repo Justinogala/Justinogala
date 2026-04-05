@@ -102,6 +102,39 @@ async def list_conversations(user: dict = Depends(get_current_user)):
     return await cursor.to_list(length=100)
 
 
+# ============== Search Conversations ==============
+
+@router.get("/conversations/search")
+async def search_conversations(q: str = Query(..., min_length=1), user: dict = Depends(get_current_user)):
+    query = q.strip()
+    if not query:
+        return []
+
+    # Search by conversation title
+    title_matches = await db.ai_conversations.find(
+        {"user_id": user["id"], "title": {"$regex": query, "$options": "i"}},
+        {"_id": 0}
+    ).sort("updated_at", -1).to_list(length=50)
+    title_ids = {c["id"] for c in title_matches}
+
+    # Search by message content
+    msg_matches = await db.ai_messages.find(
+        {"content": {"$regex": query, "$options": "i"}},
+        {"_id": 0, "conversation_id": 1}
+    ).to_list(length=200)
+    msg_conv_ids = {m["conversation_id"] for m in msg_matches} - title_ids
+
+    # Fetch conversations for message matches
+    content_matches = []
+    if msg_conv_ids:
+        content_matches = await db.ai_conversations.find(
+            {"id": {"$in": list(msg_conv_ids)}, "user_id": user["id"]},
+            {"_id": 0}
+        ).sort("updated_at", -1).to_list(length=50)
+
+    return title_matches + content_matches
+
+
 @router.get("/conversations/{conv_id}")
 async def get_conversation(conv_id: str, user: dict = Depends(get_current_user)):
     conv = await db.ai_conversations.find_one(
