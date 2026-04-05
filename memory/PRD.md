@@ -282,3 +282,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - RBAC: Non-admin users blocked from admin endpoints (403)
 - Seed data: v2.0.0 (Munal AI Launch), v2.1.0 (AI Chat Streaming & Search)
 - Testing: 100% (15/15 backend tests passed) — Iteration 116
+
+### Auto-Update Notifications — April 5, 2026
+- Real-time update notification banner appears across the app when admin publishes a new version
+- Backend: SSEManager.broadcast_all() sends `app_update` event to all connected users on version publish
+- Frontend: Floating banner at top center with "New Update Available v{X} — {Title}", Update button (navigates to Settings), dismiss button (sessionStorage per-tab)
+- Startup poll fallback: Checks /api/updates/check on mount (3s delay) for cases when SSE missed
+- SSE listener in useWebSocketChat.js dispatches `munal-app-update` custom event on `app_update` SSE event
+- Testing: 100% (12/12 backend, frontend fully verified) — Iteration 117
