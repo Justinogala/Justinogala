@@ -85,6 +85,7 @@ async def create_conversation(user: dict = Depends(get_current_user)):
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
         "title": "New Chat",
+        "pinned": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -98,7 +99,7 @@ async def list_conversations(user: dict = Depends(get_current_user)):
     cursor = db.ai_conversations.find(
         {"user_id": user["id"]},
         {"_id": 0}
-    ).sort("updated_at", -1)
+    ).sort([("pinned", -1), ("updated_at", -1)])
     return await cursor.to_list(length=100)
 
 
@@ -114,7 +115,7 @@ async def search_conversations(q: str = Query(..., min_length=1), user: dict = D
     title_matches = await db.ai_conversations.find(
         {"user_id": user["id"], "title": {"$regex": query, "$options": "i"}},
         {"_id": 0}
-    ).sort("updated_at", -1).to_list(length=50)
+    ).sort([("pinned", -1), ("updated_at", -1)]).to_list(length=50)
     title_ids = {c["id"] for c in title_matches}
 
     # Search by message content
@@ -133,6 +134,21 @@ async def search_conversations(q: str = Query(..., min_length=1), user: dict = D
         ).sort("updated_at", -1).to_list(length=50)
 
     return title_matches + content_matches
+
+
+# ============== Pin/Unpin Conversation ==============
+
+@router.patch("/conversations/{conv_id}/pin")
+async def toggle_pin_conversation(conv_id: str, user: dict = Depends(get_current_user)):
+    conv = await db.ai_conversations.find_one({"id": conv_id, "user_id": user["id"]}, {"_id": 0, "id": 1, "pinned": 1})
+    if not conv or "id" not in conv:
+        raise HTTPException(404, "Conversation not found")
+    new_pinned = not conv.get("pinned", False)
+    await db.ai_conversations.update_one(
+        {"id": conv_id},
+        {"$set": {"pinned": new_pinned}}
+    )
+    return {"pinned": new_pinned}
 
 
 @router.get("/conversations/{conv_id}")

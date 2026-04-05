@@ -32,7 +32,9 @@ import {
   FileIcon,
   StopCircle,
   RefreshCw,
-  Search
+  Search,
+  Pin,
+  PinOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
@@ -342,6 +344,26 @@ export default function AIChatPage() {
       });
       setConversations(prev => prev.map(c => c.id === id ? { ...c, title: editTitle.trim() } : c));
       setEditingId(null);
+    } catch (e) { console.error(e); }
+  };
+
+  const togglePin = async (id) => {
+    const t = getToken();
+    if (!t) return;
+    try {
+      const res = await fetch(`${API}/api/ai-chat/conversations/${id}/pin`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${t}` }
+      });
+      const data = await res.json();
+      setConversations(prev => {
+        const updated = prev.map(c => c.id === id ? { ...c, pinned: data.pinned } : c);
+        return updated.sort((a, b) => {
+          if (a.pinned && !b.pinned) return -1;
+          if (!a.pinned && b.pinned) return 1;
+          return new Date(b.updated_at) - new Date(a.updated_at);
+        });
+      });
     } catch (e) { console.error(e); }
   };
 
@@ -747,8 +769,17 @@ export default function AIChatPage() {
                 </div>
               ) : (
                 <>
+                  {conv.pinned && <Pin className="w-3 h-3 text-violet-500 flex-shrink-0 rotate-45" />}
                   <span className="flex-1 truncate">{conv.title}</span>
                   <div className="hidden group-hover:flex items-center gap-0.5">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); togglePin(conv.id); }}
+                      className={cn("p-1 rounded", conv.pinned ? "text-violet-500 hover:text-violet-600" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200")}
+                      title={conv.pinned ? "Unpin" : "Pin"}
+                      data-testid={`pin-conv-${conv.id}`}
+                    >
+                      {conv.pinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); setEditingId(conv.id); setEditTitle(conv.title); }} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded"><Pencil className="w-3 h-3" /></button>
                     <button onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }} className="p-1 text-gray-400 hover:text-red-500 rounded"><Trash2 className="w-3 h-3" /></button>
                   </div>
