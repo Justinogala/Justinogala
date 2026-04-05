@@ -6,6 +6,7 @@ import UserSidebar from '@/components/UserSidebar';
 import UserHeader from '@/components/UserHeader';
 import MobileSearchOverlay from '@/components/search/MobileSearchOverlay';
 import OnboardingWalkthrough from '@/components/OnboardingWalkthrough';
+import UpdateNotificationBanner from '@/components/UpdateNotificationBanner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const UserLayout = () => {
@@ -21,6 +22,9 @@ const UserLayout = () => {
         <title>Dashboard - Munal</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Helmet>
+      
+      {/* Global update notification banner */}
+      <UpdateNotificationBanner />
       
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex font-sans transition-colors duration-200 pt-safe">
         
