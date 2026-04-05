@@ -290,3 +290,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Startup poll fallback: Checks /api/updates/check on mount (3s delay) for cases when SSE missed
 - SSE listener in useWebSocketChat.js dispatches `munal-app-update` custom event on `app_update` SSE event
 - Testing: 100% (12/12 backend, frontend fully verified) — Iteration 117
+
+### What's New Modal — April 5, 2026
+- Onboarding modal pops up once after user updates, showing paginated feature highlights with icons
+- Backend: `GET /api/updates/whats-new` returns unseen versions + highlights; `highlights` field added to version model (array of {icon, title, description})
+- Frontend: `WhatsNewModal.jsx` with purple gradient header, 3 highlights per page, pagination dots/arrows, "Continue"/"Got it, let's go!" button
+- Shows only once per version (localStorage `munal_whatsnew_shown`), acknowledges backend on close
+- Icon mapping: string icon names (Zap, Search, Pin, etc.) mapped to lucide-react components
+- Testing: 100% (11/11 backend, frontend fully verified) — Iteration 118
