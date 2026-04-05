@@ -256,3 +256,10 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Regenerate Response**: Added "Regenerate" button on the last assistant message. Clicking deletes the last assistant response from DB and streams a fresh LLM response. Also added "Copy response" button on all completed assistant messages.
 - Endpoint: `POST /api/ai-chat/conversations/{id}/regenerate`
 - Testing: 100% (11/11 backend tests passed) — Iteration 113
+
+### AI Chat Conversation Search — April 5, 2026
+- Added search input in sidebar to filter conversations by keyword (debounced 300ms)
+- Searches both conversation titles ($regex case-insensitive) and message content
+- Backend endpoint: `GET /api/ai-chat/conversations/search?q=<query>` (placed before `{conv_id}` routes to avoid path collision)
+- Frontend: searchResults replace conversation list when active; clearing reverts to full list
+- Testing: 100% (11/11 backend tests passed) — Iteration 114
