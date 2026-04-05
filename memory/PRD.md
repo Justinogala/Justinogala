@@ -243,3 +243,10 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ## Backlog (Prioritized)
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
+
+### AI Chat Real-Time Streaming — April 5, 2026
+- Replaced fake streaming (wait for full response, split into word chunks) with real token-by-token streaming
+- Backend now uses `litellm.completion()` with `stream=True` directly, matching emergentintegrations proxy config
+- Each SSE chunk contains 1-3 characters (real LLM tokens) instead of 4-word groups
+- Frontend already had streaming UI (blinking cursor, thinking dots, stop button) — now properly utilized
+- Testing: 100% (8/8 backend tests passed) — Iteration 112
