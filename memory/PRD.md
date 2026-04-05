@@ -263,3 +263,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Backend endpoint: `GET /api/ai-chat/conversations/search?q=<query>` (placed before `{conv_id}` routes to avoid path collision)
 - Frontend: searchResults replace conversation list when active; clearing reverts to full list
 - Testing: 100% (11/11 backend tests passed) — Iteration 114
+
+### AI Chat Conversation Pinning — April 5, 2026
+- Pin/unpin conversations to keep important chats at the top of the sidebar
+- Backend: `PATCH /api/ai-chat/conversations/{id}/pin` toggles pinned state
+- Pinned conversations sort before unpinned in both list and search results
+- Frontend: pin icon indicator on pinned items, pin/unpin button on hover, client-side re-sort after toggle
+- Fixed MongoDB projection bug: empty dict returned when querying non-existent fields on older documents
+- Testing: 100% (11/11 backend tests passed) — Iteration 115
