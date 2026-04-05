@@ -75,6 +75,12 @@ export const useWebSocketChat = (userId, onMessage, onPresence, onTyping, onRead
         onReadReceiptRef.current?.(data);
       });
 
+      // App update notification from admin
+      eventSource.addEventListener('app_update', (event) => {
+        const data = JSON.parse(event.data);
+        window.dispatchEvent(new CustomEvent('munal-app-update', { detail: data }));
+      });
+
       // Call-related SSE events
       const callEvents = ['incoming_call', 'call_accepted', 'call_rejected', 'call_ended', 'webrtc_offer', 'webrtc_answer', 'webrtc_ice_candidate'];
       callEvents.forEach(eventName => {

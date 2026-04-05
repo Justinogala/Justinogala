@@ -16,6 +16,12 @@ from config import db
 
 logger = logging.getLogger(__name__)
 
+# Import SSE manager for broadcasting
+try:
+    from routes.chat import sse_manager
+except ImportError:
+    sse_manager = None
+
 router = APIRouter(prefix="/updates", tags=["updates"])
 
 CURRENT_APP_VERSION = "2.1.0"
@@ -136,6 +142,19 @@ async def admin_create_version(data: VersionCreate, user: dict = Depends(get_cur
     }
     await db.app_versions.insert_one(version_doc)
     version_doc.pop("_id", None)
+
+    # Broadcast update notification to all connected users
+    if sse_manager:
+        try:
+            await sse_manager.broadcast_all("app_update", {
+                "version": data.version,
+                "title": data.title,
+                "is_critical": data.is_critical,
+            })
+            logger.info(f"Broadcasted app_update v{data.version} to all users")
+        except Exception as e:
+            logger.error(f"Failed to broadcast app_update: {e}")
+
     return version_doc
 
 

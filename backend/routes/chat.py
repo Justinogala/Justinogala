@@ -121,6 +121,11 @@ class SSEManager:
         }
         for uid in list(self.user_queues.keys()):
             await self.send_to_user(uid, "presence", event_data)
+
+    async def broadcast_all(self, event_type: str, data: dict):
+        """Broadcast an event to ALL connected users"""
+        for uid in list(self.user_queues.keys()):
+            await self.send_to_user(uid, event_type, data)
     
     async def delayed_offline_broadcast(self, user_id: str, delay: float = 5.0):
         """Broadcast offline with a grace period to allow reconnection"""
