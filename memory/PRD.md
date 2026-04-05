@@ -250,3 +250,9 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Each SSE chunk contains 1-3 characters (real LLM tokens) instead of 4-word groups
 - Frontend already had streaming UI (blinking cursor, thinking dots, stop button) — now properly utilized
 - Testing: 100% (8/8 backend tests passed) — Iteration 112
+
+### AI Chat Bug Fix + Regenerate Response — April 5, 2026
+- **Bug Fix**: First message in a new conversation didn't show streaming text. Root cause: `useEffect([activeConvId])` fired when `setActiveConvId` was called during first message send, fetching empty conversation from server and overwriting locally-added streaming messages. Fixed with `streamingRef` to skip message loading during streaming.
+- **Regenerate Response**: Added "Regenerate" button on the last assistant message. Clicking deletes the last assistant response from DB and streams a fresh LLM response. Also added "Copy response" button on all completed assistant messages.
+- Endpoint: `POST /api/ai-chat/conversations/{id}/regenerate`
+- Testing: 100% (11/11 backend tests passed) — Iteration 113
