@@ -32,6 +32,7 @@ class VersionCreate(BaseModel):
     title: str
     release_notes: str
     is_critical: bool = False
+    highlights: list = []  # [{icon: str, title: str, description: str}]
 
 
 class VersionUpdate(BaseModel):
@@ -39,6 +40,7 @@ class VersionUpdate(BaseModel):
     title: Optional[str] = None
     release_notes: Optional[str] = None
     is_critical: Optional[bool] = None
+    highlights: Optional[list] = None
 
 
 # ============== User Endpoints ==============
@@ -106,6 +108,26 @@ async def acknowledge_update(user: dict = Depends(get_current_user)):
     return {"status": "acknowledged", "version": latest["version"] if latest else CURRENT_APP_VERSION}
 
 
+@router.get("/whats-new")
+async def get_whats_new(user: dict = Depends(get_current_user)):
+    """Get versions the user hasn't seen yet (for What's New modal)."""
+    user_doc = await db.users.find_one({"id": user["id"]}, {"_id": 0, "last_seen_version": 1})
+    last_seen = (user_doc or {}).get("last_seen_version", "0.0.0")
+
+    all_versions = await db.app_versions.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(length=20)
+
+    unseen = [v for v in all_versions if _compare_versions(v["version"], last_seen) > 0]
+
+    return {
+        "has_new": len(unseen) > 0,
+        "last_seen_version": last_seen,
+        "new_versions": unseen,
+    }
+
+
 # ============== Admin Endpoints ==============
 
 @router.get("/admin/versions")
@@ -137,6 +159,7 @@ async def admin_create_version(data: VersionCreate, user: dict = Depends(get_cur
         "title": data.title,
         "release_notes": data.release_notes,
         "is_critical": data.is_critical,
+        "highlights": data.highlights or [],
         "created_by": user["id"],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
