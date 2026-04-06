@@ -249,6 +249,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Added "Publish Version" shortcut button to Admin Dashboard header
 - One-click navigation to System Updates page from the main dashboard
 
+### Chat Export — April 6, 2026
+- Export any AI Chat conversation as Markdown (.md), PDF (.pdf), or Word (.docx)
+- Backend: `GET /api/ai-chat/conversations/{id}/export?format=md|pdf|docx`
+- PDF generated with PyMuPDF (A4, word-wrapped, multi-page), DOCX with python-docx (Calibri, styled headings)
+- Markdown: clean formatting with role headers and content
+- Frontend: Export dropdown button in chat top bar, visible when a conversation with messages is active
+- All exports include conversation title, date, and "Exported from Munal AI" footer
+
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
 

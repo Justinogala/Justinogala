@@ -34,7 +34,8 @@ import {
   RefreshCw,
   Search,
   Pin,
-  PinOff
+  PinOff,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
@@ -686,6 +687,43 @@ export default function AIChatPage() {
     inputRef.current?.focus();
   };
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const exportRef = useRef(null);
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const exportChat = async (format) => {
+    const t = getToken();
+    if (!t || !activeConvId) return;
+    setExporting(true);
+    setExportOpen(false);
+    try {
+      const res = await fetch(`${API}/api/ai-chat/conversations/${activeConvId}/export?format=${format}`, {
+        headers: { Authorization: `Bearer ${t}` }
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const ext = format === 'md' ? 'md' : format === 'pdf' ? 'pdf' : 'docx';
+      const name = conversations.find(c => c.id === activeConvId)?.title || 'chat-export';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${name.replace(/[^\w\s-]/g, '').substring(0, 60).trim()}.${ext}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) {
+      console.error('Export error:', e);
+    }
+    setExporting(false);
+  };
+
   const isEmptyState = !activeConvId || messages.length === 0;
 
   // Show loading while auth is initializing
@@ -820,6 +858,49 @@ export default function AIChatPage() {
               <p className="text-[10px] text-gray-400">GPT-5.2 · Always ready</p>
             </div>
           </div>
+          {/* Export Button */}
+          {activeConvId && messages.length > 0 && (
+            <div className="ml-auto relative" ref={exportRef}>
+              <button
+                onClick={() => setExportOpen(!exportOpen)}
+                disabled={exporting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                data-testid="export-chat-btn"
+                title="Export conversation"
+              >
+                {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span className="hidden sm:inline">Export</span>
+              </button>
+              {exportOpen && (
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg py-1.5 z-50" data-testid="export-dropdown">
+                  <button
+                    onClick={() => exportChat('md')}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    data-testid="export-md-btn"
+                  >
+                    <FileText className="w-4 h-4 text-gray-400" />
+                    Markdown (.md)
+                  </button>
+                  <button
+                    onClick={() => exportChat('pdf')}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    data-testid="export-pdf-btn"
+                  >
+                    <FileText className="w-4 h-4 text-red-400" />
+                    PDF (.pdf)
+                  </button>
+                  <button
+                    onClick={() => exportChat('docx')}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    data-testid="export-docx-btn"
+                  >
+                    <FileText className="w-4 h-4 text-blue-400" />
+                    Word (.docx)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Messages or Empty State */}
