@@ -21,6 +21,10 @@ import { API_URL as API } from '@/lib/api';
 function AdminVersionManager() {
   const getToken = () => {
     try {
+      // Try admin token first (admin portal auth)
+      const adminToken = localStorage.getItem('admin_token');
+      if (adminToken) return adminToken;
+      // Fallback to user session token
       const session = JSON.parse(localStorage.getItem('munal_sessions') || '{}');
       return session.token || null;
     } catch { return null; }

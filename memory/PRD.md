@@ -240,7 +240,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Store screenshots: 21 placeholders at correct sizes (3 devices x 7 screens) + generation script
 - Final validation: 100% test pass rate (Iteration 111)
 
-## Backlog (Prioritized)
+### System Updates Admin Access Fix — April 6, 2026
+- Extracted AdminVersionManager from Settings tab into a dedicated `/admin/system-updates` route
+- Added "System Updates" sidebar item under Configuration (visible to all admin roles)
+- Fixed auth token retrieval: admin portal uses `admin_token` localStorage key, not `munal_sessions`
+- Version list now loads and displays correctly in the admin portal
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
 

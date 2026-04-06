@@ -5,7 +5,7 @@ import {
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
   Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList,
-  HeartPulse
+  HeartPulse, Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -185,6 +185,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: Mic, label: 'Transcription Settings', path: '/admin/transcription-settings', gradient: 'from-purple-500 to-violet-500', moduleKey: 'transcription_settings' },
     { icon: Zap, label: 'Integrations', path: '/admin/integrations', gradient: 'from-cyan-500 to-teal-500', moduleKey: 'integrations' },
     { icon: FileText, label: 'Audit Logs', path: '/admin/audit-logs', gradient: 'from-rose-500 to-pink-500', moduleKey: 'audit_logs' },
+    { icon: Package, label: 'System Updates', path: '/admin/system-updates', gradient: 'from-teal-500 to-cyan-500', moduleKey: 'dashboard' },
     { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500', moduleKey: 'general_settings' },
   ];
 
