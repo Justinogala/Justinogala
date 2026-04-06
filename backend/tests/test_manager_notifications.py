@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://munal-app-release.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://munal-system-updates.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 ORG_ADMIN_EMAIL = "orgadmin@munal.com"
