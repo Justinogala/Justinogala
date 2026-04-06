@@ -10,7 +10,7 @@ import AdminAPIStatus from '@/components/admin/AdminAPIStatus';
 import AdminIntegrationStatus from '@/components/admin/AdminIntegrationStatus';
 import APIDocumentationSection from '@/components/admin/APIDocumentationSection';
 import PaymentGatewayWidget from '@/components/admin/payment/PaymentGatewayWidget';
-import { Users, CreditCard, Activity, Ticket, ArrowRight, Settings, FileText, Database } from 'lucide-react';
+import { Users, CreditCard, Activity, Ticket, ArrowRight, Settings, FileText, Database, Package } from 'lucide-react';
 import { adminBillingDataService } from '@/services/adminBillingDataService';
 import { Button } from '@/components/ui/button';
 
@@ -66,6 +66,12 @@ const ModernAdminDashboard = () => {
             Overview of your platform performance and system health.
           </p>
         </div>
+        <Link to="/admin/system-updates" data-testid="dashboard-publish-version-btn">
+          <Button className="bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white shadow-lg shadow-teal-500/25 gap-2">
+            <Package className="w-4 h-4" />
+            Publish Version
+          </Button>
+        </Link>
       </motion.div>
 
       {/* Security Compliance Score */}

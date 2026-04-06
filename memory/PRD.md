@@ -245,6 +245,10 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Added "System Updates" sidebar item under Configuration (visible to all admin roles)
 - Fixed auth token retrieval: admin portal uses `admin_token` localStorage key, not `munal_sessions`
 - Version list now loads and displays correctly in the admin portal
+### Dashboard Publish Version Shortcut — April 6, 2026
+- Added "Publish Version" shortcut button to Admin Dashboard header
+- One-click navigation to System Updates page from the main dashboard
+
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
 
