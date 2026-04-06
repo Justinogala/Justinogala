@@ -1050,15 +1050,17 @@ async def _ai_chat(system_prompt: str, user_prompt: str):
     api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
     if not api_key:
         raise HTTPException(status_code=500, detail="AI service not configured")
-    from emergentintegrations.llm.openai import LlmChat, UserMessage
+    from llm_client import chat_completion
     import uuid as _uuid
-    llm = LlmChat(
+    result = chat_completion(
         api_key=api_key,
-        session_id=str(_uuid.uuid4()),
-        system_message=system_prompt,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        model="gpt-4o",
     )
-    llm = llm.with_model("openai", "gpt-4o")
-    response = await llm.send_message(UserMessage(text=user_prompt))
+    response = result.choices[0].message.content
     return response
 
 

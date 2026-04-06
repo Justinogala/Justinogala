@@ -50,7 +50,7 @@ async def analyze_transcript(request: TranscriptAnalyzeRequest):
         if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
-        from emergentintegrations.llm.openai import chat
+        from llm_client import chat_completion
         
         prompts = {
             "summary": "Provide a concise summary of this transcript:",
@@ -62,7 +62,7 @@ async def analyze_transcript(request: TranscriptAnalyzeRequest):
         
         prompt = prompts.get(request.analysis_type, prompts["summary"])
         
-        response = await chat(
+        response = chat_completion(
             api_key=api_key,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that analyzes meeting transcripts."},
@@ -103,15 +103,15 @@ async def generate_tts(request: TTSRequest):
         if not api_key:
             raise HTTPException(status_code=500, detail="TTS service not configured")
         
-        from emergentintegrations.llm.openai import OpenAITextToSpeech
+        from llm_client import text_to_speech
         
-        tts = OpenAITextToSpeech(api_key=api_key)
-        audio_bytes = await tts.generate_speech(
+        response = text_to_speech(
             text=request.text,
-            model="tts-1",
             voice=request.voice,
-            speed=request.speed
+            model="tts-1",
+            api_key=api_key,
         )
+        audio_bytes = response.content
         
         return StreamingResponse(
             iter([audio_bytes]),
@@ -131,15 +131,15 @@ async def generate_tts_base64(request: TTSRequest):
         if not api_key:
             raise HTTPException(status_code=500, detail="TTS service not configured")
         
-        from emergentintegrations.llm.openai import OpenAITextToSpeech
+        from llm_client import text_to_speech
         
-        tts = OpenAITextToSpeech(api_key=api_key)
-        audio_bytes = await tts.generate_speech(
+        response = text_to_speech(
             text=request.text,
-            model="tts-1",
             voice=request.voice,
-            speed=request.speed
+            model="tts-1",
+            api_key=api_key,
         )
+        audio_bytes = response.content
         
         audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
         
@@ -175,35 +175,28 @@ async def ai_chat(request: AIChatRequest):
         if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
-        from emergentintegrations.llm.openai import LlmChat, UserMessage
+        from llm_client import chat_completion
         import uuid
         
         # Build system message
         system_message = request.system_prompt or "You are Munal AI, a helpful assistant for a meeting and collaboration platform. Be concise and helpful."
         
-        # Build initial messages from conversation history
-        initial_messages = []
+        # Build messages for API
+        messages = [{"role": "system", "content": system_message}]
         for msg in request.conversation_history:
-            initial_messages.append({
+            messages.append({
                 "role": msg.get("role", "user"),
                 "content": msg.get("content", "")
             })
+        messages.append({"role": "user", "content": request.message})
         
-        # Initialize LlmChat
-        session_id = str(uuid.uuid4())
-        llm = LlmChat(
+        # Send to API
+        result = chat_completion(
+            messages=messages,
+            model="gpt-4o",
             api_key=api_key,
-            session_id=session_id,
-            system_message=system_message,
-            initial_messages=initial_messages if initial_messages else None
         )
-        
-        # Use gpt-4o model
-        llm = llm.with_model("openai", "gpt-4o")
-        
-        # Send message
-        user_msg = UserMessage(text=request.message)
-        response = await llm.send_message(user_msg)
+        response = result.choices[0].message.content
         
         # Record usage after successful response
         if request.user_id:
@@ -252,24 +245,15 @@ async def transcribe_audio(
                 detail=f"Invalid file format. Supported: {', '.join(valid_extensions)}"
             )
         
-        from emergentintegrations.llm.openai import OpenAISpeechToText
+        from llm_client import speech_to_text
         import io
-        
-        # Initialize STT
-        stt = OpenAISpeechToText(api_key=api_key)
         
         # Create file-like object from contents
         audio_file = io.BytesIO(contents)
         audio_file.name = file.filename
         
         # Transcribe
-        response = await stt.transcribe(
-            file=audio_file,
-            model="whisper-1",
-            response_format="verbose_json",
-            language=language if language else None,
-            timestamp_granularities=["segment"]
-        )
+        response = speech_to_text(audio_file=audio_file, api_key=api_key)
         
         # Build response
         result = {
@@ -429,19 +413,10 @@ async def transcribe_recording(request: RecordingTranscriptionRequest):
             # Prepare file for transcription
             audio_file.name = request.file_name or "recording.webm"
         
-        from emergentintegrations.llm.openai import OpenAISpeechToText
+        from llm_client import speech_to_text
         
         # Initialize STT
-        stt = OpenAISpeechToText(api_key=api_key)
-        
-        # Transcribe
-        response = await stt.transcribe(
-            file=audio_file,
-            model="whisper-1",
-            response_format="verbose_json",
-            language="en",
-            timestamp_granularities=["segment"]
-        )
+        response = speech_to_text(audio_file=audio_file, api_key=api_key)
         
         # Build transcript data
         transcript_id = str(uuid.uuid4())

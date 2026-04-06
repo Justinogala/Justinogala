@@ -1352,7 +1352,7 @@ async def set_digest_preferences(user_id: str = Query(...), enabled: bool = Quer
 async def get_ai_insights(user_id: str = Query(...)):
     """Generate AI-powered insights from approval data using GPT-5.2."""
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        from llm_client import chat_completion
 
         api_key = os.environ.get("EMERGENT_LLM_KEY")
         if not api_key:

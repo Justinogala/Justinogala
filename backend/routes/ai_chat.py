@@ -230,8 +230,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
     assistant_msg_id = str(uuid.uuid4())
 
     async def stream_response():
-        import litellm
-        from emergentintegrations.llm.chat import get_integration_proxy_url
+        from llm_client import chat_completion
 
         full_response = ""
         try:
@@ -253,21 +252,13 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             else:
                 llm_messages.append({"role": "user", "content": current_content})
 
-            # Build litellm params matching emergentintegrations internals
-            params = {
-                "model": "gpt-5.2",
-                "messages": llm_messages,
-                "api_key": EMERGENT_KEY,
-                "stream": True,
-            }
-
-            if EMERGENT_KEY and EMERGENT_KEY.startswith("sk-emergent-"):
-                proxy_url = get_integration_proxy_url()
-                params["api_base"] = proxy_url + "/llm"
-                params["custom_llm_provider"] = "openai"
-
-            # Real streaming call
-            response = litellm.completion(**params)
+            # Real streaming call via OpenAI SDK
+            response = chat_completion(
+                messages=llm_messages,
+                model="gpt-5.2",
+                api_key=EMERGENT_KEY,
+                stream=True,
+            )
 
             for chunk in response:
                 delta = chunk.choices[0].delta if chunk.choices else None
@@ -348,8 +339,7 @@ async def regenerate_response(conv_id: str, user: dict = Depends(get_current_use
     assistant_msg_id = str(uuid.uuid4())
 
     async def stream_response():
-        import litellm
-        from emergentintegrations.llm.chat import get_integration_proxy_url
+        from llm_client import chat_completion
 
         full_response = ""
         try:
@@ -363,19 +353,12 @@ async def regenerate_response(conv_id: str, user: dict = Depends(get_current_use
             if not llm_messages or llm_messages[-1]["role"] != "user":
                 llm_messages.append({"role": "user", "content": last_user_text})
 
-            params = {
-                "model": "gpt-5.2",
-                "messages": llm_messages,
-                "api_key": EMERGENT_KEY,
-                "stream": True,
-            }
-
-            if EMERGENT_KEY and EMERGENT_KEY.startswith("sk-emergent-"):
-                proxy_url = get_integration_proxy_url()
-                params["api_base"] = proxy_url + "/llm"
-                params["custom_llm_provider"] = "openai"
-
-            response = litellm.completion(**params)
+            response = chat_completion(
+                messages=llm_messages,
+                model="gpt-5.2",
+                api_key=EMERGENT_KEY,
+                stream=True,
+            )
 
             for chunk in response:
                 delta = chunk.choices[0].delta if chunk.choices else None
@@ -692,20 +675,14 @@ async def transcribe_voice(
         raise HTTPException(413, "Audio file too large (max 25MB)")
 
     try:
-        from emergentintegrations.llm.openai import OpenAISpeechToText
-        stt = OpenAISpeechToText(api_key=EMERGENT_KEY)
+        from llm_client import speech_to_text
 
         with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
             tmp.write(data)
             tmp_path = tmp.name
 
         with open(tmp_path, "rb") as audio_file:
-            response = await stt.transcribe(
-                file=audio_file,
-                model="whisper-1",
-                response_format="json",
-                language="en"
-            )
+            response = speech_to_text(audio_file=audio_file, api_key=EMERGENT_KEY)
 
         os.unlink(tmp_path)
         return {"text": response.text}
