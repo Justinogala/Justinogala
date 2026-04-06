@@ -54,20 +54,24 @@ ul, ol {{ margin-left: 20px; margin-bottom: 8px; }}
 
 
 def convert_pdf_to_docx(content: bytes) -> bytes:
-    """Convert PDF to DOCX using pdf2docx."""
-    from pdf2docx import Converter
-    with tempfile.TemporaryDirectory() as tmpdir:
-        pdf_path = os.path.join(tmpdir, "input.pdf")
-        docx_path = os.path.join(tmpdir, "output.docx")
-        with open(pdf_path, "wb") as f:
-            f.write(content)
-        cv = Converter(pdf_path)
-        cv.convert(docx_path)
-        cv.close()
-        if not os.path.exists(docx_path):
-            raise HTTPException(status_code=500, detail="Converted DOCX not found")
-        with open(docx_path, "rb") as f:
-            return f.read()
+    """Convert PDF to DOCX using PyMuPDF + python-docx."""
+    import fitz
+    from docx import Document
+    from docx.shared import Pt
+    doc = Document()
+    style = doc.styles['Normal']
+    style.font.name = 'Calibri'
+    style.font.size = Pt(11)
+    pdf = fitz.open(stream=content, filetype="pdf")
+    for page in pdf:
+        text = page.get_text()
+        for line in text.split('\n'):
+            if line.strip():
+                doc.add_paragraph(line)
+    pdf.close()
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
 
 
 # ============ Signature CRUD ============

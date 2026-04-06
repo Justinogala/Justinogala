@@ -391,23 +391,25 @@ def _pdf_to_images(pdf_data: bytes, name: str, fmt: str):
 
 # ── PDF to Word ────────────────────────────────────────────────
 def _pdf_to_word(pdf_data: bytes, name: str):
-    from pdf2docx import Converter
-    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_pdf:
-        tmp_pdf.write(pdf_data)
-        tmp_pdf_path = tmp_pdf.name
-    tmp_docx_path = tmp_pdf_path.replace(".pdf", ".docx")
-    try:
-        cv = Converter(tmp_pdf_path)
-        cv.convert(tmp_docx_path)
-        cv.close()
-        with open(tmp_docx_path, "rb") as f:
-            docx_data = f.read()
-    finally:
-        for p in (tmp_pdf_path, tmp_docx_path):
-            if os.path.exists(p):
-                os.unlink(p)
+    import fitz
+    from docx import Document
+    from docx.shared import Pt
+    doc = Document()
+    style = doc.styles['Normal']
+    style.font.name = 'Calibri'
+    style.font.size = Pt(11)
+    pdf = fitz.open(stream=pdf_data, filetype="pdf")
+    for page in pdf:
+        text = page.get_text()
+        for line in text.split('\n'):
+            if line.strip():
+                doc.add_paragraph(line)
+    pdf.close()
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
     return StreamingResponse(
-        io.BytesIO(docx_data),
+        buf,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{name}.docx"'},
     )
