@@ -5,13 +5,14 @@ import { API_URL } from '@/lib/api';
 import {
   Plus, Sparkles, Save, ArrowLeft, Loader2, Trash2, Copy,
   FileSpreadsheet, MoreHorizontal, Pencil, Check, X, Search,
-  MessageSquare, Wand2, Zap
+  MessageSquare, Wand2, Zap, Download, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import SheetChatPanel from './SheetChatPanel';
+import SheetInsightsPanel from './SheetInsightsPanel';
 import { AIFormulaModal, SmartActionsModal } from './SheetAITools';
 
 const getToken = () => {
@@ -304,6 +305,33 @@ const SheetEditor = ({ sheetId, onBack }) => {
   const [smartActionsOpen, setSmartActionsOpen] = useState(false);
   const [copiedFormula, setCopiedFormula] = useState('');
   const [currentData, setCurrentData] = useState(null);
+  // Phase 3 state
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const downloadSheet = async () => {
+    setDownloading(true);
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_URL}/api/sheets/${sheetId}/download`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="(.+)"/);
+      const filename = match ? match[1] : 'spreadsheet.xlsx';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); }
+    setDownloading(false);
+  };
 
   useEffect(() => {
     const loadSheet = async () => {
@@ -410,21 +438,34 @@ const SheetEditor = ({ sheetId, onBack }) => {
           <Button
             variant={chatOpen ? "default" : "outline"}
             size="sm"
-            onClick={() => setChatOpen(!chatOpen)}
+            onClick={() => { setChatOpen(!chatOpen); if (!chatOpen) setInsightsOpen(false); }}
             className={cn("gap-1", chatOpen ? "bg-violet-600 hover:bg-violet-700 text-white" : "text-violet-600 border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/20")}
             data-testid="chat-with-data-btn"
             title="Chat with Data"
           >
             <MessageSquare className="w-3.5 h-3.5" /> Chat
           </Button>
+          <Button
+            variant={insightsOpen ? "default" : "outline"}
+            size="sm"
+            onClick={() => { setInsightsOpen(!insightsOpen); if (!insightsOpen) setChatOpen(false); }}
+            className={cn("gap-1", insightsOpen ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-emerald-600 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20")}
+            data-testid="ai-insights-btn"
+            title="AI Insights & Charts"
+          >
+            <BarChart3 className="w-3.5 h-3.5" /> Insights
+          </Button>
           <div className="w-px h-5 bg-gray-200 dark:bg-slate-700" />
+          <Button variant="outline" size="sm" onClick={downloadSheet} disabled={downloading} className="gap-1" data-testid="sheet-download-btn" title="Download as XLSX">
+            {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Download
+          </Button>
           <Button variant="outline" size="sm" onClick={manualSave} className="gap-1" data-testid="sheet-save-btn">
             <Save className="w-3.5 h-3.5" /> Save
           </Button>
         </div>
       </div>
 
-      {/* Spreadsheet + Chat Panel */}
+      {/* Spreadsheet + Chat/Insights Panels */}
       <div className="flex flex-1 min-h-0 gap-0">
         <div className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900" data-testid="fortune-sheet-container">
           <Workbook
@@ -443,6 +484,12 @@ const SheetEditor = ({ sheetId, onBack }) => {
           sheetData={currentData || sheet.data}
           isOpen={chatOpen}
           onToggle={() => setChatOpen(false)}
+        />
+        <SheetInsightsPanel
+          sheetId={sheetId}
+          sheetData={currentData || sheet.data}
+          isOpen={insightsOpen}
+          onToggle={() => setInsightsOpen(false)}
         />
       </div>
 

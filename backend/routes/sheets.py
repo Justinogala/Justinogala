@@ -4,7 +4,7 @@ Provides CRUD for spreadsheets and AI generation capabilities.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Any
 from datetime import datetime, timezone
@@ -12,6 +12,7 @@ from config import db
 import uuid
 import json
 import os
+import io
 
 router = APIRouter(prefix="/sheets", tags=["sheets"])
 
@@ -329,23 +330,45 @@ SPREADSHEET DATA:
 
 
 def _extract_data_summary(data: list) -> str:
-    """Extract a readable summary from Fortune-Sheet celldata."""
+    """Extract a readable summary from Fortune-Sheet data (supports both celldata and 2D array formats)."""
     if not data:
         return "Empty spreadsheet"
     
     lines = []
     for sheet_obj in data[:1]:  # first sheet only
+        # Try celldata format first (sparse format: [{r, c, v}, ...])
         celldata = sheet_obj.get("celldata", [])
-        if not celldata:
-            continue
-        # Group by rows
+        # Also try 2D array format (dense format: [[cell, cell, ...], ...])
+        data_2d = sheet_obj.get("data", [])
+        
         rows = {}
-        for cell in celldata:
-            r, c = cell.get("r", 0), cell.get("c", 0)
-            v = cell.get("v", {})
-            val = v.get("m") or v.get("v") or ""
-            if val:
-                rows.setdefault(r, {})[c] = str(val)
+        
+        if celldata:
+            # Handle sparse celldata format
+            for cell in celldata:
+                r, c = cell.get("r", 0), cell.get("c", 0)
+                v = cell.get("v", {})
+                val = v.get("m") or v.get("v") or ""
+                if val:
+                    rows.setdefault(r, {})[c] = str(val)
+        elif data_2d and isinstance(data_2d, list):
+            # Handle 2D array format from Fortune-Sheet
+            for r_idx, row in enumerate(data_2d[:30]):  # limit to 30 rows
+                if not row or not isinstance(row, list):
+                    continue
+                for c_idx, cell in enumerate(row):
+                    if cell is None:
+                        continue
+                    if isinstance(cell, dict):
+                        val = cell.get("m") or cell.get("v") or ""
+                    else:
+                        val = str(cell) if cell else ""
+                    if val:
+                        rows.setdefault(r_idx, {})[c_idx] = str(val)
+        
+        if not rows:
+            continue
+            
         # Format as table
         max_col = max((max(cols.keys()) for cols in rows.values() if cols), default=0)
         for r_idx in sorted(rows.keys())[:30]:  # limit to 30 rows
@@ -459,3 +482,166 @@ async def smart_action(sheet_id: str, req: SmartActionRequest, user: dict = Depe
         results = [raw]
 
     return {"results": results, "action": req.action}
+
+
+# ── Download Sheet as XLSX ──
+
+@router.get("/{sheet_id}/download")
+async def download_sheet(sheet_id: str, user: dict = Depends(get_current_user)):
+    """Export a sheet as an .xlsx file."""
+    from openpyxl import Workbook as XLWorkbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    sheet = await db.sheets.find_one({"id": sheet_id, "created_by": user["id"]}, {"_id": 0})
+    if not sheet:
+        raise HTTPException(404, "Sheet not found")
+
+    wb = XLWorkbook()
+    sheet_data_list = sheet.get("data", [])
+
+    for idx, fs_sheet in enumerate(sheet_data_list):
+        if idx == 0:
+            ws = wb.active
+            ws.title = fs_sheet.get("name", "Sheet1")
+        else:
+            ws = wb.create_sheet(title=fs_sheet.get("name", f"Sheet{idx+1}"))
+
+        celldata = fs_sheet.get("celldata", [])
+        config = fs_sheet.get("config", {})
+        col_widths = config.get("columnlen", {})
+
+        # Set column widths
+        for col_str, width in col_widths.items():
+            col_idx = int(col_str) + 1
+            from openpyxl.utils import get_column_letter
+            ws.column_dimensions[get_column_letter(col_idx)].width = max(width / 7, 8)
+
+        for cell in celldata:
+            r = cell.get("r", 0) + 1
+            c = cell.get("c", 0) + 1
+            v = cell.get("v", {})
+            if not v:
+                continue
+
+            xc = ws.cell(row=r, column=c)
+
+            # Handle formula
+            if v.get("f"):
+                xc.value = v["f"]
+            elif v.get("ct", {}).get("t") == "n":
+                try:
+                    xc.value = float(v.get("v", 0))
+                except (TypeError, ValueError):
+                    xc.value = v.get("m", "")
+            else:
+                xc.value = v.get("m") or v.get("v") or ""
+
+            # Bold
+            is_bold = v.get("bl") == 1
+            font_color = v.get("fc", "000000").lstrip("#") if v.get("fc") else "000000"
+            if len(font_color) != 6:
+                font_color = "000000"
+            xc.font = Font(bold=is_bold, color=font_color)
+
+            # Background
+            if v.get("bg"):
+                bg_color = v["bg"].lstrip("#")
+                if len(bg_color) == 6:
+                    xc.fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type="solid")
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    safe_title = "".join(c for c in sheet.get("title", "Sheet") if c.isalnum() or c in " _-").strip() or "Sheet"
+    filename = f"{safe_title}.xlsx"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ── Phase 3: AI Insights ──
+
+class AIInsightsRequest(BaseModel):
+    sheet_data_summary: Optional[str] = None
+
+@router.post("/{sheet_id}/ai/insights")
+async def ai_insights(sheet_id: str, req: AIInsightsRequest, user: dict = Depends(get_current_user)):
+    """Analyze sheet data and return AI-generated insights."""
+    if not EMERGENT_KEY:
+        raise HTTPException(500, "AI service not configured")
+
+    from llm_client import chat_completion
+
+    sheet = await db.sheets.find_one({"id": sheet_id, "created_by": user["id"]}, {"_id": 0})
+    if not sheet:
+        raise HTTPException(404, "Sheet not found")
+
+    data_context = req.sheet_data_summary or _extract_data_summary(sheet.get("data", []))
+
+    system = f"""You are a data analyst AI embedded in a spreadsheet application.
+Analyze the spreadsheet data below and produce insights.
+
+Return ONLY valid JSON in this exact format (no markdown, no explanation):
+{{
+  "summary": "Brief 1-2 sentence overview of the dataset",
+  "key_metrics": [
+    {{"label": "Metric Name", "value": "123", "trend": "up|down|stable"}},
+  ],
+  "insights": [
+    {{"title": "Insight title", "description": "Detailed explanation", "type": "trend|outlier|pattern|recommendation"}},
+  ],
+  "charts": [
+    {{
+      "title": "Chart Title",
+      "type": "bar|line|pie",
+      "xKey": "column_name_for_x_axis",
+      "yKeys": ["column_name_for_y1"],
+      "data": [
+        {{"name": "Label1", "value1": 100}},
+        {{"name": "Label2", "value1": 200}}
+      ]
+    }}
+  ]
+}}
+
+Rules:
+- Provide 2-5 key metrics with trend direction
+- Provide 3-6 actionable insights
+- Suggest 1-3 charts that best visualize the data
+- Chart data should be derived directly from the spreadsheet data
+- For pie charts, use "name" and "value" keys in data
+- For bar/line charts, use "name" as x-axis label
+- Keep chart data to max 15 data points for readability
+- If data is insufficient for charts, return empty charts array
+
+SPREADSHEET DATA:
+{data_context}"""
+
+    try:
+        result = chat_completion(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": "Analyze this spreadsheet data and provide insights with chart suggestions."},
+            ],
+            model="gpt-5.2",
+            api_key=EMERGENT_KEY,
+        )
+        raw = result.choices[0].message.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+        insights = json.loads(raw)
+        return insights
+    except json.JSONDecodeError:
+        raise HTTPException(422, "AI returned invalid insights. Try again.")
+    except Exception as e:
+        raise HTTPException(500, f"AI insights failed: {str(e)}")
