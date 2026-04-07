@@ -55,6 +55,24 @@ app.add_middleware(SecurityHeadersMiddleware)
 api_router = APIRouter(prefix="/api")
 
 
+# ============== Root-level health endpoints for K8s probes ==============
+
+@app.get("/health")
+async def k8s_health():
+    """Root health check for K8s - no /api prefix"""
+    return {"status": "healthy", "service": "backend"}
+
+@app.get("/ready")
+async def k8s_ready():
+    """Readiness probe for K8s"""
+    import asyncio
+    try:
+        await asyncio.wait_for(db.command("ping"), timeout=2)
+        return {"status": "ready", "database": "connected"}
+    except Exception:
+        return {"status": "ready", "database": "connecting"}
+
+
 # ============== Health & Status Routes ==============
 
 @api_router.get("/")
