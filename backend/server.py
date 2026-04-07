@@ -280,6 +280,9 @@ api_router.include_router(admin_2fa_dashboard_router)
 api_router.include_router(admin_compliance_router)
 api_router.include_router(updates_router)
 
+from routes.sheets import router as sheets_router
+api_router.include_router(sheets_router)
+
 
 # ============== Include Main Router ==============
 
