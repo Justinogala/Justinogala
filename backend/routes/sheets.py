@@ -285,3 +285,177 @@ Column references use letters (A, B, C...), row references use numbers (1, 2, 3.
     if not formula.startswith("="):
         formula = "=" + formula
     return {"formula": formula}
+
+
+# ── Phase 2: Chat with Data ──
+
+class ChatWithDataRequest(BaseModel):
+    message: str
+    sheet_data_summary: Optional[str] = None  # frontend sends a compact representation
+
+@router.post("/{sheet_id}/ai/chat")
+async def chat_with_data(sheet_id: str, req: ChatWithDataRequest, user: dict = Depends(get_current_user)):
+    """Chat with AI about the active sheet data."""
+    if not EMERGENT_KEY:
+        raise HTTPException(500, "AI service not configured")
+
+    from llm_client import chat_completion
+
+    # Load sheet data for context
+    sheet = await db.sheets.find_one({"id": sheet_id, "created_by": user["id"]}, {"_id": 0})
+    if not sheet:
+        raise HTTPException(404, "Sheet not found")
+
+    # Build a compact data summary from celldata
+    data_context = req.sheet_data_summary or _extract_data_summary(sheet.get("data", []))
+
+    system = f"""You are Munal AI, a data analyst assistant embedded in a spreadsheet application.
+You have access to the user's spreadsheet data below. Answer questions about it accurately and concisely.
+When referencing cells, use standard notation (A1, B2, etc.). Provide insights, calculations, and suggestions.
+If the user asks for a formula, provide it. If they ask for analysis, be specific with numbers.
+
+SPREADSHEET DATA:
+{data_context}"""
+
+    result = chat_completion(
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": req.message},
+        ],
+        model="gpt-5.2",
+        api_key=EMERGENT_KEY,
+    )
+    return {"response": result.choices[0].message.content}
+
+
+def _extract_data_summary(data: list) -> str:
+    """Extract a readable summary from Fortune-Sheet celldata."""
+    if not data:
+        return "Empty spreadsheet"
+    
+    lines = []
+    for sheet_obj in data[:1]:  # first sheet only
+        celldata = sheet_obj.get("celldata", [])
+        if not celldata:
+            continue
+        # Group by rows
+        rows = {}
+        for cell in celldata:
+            r, c = cell.get("r", 0), cell.get("c", 0)
+            v = cell.get("v", {})
+            val = v.get("m") or v.get("v") or ""
+            if val:
+                rows.setdefault(r, {})[c] = str(val)
+        # Format as table
+        max_col = max((max(cols.keys()) for cols in rows.values() if cols), default=0)
+        for r_idx in sorted(rows.keys())[:30]:  # limit to 30 rows
+            row_vals = [rows[r_idx].get(c, "") for c in range(max_col + 1)]
+            prefix = "HEADER: " if r_idx == 0 else f"Row {r_idx}: "
+            lines.append(prefix + " | ".join(row_vals))
+    
+    return "\n".join(lines) if lines else "Empty spreadsheet"
+
+
+# ── Phase 2: Smart Automation ──
+
+class AutofillRequest(BaseModel):
+    column_index: int
+    column_name: str
+    existing_values: List[str]  # values already in the column
+    row_count: int = 10  # how many to generate
+    context_columns: Optional[dict] = None  # adjacent column data for context
+
+class SmartActionRequest(BaseModel):
+    action: str  # "summarize", "sentiment", "categorize", "translate"
+    values: List[str]
+    options: Optional[dict] = None
+
+@router.post("/{sheet_id}/ai/autofill")
+async def ai_autofill(sheet_id: str, req: AutofillRequest, user: dict = Depends(get_current_user)):
+    """AI auto-fill a column based on patterns and context."""
+    if not EMERGENT_KEY:
+        raise HTTPException(500, "AI service not configured")
+
+    from llm_client import chat_completion
+
+    context = f"Column: {req.column_name}\nExisting values: {', '.join(req.existing_values[:20])}"
+    if req.context_columns:
+        context += "\nAdjacent columns:\n"
+        for col_name, vals in list(req.context_columns.items())[:5]:
+            context += f"  {col_name}: {', '.join(str(v) for v in vals[:10])}\n"
+
+    system = f"""You are a spreadsheet auto-fill assistant. Based on the pattern of existing values and context, generate {req.row_count} new values that follow the same pattern.
+
+Return ONLY a JSON array of strings. No explanation, no markdown.
+Example: ["value1", "value2", "value3"]
+
+{context}"""
+
+    result = chat_completion(
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": f"Generate {req.row_count} more values for the '{req.column_name}' column following the pattern."},
+        ],
+        model="gpt-5.2",
+        api_key=EMERGENT_KEY,
+    )
+    raw = result.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    if raw.startswith("json"):
+        raw = raw[4:]
+    raw = raw.strip()
+    
+    try:
+        values = json.loads(raw)
+        if not isinstance(values, list):
+            values = [str(values)]
+    except json.JSONDecodeError:
+        values = [raw]
+    
+    return {"values": [str(v) for v in values]}
+
+
+@router.post("/{sheet_id}/ai/smart-action")
+async def smart_action(sheet_id: str, req: SmartActionRequest, user: dict = Depends(get_current_user)):
+    """Run a smart AI action on a list of cell values."""
+    if not EMERGENT_KEY:
+        raise HTTPException(500, "AI service not configured")
+
+    from llm_client import chat_completion
+
+    action_prompts = {
+        "summarize": "Summarize each text value in 1-2 sentences. Return a JSON array of summary strings.",
+        "sentiment": "Analyze the sentiment of each text. Return a JSON array of objects: [{\"text\": \"original\", \"sentiment\": \"positive/negative/neutral\", \"score\": 0.0-1.0}]",
+        "categorize": "Categorize each text into a relevant category. Return a JSON array of category strings.",
+        "translate": f"Translate each text to {req.options.get('target_language', 'English') if req.options else 'English'}. Return a JSON array of translated strings.",
+    }
+
+    prompt = action_prompts.get(req.action, f"Process each value with action '{req.action}'. Return a JSON array.")
+    values_text = "\n".join(f"{i+1}. {v}" for i, v in enumerate(req.values[:50]))
+
+    result = chat_completion(
+        messages=[
+            {"role": "system", "content": f"{prompt}\n\nReturn ONLY valid JSON array. No markdown, no explanation."},
+            {"role": "user", "content": f"Process these values:\n{values_text}"},
+        ],
+        model="gpt-5.2",
+        api_key=EMERGENT_KEY,
+    )
+    raw = result.choices[0].message.content.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    if raw.startswith("json"):
+        raw = raw[4:]
+    raw = raw.strip()
+
+    try:
+        results = json.loads(raw)
+    except json.JSONDecodeError:
+        results = [raw]
+
+    return {"results": results, "action": req.action}

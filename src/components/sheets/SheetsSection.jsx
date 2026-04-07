@@ -4,12 +4,15 @@ import '@fortune-sheet/react/dist/index.css';
 import { API_URL } from '@/lib/api';
 import {
   Plus, Sparkles, Save, ArrowLeft, Loader2, Trash2, Copy,
-  FileSpreadsheet, MoreHorizontal, Pencil, Check, X, Search
+  FileSpreadsheet, MoreHorizontal, Pencil, Check, X, Search,
+  MessageSquare, Wand2, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import SheetChatPanel from './SheetChatPanel';
+import { AIFormulaModal, SmartActionsModal } from './SheetAITools';
 
 const getToken = () => {
   try {
@@ -294,6 +297,13 @@ const SheetEditor = ({ sheetId, onBack }) => {
   const [editingTitle, setEditingTitle] = useState(false);
   const saveTimerRef = useRef(null);
   const latestDataRef = useRef(null);
+  
+  // Phase 2 state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [formulaOpen, setFormulaOpen] = useState(false);
+  const [smartActionsOpen, setSmartActionsOpen] = useState(false);
+  const [copiedFormula, setCopiedFormula] = useState('');
+  const [currentData, setCurrentData] = useState(null);
 
   useEffect(() => {
     const loadSheet = async () => {
@@ -324,6 +334,7 @@ const SheetEditor = ({ sheetId, onBack }) => {
 
   const handleChange = useCallback((data) => {
     latestDataRef.current = data;
+    setCurrentData(data);
     // Auto-save with debounce
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -389,25 +400,87 @@ const SheetEditor = ({ sheetId, onBack }) => {
           <span className={cn("text-xs transition-opacity", saving ? "text-amber-500 opacity-100" : "text-emerald-500 opacity-70")}>
             {saving ? 'Saving...' : 'Saved'}
           </span>
+          <div className="w-px h-5 bg-gray-200 dark:bg-slate-700" />
+          <Button variant="outline" size="sm" onClick={() => setFormulaOpen(true)} className="gap-1 text-amber-600 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/20" data-testid="ai-formula-btn" title="AI Formula Generator">
+            <Wand2 className="w-3.5 h-3.5" /> Formula
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setSmartActionsOpen(true)} className="gap-1 text-violet-600 border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/20" data-testid="smart-actions-btn" title="Smart AI Actions">
+            <Zap className="w-3.5 h-3.5" /> Smart Actions
+          </Button>
+          <Button
+            variant={chatOpen ? "default" : "outline"}
+            size="sm"
+            onClick={() => setChatOpen(!chatOpen)}
+            className={cn("gap-1", chatOpen ? "bg-violet-600 hover:bg-violet-700 text-white" : "text-violet-600 border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/20")}
+            data-testid="chat-with-data-btn"
+            title="Chat with Data"
+          >
+            <MessageSquare className="w-3.5 h-3.5" /> Chat
+          </Button>
+          <div className="w-px h-5 bg-gray-200 dark:bg-slate-700" />
           <Button variant="outline" size="sm" onClick={manualSave} className="gap-1" data-testid="sheet-save-btn">
             <Save className="w-3.5 h-3.5" /> Save
           </Button>
         </div>
       </div>
 
-      {/* Spreadsheet */}
-      <div className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900" data-testid="fortune-sheet-container">
-        <Workbook
-          data={sheet.data}
-          onChange={handleChange}
-          showToolbar={true}
-          showFormulaBar={true}
-          showSheetTabs={true}
-          allowEdit={true}
-          row={50}
-          column={26}
+      {/* Spreadsheet + Chat Panel */}
+      <div className="flex flex-1 min-h-0 gap-0">
+        <div className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900" data-testid="fortune-sheet-container">
+          <Workbook
+            data={sheet.data}
+            onChange={handleChange}
+            showToolbar={true}
+            showFormulaBar={true}
+            showSheetTabs={true}
+            allowEdit={true}
+            row={50}
+            column={26}
+          />
+        </div>
+        <SheetChatPanel
+          sheetId={sheetId}
+          sheetData={currentData || sheet.data}
+          isOpen={chatOpen}
+          onToggle={() => setChatOpen(false)}
         />
       </div>
+
+      {/* Copied formula toast */}
+      {copiedFormula && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm flex items-center gap-2 z-50 animate-in fade-in slide-in-from-bottom-2" data-testid="formula-toast">
+          <Check className="w-4 h-4" /> Formula copied: <code className="font-mono bg-emerald-700 px-1.5 rounded">{copiedFormula}</code>
+        </div>
+      )}
+
+      {/* AI Modals */}
+      <AIFormulaModal
+        open={formulaOpen}
+        onClose={() => setFormulaOpen(false)}
+        onInsert={(formula) => {
+          navigator.clipboard.writeText(formula).catch(() => {});
+          setCopiedFormula(formula);
+          setTimeout(() => setCopiedFormula(''), 3000);
+        }}
+      />
+      <SmartActionsModal
+        open={smartActionsOpen}
+        onClose={() => setSmartActionsOpen(false)}
+        sheetId={sheetId}
+        selectedValues={(() => {
+          const data = currentData || sheet.data;
+          if (!data?.[0]?.celldata) return [];
+          const cells = data[0].celldata;
+          const textVals = cells
+            .filter(c => c.r > 0 && c.v?.m && isNaN(Number(c.v.m)))
+            .map(c => String(c.v.m))
+            .slice(0, 20);
+          return textVals;
+        })()}
+        onResult={(action, results) => {
+          console.log(`Smart action ${action} results:`, results);
+        }}
+      />
     </div>
   );
 };
