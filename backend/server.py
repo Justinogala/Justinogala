@@ -23,7 +23,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection — CUSTOM_MONGO_URL takes priority (for user's Atlas DB)
 mongo_url = os.environ.get('CUSTOM_MONGO_URL') or os.environ.get('MONGO_URL', '')
 db_name = os.environ.get('CUSTOM_DB_NAME') or os.environ.get('DB_NAME', 'munal_db')
-client = AsyncIOMotorClient(mongo_url)
+client = AsyncIOMotorClient(mongo_url, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
 db = client[db_name]
 
 # Configure logging
@@ -66,10 +66,12 @@ async def root():
 @api_router.get("/health")
 async def health_check():
     """Health check endpoint - responds immediately, DB check is non-blocking"""
+    import asyncio
+    db_status = "unknown"
     try:
-        await db.command("ping")
+        await asyncio.wait_for(db.command("ping"), timeout=3)
         db_status = "healthy"
-    except Exception:
+    except (asyncio.TimeoutError, Exception):
         db_status = "connecting"
     
     return {

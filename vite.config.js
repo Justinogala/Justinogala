@@ -253,6 +253,7 @@ export default defineConfig({
 		],
 	},
 	optimizeDeps: {
+		include: ['@fortune-sheet/react', 'recharts'],
 		esbuildOptions: {
 			loader: {
 				'.js': 'jsx',
