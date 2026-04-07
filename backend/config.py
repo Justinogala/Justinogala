@@ -9,12 +9,13 @@ import logging
 import resend
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env', override=True)
+load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+# MongoDB connection — CUSTOM_MONGO_URL takes priority (for user's Atlas DB)
+mongo_url = os.environ.get('CUSTOM_MONGO_URL') or os.environ.get('MONGO_URL', '')
+db_name = os.environ.get('CUSTOM_DB_NAME') or os.environ.get('DB_NAME', 'munal_db')
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[db_name]
 
 # GridFS buckets for file storage
 fs_recordings = AsyncIOMotorGridFSBucket(db, bucket_name="recordings")
