@@ -245,6 +245,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Added "System Updates" sidebar item under Configuration (visible to all admin roles)
 - Fixed auth token retrieval: admin portal uses `admin_token` localStorage key, not `munal_sessions`
 - Version list now loads and displays correctly in the admin portal
+### AI Spreadsheet Phase 2 — April 7, 2026
+- **Chat with Data**: Side-panel AI chat connected to active sheet data via `POST /api/sheets/{id}/ai/chat`
+- **AI Formula Generator**: Modal to convert natural language to formulas via `POST /api/sheets/ai/formula`
+- **Smart Actions**: Summarize, Sentiment Analysis, Categorize, Translate via `POST /api/sheets/{id}/ai/smart-action`
+- **AI Autofill**: Pattern-based column auto-fill via `POST /api/sheets/{id}/ai/autofill`
+- Frontend: Chat panel (SheetChatPanel.jsx), Formula modal + Smart Actions modal (SheetAITools.jsx)
+- Testing: 16/16 backend + 100% frontend verified
+
 ### AI-Powered Spreadsheet Intelligence Module (Phase 1) — April 7, 2026
 - Integrated Fortune-Sheet (@fortune-sheet/react v1.0.4) into DocHub as "Sheets" tab (default)
 - Full spreadsheet CRUD: create, rename, duplicate, delete, auto-save
