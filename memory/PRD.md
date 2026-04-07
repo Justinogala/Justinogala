@@ -275,6 +275,22 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Frontend: Export dropdown button in chat top bar, visible when a conversation with messages is active
 - All exports include conversation title, date, and "Exported from Munal AI" footer
 
+### Download Sheet as XLSX — April 7, 2026
+- `GET /api/sheets/{id}/download` exports Fortune-Sheet JSON to a proper .xlsx file using openpyxl
+- Preserves formatting: bold, background colors, font colors, column widths, formulas
+- Download button in sheet editor toolbar triggers browser file download
+- Testing: 100% (9/9 backend + frontend verified) — Iteration 121
+
+### AI Spreadsheet Phase 3 (Insights & Charts) — April 7, 2026
+- **AI Insights Panel**: Side panel with "Analyze Data" button sends sheet data to GPT-5.2
+- Returns: summary, key metrics (with trend indicators), auto-generated charts, and actionable insights
+- **Auto-Generated Charts**: Uses `recharts` (BarChart, LineChart, PieChart) to render AI-suggested visualizations
+- **AI Dashboard View**: Insights panel serves as a per-sheet dashboard with metrics + charts + insights combined
+- Backend: `POST /api/sheets/{id}/ai/insights` — AI analyzes sheet data and returns structured insights+charts JSON
+- Frontend: `SheetInsightsPanel.jsx` with recharts rendering, trend icons, insight categorization
+- Fixed: `_extract_data_summary` now handles both Fortune-Sheet celldata (sparse) and 2D array formats
+- Testing: 100% (9/9 backend + frontend verified) — Iteration 121
+
 - P3: Additional form templates
 - P3: Advanced analytics/reporting
 
