@@ -245,6 +245,16 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Added "System Updates" sidebar item under Configuration (visible to all admin roles)
 - Fixed auth token retrieval: admin portal uses `admin_token` localStorage key, not `munal_sessions`
 - Version list now loads and displays correctly in the admin portal
+### AI-Powered Spreadsheet Intelligence Module (Phase 1) — April 7, 2026
+- Integrated Fortune-Sheet (@fortune-sheet/react v1.0.4) into DocHub as "Sheets" tab (default)
+- Full spreadsheet CRUD: create, rename, duplicate, delete, auto-save
+- **Prompt-to-Sheet**: "Create with AI" generates structured spreadsheets from natural language using GPT-5.2
+- **AI Formula Generator**: `POST /api/sheets/ai/formula` converts natural language to spreadsheet formulas
+- Sheet editor: full toolbar (formatting, fonts, borders, colors), formula bar, sheet tabs
+- Backend: `/api/sheets/*` endpoints with auth, MongoDB storage
+- Replaced emergentintegrations/litellm with lightweight `llm_client.py` (OpenAI SDK + Emergent proxy)
+- Testing: 13/13 backend tests passed, frontend 100% verified
+
 ### Dashboard Publish Version Shortcut — April 6, 2026
 - Added "Publish Version" shortcut button to Admin Dashboard header
 - One-click navigation to System Updates page from the main dashboard
