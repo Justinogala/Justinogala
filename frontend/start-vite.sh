@@ -13,5 +13,11 @@ if [ ! -d "/app/node_modules" ]; then
     cd /app && yarn install 2>&1
 fi
 
-cd /app
-exec node node_modules/.bin/vite --host :: --port 3000
+# Build if dist doesn't exist
+if [ ! -f "/app/dist/index.html" ]; then
+    echo "[startup] Building production frontend..."
+    cd /app && node node_modules/.bin/vite build 2>&1
+fi
+
+cd /app/frontend
+exec node startup.cjs
