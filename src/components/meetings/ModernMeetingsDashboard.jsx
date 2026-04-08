@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Plus, Video, Copy, Check, Play, Link2 } from 'lucide-react';
+import { Calendar, Plus, Video, Copy, Check, Play, Link2, FileText, Search, Download, Loader2, Clock, Users, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,11 +9,12 @@ import { format, parseISO } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { API_URL } from '@/lib/api';
 import { v4 as uuidv4 } from 'uuid';
 
 // Components
 import MeetingsList from './MeetingsList';
-import { getApiUrl, API_URL } from '@/lib/api';
+import { getApiUrl } from '@/lib/api';
 
 import { 
   Dialog, 
@@ -23,6 +24,150 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+
+const TranscriptsWidget = ({ userId }) => {
+  const navigate = useNavigate();
+  const [transcripts, setTranscripts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/api/ai/meeting/user/${userId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTranscripts(data.meetings || []);
+        }
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, [userId]);
+
+  const handleExport = async (id, format) => {
+    setExporting(`${id}-${format}`);
+    try {
+      const res = await fetch(`${API_URL}/api/ai/meeting/${id}/export?format=${format}`);
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="(.+)"/);
+      const filename = match ? match[1] : `transcript.${format}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); }
+    setExporting(null);
+  };
+
+  const filtered = transcripts.filter(t => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (t.title || '').toLowerCase().includes(q) ||
+      (t.participants || []).some(p => p.toLowerCase().includes(q)) ||
+      (t.created_at || '').includes(q)
+    );
+  });
+
+  return (
+    <Card data-testid="transcripts-widget">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <FileText className="w-4 h-4 text-violet-500" /> Transcripts
+          </h3>
+          <Badge variant="secondary" className="text-[10px]">
+            {transcripts.length}
+          </Badge>
+        </div>
+
+        {transcripts.length > 2 && (
+          <div className="relative mb-3">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <Input
+              placeholder="Search transcripts..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-8 h-8 text-xs bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+              data-testid="transcript-search"
+            />
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-6 text-slate-400 dark:text-slate-500 text-xs">
+            {search ? 'No transcripts match your search' : 'No meeting transcripts yet. They appear automatically after meetings.'}
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[320px] overflow-y-auto">
+            {filtered.map(t => (
+              <div
+                key={t.id}
+                className="group p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-violet-50 dark:hover:bg-violet-900/10 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-violet-200 dark:hover:border-violet-800"
+                onClick={() => navigate(`/meeting/${t.id}/processing?title=${encodeURIComponent(t.title || '')}`)}
+                data-testid={`transcript-item-${t.id}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{t.title || 'Untitled Meeting'}</p>
+                    <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                      {t.created_at && <span>{t.created_at.slice(0, 10)}</span>}
+                      {t.duration_seconds > 0 && (
+                        <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{Math.round(t.duration_seconds / 60)}m</span>
+                      )}
+                      {t.participants?.length > 0 && (
+                        <span className="flex items-center gap-0.5"><Users className="w-2.5 h-2.5" />{t.participants.length}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      title="Export PDF"
+                      onClick={e => { e.stopPropagation(); handleExport(t.id, 'pdf'); }}
+                      className="p-1 rounded hover:bg-violet-100 dark:hover:bg-violet-900/30 text-slate-400 hover:text-violet-600"
+                      data-testid={`export-pdf-${t.id}`}
+                    >
+                      {exporting === `${t.id}-pdf` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="text-[9px] font-bold leading-none">PDF</span>}
+                    </button>
+                    <button
+                      title="Export DOCX"
+                      onClick={e => { e.stopPropagation(); handleExport(t.id, 'docx'); }}
+                      className="p-1 rounded hover:bg-violet-100 dark:hover:bg-violet-900/30 text-slate-400 hover:text-violet-600"
+                      data-testid={`export-docx-${t.id}`}
+                    >
+                      {exporting === `${t.id}-docx` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span className="text-[9px] font-bold leading-none">DOC</span>}
+                    </button>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                  </div>
+                </div>
+                {t.status === 'completed' && t.insights?.summary && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 line-clamp-2">{t.insights.summary}</p>
+                )}
+                {t.status !== 'completed' && (
+                  <Badge variant="outline" className="mt-1.5 text-[10px] h-4 text-amber-600 border-amber-200">
+                    {t.status === 'transcribing' ? 'Transcribing...' : t.status === 'generating_insights' ? 'Analyzing...' : t.status}
+                  </Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 
 const ModernMeetingsDashboard = ({ onJoinClick }) => {
   const navigate = useNavigate();
@@ -452,6 +597,9 @@ const ModernMeetingsDashboard = ({ onJoinClick }) => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Meeting Transcripts Widget */}
+          <TranscriptsWidget userId={user?.id} />
         </div>
       </div>
 

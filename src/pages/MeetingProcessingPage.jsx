@@ -3,7 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Loader2, CheckCircle2, FileText, Lightbulb, ListTodo,
   MessageSquare, TrendingUp, ArrowLeft, Clock, Users,
-  AlertTriangle, ChevronDown, ChevronUp, Target, Calendar
+  AlertTriangle, ChevronDown, ChevronUp, Target, Calendar,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -121,6 +122,22 @@ const MeetingProcessingPage = () => {
 
   const toggleSection = (key) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
 
+  const handleExport = async (format) => {
+    try {
+      const res = await fetch(`${API_URL}/api/ai/meeting/${meetingId}/export?format=${format}`);
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="(.+)"/);
+      const filename = match ? match[1] : `transcript.${format}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) { console.error(e); }
+  };
+
   const insights = meeting?.insights;
   const transcript = meeting?.transcript;
   const isProcessing = ['uploading', 'transcribing', 'generating_insights'].includes(status);
@@ -138,9 +155,17 @@ const MeetingProcessingPage = () => {
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h1>
           </div>
           {status === 'completed' && (
-            <Badge variant="outline" className="text-emerald-600 border-emerald-300">
-              <CheckCircle2 className="w-3 h-3 mr-1" /> Processed
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleExport('pdf')} className="gap-1 text-xs" data-testid="export-pdf-btn">
+                <Download className="w-3 h-3" /> PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleExport('docx')} className="gap-1 text-xs" data-testid="export-docx-btn">
+                <Download className="w-3 h-3" /> DOCX
+              </Button>
+              <Badge variant="outline" className="text-emerald-600 border-emerald-300">
+                <CheckCircle2 className="w-3 h-3 mr-1" /> Processed
+              </Badge>
+            </div>
           )}
         </div>
       </div>

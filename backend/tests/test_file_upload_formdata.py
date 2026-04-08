@@ -24,7 +24,7 @@ if not BASE_URL:
         pass
 
 if not BASE_URL:
-    BASE_URL = "https://ai-sheets-phase3.preview.emergentagent.com"
+    BASE_URL = "https://transcript-dash.preview.emergentagent.com"
 
 
 class TestHealthCheck:

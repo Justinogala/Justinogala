@@ -1,12 +1,13 @@
 """
 AI routes - TTS, transcription, chat, video generation.
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Query
+from fastapi.responses import StreamingResponse, Response
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timezone
 import os
+import io
 import base64
 
 from config import logger, db
@@ -1189,3 +1190,208 @@ async def get_user_meeting_transcripts(user_id: str, limit: int = 50):
         {"_id": 0},
     ).sort("created_at", -1).limit(limit).to_list(limit)
     return {"meetings": docs, "count": len(docs)}
+
+
+# ============== Meeting Transcript Export ==============
+
+@router.get("/ai/meeting/{meeting_id}/export")
+async def export_meeting_transcript(meeting_id: str, format: str = Query("pdf", regex="^(pdf|docx|md)$")):
+    """Export meeting transcript + insights as PDF, DOCX, or Markdown."""
+    import io
+
+    doc = await db.meeting_transcripts.find_one({"id": meeting_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Meeting transcript not found")
+    if doc.get("status") != "completed":
+        raise HTTPException(400, "Transcript not ready yet")
+
+    title = doc.get("title", "Meeting Transcript")
+    transcript = doc.get("transcript", {}).get("text", "No transcript available")
+    insights = doc.get("insights", {})
+    created = doc.get("created_at", "")
+    participants = doc.get("participants", [])
+    duration = doc.get("duration_seconds", 0)
+    import re
+    safe_name = re.sub(r'[^\w\s-]', '', title)[:60].strip() or "meeting-transcript"
+
+    if format == "md":
+        md = _build_meeting_markdown(title, created, participants, duration, transcript, insights)
+        return Response(content=md, media_type="text/markdown",
+                        headers={"Content-Disposition": f'attachment; filename="{safe_name}.md"'})
+    elif format == "pdf":
+        pdf_bytes = _build_meeting_pdf(title, created, participants, duration, transcript, insights)
+        return Response(content=pdf_bytes, media_type="application/pdf",
+                        headers={"Content-Disposition": f'attachment; filename="{safe_name}.pdf"'})
+    elif format == "docx":
+        docx_bytes = _build_meeting_docx(title, created, participants, duration, transcript, insights)
+        return Response(content=docx_bytes,
+                        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        headers={"Content-Disposition": f'attachment; filename="{safe_name}.docx"'})
+
+
+def _build_meeting_markdown(title, created, participants, duration, transcript, insights):
+    lines = [f"# {title}\n"]
+    if created:
+        lines.append(f"*{created[:10]}*\n")
+    if participants:
+        lines.append(f"**Participants:** {', '.join(participants)}\n")
+    if duration:
+        lines.append(f"**Duration:** {duration // 60} minutes\n")
+    lines.append("---\n")
+
+    if insights.get("summary"):
+        lines.append(f"## Summary\n{insights['summary']}\n")
+
+    if insights.get("key_decisions"):
+        lines.append("## Key Decisions\n")
+        for d in insights["key_decisions"]:
+            lines.append(f"- **{d['decision']}** — {d.get('context', '')}\n")
+
+    if insights.get("action_items"):
+        lines.append("## Action Items\n")
+        for a in insights["action_items"]:
+            lines.append(f"- [ ] {a['task']} *(Assigned to: {a.get('assignee', 'Unassigned')}, Priority: {a.get('priority', 'medium')})*\n")
+
+    if insights.get("follow_ups"):
+        lines.append("## Follow-ups\n")
+        for f in insights["follow_ups"]:
+            lines.append(f"- {f['item']} *(Due: {f.get('due', 'TBD')})*\n")
+
+    lines.append("## Full Transcript\n")
+    lines.append(transcript)
+    lines.append("\n---\n*Exported from Munal AI*")
+    return "\n".join(lines)
+
+
+def _build_meeting_pdf(title, created, participants, duration, transcript, insights):
+    import fitz
+    doc = fitz.open()
+    W, H = 595, 842
+    M = 50
+    y = M
+
+    def new_pg():
+        nonlocal y
+        p = doc.new_page(width=W, height=H)
+        y = M
+        return p
+
+    def write_text(page, text, fs=10, bold=False, color=(0.15, 0.15, 0.15)):
+        nonlocal y
+        fn = "helvetica-bold" if bold else "helv"
+        for line in text.split('\n'):
+            words = line.split(' ')
+            current = ""
+            for w in words:
+                test = f"{current} {w}".strip()
+                if len(test) * fs * 0.5 > (W - 2 * M):
+                    if y > H - 60:
+                        page = new_pg()
+                    page.insert_text((M, y), current, fontsize=fs, fontname=fn, color=color)
+                    y += fs + 4
+                    current = w
+                else:
+                    current = test
+            if current:
+                if y > H - 60:
+                    page = new_pg()
+                page.insert_text((M, y), current, fontsize=fs, fontname=fn, color=color)
+                y += fs + 4
+        return page
+
+    page = new_pg()
+    page.insert_text((M, y), title[:80], fontsize=18, fontname="helvetica-bold", color=(0.29, 0.27, 0.53))
+    y += 28
+    meta = []
+    if created:
+        meta.append(created[:10])
+    if participants:
+        meta.append(f"Participants: {', '.join(participants)}")
+    if duration:
+        meta.append(f"Duration: {duration // 60} min")
+    if meta:
+        page.insert_text((M, y), " | ".join(meta), fontsize=9, fontname="helv", color=(0.5, 0.5, 0.5))
+        y += 16
+    page.draw_line((M, y), (W - M, y), color=(0.85, 0.85, 0.85), width=0.5)
+    y += 15
+
+    if insights.get("summary"):
+        page = write_text(page, "Summary", fs=13, bold=True, color=(0.29, 0.27, 0.53))
+        y += 4
+        page = write_text(page, insights["summary"])
+        y += 10
+
+    if insights.get("action_items"):
+        page = write_text(page, "Action Items", fs=13, bold=True, color=(0.29, 0.27, 0.53))
+        y += 4
+        for a in insights["action_items"]:
+            page = write_text(page, f"• {a['task']} [{a.get('assignee', '?')}] ({a.get('priority', 'medium')})")
+        y += 10
+
+    if insights.get("key_decisions"):
+        page = write_text(page, "Key Decisions", fs=13, bold=True, color=(0.29, 0.27, 0.53))
+        y += 4
+        for d in insights["key_decisions"]:
+            page = write_text(page, f"• {d['decision']}")
+        y += 10
+
+    page = write_text(page, "Transcript", fs=13, bold=True, color=(0.29, 0.27, 0.53))
+    y += 4
+    page = write_text(page, transcript, fs=9, color=(0.3, 0.3, 0.3))
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    doc.close()
+    return buf.getvalue()
+
+
+def _build_meeting_docx(title, created, participants, duration, transcript, insights):
+    from docx import Document as DocxDocument
+    from docx.shared import Pt, RGBColor
+    doc = DocxDocument()
+    style = doc.styles["Normal"]
+    style.font.size = Pt(10)
+
+    h = doc.add_heading(title, level=1)
+    for run in h.runs:
+        run.font.color.rgb = RGBColor(74, 69, 135)
+
+    meta = []
+    if created:
+        meta.append(created[:10])
+    if participants:
+        meta.append(f"Participants: {', '.join(participants)}")
+    if duration:
+        meta.append(f"Duration: {duration // 60} min")
+    if meta:
+        p = doc.add_paragraph(" | ".join(meta))
+        p.runs[0].font.color.rgb = RGBColor(128, 128, 128)
+        p.runs[0].font.size = Pt(9)
+
+    if insights.get("summary"):
+        doc.add_heading("Summary", level=2)
+        doc.add_paragraph(insights["summary"])
+
+    if insights.get("action_items"):
+        doc.add_heading("Action Items", level=2)
+        for a in insights["action_items"]:
+            doc.add_paragraph(f"{a['task']} — {a.get('assignee', 'Unassigned')} ({a.get('priority', 'medium')})", style="List Bullet")
+
+    if insights.get("key_decisions"):
+        doc.add_heading("Key Decisions", level=2)
+        for d in insights["key_decisions"]:
+            doc.add_paragraph(d["decision"], style="List Bullet")
+
+    if insights.get("follow_ups"):
+        doc.add_heading("Follow-ups", level=2)
+        for f in insights["follow_ups"]:
+            doc.add_paragraph(f"{f['item']} — Due: {f.get('due', 'TBD')}", style="List Bullet")
+
+    doc.add_heading("Full Transcript", level=2)
+    doc.add_paragraph(transcript)
+    doc.add_paragraph("Exported from Munal AI").runs[0].font.color.rgb = RGBColor(128, 128, 128)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
