@@ -102,6 +102,7 @@ const TranscriptionManagementPage = lazy(() => import('@/pages/TranscriptionMana
 const TranscriptionHistoryPage = lazy(() => import('@/pages/TranscriptionHistoryPage')); 
 const TranscriptionDetailPage = lazy(() => import('@/pages/TranscriptionDetailPage'));
 const SummarizationPage = lazy(() => import('@/pages/SummarizationPage'));
+const AIFeaturesPage = lazy(() => import('@/pages/AIFeaturesPage'));
 const APIKeyConfigurationPage = lazy(() => import('@/pages/APIKeyConfigurationPage'));
 
 // Chat Pages
@@ -417,6 +418,7 @@ function App() {
                                 <Route path="/transcriptions/:id" element={<TranscriptionDetailPage />} />
                                 <Route path="/transcribe-new" element={<TranscriptionPage />} />
                                 <Route path="/summarize" element={<SummarizationPage />} />
+                                <Route path="/ai-features" element={<AIFeaturesPage />} />
                                 
                                 <Route path="/voice-chat" element={<VoiceChatPage />} />
                                 <Route path="/video-call" element={<VideoCallPage />} />

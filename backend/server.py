@@ -304,6 +304,9 @@ api_router.include_router(updates_router)
 from routes.sheets import router as sheets_router
 api_router.include_router(sheets_router)
 
+from routes.ai_features import router as ai_features_router, run_ai_weekly_digest
+api_router.include_router(ai_features_router)
+
 
 # ============== Include Main Router ==============
 
@@ -363,6 +366,7 @@ async def startup_event():
             scheduler.add_job(run_2fa_auto_reminders, 'cron', day_of_week='mon', hour=10, minute=0, id='2fa_auto_reminders')
             scheduler.add_job(run_data_health_digest, 'cron', day_of_week='mon', hour=9, minute=30, id='data_health_digest')
             scheduler.add_job(take_compliance_snapshot, 'cron', day_of_week='mon', hour=10, minute=30, id='compliance_snapshot')
+            scheduler.add_job(run_ai_weekly_digest, 'cron', day_of_week='mon', hour=8, minute=0, id='ai_weekly_digest')
             scheduler.start()
             logger.info("Escalation scheduler started (runs every 1 hour)")
             logger.info("Weekly digest scheduler started (runs every Monday 9 AM UTC)")
