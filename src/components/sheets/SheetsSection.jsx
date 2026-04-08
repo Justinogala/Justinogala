@@ -298,6 +298,8 @@ const SheetEditor = ({ sheetId, onBack }) => {
   const [editingTitle, setEditingTitle] = useState(false);
   const saveTimerRef = useRef(null);
   const latestDataRef = useRef(null);
+  const isInitializedRef = useRef(false);
+  const changeCountRef = useRef(0);
   
   // Phase 2 state
   const [chatOpen, setChatOpen] = useState(false);
@@ -336,20 +338,37 @@ const SheetEditor = ({ sheetId, onBack }) => {
   useEffect(() => {
     const loadSheet = async () => {
       setLoading(true);
+      isInitializedRef.current = false;
+      changeCountRef.current = 0;
       try {
         const data = await api(`/${sheetId}`);
         setSheet(data);
         setTitle(data.title);
         latestDataRef.current = data.data;
+        // Allow Fortune-Sheet to settle before enabling auto-save
+        setTimeout(() => { isInitializedRef.current = true; }, 3000);
       } catch (e) {
         console.error(e);
       }
       setLoading(false);
     };
     loadSheet();
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [sheetId]);
 
   const saveData = useCallback(async (dataToSave) => {
+    if (!dataToSave || !Array.isArray(dataToSave)) return;
+    // Check the data actually has content - prevent saving empty sheets
+    const hasContent = dataToSave.some(s => {
+      if (s.celldata && s.celldata.length > 0) return true;
+      if (s.data && Array.isArray(s.data)) {
+        return s.data.some(row => Array.isArray(row) && row.some(cell => cell != null));
+      }
+      return false;
+    });
+    if (!hasContent) return;
     setSaving(true);
     try {
       await api(`/${sheetId}`, {
@@ -363,6 +382,9 @@ const SheetEditor = ({ sheetId, onBack }) => {
   const handleChange = useCallback((data) => {
     latestDataRef.current = data;
     setCurrentData(data);
+    changeCountRef.current += 1;
+    // Skip auto-save during Fortune-Sheet initialization (first 3 onChange calls or before timeout)
+    if (!isInitializedRef.current || changeCountRef.current <= 2) return;
     // Auto-save with debounce
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -379,8 +401,17 @@ const SheetEditor = ({ sheetId, onBack }) => {
     setEditingTitle(false);
   };
 
-  const manualSave = () => {
-    if (latestDataRef.current) saveData(latestDataRef.current);
+  const manualSave = async () => {
+    if (!latestDataRef.current) return;
+    // Force save even during init - user explicitly requested
+    setSaving(true);
+    try {
+      await api(`/${sheetId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ data: latestDataRef.current }),
+      });
+    } catch (e) { console.error('Save error:', e); }
+    setSaving(false);
   };
 
   if (loading) {
