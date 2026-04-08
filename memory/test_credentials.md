@@ -1,16 +1,28 @@
-# Munal Test Credentials
+# Test Credentials
 
-## Admin Accounts
-- Super Admin: `admin@munal.ai` / `Admin@123456`
-- Org Admin: `orgadmin@munal.com` / `OrgAdmin@123`
+## Super Admin
+- Email: admin@munal.ai
+- Password: Admin@123456
+- Note: Has 2FA enabled (both methods)
 
-## User Accounts
-- Org Manager: `orgmgr@munal.com` / `OrgMgr@123`
-- Org Member: `orgmember@munal.com` / `OrgMem@123`
+## Org Admin
+- Email: orgadmin@munal.com
+- Password: OrgAdmin@123
+- Role: Admin
+- User ID: a62dcea6-6392-4e42-91f6-09671f9b15f4
+- Note: No 2FA, best for automated testing
 
-## Auth Storage Keys
-- `munal_sessions`: Session with userId, token, createdAt
-- `munal_auth`: Full JSON user object
-- `munal_refresh`: Refresh token string
-- `admin_token`: Admin JWT token
-- `admin_user`: Admin user JSON object
+## Regular User
+- Email: justinoo2001@gmail.com
+- Password: Ogala@2023
+
+## Standard User
+- Email: justinogala@outlook.com
+- Password: 4edfdukD@1
+
+## Test Data
+- 3 test meeting transcripts seeded in Atlas munal_db.meeting_transcripts
+  - test-transcript-001: Q1 Strategy Planning
+  - test-transcript-002: Product Design Review
+  - test-transcript-003: Weekly Team Standup
+  - All assigned to Org Admin user (a62dcea6-6392-4e42-91f6-09671f9b15f4)
