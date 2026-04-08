@@ -314,6 +314,17 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Frontend: Template Picker modal with visual cards (icons, colors, descriptions)
 - Testing: 100% (11/11 backend + frontend verified) — Iteration 123
 
+### Meeting Auto-Transcription & AI Insights — April 8, 2026
+- Auto-records all participants' audio during video calls using Web Audio API (AudioContext mixer)
+- When meeting ends: automatically uploads audio, transcribes with OpenAI Whisper, generates insights with GPT-5.2
+- Backend: `POST /api/ai/meeting/process`, `GET /api/ai/meeting/{id}/status`, `GET /api/ai/meeting/user/{id}`
+- Frontend: MeetingProcessingPage with 3-step progress indicator (Uploading → Transcribing → Generating Insights)
+- Insights include: Summary, Key Decisions, Action Items (with priority/assignee), Topics Discussed, Follow-ups, Full Transcript
+- Applied to both InstantMeetingRoom and GroupMeetingRoom
+- Meetings < 10 seconds skip transcription
+- MongoDB collection: `meeting_transcripts`
+- Testing: 100% (13/13 backend + frontend verified) — Iteration 124
+
 - P3: Advanced analytics/reporting
 
 ### AI Chat Real-Time Streaming — April 5, 2026

@@ -1028,14 +1028,15 @@ async def process_meeting_audio(
         upsert=True,
     )
 
+    contents = await file.read()
+    if len(contents) < 1000:
+        await db.meeting_transcripts.update_one(
+            {"id": meeting_id},
+            {"$set": {"status": "failed", "error": "Audio too short or empty"}},
+        )
+        raise HTTPException(400, "Audio file too short or empty")
+
     try:
-        contents = await file.read()
-        if len(contents) < 1000:
-            await db.meeting_transcripts.update_one(
-                {"id": meeting_id},
-                {"$set": {"status": "failed", "error": "Audio too short or empty"}},
-            )
-            raise HTTPException(400, "Audio file too short or empty")
 
         # If file is large, extract audio with ffmpeg
         audio_data = io.BytesIO(contents)
