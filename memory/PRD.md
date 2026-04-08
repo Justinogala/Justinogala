@@ -275,7 +275,23 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Frontend: Export dropdown button in chat top bar, visible when a conversation with messages is active
 - All exports include conversation title, date, and "Exported from Munal AI" footer
 
-### Download Sheet as XLSX — April 7, 2026
+### Sheet Save Bug Fix — April 8, 2026
+- **Root cause**: Fortune-Sheet's `onChange` fires during initialization with empty/default data, auto-save (2s debounce) was overwriting original content
+- **Root cause 2**: Fortune-Sheet converts `celldata` (sparse) to `data` (2D array) internally. Saved 2D format couldn't be re-read by Workbook on reload
+- **Fix 1**: Added initialization guard (`isInitializedRef` 3s timeout + skip first 2 onChange calls + empty-data check in saveData)
+- **Fix 2**: Backend `_ensure_celldata()` converts 2D array back to sparse `celldata` format on load
+- Testing: Backend 100% (8/8), Frontend verified — Iteration 122
+
+### Deployment Fixes — April 7-8, 2026
+- Removed `load_dotenv(override=True)`, added `CUSTOM_MONGO_URL` for Atlas DB
+- Cleaned `.gitignore` (removed duplicate `*.env` blocks), tracked `.env` files in git
+- Added `resolutions` in `package.json` for `@radix-ui/react-slot` version conflict
+- Replaced Vite dev server with instant static file server (`startup.cjs`) for production
+- Added root-level `/health` and `/ready` endpoints to backend for K8s probes
+- Added MongoDB connection timeouts (`serverSelectionTimeoutMS`, `connectTimeoutMS`)
+- Added `asyncio.wait_for(timeout=3)` to health check DB ping
+
+- P3: Additional form templates
 - `GET /api/sheets/{id}/download` exports Fortune-Sheet JSON to a proper .xlsx file using openpyxl
 - Preserves formatting: bold, background colors, font colors, column widths, formulas
 - Download button in sheet editor toolbar triggers browser file download

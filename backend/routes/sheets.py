@@ -71,11 +71,31 @@ async def list_sheets(
     return sheets
 
 
+def _ensure_celldata(sheet_data: list) -> list:
+    """Convert 2D data arrays to celldata (sparse) format for Fortune-Sheet compatibility."""
+    for s in sheet_data:
+        if "data" in s and isinstance(s["data"], list) and len(s["data"]) > 0:
+            # Check if it's a 2D array (not celldata)
+            if isinstance(s["data"][0], list):
+                celldata = []
+                for ri, row in enumerate(s["data"]):
+                    if not isinstance(row, list):
+                        continue
+                    for ci, cell in enumerate(row):
+                        if cell is not None:
+                            celldata.append({"r": ri, "c": ci, "v": cell})
+                s["celldata"] = celldata
+                del s["data"]
+    return sheet_data
+
+
 @router.get("/{sheet_id}")
 async def get_sheet(sheet_id: str, user: dict = Depends(get_current_user)):
     sheet = await db.sheets.find_one({"id": sheet_id, "created_by": user["id"]}, {"_id": 0})
     if not sheet:
         raise HTTPException(404, "Sheet not found")
+    if "data" in sheet:
+        sheet["data"] = _ensure_celldata(sheet["data"])
     return sheet
 
 
