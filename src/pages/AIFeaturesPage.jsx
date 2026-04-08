@@ -3,12 +3,19 @@ import { useAuth } from '@/context/AuthContext';
 import {
   Search, FileText, Mail, Calendar, BarChart3, Brain, Sparkles, Loader2,
   Send, Download, ChevronRight, Clock, Users, CheckCircle2, X, ArrowRight,
-  MessageSquare, File, Table2, Mic
+  MessageSquare, File, Table2, Mic, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+
+const RateLimitBanner = () => (
+  <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm mb-3">
+    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+    <span className="text-amber-700 dark:text-amber-400">AI is temporarily rate-limited. Results shown are from your data. Go to <strong>Profile &rarr; Universal Key &rarr; Add Balance</strong> for full AI capabilities.</span>
+  </div>
+);
 
 /* ─── AI Smart Search ─── */
 const SmartSearchSection = ({ userId }) => {
@@ -54,6 +61,7 @@ const SmartSearchSection = ({ userId }) => {
       </form>
       {results && (
         <div className="space-y-3" data-testid="smart-search-results">
+          {!results.ai_answer && results.total_results > 0 && <RateLimitBanner />}
           {results.ai_answer && (
             <div className="p-3 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
               <div className="flex items-center gap-1.5 text-violet-600 dark:text-violet-400 text-xs font-medium mb-1">
@@ -148,6 +156,7 @@ const DocSummarizerSection = () => {
       </Button>
       {result && (
         <div data-testid="doc-result" className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+          {result.rate_limited && <RateLimitBanner />}
           {result.mode === 'summary' && (
             <><h4 className="text-sm font-semibold mb-2">Summary — {result.document_title}</h4>
             <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{result.summary}</p>
@@ -251,7 +260,8 @@ const AgendaGeneratorSection = ({ userId }) => {
       const data = await res.json();
       if (data.success) {
         setAgenda(data);
-        toast({ description: 'Agenda generated!' });
+        if (data.rate_limited) toast({ description: 'AI rate-limited — showing basic agenda template' });
+        else toast({ description: 'Agenda generated!' });
       } else toast({ description: data.detail || 'Generation failed', variant: 'destructive' });
     } catch { toast({ description: 'Error generating agenda', variant: 'destructive' }); }
     finally { setLoading(false); }
@@ -276,6 +286,7 @@ const AgendaGeneratorSection = ({ userId }) => {
       </Button>
       {agenda && agenda.agenda && (
         <div data-testid="agenda-result" className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
+          {agenda.rate_limited && <RateLimitBanner />}
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold">{agenda.agenda.agenda_title}</h4>
             <span className="text-xs text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" />{agenda.agenda.estimated_duration}</span>

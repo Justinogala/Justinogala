@@ -27,9 +27,20 @@ def _get_llm_key():
     return EMERGENT_LLM_KEY or os.environ.get('OPENAI_API_KEY', '')
 
 def _chat_sync(messages, max_tokens=1500):
-    from llm_client import chat_completion
-    resp = chat_completion(messages, model="gpt-5.2", api_key=_get_llm_key(), max_tokens=max_tokens)
-    return resp.choices[0].message.content
+    """LLM call with fast failure on rate limits."""
+    from openai import OpenAI
+    try:
+        client = OpenAI(
+            api_key=_get_llm_key(),
+            base_url="https://integrations.emergentagent.com/llm",
+            max_retries=0,
+            timeout=15
+        )
+        resp = client.chat.completions.create(model="gpt-5.2", messages=messages, max_tokens=max_tokens)
+        return resp.choices[0].message.content
+    except Exception as e:
+        logger.warning(f"LLM call failed: {str(e)[:120]}")
+        return ""
 
 
 # ─────────────────────────────────────────────────
@@ -67,37 +78,47 @@ async def summarize_document(req: DocSummarizeRequest):
 
     text_content = text_content[:12000]
 
-    if req.mode == "qa" and req.question:
-        prompt = f"Based on this document, answer the following question concisely:\n\nQuestion: {req.question}\n\nDocument:\n{text_content}"
-        messages = [
-            {"role": "system", "content": "You are a document analysis assistant. Answer questions accurately based only on the provided document content."},
-            {"role": "user", "content": prompt}
-        ]
-        answer = await asyncio.to_thread(_chat_sync, messages, 800)
-        return {"success": True, "mode": "qa", "question": req.question, "answer": answer}
+    try:
+        if req.mode == "qa" and req.question:
+            prompt = f"Based on this document, answer the following question concisely:\n\nQuestion: {req.question}\n\nDocument:\n{text_content}"
+            messages = [
+                {"role": "system", "content": "You are a document analysis assistant. Answer questions accurately based only on the provided document content."},
+                {"role": "user", "content": prompt}
+            ]
+            answer = await asyncio.to_thread(_chat_sync, messages, 800)
+            if not answer:
+                return {"success": True, "mode": "qa", "question": req.question, "answer": "AI is temporarily unavailable due to rate limits. Please try again in a moment.", "rate_limited": True}
+            return {"success": True, "mode": "qa", "question": req.question, "answer": answer}
 
-    elif req.mode == "key_points":
-        prompt = f"Extract the key points from this document as a JSON array of strings (max 10 points):\n\n{text_content}"
-        messages = [
-            {"role": "system", "content": "You are a document analysis assistant. Return only a JSON array of key point strings, nothing else."},
-            {"role": "user", "content": prompt}
-        ]
-        result = await asyncio.to_thread(_chat_sync, messages, 1000)
-        import json
-        try:
-            points = json.loads(result)
-        except:
-            points = [line.strip("- ").strip() for line in result.split("\n") if line.strip()]
-        return {"success": True, "mode": "key_points", "key_points": points}
+        elif req.mode == "key_points":
+            prompt = f"Extract the key points from this document as a JSON array of strings (max 10 points):\n\n{text_content}"
+            messages = [
+                {"role": "system", "content": "You are a document analysis assistant. Return only a JSON array of key point strings, nothing else."},
+                {"role": "user", "content": prompt}
+            ]
+            result = await asyncio.to_thread(_chat_sync, messages, 1000)
+            if not result:
+                return {"success": True, "mode": "key_points", "key_points": ["AI is temporarily rate-limited. Please try again shortly."], "rate_limited": True}
+            import json
+            try:
+                points = json.loads(result)
+            except:
+                points = [line.strip("- ").strip() for line in result.split("\n") if line.strip()]
+            return {"success": True, "mode": "key_points", "key_points": points}
 
-    else:
-        prompt = f"Provide a comprehensive summary of this document in 3-5 paragraphs. Include the main topic, key arguments, important details, and conclusions:\n\n{text_content}"
-        messages = [
-            {"role": "system", "content": "You are a document analysis assistant. Provide clear, well-structured summaries."},
-            {"role": "user", "content": prompt}
-        ]
-        summary = await asyncio.to_thread(_chat_sync, messages, 1200)
-        return {"success": True, "mode": "summary", "summary": summary, "document_title": doc.get("name", "Untitled"), "word_count": len(text_content.split())}
+        else:
+            prompt = f"Provide a comprehensive summary of this document in 3-5 paragraphs. Include the main topic, key arguments, important details, and conclusions:\n\n{text_content}"
+            messages = [
+                {"role": "system", "content": "You are a document analysis assistant. Provide clear, well-structured summaries."},
+                {"role": "user", "content": prompt}
+            ]
+            summary = await asyncio.to_thread(_chat_sync, messages, 1200)
+            if not summary:
+                return {"success": True, "mode": "summary", "summary": "AI is temporarily unavailable due to rate limits. Please try again in a moment.", "document_title": doc.get("name", "Untitled"), "word_count": len(text_content.split()), "rate_limited": True}
+            return {"success": True, "mode": "summary", "summary": summary, "document_title": doc.get("name", "Untitled"), "word_count": len(text_content.split())}
+    except Exception as e:
+        logger.error(f"Document summarize error: {e}")
+        return {"success": True, "mode": req.mode, "summary": "AI is temporarily unavailable. Please try again shortly.", "rate_limited": True, "document_title": doc.get("name", "Untitled")}
 
 
 # ─────────────────────────────────────────────────
@@ -388,6 +409,24 @@ Only return valid JSON, no markdown.
             {"role": "user", "content": "\n".join(prompt_parts)}
         ], 1500)
 
+        if not result:
+            # Rate limited — return a basic fallback agenda
+            fallback_items = [
+                {"order": 1, "topic": "Welcome & Check-in", "description": "Brief introductions and updates", "duration": "5 min", "type": "opening"},
+                {"order": 2, "topic": req.meeting_title or "Main Discussion", "description": "Primary meeting topic", "duration": "20 min", "type": "discussion"},
+            ]
+            if open_actions:
+                fallback_items.append({"order": 3, "topic": "Review Open Action Items", "description": f"{len(open_actions)} items from previous meetings", "duration": "10 min", "type": "review"})
+            if pending_followups:
+                fallback_items.append({"order": len(fallback_items)+1, "topic": "Follow-up Items", "description": f"{len(pending_followups)} pending follow-ups", "duration": "5 min", "type": "review"})
+            fallback_items.append({"order": len(fallback_items)+1, "topic": "Next Steps & Close", "description": "Assign action items and wrap up", "duration": "5 min", "type": "closing"})
+            return {
+                "success": True,
+                "agenda": {"agenda_title": req.meeting_title or "Team Meeting", "estimated_duration": "45 min", "items": fallback_items, "notes": "AI-enhanced agenda temporarily unavailable. This is a basic agenda based on your meeting history."},
+                "context_used": {"past_meetings_analyzed": len(relevant), "open_action_items": len(open_actions), "pending_followups": len(pending_followups)},
+                "rate_limited": True
+            }
+
         result = result.strip()
         if result.startswith("```"):
             result = re.sub(r'^```(?:json)?\s*', '', result)
@@ -405,7 +444,22 @@ Only return valid JSON, no markdown.
         }
     except Exception as e:
         logger.error(f"Agenda generation error: {e}")
-        raise HTTPException(500, f"Failed to generate agenda: {str(e)}")
+        # Return fallback instead of crashing
+        return {
+            "success": True,
+            "agenda": {
+                "agenda_title": req.meeting_title or "Team Meeting",
+                "estimated_duration": "30 min",
+                "items": [
+                    {"order": 1, "topic": "Welcome", "description": "Opening remarks", "duration": "5 min", "type": "opening"},
+                    {"order": 2, "topic": req.meeting_title or "Discussion", "description": "Main topic", "duration": "20 min", "type": "discussion"},
+                    {"order": 3, "topic": "Wrap Up", "description": "Action items and next steps", "duration": "5 min", "type": "closing"}
+                ],
+                "notes": "AI is temporarily unavailable. This is a basic agenda template."
+            },
+            "context_used": {"past_meetings_analyzed": len(relevant), "open_action_items": len(open_actions), "pending_followups": len(pending_followups)},
+            "rate_limited": True
+        }
 
 
 # ─────────────────────────────────────────────────
