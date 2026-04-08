@@ -28,6 +28,8 @@ import AnnouncementManager from '@/components/AnnouncementManager';
 import MunalAIChatWrapper from '@/components/MunalAIChatWrapper';
 import { HeroSlideProvider } from '@/contexts/HeroSlideContext';
 
+import { useSourceProtection } from '@/hooks/useSourceProtection';
+
 // Services
 import { audioRingingService } from '@/services/audioRingingService';
 import { registerServiceWorker } from '@/utils/serviceWorkerManager';
@@ -252,6 +254,8 @@ const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
 
+function SourceProtection() { useSourceProtection(); return null; }
+
 function App() {
   useEffect(() => {
     registerServiceWorker();
@@ -335,6 +339,7 @@ function App() {
                               <AnnouncementManager />
                               <MunalAIChatWrapper />
                               <ScrollToTop />
+                              <SourceProtection />
                               <InstallPrompt />
                               <OfflineIndicator />
                               
