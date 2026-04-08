@@ -39,8 +39,271 @@ class AIFormulaRequest(BaseModel):
     description: str
     context: Optional[str] = None  # surrounding cell values for context
 
+class TemplateCreateRequest(BaseModel):
+    template_id: str
+    workspace_id: Optional[str] = None
 
-# ── CRUD Endpoints ──
+
+# ── Smart Templates ──
+
+def _build_celldata(headers, rows, formulas=None, col_widths=None):
+    """Build Fortune-Sheet celldata from headers + rows."""
+    celldata = []
+    for ci, h in enumerate(headers):
+        celldata.append({
+            "r": 0, "c": ci,
+            "v": {"v": h, "m": str(h), "ct": {"fa": "General", "t": "g"}, "bl": 1, "bg": "#f0f4ff", "fc": "#1a1a2e"}
+        })
+    for ri, row in enumerate(rows):
+        for ci, val in enumerate(row):
+            if val is None or val == "":
+                continue
+            cell = {"r": ri + 1, "c": ci, "v": {}}
+            if isinstance(val, (int, float)):
+                cell["v"] = {"v": val, "m": str(val), "ct": {"fa": "General", "t": "n"}}
+            else:
+                cell["v"] = {"v": str(val), "m": str(val), "ct": {"fa": "General", "t": "g"}}
+            celldata.append(cell)
+    for f in (formulas or []):
+        celldata.append({
+            "r": f["r"], "c": f["c"],
+            "v": {"f": f["f"], "v": 0, "m": "0", "ct": {"fa": "General", "t": "n"}, "bl": 1, "bg": "#fffde7"}
+        })
+    cw = {str(i): w for i, w in enumerate(col_widths)} if col_widths else {}
+    return celldata, cw
+
+SMART_TEMPLATES = {
+    "budget_planner": {
+        "title": "Monthly Budget Planner",
+        "description": "Track income and expenses by category with auto-calculated totals",
+        "icon": "wallet",
+        "color": "#10b981",
+        "build": lambda: _build_celldata(
+            ["Category", "Budgeted", "Actual", "Difference"],
+            [
+                ["Income", "", "", ""],
+                ["Salary", 5000, 4800, ""],
+                ["Freelance", 1200, 1500, ""],
+                ["Investments", 300, 280, ""],
+                ["", "", "", ""],
+                ["Expenses", "", "", ""],
+                ["Rent/Mortgage", 1500, 1500, ""],
+                ["Utilities", 200, 220, ""],
+                ["Groceries", 500, 480, ""],
+                ["Transportation", 250, 300, ""],
+                ["Insurance", 350, 350, ""],
+                ["Entertainment", 200, 175, ""],
+                ["Savings", 500, 500, ""],
+                ["Other", 150, 120, ""],
+                ["", "", "", ""],
+                ["Total Income", "", "", ""],
+                ["Total Expenses", "", "", ""],
+                ["Net Balance", "", "", ""],
+            ],
+            [
+                {"r": 2, "c": 3, "f": "=C2-B2"},
+                {"r": 3, "c": 3, "f": "=C3-B3"},
+                {"r": 4, "c": 3, "f": "=C4-B4"},
+                {"r": 7, "c": 3, "f": "=B7-C7"},
+                {"r": 8, "c": 3, "f": "=B8-C8"},
+                {"r": 9, "c": 3, "f": "=B9-C9"},
+                {"r": 10, "c": 3, "f": "=B10-C10"},
+                {"r": 11, "c": 3, "f": "=B11-C11"},
+                {"r": 12, "c": 3, "f": "=B12-C12"},
+                {"r": 13, "c": 3, "f": "=B13-C13"},
+                {"r": 14, "c": 3, "f": "=B14-C14"},
+                {"r": 16, "c": 1, "f": "=SUM(B2:B4)"},
+                {"r": 16, "c": 2, "f": "=SUM(C2:C4)"},
+                {"r": 17, "c": 1, "f": "=SUM(B7:B14)"},
+                {"r": 17, "c": 2, "f": "=SUM(C7:C14)"},
+                {"r": 18, "c": 1, "f": "=B16-B17"},
+                {"r": 18, "c": 2, "f": "=C16-C17"},
+            ],
+            [180, 120, 120, 120],
+        ),
+    },
+    "project_tracker": {
+        "title": "Project Task Tracker",
+        "description": "Manage project tasks with priorities, status, and deadlines",
+        "icon": "clipboard",
+        "color": "#6366f1",
+        "build": lambda: _build_celldata(
+            ["Task", "Assignee", "Priority", "Status", "Start Date", "Due Date", "Progress %"],
+            [
+                ["Design wireframes", "Alice", "High", "Completed", "2026-01-06", "2026-01-10", 100],
+                ["Setup database", "Bob", "High", "Completed", "2026-01-06", "2026-01-12", 100],
+                ["Build auth module", "Charlie", "High", "In Progress", "2026-01-13", "2026-01-20", 65],
+                ["Create API endpoints", "Bob", "Medium", "In Progress", "2026-01-15", "2026-01-25", 40],
+                ["Frontend dashboard", "Alice", "Medium", "Not Started", "2026-01-20", "2026-02-01", 0],
+                ["Payment integration", "Charlie", "High", "Not Started", "2026-01-25", "2026-02-05", 0],
+                ["Testing & QA", "Dave", "High", "Not Started", "2026-02-01", "2026-02-10", 0],
+                ["Documentation", "Alice", "Low", "Not Started", "2026-02-05", "2026-02-12", 0],
+                ["Deploy to production", "Bob", "High", "Not Started", "2026-02-10", "2026-02-14", 0],
+                ["User training", "Dave", "Medium", "Not Started", "2026-02-12", "2026-02-18", 0],
+            ],
+            [],
+            [200, 100, 80, 110, 100, 100, 90],
+        ),
+    },
+    "invoice": {
+        "title": "Invoice Template",
+        "description": "Professional invoice with line items, tax, and totals",
+        "icon": "receipt",
+        "color": "#f59e0b",
+        "build": lambda: _build_celldata(
+            ["Description", "Quantity", "Unit Price", "Amount"],
+            [
+                ["Company: Your Business Name", "", "", ""],
+                ["Invoice #: INV-2026-001", "", "", "Date: 2026-02-01"],
+                ["Bill To: Client Name", "", "", "Due: 2026-03-01"],
+                ["", "", "", ""],
+                ["Website Design & Development", 1, 3500, ""],
+                ["UI/UX Consultation (hours)", 12, 150, ""],
+                ["Content Writing (pages)", 8, 75, ""],
+                ["SEO Setup & Optimization", 1, 800, ""],
+                ["Hosting Setup (annual)", 1, 240, ""],
+                ["", "", "", ""],
+                ["", "", "Subtotal", ""],
+                ["", "", "Tax (10%)", ""],
+                ["", "", "Total Due", ""],
+            ],
+            [
+                {"r": 5, "c": 3, "f": "=B5*C5"},
+                {"r": 6, "c": 3, "f": "=B6*C6"},
+                {"r": 7, "c": 3, "f": "=B7*C7"},
+                {"r": 8, "c": 3, "f": "=B8*C8"},
+                {"r": 9, "c": 3, "f": "=B9*C9"},
+                {"r": 11, "c": 3, "f": "=SUM(D5:D9)"},
+                {"r": 12, "c": 3, "f": "=D11*0.1"},
+                {"r": 13, "c": 3, "f": "=D11+D12"},
+            ],
+            [260, 80, 100, 120],
+        ),
+    },
+    "sales_pipeline": {
+        "title": "Sales Pipeline",
+        "description": "Track deals through stages with revenue projections",
+        "icon": "trending",
+        "color": "#ec4899",
+        "build": lambda: _build_celldata(
+            ["Deal Name", "Contact", "Stage", "Value ($)", "Probability %", "Expected ($)", "Close Date"],
+            [
+                ["Enterprise SaaS License", "John Smith", "Negotiation", 85000, 75, "", "2026-02-28"],
+                ["Cloud Migration Project", "Sarah Lee", "Proposal", 42000, 50, "", "2026-03-15"],
+                ["Annual Support Contract", "Mike Chen", "Closed Won", 28000, 100, "", "2026-01-20"],
+                ["Data Analytics Suite", "Lisa Park", "Discovery", 65000, 20, "", "2026-04-10"],
+                ["Mobile App Development", "Tom Brown", "Qualification", 120000, 10, "", "2026-05-01"],
+                ["Security Audit Package", "Amy Wilson", "Proposal", 18000, 60, "", "2026-03-01"],
+                ["API Integration Service", "David Kim", "Negotiation", 35000, 80, "", "2026-02-15"],
+                ["Training Program", "Nancy White", "Closed Won", 12000, 100, "", "2026-01-25"],
+            ],
+            [
+                {"r": 1, "c": 5, "f": "=D1*E1/100"},
+                {"r": 2, "c": 5, "f": "=D2*E2/100"},
+                {"r": 3, "c": 5, "f": "=D3*E3/100"},
+                {"r": 4, "c": 5, "f": "=D4*E4/100"},
+                {"r": 5, "c": 5, "f": "=D5*E5/100"},
+                {"r": 6, "c": 5, "f": "=D6*E6/100"},
+                {"r": 7, "c": 5, "f": "=D7*E7/100"},
+                {"r": 8, "c": 5, "f": "=D8*E8/100"},
+            ],
+            [200, 120, 110, 100, 100, 110, 100],
+        ),
+    },
+    "employee_directory": {
+        "title": "Employee Directory",
+        "description": "Company employee records with contact info and departments",
+        "icon": "users",
+        "color": "#06b6d4",
+        "build": lambda: _build_celldata(
+            ["Employee ID", "Full Name", "Email", "Department", "Role", "Start Date", "Phone"],
+            [
+                ["EMP-001", "Amanda Rodriguez", "amanda.r@company.com", "Engineering", "Senior Developer", "2022-03-15", "(555) 101-2001"],
+                ["EMP-002", "Brian Mitchell", "brian.m@company.com", "Marketing", "Marketing Manager", "2021-08-01", "(555) 101-2002"],
+                ["EMP-003", "Chloe Nguyen", "chloe.n@company.com", "Design", "Lead Designer", "2023-01-10", "(555) 101-2003"],
+                ["EMP-004", "Derek Johnson", "derek.j@company.com", "Engineering", "Backend Developer", "2023-06-20", "(555) 101-2004"],
+                ["EMP-005", "Elena Petrov", "elena.p@company.com", "Sales", "Account Executive", "2024-02-01", "(555) 101-2005"],
+                ["EMP-006", "Frank Torres", "frank.t@company.com", "HR", "HR Specialist", "2022-11-15", "(555) 101-2006"],
+                ["EMP-007", "Grace Kim", "grace.k@company.com", "Finance", "Financial Analyst", "2023-09-01", "(555) 101-2007"],
+                ["EMP-008", "Henry Walker", "henry.w@company.com", "Engineering", "DevOps Engineer", "2024-05-12", "(555) 101-2008"],
+            ],
+            [],
+            [90, 160, 200, 110, 150, 100, 120],
+        ),
+    },
+    "weekly_schedule": {
+        "title": "Weekly Schedule",
+        "description": "Plan and organize your week with time blocks",
+        "icon": "calendar",
+        "color": "#8b5cf6",
+        "build": lambda: _build_celldata(
+            ["Time", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            [
+                ["8:00 AM", "Team Standup", "Client Call", "Team Standup", "Sprint Review", "Team Standup"],
+                ["9:00 AM", "Deep Work", "Deep Work", "Deep Work", "Deep Work", "Deep Work"],
+                ["10:00 AM", "Deep Work", "Design Review", "Deep Work", "Code Review", "Deep Work"],
+                ["11:00 AM", "1:1 with Manager", "Deep Work", "Lunch & Learn", "Deep Work", "All Hands"],
+                ["12:00 PM", "Lunch", "Lunch", "Lunch", "Lunch", "Lunch"],
+                ["1:00 PM", "Project Planning", "Deep Work", "Deep Work", "Deep Work", "Retrospective"],
+                ["2:00 PM", "Deep Work", "Testing", "Deep Work", "Deep Work", "Deep Work"],
+                ["3:00 PM", "Code Review", "Deep Work", "Product Demo", "Documentation", "Weekly Review"],
+                ["4:00 PM", "Deep Work", "Deep Work", "Deep Work", "Deep Work", "Wrap Up"],
+                ["5:00 PM", "EOD Review", "EOD Review", "EOD Review", "EOD Review", "EOD Review"],
+            ],
+            [],
+            [80, 140, 140, 140, 140, 140],
+        ),
+    },
+}
+
+
+@router.get("/templates/list")
+async def list_templates():
+    """Return available Smart Templates."""
+    return [
+        {
+            "id": tid,
+            "title": t["title"],
+            "description": t["description"],
+            "icon": t["icon"],
+            "color": t["color"],
+        }
+        for tid, t in SMART_TEMPLATES.items()
+    ]
+
+
+@router.post("/templates/create")
+async def create_from_template(req: TemplateCreateRequest, user: dict = Depends(get_current_user)):
+    """Create a new sheet from a Smart Template."""
+    tpl = SMART_TEMPLATES.get(req.template_id)
+    if not tpl:
+        raise HTTPException(404, "Template not found")
+
+    celldata, col_config = tpl["build"]()
+
+    sheet_data = [{
+        "name": "Sheet1",
+        "celldata": celldata,
+        "order": 0,
+        "row": 50,
+        "column": 26,
+        "status": 1,
+        "config": {"columnlen": col_config, "rowhidden": {}, "colhidden": {}},
+    }]
+
+    sheet = {
+        "id": str(uuid.uuid4()),
+        "title": tpl["title"],
+        "workspace_id": req.workspace_id,
+        "created_by": user["id"],
+        "created_by_name": user.get("full_name", user.get("email", "")),
+        "data": sheet_data,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.sheets.insert_one(sheet)
+    sheet.pop("_id", None)
+    return sheet
 
 @router.post("")
 async def create_sheet(req: CreateSheetRequest, user: dict = Depends(get_current_user)):

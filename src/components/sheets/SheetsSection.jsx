@@ -5,7 +5,8 @@ import { API_URL } from '@/lib/api';
 import {
   Plus, Sparkles, Save, ArrowLeft, Loader2, Trash2, Copy,
   FileSpreadsheet, MoreHorizontal, Pencil, Check, X, Search,
-  MessageSquare, Wand2, Zap, Download, BarChart3
+  MessageSquare, Wand2, Zap, Download, BarChart3, LayoutTemplate,
+  Wallet, ClipboardList, Receipt, TrendingUp, Users, CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +38,7 @@ const api = async (path, opts = {}) => {
 };
 
 // ── Sheet List View ──
-const SheetList = ({ onSelect, onCreateAI }) => {
+const SheetList = ({ onSelect, onCreateAI, onTemplates }) => {
   const [sheets, setSheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -101,6 +102,9 @@ const SheetList = ({ onSelect, onCreateAI }) => {
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Create and manage AI-powered spreadsheets</p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={onTemplates} variant="outline" size="sm" className="gap-1.5 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" data-testid="templates-btn">
+            <LayoutTemplate className="w-4 h-4" /> Templates
+          </Button>
           <Button onClick={onCreateAI} variant="outline" size="sm" className="gap-1.5 border-violet-200 dark:border-violet-800 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20" data-testid="create-ai-sheet-btn">
             <Sparkles className="w-4 h-4" /> Create with AI
           </Button>
@@ -283,6 +287,106 @@ const AIGenerateModal = ({ open, onClose, onGenerated }) => {
             {generating ? 'Generating...' : 'Generate'}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
+// ── Template Icon Mapping ──
+const TEMPLATE_ICONS = {
+  wallet: Wallet,
+  clipboard: ClipboardList,
+  receipt: Receipt,
+  trending: TrendingUp,
+  users: Users,
+  calendar: CalendarDays,
+};
+
+// ── Template Picker Modal ──
+const TemplatePicker = ({ open, onClose, onCreated }) => {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await api('/templates/list');
+        setTemplates(data);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    load();
+  }, [open]);
+
+  const create = async (templateId) => {
+    setCreating(templateId);
+    try {
+      const sheet = await api('/templates/create', {
+        method: 'POST',
+        body: JSON.stringify({ template_id: templateId }),
+      });
+      onCreated(sheet.id);
+      onClose();
+    } catch (e) { console.error(e); }
+    setCreating(null);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl" data-testid="template-picker-modal">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <LayoutTemplate className="w-5 h-5 text-emerald-500" />
+            Smart Templates
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">
+          Start with a pre-built template — fully editable with formulas and sample data
+        </p>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 py-2 max-h-[400px] overflow-y-auto">
+            {templates.map(tpl => {
+              const Icon = TEMPLATE_ICONS[tpl.icon] || FileSpreadsheet;
+              const isCreating = creating === tpl.id;
+              return (
+                <button
+                  key={tpl.id}
+                  onClick={() => create(tpl.id)}
+                  disabled={creating !== null}
+                  className="flex flex-col items-start gap-2.5 p-4 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:shadow-md bg-white dark:bg-slate-800 transition-all text-left group disabled:opacity-50"
+                  data-testid={`template-card-${tpl.id}`}
+                >
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `${tpl.color}15` }}
+                  >
+                    {isCreating ? (
+                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: tpl.color }} />
+                    ) : (
+                      <Icon className="w-5 h-5" style={{ color: tpl.color }} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {tpl.title}
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                      {tpl.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -568,6 +672,7 @@ const SheetEditor = ({ sheetId, onBack }) => {
 const SheetsSection = () => {
   const [activeSheet, setActiveSheet] = useState(null);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   if (activeSheet) {
     return (
@@ -583,11 +688,17 @@ const SheetsSection = () => {
       <SheetList
         onSelect={setActiveSheet}
         onCreateAI={() => setShowAIModal(true)}
+        onTemplates={() => setShowTemplates(true)}
       />
       <AIGenerateModal
         open={showAIModal}
         onClose={() => setShowAIModal(false)}
         onGenerated={(id) => setActiveSheet(id)}
+      />
+      <TemplatePicker
+        open={showTemplates}
+        onClose={() => setShowTemplates(false)}
+        onCreated={(id) => setActiveSheet(id)}
       />
     </>
   );
