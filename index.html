@@ -205,6 +205,17 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
+      // Disable right-click context menu
+      document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+      // Block View Source & DevTools shortcuts
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'u') { e.preventDefault(); }
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) { e.preventDefault(); }
+        if (e.key === 'F12') { e.preventDefault(); }
+        if (e.ctrlKey && e.key === 's') { e.preventDefault(); }
+      });
+    </script>
+    <script>
       // Prefetch lazy-loaded routes after initial paint
       window.addEventListener('load', function() {
         setTimeout(function() {
