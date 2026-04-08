@@ -307,7 +307,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Fixed: `_extract_data_summary` now handles both Fortune-Sheet celldata (sparse) and 2D array formats
 - Testing: 100% (9/9 backend + frontend verified) — Iteration 121
 
-- P3: Additional form templates
+### Smart Templates — April 8, 2026
+- 6 pre-built templates: Budget Planner, Project Tracker, Invoice, Sales Pipeline, Employee Directory, Weekly Schedule
+- Templates include headers (bold, blue bg), sample data, formulas (Budget: SUM/subtraction; Invoice: multiplication + tax)
+- Backend: `GET /api/sheets/templates/list` and `POST /api/sheets/templates/create`
+- Frontend: Template Picker modal with visual cards (icons, colors, descriptions)
+- Testing: 100% (11/11 backend + frontend verified) — Iteration 123
+
 - P3: Advanced analytics/reporting
 
 ### AI Chat Real-Time Streaming — April 5, 2026
