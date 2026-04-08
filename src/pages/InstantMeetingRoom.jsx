@@ -123,6 +123,12 @@ const InstantMeetingRoom = () => {
   const mediaRecorderRef = useRef(null);
   const recordingStartRef = useRef(null);
 
+  // Auto-recording (all participants audio)
+  const autoRecorderRef = useRef(null);
+  const autoChunksRef = useRef([]);
+  const audioContextRef = useRef(null);
+  const mixedDestRef = useRef(null);
+
   // Refs (only for non-render values)
   const previewRef = useRef(null);
   const callStartRef = useRef(null);
@@ -264,6 +270,15 @@ const InstantMeetingRoom = () => {
           newMap.set(participantId, e.streams[0]);
           return newMap;
         });
+        // Add remote audio to auto-recording mixer
+        try {
+          if (audioContextRef.current && mixedDestRef.current && e.streams[0].getAudioTracks().length > 0) {
+            audioContextRef.current.createMediaStreamSource(e.streams[0]).connect(mixedDestRef.current);
+            console.log(`[AutoRecord] Added remote audio from ${participantId}`);
+          }
+        } catch (err) {
+          console.warn('[AutoRecord] Failed to add remote audio:', err);
+        }
       }
     };
 
@@ -312,6 +327,29 @@ const InstantMeetingRoom = () => {
         setTimeout(() => {
           callStartRef.current = performance.now();
         }, 0);
+
+        // Start auto-recording all audio for transcription
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          audioContextRef.current = ctx;
+          const dest = ctx.createMediaStreamDestination();
+          mixedDestRef.current = dest;
+          // Add local audio
+          if (stream.getAudioTracks().length > 0) {
+            ctx.createMediaStreamSource(stream).connect(dest);
+          }
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+          const recorder = new MediaRecorder(dest.stream, { mimeType });
+          autoChunksRef.current = [];
+          recorder.ondataavailable = (e) => {
+            if (e.data?.size > 0) autoChunksRef.current.push(e.data);
+          };
+          recorder.start(1000);
+          autoRecorderRef.current = recorder;
+          console.log('[AutoRecord] Started recording all audio');
+        } catch (e) {
+          console.warn('[AutoRecord] Failed to start:', e);
+        }
 
         // Connect to existing participants
         const others = data.room.participants.filter(p => p.user_id !== user?.id);
@@ -436,6 +474,29 @@ const InstantMeetingRoom = () => {
 
   // Leave meeting
   const leaveMeeting = async () => {
+    // Stop auto-recording and collect audio
+    let audioBlob = null;
+    try {
+      if (autoRecorderRef.current && autoRecorderRef.current.state !== 'inactive') {
+        autoRecorderRef.current.stop();
+        // Wait for final data
+        await new Promise(resolve => {
+          autoRecorderRef.current.onstop = resolve;
+          setTimeout(resolve, 500);
+        });
+      }
+      if (autoChunksRef.current.length > 0) {
+        const mimeType = autoRecorderRef.current?.mimeType || 'audio/webm';
+        audioBlob = new Blob(autoChunksRef.current, { type: mimeType });
+        console.log(`[AutoRecord] Captured ${(audioBlob.size / 1024).toFixed(0)}KB of audio`);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[AutoRecord] Error stopping:', e);
+    }
+
     // Close peer connections
     peerConnectionsRef.current.forEach(pc => pc.close());
     peerConnectionsRef.current.clear();
@@ -455,7 +516,20 @@ const InstantMeetingRoom = () => {
       console.error('Leave error:', err);
     }
 
-    navigate('/meetings');
+    // Navigate to processing page if we have audio
+    const durationSec = callStartRef.current ? Math.round((performance.now() - callStartRef.current) / 1000) : 0;
+    if (audioBlob && audioBlob.size > 5000 && durationSec >= 10) {
+      window.__meetingAudioBlob = audioBlob;
+      window.__meetingAudioMeta = {
+        userId: user?.id,
+        title: `Meeting ${meetingId.slice(0, 8)}`,
+        participants: participants.map(p => p.user_name || p.user_id),
+        durationSeconds: durationSec,
+      };
+      navigate(`/meeting/${meetingId}/processing?title=Meeting+${meetingId.slice(0, 8)}`);
+    } else {
+      navigate('/meetings');
+    }
   };
 
   // Toggle video

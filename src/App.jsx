@@ -124,6 +124,7 @@ const MeetingsPage = lazy(() => import('@/pages/MeetingsPage'));
 const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
 const MeetingRoomPage = lazy(() => import('@/pages/MeetingRoomPage'));
 const InstantMeetingRoom = lazy(() => import('@/pages/InstantMeetingRoom'));
+const MeetingProcessingPage = lazy(() => import('@/pages/MeetingProcessingPage'));
 
 // Payment Pages
 const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
@@ -438,6 +439,7 @@ function App() {
                                 <Route path="/meeting/:meetingId" element={<InstantMeetingRoom />} />
                                 <Route path="/workspace/meeting/:meetingId" element={<InstantMeetingRoom />} />
                                 <Route path="/workspace/meeting-old/:meetingId" element={<MeetingRoomPage />} />
+                                <Route path="/meeting/:meetingId/processing" element={<MeetingProcessingPage />} />
 
                                 <Route path="/workspace/:workspaceId/call/:callId" element={<AdvancedVideoCallInterface />} />
                                 

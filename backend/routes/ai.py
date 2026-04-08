@@ -978,3 +978,213 @@ async def delete_video_from_history(video_id: str):
     except Exception as e:
         logger.error(f"Error deleting video: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============== Meeting Auto-Transcribe + Insights ==============
+
+class MeetingProcessRequest(BaseModel):
+    meeting_id: str
+    user_id: str
+    meeting_title: Optional[str] = ""
+    participants: Optional[List[str]] = []
+    duration_seconds: Optional[int] = 0
+
+
+@router.post("/ai/meeting/process")
+async def process_meeting_audio(
+    file: UploadFile = File(...),
+    meeting_id: str = Form(...),
+    user_id: str = Form(...),
+    meeting_title: str = Form(default=""),
+    participants: str = Form(default=""),
+    duration_seconds: int = Form(default=0),
+):
+    """Auto-transcribe meeting audio and generate AI insights."""
+    api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+    if not api_key:
+        raise HTTPException(500, "AI service not configured")
+
+    import io
+    import tempfile
+    import subprocess
+
+    # Create meeting record immediately as "processing"
+    meeting_record = {
+        "id": meeting_id,
+        "user_id": user_id,
+        "title": meeting_title or f"Meeting {meeting_id[:8]}",
+        "participants": participants.split(",") if participants else [],
+        "duration_seconds": duration_seconds,
+        "status": "transcribing",
+        "transcript": None,
+        "insights": None,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.meeting_transcripts.update_one(
+        {"id": meeting_id},
+        {"$set": meeting_record},
+        upsert=True,
+    )
+
+    try:
+        contents = await file.read()
+        if len(contents) < 1000:
+            await db.meeting_transcripts.update_one(
+                {"id": meeting_id},
+                {"$set": {"status": "failed", "error": "Audio too short or empty"}},
+            )
+            raise HTTPException(400, "Audio file too short or empty")
+
+        # If file is large, extract audio with ffmpeg
+        audio_data = io.BytesIO(contents)
+        audio_data.name = file.filename or "meeting.webm"
+        temp_files = []
+
+        if len(contents) > 25 * 1024 * 1024:
+            logger.info(f"Large audio ({len(contents)/(1024*1024):.1f}MB), extracting with ffmpeg")
+            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp_in:
+                tmp_in.write(contents)
+                temp_files.append(tmp_in.name)
+            audio_out = tempfile.mktemp(suffix=".mp3")
+            temp_files.append(audio_out)
+            result = subprocess.run(
+                ["ffmpeg", "-y", "-i", tmp_in.name, "-vn", "-acodec", "libmp3lame",
+                 "-ab", "64k", "-ar", "16000", "-ac", "1", audio_out],
+                capture_output=True, text=True, timeout=300,
+            )
+            if result.returncode != 0:
+                raise Exception(f"ffmpeg failed: {result.stderr[:200]}")
+            audio_data = open(audio_out, "rb")
+            audio_data.name = "meeting.mp3"
+
+        # Step 1: Transcribe
+        from llm_client import chat_completion, speech_to_text
+        logger.info(f"Transcribing meeting {meeting_id}...")
+        transcript_response = speech_to_text(audio_file=audio_data, api_key=api_key)
+        transcript_text = transcript_response.text
+        segments = []
+        if hasattr(transcript_response, "segments") and transcript_response.segments:
+            segments = [
+                {"start": getattr(s, "start", 0), "end": getattr(s, "end", 0), "text": getattr(s, "text", "")}
+                for s in transcript_response.segments
+            ]
+
+        await db.meeting_transcripts.update_one(
+            {"id": meeting_id},
+            {"$set": {
+                "status": "generating_insights",
+                "transcript": {"text": transcript_text, "segments": segments},
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+
+        # Step 2: Generate insights with GPT-5.2
+        logger.info(f"Generating insights for meeting {meeting_id}...")
+        participants_str = ", ".join(meeting_record["participants"]) if meeting_record["participants"] else "Unknown"
+        insight_prompt = f"""Analyze this meeting transcript and provide structured insights.
+
+Meeting Title: {meeting_record['title']}
+Participants: {participants_str}
+Duration: {duration_seconds // 60} minutes
+
+Transcript:
+{transcript_text}
+
+Return ONLY valid JSON in this exact format:
+{{
+  "summary": "2-3 sentence meeting summary",
+  "key_decisions": [
+    {{"decision": "What was decided", "context": "Brief context"}}
+  ],
+  "action_items": [
+    {{"task": "What needs to be done", "assignee": "Person responsible or 'Unassigned'", "priority": "high|medium|low"}}
+  ],
+  "topics_discussed": [
+    {{"topic": "Topic name", "duration_estimate": "Brief or Detailed", "key_points": ["point1", "point2"]}}
+  ],
+  "follow_ups": [
+    {{"item": "Follow-up item", "due": "Suggested timeline"}}
+  ],
+  "sentiment": "positive|neutral|mixed|negative",
+  "participation_notes": "Brief note on participant engagement"
+}}"""
+
+        insight_result = chat_completion(
+            messages=[
+                {"role": "system", "content": "You are an expert meeting analyst. Return ONLY valid JSON."},
+                {"role": "user", "content": insight_prompt},
+            ],
+            model="gpt-5.2",
+            api_key=api_key,
+        )
+        import json
+        raw = insight_result.choices[0].message.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        insights = json.loads(raw.strip())
+
+        # Save final result
+        await db.meeting_transcripts.update_one(
+            {"id": meeting_id},
+            {"$set": {
+                "status": "completed",
+                "insights": insights,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+
+        # Clean up temp files
+        import os as _os
+        for f in temp_files:
+            try:
+                _os.unlink(f)
+            except Exception:
+                pass
+
+        return {
+            "success": True,
+            "meeting_id": meeting_id,
+            "status": "completed",
+            "transcript": {"text": transcript_text, "segments": segments},
+            "insights": insights,
+        }
+
+    except json.JSONDecodeError:
+        await db.meeting_transcripts.update_one(
+            {"id": meeting_id},
+            {"$set": {"status": "completed", "insights": {"summary": "Insights generation failed. Transcript is available.", "error": True},
+                       "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        return {"success": True, "meeting_id": meeting_id, "status": "completed_partial"}
+    except Exception as e:
+        logger.error(f"Meeting process error: {e}")
+        await db.meeting_transcripts.update_one(
+            {"id": meeting_id},
+            {"$set": {"status": "failed", "error": str(e), "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        raise HTTPException(500, f"Processing failed: {str(e)}")
+
+
+@router.get("/ai/meeting/{meeting_id}/status")
+async def get_meeting_status(meeting_id: str):
+    """Get the processing status for a meeting transcript."""
+    doc = await db.meeting_transcripts.find_one({"id": meeting_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Meeting transcript not found")
+    return doc
+
+
+@router.get("/ai/meeting/user/{user_id}")
+async def get_user_meeting_transcripts(user_id: str, limit: int = 50):
+    """Get all processed meeting transcripts for a user."""
+    docs = await db.meeting_transcripts.find(
+        {"user_id": user_id},
+        {"_id": 0},
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    return {"meetings": docs, "count": len(docs)}

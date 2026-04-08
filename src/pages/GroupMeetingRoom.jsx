@@ -142,6 +142,11 @@ const GroupMeetingRoom = () => {
   const peerConnectionsRef = useRef({});
   const remoteStreamsRef = useRef({});
   const eventSourceRef = useRef(null);
+  // Auto-recording refs
+  const autoRecorderRef = useRef(null);
+  const autoChunksRef = useRef([]);
+  const audioContextRef = useRef(null);
+  const mixedDestRef = useRef(null);
 
   // WebRTC configuration
   const rtcConfig = {
@@ -330,7 +335,15 @@ const GroupMeetingRoom = () => {
     pc.ontrack = (event) => {
       console.log('Received remote track from:', targetUserId);
       remoteStreamsRef.current[targetUserId] = event.streams[0];
-      
+      // Add remote audio to auto-recording mixer
+      try {
+        if (audioContextRef.current && mixedDestRef.current && event.streams[0].getAudioTracks().length > 0) {
+          audioContextRef.current.createMediaStreamSource(event.streams[0]).connect(mixedDestRef.current);
+          console.log(`[AutoRecord] Added remote audio from ${targetUserId}`);
+        }
+      } catch (err) {
+        console.warn('[AutoRecord] Failed to add remote audio:', err);
+      }
       // Force re-render
       setParticipants(prev => [...prev]);
     };
@@ -447,6 +460,28 @@ const GroupMeetingRoom = () => {
         setJoined(true);
         setCallStartTime(Date.now());
         
+        // Start auto-recording all audio for transcription
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          audioContextRef.current = ctx;
+          const dest = ctx.createMediaStreamDestination();
+          mixedDestRef.current = dest;
+          if (localStreamRef.current?.getAudioTracks().length > 0) {
+            ctx.createMediaStreamSource(localStreamRef.current).connect(dest);
+          }
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+          const recorder = new MediaRecorder(dest.stream, { mimeType });
+          autoChunksRef.current = [];
+          recorder.ondataavailable = (e) => {
+            if (e.data?.size > 0) autoChunksRef.current.push(e.data);
+          };
+          recorder.start(1000);
+          autoRecorderRef.current = recorder;
+          console.log('[AutoRecord] Started recording all audio');
+        } catch (e) {
+          console.warn('[AutoRecord] Failed to start:', e);
+        }
+        
         toast({
           title: 'Joined meeting',
           description: `${data.total_participants} participant(s) in the room`
@@ -463,6 +498,28 @@ const GroupMeetingRoom = () => {
 
   // Leave meeting
   const leaveMeeting = async () => {
+    // Stop auto-recording and collect audio
+    let audioBlob = null;
+    try {
+      if (autoRecorderRef.current && autoRecorderRef.current.state !== 'inactive') {
+        autoRecorderRef.current.stop();
+        await new Promise(resolve => {
+          autoRecorderRef.current.onstop = resolve;
+          setTimeout(resolve, 500);
+        });
+      }
+      if (autoChunksRef.current.length > 0) {
+        const mimeType = autoRecorderRef.current?.mimeType || 'audio/webm';
+        audioBlob = new Blob(autoChunksRef.current, { type: mimeType });
+        console.log(`[AutoRecord] Captured ${(audioBlob.size / 1024).toFixed(0)}KB of audio`);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+      }
+    } catch (e) {
+      console.warn('[AutoRecord] Error stopping:', e);
+    }
+
     try {
       await fetch(`${API_URL}/api/meeting-room/leave`, {
         method: 'POST',
@@ -488,7 +545,20 @@ const GroupMeetingRoom = () => {
       eventSourceRef.current.close();
     }
     
-    navigate('/meetings');
+    // Navigate to processing page if we have audio
+    const durationSec = callStartTime ? Math.round((Date.now() - callStartTime) / 1000) : 0;
+    if (audioBlob && audioBlob.size > 5000 && durationSec >= 10) {
+      window.__meetingAudioBlob = audioBlob;
+      window.__meetingAudioMeta = {
+        userId: user?.id,
+        title: meeting?.title || `Meeting ${meetingId.slice(0, 8)}`,
+        participants: participants.map(p => p.user_name || p.user_id),
+        durationSeconds: durationSec,
+      };
+      navigate(`/meeting/${meetingId}/processing?title=${encodeURIComponent(meeting?.title || `Meeting ${meetingId.slice(0, 8)}`)}`);
+    } else {
+      navigate('/meetings');
+    }
   };
 
   // Toggle audio
