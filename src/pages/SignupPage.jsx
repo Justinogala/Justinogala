@@ -112,7 +112,7 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row lg:items-stretch bg-white dark:bg-slate-950">
+    <div className="bg-white dark:bg-slate-950 lg:min-h-screen lg:flex lg:flex-row lg:items-stretch">
       <Helmet>
         <title>Sign Up - Munal AI</title>
         <meta name="description" content="Create your Munal AI account to start automating your meeting notes." />
@@ -320,7 +320,7 @@ const SignupPage = () => {
             <Link to="/legal/privacy" className="text-[#7C3AED] hover:underline font-medium">Privacy Policy</Link>.
           </div>
 
-          <div className="space-y-4 pt-2 pb-[180px] sm:pb-4">
+          <div className="space-y-4 pt-2">
             <Button 
               type="submit" 
               className="w-full h-12 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl text-base shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-300 group" 

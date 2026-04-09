@@ -10,12 +10,12 @@ const AuthFormContainer = ({
   footerLink 
 }) => {
   return (
-    <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white dark:bg-slate-950 min-h-screen">
+    <div className="w-full lg:w-1/2 p-6 sm:p-12 bg-white dark:bg-slate-950 lg:min-h-screen lg:flex lg:items-center lg:justify-center">
       <motion.div 
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-[440px] space-y-8"
+        className="w-full max-w-[440px] mx-auto space-y-6"
       >
         {/* Mobile Logo — visible only when sidebar is hidden */}
         <Link to="/" className="flex items-center gap-2.5 lg:hidden mb-2" data-testid="auth-mobile-logo">
@@ -33,7 +33,7 @@ const AuthFormContainer = ({
         {children}
 
         {footerLink && (
-          <div className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="pt-4 text-center text-sm text-slate-500 dark:text-slate-400">
             {footerLink.text}{' '}
             <button 
               onClick={footerLink.onClick} 
