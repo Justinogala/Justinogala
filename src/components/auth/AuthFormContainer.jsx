@@ -33,14 +33,21 @@ const AuthFormContainer = ({
         {children}
 
         {footerLink && (
-          <div className="pt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-            {footerLink.text}{' '}
-            <button 
-              onClick={footerLink.onClick} 
-              className="font-semibold text-[#7C3AED] hover:text-[#6D28D9] transition-colors cursor-pointer hover:underline"
-            >
-              {footerLink.linkText}
-            </button>
+          <div className="mt-4 -mx-6 sm:-mx-12 px-6 sm:px-12 py-5 bg-violet-50/80 dark:bg-violet-950/30 border-t border-violet-100 dark:border-violet-900/40 rounded-b-2xl">
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-6 h-6 bg-gradient-to-br from-violet-600 to-purple-600 rounded-md flex items-center justify-center">
+                <span className="text-white font-bold text-xs">M</span>
+              </div>
+              <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+                {footerLink.text}{' '}
+                <button 
+                  onClick={footerLink.onClick} 
+                  className="font-semibold text-[#7C3AED] hover:text-[#6D28D9] transition-colors cursor-pointer hover:underline"
+                >
+                  {footerLink.linkText}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </motion.div>
