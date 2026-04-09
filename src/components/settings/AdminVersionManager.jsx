@@ -39,7 +39,7 @@ function AdminVersionManager() {
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
   };
 
   const loadVersions = useCallback(async () => {
@@ -58,7 +58,8 @@ function AdminVersionManager() {
 
   const handleSubmit = async () => {
     const t = getToken();
-    if (!t || !form.version.trim() || !form.title.trim()) return;
+    if (!t) { showToast('Session expired. Please log in again.', 'error'); return; }
+    if (!form.version.trim() || !form.title.trim()) { showToast('Version and title are required.', 'error'); return; }
     setSaving(true);
 
     try {
