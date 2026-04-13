@@ -73,6 +73,17 @@ async def k8s_ready():
         return {"status": "ready", "database": "connecting"}
 
 
+@app.get("/.well-known/assetlinks.json")
+async def assetlinks():
+    """Android App Links verification file for Google Play deep links"""
+    import json
+    assetlinks_path = ROOT_DIR / "static" / ".well-known" / "assetlinks.json"
+    if assetlinks_path.exists():
+        data = json.loads(assetlinks_path.read_text())
+        return Response(content=json.dumps(data), media_type="application/json")
+    return Response(content="[]", media_type="application/json")
+
+
 # ============== Health & Status Routes ==============
 
 @api_router.get("/")
