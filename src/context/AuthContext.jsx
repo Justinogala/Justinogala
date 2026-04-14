@@ -395,6 +395,14 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem(ADMIN_TOKEN_KEY);
       const userStr = localStorage.getItem(ADMIN_USER_KEY);
       if (token && userStr) {
+        // Check if admin session has been idle too long (1 hour)
+        const lastActivity = parseInt(localStorage.getItem(ADMIN_LAST_ACTIVITY_KEY) || '0', 10);
+        if (lastActivity > 0 && Date.now() - lastActivity > ADMIN_INACTIVITY_TIMEOUT) {
+          localStorage.removeItem(ADMIN_TOKEN_KEY);
+          localStorage.removeItem(ADMIN_USER_KEY);
+          localStorage.removeItem(ADMIN_LAST_ACTIVITY_KEY);
+          return;
+        }
         setAdminUser(JSON.parse(userStr));
         setIsAdminAuthenticated(true);
       }
@@ -415,7 +423,7 @@ export const AuthProvider = ({ children }) => {
     events.forEach(e => window.addEventListener(e, trackActivity, { passive: true }));
     trackActivity();
 
-    const interval = setInterval(() => {
+    const checkIdle = () => {
       const last = parseInt(localStorage.getItem(ADMIN_LAST_ACTIVITY_KEY) || '0', 10);
       if (Date.now() - last > ADMIN_INACTIVITY_TIMEOUT) {
         localStorage.removeItem(ADMIN_TOKEN_KEY);
@@ -425,11 +433,18 @@ export const AuthProvider = ({ children }) => {
         setIsAdminAuthenticated(false);
         window.location.href = '/admin/login';
       }
-    }, 60_000);
+    };
+
+    const interval = setInterval(checkIdle, 60_000);
+
+    // Also check when tab becomes visible again
+    const onVisibility = () => { if (document.visibilityState === 'visible') checkIdle(); };
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       events.forEach(e => window.removeEventListener(e, trackActivity));
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [isAdminAuthenticated]);
 
