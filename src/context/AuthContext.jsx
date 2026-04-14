@@ -14,6 +14,8 @@ const LAST_ACTIVITY_KEY = 'munal_last_activity';
 const ADMIN_TOKEN_KEY = 'admin_token';
 const ADMIN_USER_KEY = 'admin_user';
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+const ADMIN_INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour
+const ADMIN_LAST_ACTIVITY_KEY = 'admin_last_activity';
 
 // Safe JSON parser
 const safeParseJSON = async (response) => {
@@ -405,6 +407,32 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Admin inactivity auto-logout (1 hour)
+  useEffect(() => {
+    if (!isAdminAuthenticated) return;
+    const trackActivity = () => localStorage.setItem(ADMIN_LAST_ACTIVITY_KEY, Date.now().toString());
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, trackActivity, { passive: true }));
+    trackActivity();
+
+    const interval = setInterval(() => {
+      const last = parseInt(localStorage.getItem(ADMIN_LAST_ACTIVITY_KEY) || '0', 10);
+      if (Date.now() - last > ADMIN_INACTIVITY_TIMEOUT) {
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        localStorage.removeItem(ADMIN_USER_KEY);
+        localStorage.removeItem(ADMIN_LAST_ACTIVITY_KEY);
+        setAdminUser(null);
+        setIsAdminAuthenticated(false);
+        window.location.href = '/admin/login';
+      }
+    }, 60_000);
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, trackActivity));
+      clearInterval(interval);
+    };
+  }, [isAdminAuthenticated]);
+
   const adminLogin = async (email, password, skip2fa = false) => {
     setAdminLoading(true);
     setAdminError(null);
@@ -495,6 +523,7 @@ export const AuthProvider = ({ children }) => {
   const adminLogout = async () => {
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     localStorage.removeItem(ADMIN_USER_KEY);
+    localStorage.removeItem(ADMIN_LAST_ACTIVITY_KEY);
     setAdminUser(null);
     setIsAdminAuthenticated(false);
     return { success: true };
