@@ -10,7 +10,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://transcript-dash.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://new-user-welcome-2.preview.emergentagent.com').rstrip('/')
 
 # Test user credentials from test_credentials.md
 TEST_USER_ID = "a62dcea6-6392-4e42-91f6-09671f9b15f4"

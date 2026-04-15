@@ -10,7 +10,7 @@ import string
 from datetime import datetime
 from pymongo import MongoClient
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://transcript-dash.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://new-user-welcome-2.preview.emergentagent.com').rstrip('/')
 MONGO_URL = os.environ.get('MONGO_URL', "mongodb+srv://justinoo2001_db_user:T8H0xkIcmK2Qorae@cluster0.t5u88mk.mongodb.net/?retryWrites=true&w=majority")
 DB_NAME = "munal_db"
 

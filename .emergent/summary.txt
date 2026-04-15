@@ -1,111 +1,108 @@
 <analysis>**original_problem_statement**: 
-Add a Meeting Transcripts section in the meetings dashboard on the right sidebar (below Quick Stats) where users can browse all their past meeting transcripts, search through them, and filter by date/participants. Also, implement the ability to Export meeting transcripts as PDF/DOCX.
-*PRODUCT REQUIREMENTS (From earlier phases)*: 
-1. Build Spreadsheet Phase 3 (AI Insights Layer, Auto-generated charts, AI dashboards).
-2. Add ability to download generated sheets.
-3. Fix prolonged deployment issues (Health check timeouts, build failures).
-4. Auto-transcribe video/instant meetings and generate AI insights after meetings ends.
+Add a Meeting Transcripts section with PDF/DOCX export. Build 5 global AI features. Fix mobile UI footers on Auth pages. Resolve admin System Updates publish blocking. Implement 1-hour inactivity timeout for Admin sessions. Fix Android native build (.aab) generation, resolve Play Console permissions policies (remove ), and configure App Deep Linking (). Set up an automated Welcome Email for newly registered users reminding them to activate 2FA.
+
+*PRODUCT REQUIREMENTS*: 
+1. Build Spreadsheet Phase 3 & Meeting auto-transcription with GPT-5.2 insights.
+2. Capacitor setup for Native Android App.
+3. Resend email integration for notifications.
 
 **User's preferred language**: English (INSTRUCT NEXT AGENT: You MUST respond in English only)
 
 **what currently exists?** 
-A full-stack AI meeting and workspace platform. The application now has a fully complete AI Spreadsheet module (Phase 1, 2, and 3) including Smart Templates, AI Insights, and XLSX download. The application's deployment is highly optimized—Vite dev server has been replaced with a lightning-fast static file server () serving production builds, passing Kubernetes health checks instantly. Source code protection (Right-click/View Source blocking) is active on public pages. Video meetings now automatically mix all participants' audio and generate OpenAI Whisper transcripts + GPT-5.2 insights upon call completion.
+A full-stack AI meeting and workspace platform (FastAPI + React + MongoDB Atlas). Features include Smart Spreadsheets, Auto-Transcription, 5 AI Hub tools (Search, Summarizer, Agenda, Digest, Chat) with fallback handling for LLM rate limits, Android APK/AAB builds, and Admin controls.
 
 **Last working item**: 
-    - Last item agent was working: Implementing the Meeting Transcripts widget in the sidebar of the  and verifying its UI. The backend export endpoints (PDF/DOCX) were successfully added. The frontend build passed, but the agent's screenshot attempt failed due to navigating to an incorrect/unmapped  route instead of the actual dashboard route.
+    - Last item agent was working: Implementing the automated Welcome Email on user registration (using Resend). The agent just located  in  and is ready to insert the email logic.
     - Status: IN PROGRESS
-    - Agent Testing Done: Y (Backend export tested, frontend built successfully. Screenshot pending).
-    - Which testing method agent to use? screenshot tool
+    - Agent Testing Done: N
+    - Which testing method agent to use? backend testing agent or curl (test  to verify email fires)
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:  
-  Issue 1: Validate and finalize the Meeting Transcripts Widget (Priority P0)
-     - Attempted fixes: The widget was created and injected into , but visual verification failed because the agent tried to navigate to  instead of the correct dashboard path.
-     - Next debug checklist: Find the exact route where  is rendered (likely  or ). Navigate there using the screenshot tool to verify the Meeting Transcripts section appears correctly on the right side, below Quick Stats. Test the search, filter, and PDF/DOCX export buttons.
-     - Why fix this issue and what will be achieved with the fix? Fulfills the user's latest request to allow browsing and exporting of auto-generated meeting transcripts.
+  Issue 1: Send Welcome Email to New Users (Priority P0)
+     - Attempted fixes: Identified  endpoint in . No code written yet.
+     - Next debug checklist: 
+        1. Open .
+        2. Inside , add an async call (or ) to .
+        3. Email subject: Welcome to Munal AI! 
+        4. Email body (HTML): Welcome them to the platform and add a call-to-action reminding them to activate Two-Factor Authentication (2FA) on their next login for better security.
+     - Why fix this issue and what will be achieved with the fix? Fulfills the user's latest explicit request to improve onboarding security.
      - Status: IN PROGRESS
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? frontend
+     - Should Test frontend/backend/both after fix? backend
      - Blocked on other issue: None
 
 **In progress Task List**:
-  Task 1: Meeting Transcripts UI/UX Polish (Priority P1)
-     - Where to resume:  and . 
-     - What will be achieved with this? Ensures the widget matches the user's specific visual placement requirement (right sidebar).
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix? frontend
-     - Blocked on something: None
+  *None currently. All previous tasks completed.*
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P2: Cross-Workspace Data Linking (Deferred from Sheets Phase 3).
-    - P2: Meeting Summary Integration into Sheets (Deferred from Sheets Phase 3).
+    - P2: Cross-Workspace Data Linking.
+    - P2: Meeting Summary Integration into Sheets.
     Future Tasks:
-    - P3: Custom Template option for Sheets (Allowing users to save their own sheets as templates).
-    - P3: Dedicated full-page view for Meeting Transcripts (Beyond the sidebar widget).
+    - P3: Custom Template option for Sheets.
+    - P3: Dedicated full-page view for Meeting Transcripts.
+    - P3: Advanced analytics/reporting.
 
 **Completed work in this session**
-- Download Sheet (XLSX export using  & ) (DONE)
-- AI Spreadsheet Phase 3: Insights Panel, Auto Charts, Dashboard (DONE)
-- Deployment fix: Cleaned  and tracked  files (DONE)
-- Deployment fix: Removed  to prevent overwriting K8s variables. Mapped Atlas DB to  (DONE)
-- Deployment fix: Resolved  version conflict using  in  (DONE)
-- Deployment fix: Replaced Vite dev server with a static production server () to instantly pass K8s health checks. Added root  probes (DONE)
-- Bug Fix: Fortune-Sheet auto-save wiping data on init, and 2D array vs  format loading conflicts (DONE)
-- Smart Templates: 6 pre-built spreadsheet templates added to creation flow (DONE)
-- UI Protection: Right-click and  disabled on public routes via  hook (DONE)
-- Auto-Transcribe Meetings: Web Audio API mixer records local/remote audio -> sends to Whisper -> Generates GPT-5.2 Insights (DONE)
+- Meeting Transcripts Widget UI & Export (Fixed DOCX by installing ) (DONE)
+- Android Native Builds (.aab/.apk) via Capacitor (Installed JDK 17, fixed ARM64 AAPT2 QEMU wrapper, saved to ) (DONE)
+- Play Console Policy Fixes (Removed /, bumped versionCode to 4) (DONE)
+- Android App Deep Linking (Added  to backend/frontend root ) (DONE)
+- 5 AI Features Hub (Smart Search, Summarizer, Agenda, Digest, Chat) + Graceful fallback data handling on LLM 429 Rate Limits (DONE)
+- Auth Pages Mobile UI Polish (Removed hardcoded  pushing footer down, applied violet branding) (DONE)
+- Admin System Updates Publish Fix (Deleted blocking duplicate versions, improved error toasts) (DONE)
+- Admin 1-Hour Inactivity Timeout (Added cross-tab and reload resilient timeout logic to ) (DONE)
 
 **Earlier issues found/mentioned but not fixed**
    - None
 
 **Known issue recurrence from previous fork**
-  - Kubernetes deployment health check timeouts occurred repeatedly due to slow Vite pre-bundling. **FIXED** in this session by switching to a static build server.
+  - **LLM Rate Limits (429):** The Emergent Universal Key frequently hits rate limits. *FIXED*: Agent refactored AI endpoints to catch Litellm errors and return  with basic fallback data so the frontend doesn't crash.
 
 **Code Architecture**
-- FastAPI Backend, React Frontend (Vite), MongoDB Atlas.
--  handles OpenAI Whisper (STT) and Meeting PDF/DOCX Exports.
--  &  handle WebRTC and  audio mixing.
--  is the primary hub for managing meetings.
+- FastAPI Backend (), React Frontend Vite (), MongoDB Atlas.
+-  handles the new 5 AI tools.
+-  serves the production build.
+-  stores the generated Android native  and  files (bypassing ).
 
 **Key Technical Concepts**
-- **Web Audio API**: Used to mix local microphone tracks and remote WebRTC audio streams into a single  for recording.
-- **Whisper & GPT-5.2**: Powered by Emergent LLM key via .
-- **Production Server**:  now serves pre-built static files from  on port 3000 to drastically reduce startup latency.
+- **Resend**: Used for transactional emails (API key in backend ).
+- **Capacitor**: Converts the React web app into a native Android App. 
+- **Graceful Degradation**: AI endpoints are designed to return mock/basic templates if the LLM key is rate-limited.
 
 **key DB schema**
   - : 
   - : 
 
 **changes in tech stack**
-  - Transitioned from running  dev server to running a static express/node server () for the frontend in production to fix K8s deployment timeouts.
-  - Pinned  to  via  resolutions.
+  - Installed  via pip for python-docx HTML-to-Word conversion.
+  - Installed  (Java 17) and Capacitor dependencies for Android builds.
 
 **All files of reference** 
-  -  (Updated with TranscriptsWidget)
-  -  (Added  endpoints)
-  -  (New - Handles post-meeting transcript loading UI)
-  -  (Added audio mixing/recording)
-  -  (New - blocks right click)
-  -  (New static production server)
-  -  (Updated health check endpoints)
+  -  (Needs updating for the welcome email)
+  -  (Updated with fallback AI logic)
+  -  (New AI Hub)
+  -  &  (Updated Auth footers)
+  -  (Updated with Admin timeout logic)
+  -  &  (Updated to serve )
 
 **Areas that need refactoring**: 
-  - Frontend Routing: The agent got stuck navigating to . Ensure route mappings in  cleanly reflect the navigation sidebar.
+  -  might become bloated. Consider extracting email sending to a  file.
 
 **key api endpoints**
-  - 
-  - 
-  - 
+  -  (Registration endpoint needing email logic)
+  -  (Deep linking)
   - 
 
 **Critical Info for New Agent** 
-- **DEPLOYMENT CONFIGURATION (DO NOT REVERT)**: The backend  and  **must not** use . It will destroy K8s environment variables. The Atlas DB string uses . 
-- **FRONTEND STARTUP (DO NOT REVERT)**:  is intentionally serving a static build instead of running  dev server. This allows the app to start instantly and pass K8s health checks. **If you change frontend code, you must manually run yarn run v1.22.22
+- **LLM Rate Limiting**: The user's Emergent Universal Key is frequently hitting 429 Rate Limits. Do NOT let AI endpoints throw HTTP 500s on rate limits. Maintain the graceful fallback pattern used in .
+- **Emails**: The app uses  inside  for non-blocking email delivery. Use the configured  ().
+- **Frontend Changes**: The frontend runs on a static production server. After modifying React files, you MUST run yarn run v1.22.22
 $ node tools/generate-llms.js || true && vite build
-vite v4.5.14 building for production...
+vite v4.5.5 building for production...
 transforming...
-✓ 5418 modules transformed.
+✓ 5522 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/index.html                                            13.38 kB │ gzip:   4.16 kB
@@ -114,291 +111,285 @@ dist/assets/VoiceChatPage-5cf167f9.css                      1.42 kB │ gzip:   
 dist/assets/AnimatedHeroBackground-6476a80d.css             1.86 kB │ gzip:   0.53 kB
 dist/assets/TextLayer-201afb46.css                          9.39 kB │ gzip:   2.02 kB
 dist/assets/SheetsSection-c8d67809.css                     50.29 kB │ gzip:   8.46 kB
-dist/assets/index-84be515c.css                            291.35 kB │ gzip:  38.70 kB
-dist/assets/IntegrationsPage-58b8d765.js                    0.16 kB │ gzip:   0.15 kB
-dist/assets/APISettingsPage-58b8d765.js                     0.16 kB │ gzip:   0.15 kB
+dist/assets/index-6bae0a81.css                            292.21 kB │ gzip:  38.76 kB
+dist/assets/IntegrationsPage-ce53919d.js                    0.16 kB │ gzip:   0.15 kB
+dist/assets/APISettingsPage-ce53919d.js                     0.16 kB │ gzip:   0.15 kB
 dist/assets/contactConfig-9baff9d3.js                       0.18 kB │ gzip:   0.17 kB
-dist/assets/endOfMonth-6d021c92.js                          0.19 kB │ gzip:   0.17 kB
-dist/assets/addDays-b6701fe4.js                             0.19 kB │ gzip:   0.17 kB
-dist/assets/useAuth-a1d808c6.js                             0.21 kB │ gzip:   0.19 kB
-dist/assets/setMinutes-2b97a97a.js                          0.21 kB │ gzip:   0.16 kB
-dist/assets/skeleton-7d9028e0.js                            0.23 kB │ gzip:   0.19 kB
-dist/assets/useAdminSettings-35024783.js                    0.37 kB │ gzip:   0.26 kB
-dist/assets/notificationGenerators-17597141.js              0.59 kB │ gzip:   0.36 kB
-dist/assets/adminBillingDataService-beee70fb.js             0.61 kB │ gzip:   0.37 kB
-dist/assets/textarea-5c5ac0d2.js                            0.66 kB │ gzip:   0.39 kB
-dist/assets/useSupportTickets-2d735388.js                   0.71 kB │ gzip:   0.43 kB
-dist/assets/separator-3a5f26f3.js                           0.77 kB │ gzip:   0.45 kB
-dist/assets/AdminContent-1ffd9665.js                        0.99 kB │ gzip:   0.50 kB
-dist/assets/BreadcrumbNav-95acdb83.js                       1.09 kB │ gzip:   0.56 kB
-dist/assets/subMonths-50f3a823.js                           1.11 kB │ gzip:   0.50 kB
-dist/assets/SettingsStatusBadge-5a762fa7.js                 1.26 kB │ gzip:   0.65 kB
-dist/assets/StatsSection-f1034a9b.js                        1.27 kB │ gzip:   0.68 kB
-dist/assets/useTranscriptionHistory-4e0322b4.js             1.37 kB │ gzip:   0.59 kB
+dist/assets/endOfMonth-2cbcbed4.js                          0.19 kB │ gzip:   0.17 kB
+dist/assets/addDays-d1736803.js                             0.19 kB │ gzip:   0.17 kB
+dist/assets/useAuth-214648c6.js                             0.21 kB │ gzip:   0.19 kB
+dist/assets/setMinutes-d6e03a62.js                          0.21 kB │ gzip:   0.15 kB
+dist/assets/skeleton-fdcd3bdc.js                            0.23 kB │ gzip:   0.19 kB
+dist/assets/extends-4c19d496.js                             0.23 kB │ gzip:   0.19 kB
+dist/assets/index-fc7b79ab.js                               0.24 kB │ gzip:   0.18 kB
+dist/assets/useAdminSettings-36f03486.js                    0.37 kB │ gzip:   0.26 kB
+dist/assets/notificationGenerators-70274c8f.js              0.59 kB │ gzip:   0.36 kB
+dist/assets/adminBillingDataService-c32fd32b.js             0.61 kB │ gzip:   0.37 kB
+dist/assets/textarea-b9deaad6.js                            0.66 kB │ gzip:   0.39 kB
+dist/assets/useSupportTickets-bab8438d.js                   0.71 kB │ gzip:   0.43 kB
+dist/assets/AdminContent-b1ea0945.js                        0.99 kB │ gzip:   0.50 kB
+dist/assets/BreadcrumbNav-ca54aed4.js                       1.09 kB │ gzip:   0.56 kB
+dist/assets/subMonths-b1f48394.js                           1.11 kB │ gzip:   0.50 kB
+dist/assets/SettingsStatusBadge-f9b544d2.js                 1.26 kB │ gzip:   0.65 kB
+dist/assets/StatsSection-04ea28af.js                        1.27 kB │ gzip:   0.68 kB
+dist/assets/useTranscriptionHistory-9d819d64.js             1.37 kB │ gzip:   0.59 kB
 dist/assets/demoUsers-c2706dc7.js                           1.38 kB │ gzip:   0.35 kB
 dist/assets/initializeDemoMessages-66ac7fa4.js              1.42 kB │ gzip:   0.65 kB
-dist/assets/CTASection-96bb699c.js                          1.49 kB │ gzip:   0.78 kB
-dist/assets/NotFound-b56dd327.js                            1.52 kB │ gzip:   0.70 kB
-dist/assets/table-af702724.js                               1.56 kB │ gzip:   0.55 kB
-dist/assets/modal-3940cd62.js                               1.59 kB │ gzip:   0.77 kB
-dist/assets/AdminIntegrationLogs-e8a54dbd.js                1.59 kB │ gzip:   0.81 kB
-dist/assets/AdminAPILogs-8ac2778e.js                        1.60 kB │ gzip:   0.82 kB
-dist/assets/FeatureVoiceChatPage-ad5cfdaa.js                1.64 kB │ gzip:   0.86 kB
-dist/assets/FeatureChatMessagingPage-bdc4a84c.js            1.65 kB │ gzip:   0.85 kB
-dist/assets/FeatureFileManagementPage-4ca8408a.js           1.65 kB │ gzip:   0.85 kB
-dist/assets/DownloadsIndex-577d8c13.js                      1.70 kB │ gzip:   0.80 kB
-dist/assets/FeatureTeamsPage-9bb33b36.js                    1.72 kB │ gzip:   0.86 kB
-dist/assets/paymentTransactionService-fa48edfc.js           1.74 kB │ gzip:   0.89 kB
-dist/assets/FeatureVideoConferencingPage-81bdf92e.js        1.75 kB │ gzip:   0.88 kB
-dist/assets/FeatureMeetingsPage-f0aeeb1a.js                 1.76 kB │ gzip:   0.86 kB
-dist/assets/BaseModal-21f36490.js                           1.76 kB │ gzip:   0.85 kB
-dist/assets/FeatureSearchPage-07ce3e5b.js                   1.77 kB │ gzip:   0.89 kB
-dist/assets/useVideoCall-574f090d.js                        1.80 kB │ gzip:   0.81 kB
-dist/assets/FeatureTranscriptionsPage-2d2a584f.js           1.80 kB │ gzip:   0.92 kB
-dist/assets/FeatureCalendarIntegrationPage-6c85178f.js      1.86 kB │ gzip:   0.93 kB
-dist/assets/FeatureShiftsPage-8f71b879.js                   1.87 kB │ gzip:   0.91 kB
-dist/assets/FeatureNotificationsPage-d23c2f50.js            1.88 kB │ gzip:   0.93 kB
-dist/assets/FeatureIRSORPage-31b69e25.js                    1.89 kB │ gzip:   0.91 kB
-dist/assets/MobileApp-6fb28979.js                           1.92 kB │ gzip:   0.91 kB
-dist/assets/FeatureVideoCallsPage-870462ea.js               1.92 kB │ gzip:   0.97 kB
-dist/assets/FeatureESignaturePage-f2b2bb9e.js               1.92 kB │ gzip:   0.92 kB
-dist/assets/DesktopApp-5f17eb09.js                          1.96 kB │ gzip:   0.92 kB
-dist/assets/ScreenShareManager-e39b687d.js                  1.97 kB │ gzip:   0.91 kB
-dist/assets/adminUserDataService-38b743ba.js                1.98 kB │ gzip:   0.77 kB
-dist/assets/FeatureApprovalsPage-77fe295d.js                2.02 kB │ gzip:   0.98 kB
-dist/assets/PageSection-803fcc7e.js                         2.04 kB │ gzip:   0.96 kB
-dist/assets/AnimatedHeroBackground-e7b37844.js              2.07 kB │ gzip:   0.76 kB
-dist/assets/AdminSettingsPersistenceTest-1a6c48f1.js        2.22 kB │ gzip:   1.02 kB
-dist/assets/index-2ea3e46d.js                               2.25 kB │ gzip:   1.01 kB
-dist/assets/adminService-3665fe7a.js                        2.27 kB │ gzip:   1.08 kB
-dist/assets/ChromeExtension-0e5574c7.js                     2.31 kB │ gzip:   0.99 kB
-dist/assets/formatDistanceToNow-04185b5a.js                 2.34 kB │ gzip:   0.95 kB
-dist/assets/TranscriptionPage-08d05c7b.js                   2.49 kB │ gzip:   1.11 kB
-dist/assets/switch-16a7dba7.js                              2.54 kB │ gzip:   1.27 kB
-dist/assets/ProcessingStatus-c6d89836.js                    2.58 kB │ gzip:   1.13 kB
-dist/assets/AdminTable-88b94f20.js                          2.65 kB │ gzip:   0.97 kB
-dist/assets/parseISO-5f589159.js                            2.74 kB │ gzip:   1.24 kB
-dist/assets/uploadFileService-4261587c.js                   2.75 kB │ gzip:   1.24 kB
-dist/assets/PasswordResetPage-05625695.js                   2.75 kB │ gzip:   1.25 kB
-dist/assets/CallRingtoneSettings-94e0bbdf.js                2.75 kB │ gzip:   1.09 kB
-dist/assets/PasswordUpdatePage-1e246a9f.js                  2.80 kB │ gzip:   1.26 kB
-dist/assets/PaymentSuccessPage-91d8cc80.js                  2.89 kB │ gzip:   1.23 kB
-dist/assets/paymentAnalyticsService-c2bc54b8.js             2.96 kB │ gzip:   1.29 kB
-dist/assets/paymentGatewayService-942ae68b.js               3.24 kB │ gzip:   1.26 kB
-dist/assets/Education-55c5d15f.js                           3.28 kB │ gzip:   1.58 kB
-dist/assets/Legal-8652d740.js                               3.31 kB │ gzip:   1.66 kB
-dist/assets/CustomerSuccess-a1dc8e93.js                     3.35 kB │ gzip:   1.67 kB
-dist/assets/ProductTeams-b655f503.js                        3.39 kB │ gzip:   1.67 kB
-dist/assets/Government-f0ec96be.js                          3.41 kB │ gzip:   1.71 kB
-dist/assets/BenefitsSection-1d05c225.js                     3.42 kB │ gzip:   1.37 kB
-dist/assets/Healthcare-ccd8c0fd.js                          3.43 kB │ gzip:   1.76 kB
-dist/assets/Finance-7cd2beb6.js                             3.44 kB │ gzip:   1.70 kB
-dist/assets/SalesTeams-4fa49ac7.js                          3.49 kB │ gzip:   1.83 kB
-dist/assets/NewTranscriptionPage-9f2335ac.js                3.50 kB │ gzip:   1.47 kB
-dist/assets/supportTicketService-a8e3c2e4.js                3.55 kB │ gzip:   1.16 kB
-dist/assets/EngineeringTeams-9d4ea1e6.js                    3.58 kB │ gzip:   1.74 kB
-dist/assets/HRRecruiting-49c19619.js                        3.60 kB │ gzip:   1.80 kB
-dist/assets/avatar-4b3f23cf.js                              3.62 kB │ gzip:   1.60 kB
-dist/assets/Pricing-82c635ea.js                             3.73 kB │ gzip:   1.01 kB
-dist/assets/SharedMeetingPage-bab6d0a1.js                   3.81 kB │ gzip:   1.40 kB
-dist/assets/OTPLoginPage-5b7f8267.js                        3.82 kB │ gzip:   1.61 kB
-dist/assets/AdminUsers-a11c0018.js                          3.87 kB │ gzip:   1.38 kB
-dist/assets/meetingService-f4b46c42.js                      3.88 kB │ gzip:   1.58 kB
-dist/assets/paymentUIService-2d4a8c73.js                    4.03 kB │ gzip:   1.67 kB
-dist/assets/adminMessageService-fdd72a82.js                 4.11 kB │ gzip:   1.37 kB
-dist/assets/AdminTicketsPage-b1f72dd9.js                    4.12 kB │ gzip:   1.46 kB
-dist/assets/TranscriptionManagementPage-4f5e10dc.js         4.21 kB │ gzip:   1.59 kB
-dist/assets/AdminLayout-6a29a20a.js                         4.32 kB │ gzip:   1.44 kB
-dist/assets/AdminProfile-cf29dfb4.js                        4.33 kB │ gzip:   1.25 kB
-dist/assets/WorkspaceCard-f6066bc3.js                       4.38 kB │ gzip:   1.61 kB
-dist/assets/APIKeyConfigurationPage-b81cbcbd.js             4.39 kB │ gzip:   1.78 kB
-dist/assets/MeetingListPage-b83854b6.js                     4.41 kB │ gzip:   1.61 kB
-dist/assets/AdminAnalytics-620ca140.js                      4.52 kB │ gzip:   1.28 kB
-dist/assets/Contact-f6d511e6.js                             4.62 kB │ gzip:   1.42 kB
-dist/assets/fileValidation-93d36a90.js                      4.62 kB │ gzip:   1.81 kB
-dist/assets/accordion-4042b7dd.js                           4.65 kB │ gzip:   1.86 kB
-dist/assets/alert-dialog-9bb3093e.js                        4.86 kB │ gzip:   1.77 kB
+dist/assets/CTASection-1f02bebb.js                          1.49 kB │ gzip:   0.77 kB
+dist/assets/NotFound-b82b80bc.js                            1.52 kB │ gzip:   0.70 kB
+dist/assets/table-61fd71bc.js                               1.56 kB │ gzip:   0.55 kB
+dist/assets/modal-dd6d20e9.js                               1.59 kB │ gzip:   0.77 kB
+dist/assets/AdminIntegrationLogs-a6015ae3.js                1.62 kB │ gzip:   0.81 kB
+dist/assets/AdminAPILogs-9eaa3a1c.js                        1.63 kB │ gzip:   0.83 kB
+dist/assets/FeatureVoiceChatPage-70f6f58d.js                1.64 kB │ gzip:   0.85 kB
+dist/assets/FeatureChatMessagingPage-216da50d.js            1.65 kB │ gzip:   0.84 kB
+dist/assets/FeatureFileManagementPage-5441a45e.js           1.65 kB │ gzip:   0.84 kB
+dist/assets/DownloadsIndex-88b02eb8.js                      1.70 kB │ gzip:   0.80 kB
+dist/assets/FeatureTeamsPage-cb116f45.js                    1.72 kB │ gzip:   0.85 kB
+dist/assets/paymentTransactionService-b6f994ea.js           1.74 kB │ gzip:   0.89 kB
+dist/assets/FeatureVideoConferencingPage-4d2bc040.js        1.75 kB │ gzip:   0.88 kB
+dist/assets/FeatureMeetingsPage-346bae40.js                 1.76 kB │ gzip:   0.86 kB
+dist/assets/BaseModal-ccd02a1d.js                           1.76 kB │ gzip:   0.85 kB
+dist/assets/FeatureSearchPage-aa2bcbbd.js                   1.77 kB │ gzip:   0.89 kB
+dist/assets/useVideoCall-8fd3d630.js                        1.80 kB │ gzip:   0.81 kB
+dist/assets/FeatureTranscriptionsPage-add0520d.js           1.80 kB │ gzip:   0.92 kB
+dist/assets/FeatureCalendarIntegrationPage-fc36b986.js      1.86 kB │ gzip:   0.93 kB
+dist/assets/FeatureShiftsPage-abd9c00e.js                   1.87 kB │ gzip:   0.91 kB
+dist/assets/FeatureNotificationsPage-b9d174fd.js            1.88 kB │ gzip:   0.93 kB
+dist/assets/FeatureIRSORPage-1439f8e7.js                    1.89 kB │ gzip:   0.91 kB
+dist/assets/MobileApp-cb9d8abd.js                           1.92 kB │ gzip:   0.91 kB
+dist/assets/FeatureVideoCallsPage-3fcea882.js               1.92 kB │ gzip:   0.97 kB
+dist/assets/FeatureESignaturePage-3bcaf682.js               1.92 kB │ gzip:   0.92 kB
+dist/assets/DesktopApp-78422739.js                          1.96 kB │ gzip:   0.92 kB
+dist/assets/ScreenShareManager-d7f383a8.js                  1.97 kB │ gzip:   0.90 kB
+dist/assets/adminUserDataService-c21d9fb4.js                1.98 kB │ gzip:   0.76 kB
+dist/assets/FeatureApprovalsPage-342204ac.js                2.02 kB │ gzip:   0.98 kB
+dist/assets/PageSection-98abace8.js                         2.04 kB │ gzip:   0.95 kB
+dist/assets/AnimatedHeroBackground-f09dbebe.js              2.07 kB │ gzip:   0.77 kB
+dist/assets/AdminSettingsPersistenceTest-3a0f25c1.js        2.22 kB │ gzip:   1.01 kB
+dist/assets/adminService-caf5d4a5.js                        2.27 kB │ gzip:   1.07 kB
+dist/assets/ChromeExtension-9715bd1e.js                     2.31 kB │ gzip:   0.99 kB
+dist/assets/formatDistanceToNow-e7542bda.js                 2.34 kB │ gzip:   0.96 kB
+dist/assets/TranscriptionPage-312a49de.js                   2.52 kB │ gzip:   1.12 kB
+dist/assets/ProcessingStatus-c6688652.js                    2.58 kB │ gzip:   1.13 kB
+dist/assets/AdminTable-f3b8d461.js                          2.65 kB │ gzip:   0.96 kB
+dist/assets/parseISO-b9d1d449.js                            2.74 kB │ gzip:   1.24 kB
+dist/assets/uploadFileService-f5716f26.js                   2.75 kB │ gzip:   1.24 kB
+dist/assets/CallRingtoneSettings-7b93ca5e.js                2.75 kB │ gzip:   1.09 kB
+dist/assets/PasswordResetPage-65026f96.js                   2.75 kB │ gzip:   1.25 kB
+dist/assets/PasswordUpdatePage-e244bced.js                  2.80 kB │ gzip:   1.26 kB
+dist/assets/separator-c1bca32d.js                           2.87 kB │ gzip:   1.33 kB
+dist/assets/PaymentSuccessPage-3bfec221.js                  2.89 kB │ gzip:   1.23 kB
+dist/assets/paymentAnalyticsService-54ff4cc2.js             2.96 kB │ gzip:   1.29 kB
+dist/assets/paymentGatewayService-5e057886.js               3.24 kB │ gzip:   1.26 kB
+dist/assets/Education-b6c29321.js                           3.28 kB │ gzip:   1.57 kB
+dist/assets/Legal-f7880d10.js                               3.31 kB │ gzip:   1.66 kB
+dist/assets/CustomerSuccess-dc287345.js                     3.35 kB │ gzip:   1.67 kB
+dist/assets/ProductTeams-518f4565.js                        3.39 kB │ gzip:   1.66 kB
+dist/assets/Government-a45007b6.js                          3.41 kB │ gzip:   1.71 kB
+dist/assets/BenefitsSection-f44a2599.js                     3.42 kB │ gzip:   1.37 kB
+dist/assets/Healthcare-771d88f9.js                          3.43 kB │ gzip:   1.76 kB
+dist/assets/Finance-99c63f92.js                             3.44 kB │ gzip:   1.70 kB
+dist/assets/SalesTeams-7dba809c.js                          3.49 kB │ gzip:   1.83 kB
+dist/assets/NewTranscriptionPage-d8129fb2.js                3.53 kB │ gzip:   1.47 kB
+dist/assets/supportTicketService-907af34f.js                3.55 kB │ gzip:   1.16 kB
+dist/assets/EngineeringTeams-0a45828d.js                    3.58 kB │ gzip:   1.74 kB
+dist/assets/HRRecruiting-ffc3cf74.js                        3.60 kB │ gzip:   1.80 kB
+dist/assets/Pricing-916cbd8b.js                             3.73 kB │ gzip:   1.01 kB
+dist/assets/SharedMeetingPage-a2300e75.js                   3.81 kB │ gzip:   1.40 kB
+dist/assets/OTPLoginPage-ace12bea.js                        3.82 kB │ gzip:   1.60 kB
+dist/assets/meetingService-69a152ed.js                      3.88 kB │ gzip:   1.58 kB
+dist/assets/AdminUsers-d797f682.js                          3.93 kB │ gzip:   1.40 kB
+dist/assets/paymentUIService-90672725.js                    4.02 kB │ gzip:   1.67 kB
+dist/assets/adminMessageService-928e04a1.js                 4.11 kB │ gzip:   1.36 kB
+dist/assets/AdminTicketsPage-5603def7.js                    4.14 kB │ gzip:   1.46 kB
+dist/assets/TranscriptionManagementPage-870257b1.js         4.21 kB │ gzip:   1.59 kB
+dist/assets/AdminProfile-8f176f1f.js                        4.33 kB │ gzip:   1.25 kB
+dist/assets/AdminLayout-d1cc4f10.js                         4.35 kB │ gzip:   1.45 kB
+dist/assets/WorkspaceCard-8fc40cdb.js                       4.38 kB │ gzip:   1.60 kB
+dist/assets/APIKeyConfigurationPage-66f2d436.js             4.39 kB │ gzip:   1.78 kB
+dist/assets/MeetingListPage-0a642b40.js                     4.41 kB │ gzip:   1.61 kB
+dist/assets/avatar-091fd909.js                              4.45 kB │ gzip:   1.92 kB
+dist/assets/AdminAnalytics-f5981aa3.js                      4.52 kB │ gzip:   1.28 kB
+dist/assets/Contact-339f4dec.js                             4.62 kB │ gzip:   1.41 kB
+dist/assets/fileValidation-fe5d5ee1.js                      4.62 kB │ gzip:   1.81 kB
 dist/assets/subscriptionPlans-3a8a9362.js                   4.93 kB │ gzip:   1.20 kB
-dist/assets/SharedRecordingPage-b2c13017.js                 4.98 kB │ gzip:   1.77 kB
-dist/assets/progress-93f7be36.js                            5.17 kB │ gzip:   2.28 kB
-dist/assets/PricingSection-1db4eaad.js                      5.18 kB │ gzip:   1.95 kB
-dist/assets/UserBillingPage-3c159d0b.js                     5.44 kB │ gzip:   1.94 kB
-dist/assets/SupportPage-ce45d46b.js                         5.52 kB │ gzip:   1.89 kB
-dist/assets/UserSupportTicketDetailPage-c58cef65.js         5.74 kB │ gzip:   2.01 kB
-dist/assets/AdminTranscriptionSettingsPage-e0727fcc.js      5.88 kB │ gzip:   2.12 kB
-dist/assets/VerifyEmailPage-cefa6861.js                     5.92 kB │ gzip:   2.31 kB
-dist/assets/PaymentPage-036bfb82.js                         5.93 kB │ gzip:   2.31 kB
-dist/assets/HelpPage-8683bfae.js                            6.03 kB │ gzip:   1.87 kB
-dist/assets/UserProfilePage-58395cfd.js                     6.23 kB │ gzip:   2.04 kB
-dist/assets/HowItWorksSection-b5669d68.js                   6.43 kB │ gzip:   2.34 kB
-dist/assets/UserPaymentMethodsPage-451a4816.js              6.49 kB │ gzip:   2.35 kB
-dist/assets/ReportManagementPage-33c5f773.js                6.57 kB │ gzip:   2.56 kB
-dist/assets/transcriptionService-f4ab0212.js                6.76 kB │ gzip:   2.51 kB
-dist/assets/AdminIntegrationsPage-7f6b2d49.js               6.93 kB │ gzip:   2.29 kB
-dist/assets/AdminMeetingAnalytics-264eaacf.js               7.22 kB │ gzip:   2.08 kB
-dist/assets/UserWorkspace-b955fa59.js                       7.37 kB │ gzip:   2.46 kB
-dist/assets/TestimonialsSection-72f3856a.js                 7.37 kB │ gzip:   3.00 kB
-dist/assets/UserSupportTicketsPage-51f60b76.js              7.43 kB │ gzip:   2.43 kB
-dist/assets/NotificationBell-5c188430.js                    7.46 kB │ gzip:   2.47 kB
-dist/assets/AdminAuditLogsPage-d1f0a585.js                  7.54 kB │ gzip:   2.65 kB
-dist/assets/UserPaymentCheckoutPage-1b7bb066.js             7.76 kB │ gzip:   2.11 kB
-dist/assets/AdminVideoSettingsPage-66c13fc2.js              7.90 kB │ gzip:   2.45 kB
-dist/assets/AnalyticsDashboardPage-381e5256.js              7.99 kB │ gzip:   2.64 kB
-dist/assets/FeatureAnalyticsPage-b0990621.js                8.00 kB │ gzip:   2.68 kB
-dist/assets/AdminSystemUpdatesPage-df87099c.js              8.32 kB │ gzip:   2.69 kB
-dist/assets/Roadmap-e9b8c6ab.js                             8.38 kB │ gzip:   2.96 kB
-dist/assets/slider-9da87007.js                              8.40 kB │ gzip:   3.41 kB
-dist/assets/UserCouponsPage-ae6c2f6d.js                     8.45 kB │ gzip:   2.26 kB
-dist/assets/AdminVideoHistoryPage-614fb656.js               8.47 kB │ gzip:   2.68 kB
-dist/assets/VideoCallPage-d08b4fd2.js                       8.49 kB │ gzip:   2.68 kB
-dist/assets/AdminMonitoringDashboard-da3e6bf5.js            8.60 kB │ gzip:   1.99 kB
-dist/assets/FeatureDashboardPage-dae1f707.js                8.66 kB │ gzip:   2.85 kB
-dist/assets/FeaturePageLayout-9c974434.js                   8.67 kB │ gzip:   2.36 kB
-dist/assets/AdminPDFTemplatesPage-267e1fc4.js               8.78 kB │ gzip:   2.92 kB
-dist/assets/UserPaymentHistoryPage-6317309e.js              8.86 kB │ gzip:   2.75 kB
-dist/assets/TextToAudioPage-02e8feb2.js                     9.15 kB │ gzip:   3.24 kB
-dist/assets/Careers-e73b15c4.js                             9.19 kB │ gzip:   2.93 kB
-dist/assets/AdminTransactionsPage-bbe43fcb.js               9.39 kB │ gzip:   2.69 kB
-dist/assets/AdminDataHealthPage-76cdf5ff.js                 9.43 kB │ gzip:   2.61 kB
-dist/assets/UserTransactionsPage-4cc80b66.js                9.46 kB │ gzip:   2.78 kB
-dist/assets/UseCasesIndex-caa9772a.js                       9.50 kB │ gzip:   3.21 kB
-dist/assets/ChatMessagesPage-e469588b.js                    9.50 kB │ gzip:   3.24 kB
-dist/assets/Documentation-d48bc764.js                       9.59 kB │ gzip:   3.03 kB
-dist/assets/CheckoutPage-b722112e.js                        9.65 kB │ gzip:   3.43 kB
-dist/assets/AdminAPISettingsPage-537806ee.js                9.95 kB │ gzip:   2.67 kB
-dist/assets/sharingService-efe57a07.js                     10.05 kB │ gzip:   3.38 kB
-dist/assets/ResourcesIndex-92d51a30.js                     10.27 kB │ gzip:   3.17 kB
-dist/assets/AdminModulePermissionsPage-25a2b2db.js         10.54 kB │ gzip:   3.57 kB
-dist/assets/AdminReports-20edfcf4.js                       10.68 kB │ gzip:   3.20 kB
-dist/assets/TranscriptDisplay-4ce54996.js                  10.70 kB │ gzip:   3.61 kB
-dist/assets/ContactFormPage-3460ff72.js                    10.76 kB │ gzip:   3.68 kB
-dist/assets/AdminStripeSettingsPage-afb1ee4b.js            10.86 kB │ gzip:   3.47 kB
-dist/assets/AdminWorkspace-8476ff0a.js                     10.87 kB │ gzip:   3.01 kB
-dist/assets/SummarizationPage-382addb7.js                  10.92 kB │ gzip:   3.98 kB
-dist/assets/RecentChatsPage-52394e67.js                    10.96 kB │ gzip:   3.87 kB
-dist/assets/Press-b39039e1.js                              10.97 kB │ gzip:   3.34 kB
-dist/assets/APIReference-386e3441.js                       10.99 kB │ gzip:   3.26 kB
-dist/assets/AdminWorkspacesPage-e34e68e3.js                11.08 kB │ gzip:   3.15 kB
-dist/assets/Terms-35e176ea.js                              11.28 kB │ gzip:   4.05 kB
-dist/assets/Admin2FADashboardPage-12ef9655.js              11.40 kB │ gzip:   3.08 kB
-dist/assets/AdminTaxRatesPage-43fb40dc.js                  11.43 kB │ gzip:   3.41 kB
-dist/assets/AdminPlansPage-9e5e1952.js                     11.45 kB │ gzip:   3.10 kB
-dist/assets/MeetingCalendarPage-3eb3f660.js                11.64 kB │ gzip:   3.87 kB
-dist/assets/TimeClockReportsPage-eca48489.js               11.75 kB │ gzip:   3.60 kB
-dist/assets/AdminIRTemplatesPage-c573e99d.js               11.75 kB │ gzip:   3.75 kB
-dist/assets/AdminSupportTicketsPage-43d436a4.js            11.83 kB │ gzip:   3.43 kB
-dist/assets/UseCasePageLayout-972266e6.js                  12.37 kB │ gzip:   3.19 kB
-dist/assets/AdminCloudStoragePage-ee490bb6.js              12.38 kB │ gzip:   3.43 kB
-dist/assets/AdminApprovalTemplatesPage-cc609a59.js         12.38 kB │ gzip:   3.70 kB
-dist/assets/AddUserModal-a52cad8f.js                       12.95 kB │ gzip:   3.80 kB
-dist/assets/FeatureOverviewPage-68ed95d7.js                13.05 kB │ gzip:   4.19 kB
-dist/assets/AdminCouponsPage-ce18b798.js                   13.10 kB │ gzip:   3.63 kB
-dist/assets/MeetingProcessingPage-28217173.js              13.32 kB │ gzip:   3.45 kB
-dist/assets/Security-d228abd8.js                           13.50 kB │ gzip:   4.33 kB
-dist/assets/TranscriptionHistoryPage-1f35aed3.js           13.75 kB │ gzip:   4.33 kB
-dist/assets/About-ea44283b.js                              13.83 kB │ gzip:   3.96 kB
-dist/assets/AdminSettings-af7c81d4.js                      14.00 kB │ gzip:   4.25 kB
-dist/assets/Community-f0b7ff73.js                          14.11 kB │ gzip:   3.90 kB
-dist/assets/AdminChatModerationPage-99d9b11b.js            14.28 kB │ gzip:   3.52 kB
-dist/assets/MeetingCallPage-a347fb66.js                    14.87 kB │ gzip:   4.28 kB
-dist/assets/ManageCookies-48e438d8.js                      15.03 kB │ gzip:   5.26 kB
-dist/assets/AdminBroadcastsPage-a822fa64.js                15.53 kB │ gzip:   3.85 kB
-dist/assets/PricingPage-12ca8c37.js                        15.58 kB │ gzip:   4.59 kB
-dist/assets/AdminPaymentGatewaysPage-e3322ede.js           15.62 kB │ gzip:   3.94 kB
-dist/assets/DocHubPage-19c73995.js                         15.67 kB │ gzip:   5.06 kB
-dist/assets/AdminWorkspaceDetailPage-7512ca2e.js           15.86 kB │ gzip:   4.10 kB
-dist/assets/UserPlansPage-fc3db750.js                      15.87 kB │ gzip:   4.21 kB
-dist/assets/MeetingDetailPage-3bcf5e83.js                  16.49 kB │ gzip:   5.58 kB
-dist/assets/Privacy-177e13d2.js                            17.12 kB │ gzip:   5.91 kB
-dist/assets/Trademarks-6d001c9e.js                         17.42 kB │ gzip:   5.86 kB
-dist/assets/AdminMessagesPage-8b190cbb.js                  17.52 kB │ gzip:   4.94 kB
-dist/assets/AdminBillingPage-6c1e9f23.js                   17.73 kB │ gzip:   4.91 kB
-dist/assets/WorkspacesPage-f690da54.js                     18.04 kB │ gzip:   5.37 kB
-dist/assets/Blog-fdb2b74f.js                               18.15 kB │ gzip:   5.68 kB
-dist/assets/AdminSystemHealthPage-d62d5ffb.js              18.26 kB │ gzip:   5.25 kB
-dist/assets/AdminFormsPage-b2410bc6.js                     18.61 kB │ gzip:   4.72 kB
-dist/assets/VideoConferencingPage-c1bd3a17.js              18.70 kB │ gzip:   4.69 kB
-dist/assets/AdminOrganizationsPage-9fc6262f.js             18.96 kB │ gzip:   4.19 kB
-dist/assets/AdminSecurityPolicies-92c96974.js              19.03 kB │ gzip:   4.82 kB
-dist/assets/OrgDashboardPage-c574a53f.js                   19.34 kB │ gzip:   4.80 kB
-dist/assets/TextToVideoPage-3a4076fd.js                    19.52 kB │ gzip:   5.67 kB
-dist/assets/VoiceChatPage-54596386.js                      19.96 kB │ gzip:   6.29 kB
-dist/assets/CalendarPage-6ab6fd33.js                       20.14 kB │ gzip:   5.94 kB
-dist/assets/select-879d8875.js                             20.80 kB │ gzip:   7.31 kB
-dist/assets/MeetingRoomPage-2cfee57c.js                    20.88 kB │ gzip:   4.97 kB
-dist/assets/dropdown-menu-970e8517.js                      21.06 kB │ gzip:   6.13 kB
-dist/assets/purify.es-4f2d013f.js                          22.03 kB │ gzip:   8.77 kB
-dist/assets/AdminShiftsPage-ceb7a7de.js                    23.35 kB │ gzip:   5.02 kB
-dist/assets/AdminHeader-440743b3.js                        23.69 kB │ gzip:   6.17 kB
-dist/assets/MessageSettingsPage-f0f3b0bd.js                24.07 kB │ gzip:   5.19 kB
-dist/assets/SecurityPage-50703a66.js                       24.17 kB │ gzip:   8.63 kB
-dist/assets/FileManagementPage-bf34a395.js                 26.40 kB │ gzip:   7.34 kB
-dist/assets/AdvancedVideoCallInterface-52b6f4ad.js         26.55 kB │ gzip:   7.77 kB
-dist/assets/InstantMeetingRoom-e4be8255.js                 26.78 kB │ gzip:   7.76 kB
+dist/assets/SharedRecordingPage-88d1aca8.js                 4.98 kB │ gzip:   1.77 kB
+dist/assets/progress-5cdf71af.js                            5.17 kB │ gzip:   2.28 kB
+dist/assets/alert-dialog-44f7ba4b.js                        5.17 kB │ gzip:   1.93 kB
+dist/assets/PricingSection-cbdc186a.js                      5.18 kB │ gzip:   1.95 kB
+dist/assets/UserBillingPage-52bb0b51.js                     5.44 kB │ gzip:   1.94 kB
+dist/assets/SupportPage-e01967a0.js                         5.55 kB │ gzip:   1.90 kB
+dist/assets/UserSupportTicketDetailPage-89b70a9c.js         5.77 kB │ gzip:   2.02 kB
+dist/assets/AdminTranscriptionSettingsPage-fda5e6f3.js      5.91 kB │ gzip:   2.13 kB
+dist/assets/VerifyEmailPage-ca300a7d.js                     5.92 kB │ gzip:   2.31 kB
+dist/assets/PaymentPage-1c6d0927.js                         5.93 kB │ gzip:   2.31 kB
+dist/assets/HelpPage-4147fece.js                            6.03 kB │ gzip:   1.87 kB
+dist/assets/UserProfilePage-a336c087.js                     6.26 kB │ gzip:   2.05 kB
+dist/assets/HowItWorksSection-e1d63513.js                   6.43 kB │ gzip:   2.34 kB
+dist/assets/UserPaymentMethodsPage-931b70f9.js              6.49 kB │ gzip:   2.35 kB
+dist/assets/ReportManagementPage-2f4c8e4d.js                6.60 kB │ gzip:   2.57 kB
+dist/assets/transcriptionService-29a79a76.js                6.76 kB │ gzip:   2.50 kB
+dist/assets/switch-78536c7c.js                              6.90 kB │ gzip:   3.04 kB
+dist/assets/AdminIntegrationsPage-3f112cee.js               6.95 kB │ gzip:   2.30 kB
+dist/assets/AdminMeetingAnalytics-e5129ee1.js               7.24 kB │ gzip:   2.09 kB
+dist/assets/UserWorkspace-be16ad7e.js                       7.40 kB │ gzip:   2.47 kB
+dist/assets/TestimonialsSection-036044a2.js                 7.40 kB │ gzip:   3.01 kB
+dist/assets/UserSupportTicketsPage-cc859685.js              7.45 kB │ gzip:   2.43 kB
+dist/assets/NotificationBell-feafbbcc.js                    7.46 kB │ gzip:   2.47 kB
+dist/assets/AdminAuditLogsPage-a044be76.js                  7.54 kB │ gzip:   2.65 kB
+dist/assets/UserPaymentCheckoutPage-1f66d8d3.js             7.76 kB │ gzip:   2.10 kB
+dist/assets/AdminVideoSettingsPage-e46e41b2.js              7.90 kB │ gzip:   2.45 kB
+dist/assets/FeatureAnalyticsPage-f92e656a.js                8.00 kB │ gzip:   2.68 kB
+dist/assets/AnalyticsDashboardPage-a727821a.js              8.02 kB │ gzip:   2.64 kB
+dist/assets/index-bba44c7f.js                               8.32 kB │ gzip:   3.25 kB
+dist/assets/Roadmap-67eaf4b9.js                             8.38 kB │ gzip:   2.96 kB
+dist/assets/UserCouponsPage-1f4638f0.js                     8.45 kB │ gzip:   2.26 kB
+dist/assets/AdminVideoHistoryPage-a48a50a0.js               8.47 kB │ gzip:   2.68 kB
+dist/assets/AdminSystemUpdatesPage-57ace5ac.js              8.48 kB │ gzip:   2.75 kB
+dist/assets/VideoCallPage-7a782274.js                       8.52 kB │ gzip:   2.69 kB
+dist/assets/AdminMonitoringDashboard-3c7cac0c.js            8.60 kB │ gzip:   1.99 kB
+dist/assets/FeatureDashboardPage-dca56e96.js                8.66 kB │ gzip:   2.85 kB
+dist/assets/FeaturePageLayout-995a552d.js                   8.67 kB │ gzip:   2.36 kB
+dist/assets/AdminPDFTemplatesPage-a47d5750.js               8.81 kB │ gzip:   2.93 kB
+dist/assets/UserPaymentHistoryPage-73197aac.js              8.89 kB │ gzip:   2.75 kB
+dist/assets/slider-ddeaee3d.js                              8.92 kB │ gzip:   3.62 kB
+dist/assets/TextToAudioPage-8d62aa26.js                     9.18 kB │ gzip:   3.25 kB
+dist/assets/Careers-db8a8710.js                             9.19 kB │ gzip:   2.93 kB
+dist/assets/AdminTransactionsPage-f7d18341.js               9.42 kB │ gzip:   2.70 kB
+dist/assets/AdminDataHealthPage-5504a9ab.js                 9.43 kB │ gzip:   2.60 kB
+dist/assets/UserTransactionsPage-32212ac8.js                9.49 kB │ gzip:   2.79 kB
+dist/assets/UseCasesIndex-132bb3ec.js                       9.53 kB │ gzip:   3.22 kB
+dist/assets/ChatMessagesPage-67c2b4b2.js                    9.53 kB │ gzip:   3.25 kB
+dist/assets/Documentation-49060121.js                       9.59 kB │ gzip:   3.03 kB
+dist/assets/CheckoutPage-24828000.js                        9.65 kB │ gzip:   3.43 kB
+dist/assets/accordion-3ac24ac8.js                           9.80 kB │ gzip:   3.90 kB
+dist/assets/AdminAPISettingsPage-690fe2bc.js                9.98 kB │ gzip:   2.68 kB
+dist/assets/sharingService-abe9c381.js                     10.05 kB │ gzip:   3.38 kB
+dist/assets/ResourcesIndex-893914ab.js                     10.27 kB │ gzip:   3.17 kB
+dist/assets/AdminModulePermissionsPage-6ebaa7a2.js         10.54 kB │ gzip:   3.57 kB
+dist/assets/AdminReports-2c03bea9.js                       10.68 kB │ gzip:   3.20 kB
+dist/assets/TranscriptDisplay-9a9dc21a.js                  10.70 kB │ gzip:   3.60 kB
+dist/assets/ContactFormPage-b646e1a7.js                    10.76 kB │ gzip:   3.68 kB
+dist/assets/AdminStripeSettingsPage-29c6bb3f.js            10.86 kB │ gzip:   3.47 kB
+dist/assets/AdminWorkspace-8e788208.js                     10.90 kB │ gzip:   3.02 kB
+dist/assets/SummarizationPage-03f4807c.js                  10.95 kB │ gzip:   3.99 kB
+dist/assets/Press-6c5a6ecf.js                              10.97 kB │ gzip:   3.34 kB
+dist/assets/APIReference-b04b3a44.js                       10.99 kB │ gzip:   3.26 kB
+dist/assets/RecentChatsPage-2052a39b.js                    10.99 kB │ gzip:   3.88 kB
+dist/assets/AdminWorkspacesPage-7ecdaed1.js                11.14 kB │ gzip:   3.17 kB
+dist/assets/Terms-952e768e.js                              11.28 kB │ gzip:   4.05 kB
+dist/assets/Admin2FADashboardPage-9e601f3e.js              11.43 kB │ gzip:   3.09 kB
+dist/assets/AdminTaxRatesPage-8fed6544.js                  11.46 kB │ gzip:   3.42 kB
+dist/assets/AdminPlansPage-7b3404cc.js                     11.48 kB │ gzip:   3.11 kB
+dist/assets/MeetingCalendarPage-6f4461b3.js                11.67 kB │ gzip:   3.88 kB
+dist/assets/TimeClockReportsPage-8683d769.js               11.77 kB │ gzip:   3.60 kB
+dist/assets/AdminIRTemplatesPage-6f007ed9.js               11.78 kB │ gzip:   3.76 kB
+dist/assets/AdminSupportTicketsPage-5a4bbc2b.js            11.88 kB │ gzip:   3.45 kB
+dist/assets/UseCasePageLayout-10987142.js                  12.37 kB │ gzip:   3.19 kB
+dist/assets/AdminCloudStoragePage-0d9fd6b3.js              12.41 kB │ gzip:   3.43 kB
+dist/assets/AdminApprovalTemplatesPage-a86a0bb7.js         12.41 kB │ gzip:   3.70 kB
+dist/assets/AddUserModal-d6057af8.js                       12.95 kB │ gzip:   3.80 kB
+dist/assets/FeatureOverviewPage-e0bd274d.js                13.05 kB │ gzip:   4.19 kB
+dist/assets/AdminCouponsPage-a0430039.js                   13.12 kB │ gzip:   3.63 kB
+dist/assets/MeetingProcessingPage-bddeb0a8.js              13.32 kB │ gzip:   3.44 kB
+dist/assets/Security-115db3d8.js                           13.50 kB │ gzip:   4.33 kB
+dist/assets/TranscriptionHistoryPage-5e09d693.js           13.78 kB │ gzip:   4.34 kB
+dist/assets/About-98989f8b.js                              13.83 kB │ gzip:   3.95 kB
+dist/assets/AdminSettings-9b6d3430.js                      14.03 kB │ gzip:   4.26 kB
+dist/assets/Community-191e727a.js                          14.11 kB │ gzip:   3.89 kB
+dist/assets/AdminChatModerationPage-a419c6cb.js            14.34 kB │ gzip:   3.54 kB
+dist/assets/MeetingCallPage-96285dcc.js                    14.93 kB │ gzip:   4.30 kB
+dist/assets/ManageCookies-d2d7021b.js                      15.03 kB │ gzip:   5.26 kB
+dist/assets/AdminBroadcastsPage-07195c64.js                15.56 kB │ gzip:   3.86 kB
+dist/assets/PricingPage-d6d47c4e.js                        15.58 kB │ gzip:   4.59 kB
+dist/assets/AdminPaymentGatewaysPage-856b1896.js           15.65 kB │ gzip:   3.95 kB
+dist/assets/DocHubPage-e35b07ae.js                         15.67 kB │ gzip:   5.06 kB
+dist/assets/UserPlansPage-f70e55d0.js                      15.90 kB │ gzip:   4.22 kB
+dist/assets/AdminWorkspaceDetailPage-a8fa13fa.js           15.92 kB │ gzip:   4.12 kB
+dist/assets/MeetingDetailPage-e826d93b.js                  16.48 kB │ gzip:   5.57 kB
+dist/assets/Privacy-38f46df8.js                            17.12 kB │ gzip:   5.91 kB
+dist/assets/Trademarks-d240ec34.js                         17.42 kB │ gzip:   5.85 kB
+dist/assets/AdminMessagesPage-da49ef30.js                  17.58 kB │ gzip:   4.96 kB
+dist/assets/AdminBillingPage-c898c885.js                   17.75 kB │ gzip:   4.92 kB
+dist/assets/WorkspacesPage-6f66e6b3.js                     18.07 kB │ gzip:   5.38 kB
+dist/assets/Blog-07d3ddd3.js                               18.15 kB │ gzip:   5.67 kB
+dist/assets/AdminSystemHealthPage-b1eb18fe.js              18.26 kB │ gzip:   5.25 kB
+dist/assets/AdminFormsPage-dd3272da.js                     18.64 kB │ gzip:   4.72 kB
+dist/assets/VideoConferencingPage-56097799.js              18.73 kB │ gzip:   4.70 kB
+dist/assets/AdminOrganizationsPage-027f78af.js             18.96 kB │ gzip:   4.19 kB
+dist/assets/AdminSecurityPolicies-713c61a3.js              19.06 kB │ gzip:   4.83 kB
+dist/assets/OrgDashboardPage-a43af140.js                   19.34 kB │ gzip:   4.80 kB
+dist/assets/AIFeaturesPage-ed5eb1d1.js                     19.52 kB │ gzip:   5.14 kB
+dist/assets/TextToVideoPage-0640e555.js                    19.55 kB │ gzip:   5.68 kB
+dist/assets/VoiceChatPage-bee6e339.js                      20.02 kB │ gzip:   6.31 kB
+dist/assets/CalendarPage-78716b3e.js                       20.20 kB │ gzip:   5.96 kB
+dist/assets/MeetingRoomPage-7e3f34b5.js                    20.91 kB │ gzip:   4.98 kB
+dist/assets/purify.es-1510d87d.js                          22.88 kB │ gzip:   8.84 kB
+dist/assets/AdminShiftsPage-c4376ba0.js                    23.41 kB │ gzip:   5.04 kB
+dist/assets/AdminHeader-76c9fbf1.js                        23.69 kB │ gzip:   6.17 kB
+dist/assets/MessageSettingsPage-bb8c4dbb.js                24.10 kB │ gzip:   5.20 kB
+dist/assets/SecurityPage-ef57413e.js                       24.17 kB │ gzip:   8.63 kB
+dist/assets/dropdown-menu-e1bb64cc.js                      26.28 kB │ gzip:   8.13 kB
+dist/assets/FileManagementPage-ab3499c0.js                 26.40 kB │ gzip:   7.33 kB
+dist/assets/AdvancedVideoCallInterface-2281c2dc.js         26.60 kB │ gzip:   7.80 kB
+dist/assets/InstantMeetingRoom-6eae121b.js                 26.81 kB │ gzip:   7.77 kB
 dist/assets/jspdf.plugin.autotable-7a30d5a0.js             31.08 kB │ gzip:   9.91 kB
-dist/assets/AdminDashboard-1794b526.js                     31.62 kB │ gzip:   7.95 kB
-dist/assets/QuickRecordPage-9c0ccaa4.js                    33.50 kB │ gzip:   8.76 kB
-dist/assets/UserSettingsPage-f56925c9.js                   37.50 kB │ gzip:   9.08 kB
-dist/assets/UserLayout-d7a34bb1.js                         37.72 kB │ gzip:   9.72 kB
-dist/assets/AdminUserManagementPage-6442c02e.js            38.75 kB │ gzip:  10.09 kB
-dist/assets/MessagesPage-87997639.js                       44.29 kB │ gzip:   9.95 kB
-dist/assets/ReportsPage-4f37cff4.js                        45.02 kB │ gzip:  11.25 kB
-dist/assets/UserDashboard-8a554b97.js                      45.92 kB │ gzip:  12.00 kB
-dist/assets/TranscriptionDetailPage-02328073.js            46.10 kB │ gzip:  11.85 kB
-dist/assets/MeetingsPage-3b084c13.js                       48.33 kB │ gzip:  12.89 kB
-dist/assets/ShiftManagementPage-44e790c5.js                50.42 kB │ gzip:  12.04 kB
-dist/assets/ApprovalsPage-8076dcf9.js                      54.15 kB │ gzip:  12.42 kB
-dist/assets/ESignaturePage-22a55310.js                     70.48 kB │ gzip:  16.71 kB
-dist/assets/WorkspaceChatPage-54c70975.js                  78.25 kB │ gzip:  20.82 kB
-dist/assets/WorkspaceDetailPage-19ee687b.js                84.45 kB │ gzip:  19.20 kB
-dist/assets/index.es-6d128b82.js                          150.68 kB │ gzip:  51.57 kB
-dist/assets/vendor-react-e7411a69.js                      180.08 kB │ gzip:  59.11 kB
+dist/assets/AdminDashboard-44372223.js                     31.65 kB │ gzip:   7.96 kB
+dist/assets/QuickRecordPage-02f414fb.js                    33.53 kB │ gzip:   8.77 kB
+dist/assets/select-c0235c22.js                             33.86 kB │ gzip:  11.57 kB
+dist/assets/UserSettingsPage-154cb68f.js                   37.53 kB │ gzip:   9.09 kB
+dist/assets/UserLayout-0aecbb29.js                         37.85 kB │ gzip:   9.75 kB
+dist/assets/AdminUserManagementPage-4c14f4dc.js            38.81 kB │ gzip:  10.11 kB
+dist/assets/MessagesPage-afdff3fe.js                       44.32 kB │ gzip:   9.96 kB
+dist/assets/ReportsPage-977aa9eb.js                        45.05 kB │ gzip:  11.25 kB
+dist/assets/UserDashboard-0f7e2602.js                      45.92 kB │ gzip:  12.00 kB
+dist/assets/TranscriptionDetailPage-b0826034.js            46.15 kB │ gzip:  11.87 kB
+dist/assets/MeetingsPage-5dfa8046.js                       48.79 kB │ gzip:  12.94 kB
+dist/assets/ShiftManagementPage-1ca9c0bb.js                50.45 kB │ gzip:  12.04 kB
+dist/assets/ApprovalsPage-a60697fe.js                      54.18 kB │ gzip:  12.43 kB
+dist/assets/ESignaturePage-91e57de1.js                     70.48 kB │ gzip:  16.71 kB
+dist/assets/WorkspaceChatPage-7859f84f.js                  78.31 kB │ gzip:  20.84 kB
+dist/assets/WorkspaceDetailPage-3b1c70e8.js                84.50 kB │ gzip:  19.21 kB
+dist/assets/index.es-6340cec2.js                          150.89 kB │ gzip:  51.57 kB
+dist/assets/vendor-react-77751b02.js                      179.27 kB │ gzip:  58.92 kB
 dist/assets/html2canvas.esm-e0a7d97b.js                   201.43 kB │ gzip:  48.04 kB
-dist/assets/vendor-ui-ca5f1101.js                         237.70 kB │ gzip:  61.00 kB
-dist/assets/index-f6d79c21.js                             326.39 kB │ gzip:  93.30 kB
-dist/assets/jspdf.es.min-df00f268.js                      357.70 kB │ gzip: 117.98 kB
-dist/assets/vendor-charts-bf7b6caa.js                     408.20 kB │ gzip: 118.23 kB
+dist/assets/vendor-ui-fd1c21e5.js                         236.80 kB │ gzip:  60.67 kB
+dist/assets/index-7cfc90ee.js                             326.20 kB │ gzip:  93.25 kB
+dist/assets/vendor-charts-cdfeb4de.js                     410.52 kB │ gzip: 118.61 kB
+dist/assets/jspdf.es.min-7a4920b9.js                      415.91 kB │ gzip: 136.24 kB
 dist/assets/xlsx-6ed613d4.js                              429.67 kB │ gzip: 143.27 kB
-dist/assets/PDFEditorPage-71d5c3f8.js                     454.39 kB │ gzip: 185.44 kB
-dist/assets/index-05357a46.js                             461.01 kB │ gzip: 130.04 kB
-dist/assets/TextLayer-5bd2335d.js                         469.01 kB │ gzip: 138.78 kB
-dist/assets/AIChatPage-bdd2718c.js                        814.81 kB │ gzip: 279.33 kB
-dist/assets/SheetsSection-6ce194dd.js                   2,442.69 kB │ gzip: 609.09 kB
-✓ built in 29.68s
-Done in 31.63s. for the changes to reflect locally/in screenshots.**
-- **Audio Mixing**: Recording all participants relies on the browser's AudioContext. Do not remove the  or  setups in the meeting rooms.
+dist/assets/PDFEditorPage-ce6daff6.js                     454.39 kB │ gzip: 185.44 kB
+dist/assets/TextLayer-40b55aca.js                         469.01 kB │ gzip: 138.78 kB
+dist/assets/index-201eb6cf.js                             488.07 kB │ gzip: 135.44 kB
+dist/assets/AIChatPage-90e230cc.js                        814.63 kB │ gzip: 279.27 kB
+dist/assets/SheetsSection-f26c5967.js                   2,442.66 kB │ gzip: 609.02 kB
+✓ built in 31.45s
+Done in 33.56s. for changes to take effect locally and in screenshots.
 
 **documents and test reports created in this job** 
-  -  (Phase 3 Sheets)
-  -  (FortuneSheet Save Bug)
-  -  (Smart Templates)
-  -  (Meeting Auto-Transcription)
+  -  (Meeting Transcripts & Export testing)
+  -  (AI Features testing)
+  -  (Updated with completed tasks)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- 1. what happened [deploy failed image] -> COMPLETED (Fixed Radix UI conflict)
- 2. it usually fails at health check [images] -> COMPLETED (Fixed Vite cold start / Mongo ping)
- 3. health check is still running and taking long -> COMPLETED (Replaced with Static Server)
- 4. health check is runing too long again. please resolve -> COMPLETED (Fixed root  k8s probe)
- 5. the sheet when generate or created, should save... -> COMPLETED (Fixed FortuneSheet auto-save bug)
- 6. add Smart Templates... -> COMPLETED 
- 7. i want if i right click my pages and navigate to view page source, it wont view... -> COMPLETED
- 8. it should be only the front pages and not inside user and admin portal... -> COMPLETED
- 9. i want the video calls meetings and instant meetings to automatically be tanscribed... -> COMPLETED 
- 10. add a Meeting Transcripts section in the meetings dashboard on the part marked red... -> IN PROGRESS (Backend done, Frontend UI built but not visually verified).
+ 1. what can we do? just tell me [Resend DNS error image] -> COMPLETED (Guided user on SPF records)
+ 2. what should i do next? [Resend verification image] -> COMPLETED (DKIM passed, guided to finish SPF)
+ 3. i want the app to send a welcome message to a new user email... ask them to activate their 2fa... -> IN PROGRESS
+ 4. (Agent asked for permission via ask_human)
+ 5. proceed with this -> PENDING AGENT ACTION (Agent just viewed  and stopped).
 
 **Project Health Check:**
-Healthy, but the agent was stuck trying to navigate to an invalid route () to verify UI. 
+Healthy.
 
 **3rd Party Integrations** 
-  - OpenAI GPT-5.2 (AI Chat / Sheets / Meeting Insights) — uses Emergent LLM Key
-  - OpenAI Whisper (Meeting STT) — uses Emergent LLM Key
-  - Firebase Cloud Messaging (FCM Push) — requires User API Key
-  - Resend (Emails/2FA OTP) — requires User API Key
+  - OpenAI GPT-5.2 (AI Chat / Sheets / Meeting Insights / AI Hub) — uses Emergent LLM Key
+  - Resend (Emails/2FA OTP/Welcome Email) — requires User API Key (Configured)
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Iterations 121, 122, 123, 124)
-  - Troubleshoot agent used after agent stuck in loop: YES (Diagnosed K8s health probe path)
-  - Test files created: None manually
+  - Testing agent used after significant changes: YES (Iterations 125, 126)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
   - Known regressions: None
 
 **Credentials to test flow:**
@@ -407,277 +398,13 @@ Healthy, but the agent was stuck trying to navigate to an invalid route () to ve
   - **Standard User:**  / 
 
 **What agent forgot to execute**
-The agent added the  to the meeting dashboard but completely failed to visually test and verify its rendering because they timed out trying to guess the correct route URL ().
+The agent got permission to build the Welcome Email but the job ended right after reading . 
 
 **Debugging checklist for current issue**
-    Issue: Verify Meeting Transcripts section on the meetings dashboard.
-    Frontend files to check: 
-    Action to take: 
-    1. Find the correct route for the meetings dashboard (check  for  or ).
-    2. Navigate to that page using .
-    3. Ensure the newly added Transcripts section sits correctly on the right side below Quick Stats. 
-    4. Ensure yarn run v1.22.22
-$ node tools/generate-llms.js || true && vite build
-vite v4.5.14 building for production...
-transforming...
-✓ 5418 modules transformed.
-rendering chunks...
-computing gzip size...
-dist/index.html                                            13.38 kB │ gzip:   4.16 kB
-dist/assets/TranscriptionDetailPage-7cde57e0.css            0.44 kB │ gzip:   0.28 kB
-dist/assets/VoiceChatPage-5cf167f9.css                      1.42 kB │ gzip:   0.57 kB
-dist/assets/AnimatedHeroBackground-6476a80d.css             1.86 kB │ gzip:   0.53 kB
-dist/assets/TextLayer-201afb46.css                          9.39 kB │ gzip:   2.02 kB
-dist/assets/SheetsSection-c8d67809.css                     50.29 kB │ gzip:   8.46 kB
-dist/assets/index-84be515c.css                            291.35 kB │ gzip:  38.70 kB
-dist/assets/IntegrationsPage-58b8d765.js                    0.16 kB │ gzip:   0.15 kB
-dist/assets/APISettingsPage-58b8d765.js                     0.16 kB │ gzip:   0.15 kB
-dist/assets/contactConfig-9baff9d3.js                       0.18 kB │ gzip:   0.17 kB
-dist/assets/endOfMonth-6d021c92.js                          0.19 kB │ gzip:   0.17 kB
-dist/assets/addDays-b6701fe4.js                             0.19 kB │ gzip:   0.17 kB
-dist/assets/useAuth-a1d808c6.js                             0.21 kB │ gzip:   0.19 kB
-dist/assets/setMinutes-2b97a97a.js                          0.21 kB │ gzip:   0.16 kB
-dist/assets/skeleton-7d9028e0.js                            0.23 kB │ gzip:   0.19 kB
-dist/assets/useAdminSettings-35024783.js                    0.37 kB │ gzip:   0.26 kB
-dist/assets/notificationGenerators-17597141.js              0.59 kB │ gzip:   0.36 kB
-dist/assets/adminBillingDataService-beee70fb.js             0.61 kB │ gzip:   0.37 kB
-dist/assets/textarea-5c5ac0d2.js                            0.66 kB │ gzip:   0.39 kB
-dist/assets/useSupportTickets-2d735388.js                   0.71 kB │ gzip:   0.43 kB
-dist/assets/separator-3a5f26f3.js                           0.77 kB │ gzip:   0.45 kB
-dist/assets/AdminContent-1ffd9665.js                        0.99 kB │ gzip:   0.50 kB
-dist/assets/BreadcrumbNav-95acdb83.js                       1.09 kB │ gzip:   0.56 kB
-dist/assets/subMonths-50f3a823.js                           1.11 kB │ gzip:   0.50 kB
-dist/assets/SettingsStatusBadge-5a762fa7.js                 1.26 kB │ gzip:   0.65 kB
-dist/assets/StatsSection-f1034a9b.js                        1.27 kB │ gzip:   0.68 kB
-dist/assets/useTranscriptionHistory-4e0322b4.js             1.37 kB │ gzip:   0.59 kB
-dist/assets/demoUsers-c2706dc7.js                           1.38 kB │ gzip:   0.35 kB
-dist/assets/initializeDemoMessages-66ac7fa4.js              1.42 kB │ gzip:   0.65 kB
-dist/assets/CTASection-96bb699c.js                          1.49 kB │ gzip:   0.78 kB
-dist/assets/NotFound-b56dd327.js                            1.52 kB │ gzip:   0.70 kB
-dist/assets/table-af702724.js                               1.56 kB │ gzip:   0.55 kB
-dist/assets/modal-3940cd62.js                               1.59 kB │ gzip:   0.77 kB
-dist/assets/AdminIntegrationLogs-e8a54dbd.js                1.59 kB │ gzip:   0.81 kB
-dist/assets/AdminAPILogs-8ac2778e.js                        1.60 kB │ gzip:   0.82 kB
-dist/assets/FeatureVoiceChatPage-ad5cfdaa.js                1.64 kB │ gzip:   0.86 kB
-dist/assets/FeatureChatMessagingPage-bdc4a84c.js            1.65 kB │ gzip:   0.85 kB
-dist/assets/FeatureFileManagementPage-4ca8408a.js           1.65 kB │ gzip:   0.85 kB
-dist/assets/DownloadsIndex-577d8c13.js                      1.70 kB │ gzip:   0.80 kB
-dist/assets/FeatureTeamsPage-9bb33b36.js                    1.72 kB │ gzip:   0.86 kB
-dist/assets/paymentTransactionService-fa48edfc.js           1.74 kB │ gzip:   0.89 kB
-dist/assets/FeatureVideoConferencingPage-81bdf92e.js        1.75 kB │ gzip:   0.88 kB
-dist/assets/FeatureMeetingsPage-f0aeeb1a.js                 1.76 kB │ gzip:   0.86 kB
-dist/assets/BaseModal-21f36490.js                           1.76 kB │ gzip:   0.85 kB
-dist/assets/FeatureSearchPage-07ce3e5b.js                   1.77 kB │ gzip:   0.89 kB
-dist/assets/useVideoCall-574f090d.js                        1.80 kB │ gzip:   0.81 kB
-dist/assets/FeatureTranscriptionsPage-2d2a584f.js           1.80 kB │ gzip:   0.92 kB
-dist/assets/FeatureCalendarIntegrationPage-6c85178f.js      1.86 kB │ gzip:   0.93 kB
-dist/assets/FeatureShiftsPage-8f71b879.js                   1.87 kB │ gzip:   0.91 kB
-dist/assets/FeatureNotificationsPage-d23c2f50.js            1.88 kB │ gzip:   0.93 kB
-dist/assets/FeatureIRSORPage-31b69e25.js                    1.89 kB │ gzip:   0.91 kB
-dist/assets/MobileApp-6fb28979.js                           1.92 kB │ gzip:   0.91 kB
-dist/assets/FeatureESignaturePage-f2b2bb9e.js               1.92 kB │ gzip:   0.92 kB
-dist/assets/FeatureVideoCallsPage-870462ea.js               1.92 kB │ gzip:   0.97 kB
-dist/assets/DesktopApp-5f17eb09.js                          1.96 kB │ gzip:   0.92 kB
-dist/assets/ScreenShareManager-e39b687d.js                  1.97 kB │ gzip:   0.91 kB
-dist/assets/adminUserDataService-38b743ba.js                1.98 kB │ gzip:   0.77 kB
-dist/assets/FeatureApprovalsPage-77fe295d.js                2.02 kB │ gzip:   0.98 kB
-dist/assets/PageSection-803fcc7e.js                         2.04 kB │ gzip:   0.96 kB
-dist/assets/AnimatedHeroBackground-e7b37844.js              2.07 kB │ gzip:   0.76 kB
-dist/assets/AdminSettingsPersistenceTest-1a6c48f1.js        2.22 kB │ gzip:   1.02 kB
-dist/assets/index-2ea3e46d.js                               2.25 kB │ gzip:   1.01 kB
-dist/assets/adminService-3665fe7a.js                        2.27 kB │ gzip:   1.08 kB
-dist/assets/ChromeExtension-0e5574c7.js                     2.31 kB │ gzip:   0.99 kB
-dist/assets/formatDistanceToNow-04185b5a.js                 2.34 kB │ gzip:   0.95 kB
-dist/assets/TranscriptionPage-08d05c7b.js                   2.49 kB │ gzip:   1.11 kB
-dist/assets/switch-16a7dba7.js                              2.54 kB │ gzip:   1.27 kB
-dist/assets/ProcessingStatus-c6d89836.js                    2.58 kB │ gzip:   1.13 kB
-dist/assets/AdminTable-88b94f20.js                          2.65 kB │ gzip:   0.97 kB
-dist/assets/parseISO-5f589159.js                            2.74 kB │ gzip:   1.24 kB
-dist/assets/uploadFileService-4261587c.js                   2.75 kB │ gzip:   1.24 kB
-dist/assets/CallRingtoneSettings-94e0bbdf.js                2.75 kB │ gzip:   1.09 kB
-dist/assets/PasswordResetPage-05625695.js                   2.75 kB │ gzip:   1.25 kB
-dist/assets/PasswordUpdatePage-1e246a9f.js                  2.80 kB │ gzip:   1.26 kB
-dist/assets/PaymentSuccessPage-91d8cc80.js                  2.89 kB │ gzip:   1.23 kB
-dist/assets/paymentAnalyticsService-c2bc54b8.js             2.96 kB │ gzip:   1.29 kB
-dist/assets/paymentGatewayService-942ae68b.js               3.24 kB │ gzip:   1.26 kB
-dist/assets/Education-55c5d15f.js                           3.28 kB │ gzip:   1.58 kB
-dist/assets/Legal-8652d740.js                               3.31 kB │ gzip:   1.66 kB
-dist/assets/CustomerSuccess-a1dc8e93.js                     3.35 kB │ gzip:   1.67 kB
-dist/assets/ProductTeams-b655f503.js                        3.39 kB │ gzip:   1.67 kB
-dist/assets/Government-f0ec96be.js                          3.41 kB │ gzip:   1.71 kB
-dist/assets/BenefitsSection-1d05c225.js                     3.42 kB │ gzip:   1.37 kB
-dist/assets/Healthcare-ccd8c0fd.js                          3.43 kB │ gzip:   1.76 kB
-dist/assets/Finance-7cd2beb6.js                             3.44 kB │ gzip:   1.70 kB
-dist/assets/SalesTeams-4fa49ac7.js                          3.49 kB │ gzip:   1.83 kB
-dist/assets/NewTranscriptionPage-9f2335ac.js                3.50 kB │ gzip:   1.47 kB
-dist/assets/supportTicketService-a8e3c2e4.js                3.55 kB │ gzip:   1.16 kB
-dist/assets/EngineeringTeams-9d4ea1e6.js                    3.58 kB │ gzip:   1.74 kB
-dist/assets/HRRecruiting-49c19619.js                        3.60 kB │ gzip:   1.80 kB
-dist/assets/avatar-4b3f23cf.js                              3.62 kB │ gzip:   1.60 kB
-dist/assets/Pricing-82c635ea.js                             3.73 kB │ gzip:   1.01 kB
-dist/assets/SharedMeetingPage-bab6d0a1.js                   3.81 kB │ gzip:   1.40 kB
-dist/assets/OTPLoginPage-5b7f8267.js                        3.82 kB │ gzip:   1.61 kB
-dist/assets/AdminUsers-a11c0018.js                          3.87 kB │ gzip:   1.38 kB
-dist/assets/meetingService-f4b46c42.js                      3.88 kB │ gzip:   1.58 kB
-dist/assets/paymentUIService-2d4a8c73.js                    4.03 kB │ gzip:   1.67 kB
-dist/assets/adminMessageService-fdd72a82.js                 4.11 kB │ gzip:   1.37 kB
-dist/assets/AdminTicketsPage-b1f72dd9.js                    4.12 kB │ gzip:   1.46 kB
-dist/assets/TranscriptionManagementPage-4f5e10dc.js         4.21 kB │ gzip:   1.59 kB
-dist/assets/AdminLayout-6a29a20a.js                         4.32 kB │ gzip:   1.44 kB
-dist/assets/AdminProfile-cf29dfb4.js                        4.33 kB │ gzip:   1.25 kB
-dist/assets/WorkspaceCard-f6066bc3.js                       4.38 kB │ gzip:   1.61 kB
-dist/assets/APIKeyConfigurationPage-b81cbcbd.js             4.39 kB │ gzip:   1.78 kB
-dist/assets/MeetingListPage-b83854b6.js                     4.41 kB │ gzip:   1.61 kB
-dist/assets/AdminAnalytics-620ca140.js                      4.52 kB │ gzip:   1.28 kB
-dist/assets/Contact-f6d511e6.js                             4.62 kB │ gzip:   1.42 kB
-dist/assets/fileValidation-93d36a90.js                      4.62 kB │ gzip:   1.81 kB
-dist/assets/accordion-4042b7dd.js                           4.65 kB │ gzip:   1.86 kB
-dist/assets/alert-dialog-9bb3093e.js                        4.86 kB │ gzip:   1.77 kB
-dist/assets/subscriptionPlans-3a8a9362.js                   4.93 kB │ gzip:   1.20 kB
-dist/assets/SharedRecordingPage-b2c13017.js                 4.98 kB │ gzip:   1.77 kB
-dist/assets/progress-93f7be36.js                            5.17 kB │ gzip:   2.28 kB
-dist/assets/PricingSection-1db4eaad.js                      5.18 kB │ gzip:   1.95 kB
-dist/assets/UserBillingPage-3c159d0b.js                     5.44 kB │ gzip:   1.94 kB
-dist/assets/SupportPage-ce45d46b.js                         5.52 kB │ gzip:   1.89 kB
-dist/assets/UserSupportTicketDetailPage-c58cef65.js         5.74 kB │ gzip:   2.01 kB
-dist/assets/AdminTranscriptionSettingsPage-e0727fcc.js      5.88 kB │ gzip:   2.12 kB
-dist/assets/VerifyEmailPage-cefa6861.js                     5.92 kB │ gzip:   2.31 kB
-dist/assets/PaymentPage-036bfb82.js                         5.93 kB │ gzip:   2.31 kB
-dist/assets/HelpPage-8683bfae.js                            6.03 kB │ gzip:   1.87 kB
-dist/assets/UserProfilePage-58395cfd.js                     6.23 kB │ gzip:   2.04 kB
-dist/assets/HowItWorksSection-b5669d68.js                   6.43 kB │ gzip:   2.34 kB
-dist/assets/UserPaymentMethodsPage-451a4816.js              6.49 kB │ gzip:   2.35 kB
-dist/assets/ReportManagementPage-33c5f773.js                6.57 kB │ gzip:   2.56 kB
-dist/assets/transcriptionService-f4ab0212.js                6.76 kB │ gzip:   2.51 kB
-dist/assets/AdminIntegrationsPage-7f6b2d49.js               6.93 kB │ gzip:   2.29 kB
-dist/assets/AdminMeetingAnalytics-264eaacf.js               7.22 kB │ gzip:   2.08 kB
-dist/assets/UserWorkspace-b955fa59.js                       7.37 kB │ gzip:   2.46 kB
-dist/assets/TestimonialsSection-72f3856a.js                 7.37 kB │ gzip:   3.00 kB
-dist/assets/UserSupportTicketsPage-51f60b76.js              7.43 kB │ gzip:   2.43 kB
-dist/assets/NotificationBell-5c188430.js                    7.46 kB │ gzip:   2.47 kB
-dist/assets/AdminAuditLogsPage-d1f0a585.js                  7.54 kB │ gzip:   2.65 kB
-dist/assets/UserPaymentCheckoutPage-1b7bb066.js             7.76 kB │ gzip:   2.11 kB
-dist/assets/AdminVideoSettingsPage-66c13fc2.js              7.90 kB │ gzip:   2.45 kB
-dist/assets/AnalyticsDashboardPage-381e5256.js              7.99 kB │ gzip:   2.64 kB
-dist/assets/FeatureAnalyticsPage-b0990621.js                8.00 kB │ gzip:   2.68 kB
-dist/assets/AdminSystemUpdatesPage-df87099c.js              8.32 kB │ gzip:   2.69 kB
-dist/assets/Roadmap-e9b8c6ab.js                             8.38 kB │ gzip:   2.96 kB
-dist/assets/slider-9da87007.js                              8.40 kB │ gzip:   3.41 kB
-dist/assets/UserCouponsPage-ae6c2f6d.js                     8.45 kB │ gzip:   2.26 kB
-dist/assets/AdminVideoHistoryPage-614fb656.js               8.47 kB │ gzip:   2.68 kB
-dist/assets/VideoCallPage-d08b4fd2.js                       8.49 kB │ gzip:   2.68 kB
-dist/assets/AdminMonitoringDashboard-da3e6bf5.js            8.60 kB │ gzip:   1.99 kB
-dist/assets/FeatureDashboardPage-dae1f707.js                8.66 kB │ gzip:   2.85 kB
-dist/assets/FeaturePageLayout-9c974434.js                   8.67 kB │ gzip:   2.36 kB
-dist/assets/AdminPDFTemplatesPage-267e1fc4.js               8.78 kB │ gzip:   2.92 kB
-dist/assets/UserPaymentHistoryPage-6317309e.js              8.86 kB │ gzip:   2.75 kB
-dist/assets/TextToAudioPage-02e8feb2.js                     9.15 kB │ gzip:   3.24 kB
-dist/assets/Careers-e73b15c4.js                             9.19 kB │ gzip:   2.93 kB
-dist/assets/AdminTransactionsPage-bbe43fcb.js               9.39 kB │ gzip:   2.69 kB
-dist/assets/AdminDataHealthPage-76cdf5ff.js                 9.43 kB │ gzip:   2.61 kB
-dist/assets/UserTransactionsPage-4cc80b66.js                9.46 kB │ gzip:   2.78 kB
-dist/assets/UseCasesIndex-caa9772a.js                       9.50 kB │ gzip:   3.21 kB
-dist/assets/ChatMessagesPage-e469588b.js                    9.50 kB │ gzip:   3.24 kB
-dist/assets/Documentation-d48bc764.js                       9.59 kB │ gzip:   3.03 kB
-dist/assets/CheckoutPage-b722112e.js                        9.65 kB │ gzip:   3.43 kB
-dist/assets/AdminAPISettingsPage-537806ee.js                9.95 kB │ gzip:   2.67 kB
-dist/assets/sharingService-efe57a07.js                     10.05 kB │ gzip:   3.38 kB
-dist/assets/ResourcesIndex-92d51a30.js                     10.27 kB │ gzip:   3.17 kB
-dist/assets/AdminModulePermissionsPage-25a2b2db.js         10.54 kB │ gzip:   3.57 kB
-dist/assets/AdminReports-20edfcf4.js                       10.68 kB │ gzip:   3.20 kB
-dist/assets/TranscriptDisplay-4ce54996.js                  10.70 kB │ gzip:   3.61 kB
-dist/assets/ContactFormPage-3460ff72.js                    10.76 kB │ gzip:   3.68 kB
-dist/assets/AdminStripeSettingsPage-afb1ee4b.js            10.86 kB │ gzip:   3.47 kB
-dist/assets/AdminWorkspace-8476ff0a.js                     10.87 kB │ gzip:   3.01 kB
-dist/assets/SummarizationPage-382addb7.js                  10.92 kB │ gzip:   3.98 kB
-dist/assets/RecentChatsPage-52394e67.js                    10.96 kB │ gzip:   3.87 kB
-dist/assets/Press-b39039e1.js                              10.97 kB │ gzip:   3.34 kB
-dist/assets/APIReference-386e3441.js                       10.99 kB │ gzip:   3.26 kB
-dist/assets/AdminWorkspacesPage-e34e68e3.js                11.08 kB │ gzip:   3.15 kB
-dist/assets/Terms-35e176ea.js                              11.28 kB │ gzip:   4.05 kB
-dist/assets/Admin2FADashboardPage-12ef9655.js              11.40 kB │ gzip:   3.08 kB
-dist/assets/AdminTaxRatesPage-43fb40dc.js                  11.43 kB │ gzip:   3.41 kB
-dist/assets/AdminPlansPage-9e5e1952.js                     11.45 kB │ gzip:   3.10 kB
-dist/assets/MeetingCalendarPage-3eb3f660.js                11.64 kB │ gzip:   3.87 kB
-dist/assets/TimeClockReportsPage-eca48489.js               11.75 kB │ gzip:   3.60 kB
-dist/assets/AdminIRTemplatesPage-c573e99d.js               11.75 kB │ gzip:   3.75 kB
-dist/assets/AdminSupportTicketsPage-43d436a4.js            11.83 kB │ gzip:   3.43 kB
-dist/assets/UseCasePageLayout-972266e6.js                  12.37 kB │ gzip:   3.19 kB
-dist/assets/AdminCloudStoragePage-ee490bb6.js              12.38 kB │ gzip:   3.43 kB
-dist/assets/AdminApprovalTemplatesPage-cc609a59.js         12.38 kB │ gzip:   3.70 kB
-dist/assets/AddUserModal-a52cad8f.js                       12.95 kB │ gzip:   3.80 kB
-dist/assets/FeatureOverviewPage-68ed95d7.js                13.05 kB │ gzip:   4.19 kB
-dist/assets/AdminCouponsPage-ce18b798.js                   13.10 kB │ gzip:   3.63 kB
-dist/assets/MeetingProcessingPage-28217173.js              13.32 kB │ gzip:   3.45 kB
-dist/assets/Security-d228abd8.js                           13.50 kB │ gzip:   4.33 kB
-dist/assets/TranscriptionHistoryPage-1f35aed3.js           13.75 kB │ gzip:   4.33 kB
-dist/assets/About-ea44283b.js                              13.83 kB │ gzip:   3.96 kB
-dist/assets/AdminSettings-af7c81d4.js                      14.00 kB │ gzip:   4.25 kB
-dist/assets/Community-f0b7ff73.js                          14.11 kB │ gzip:   3.90 kB
-dist/assets/AdminChatModerationPage-99d9b11b.js            14.28 kB │ gzip:   3.52 kB
-dist/assets/MeetingCallPage-a347fb66.js                    14.87 kB │ gzip:   4.28 kB
-dist/assets/ManageCookies-48e438d8.js                      15.03 kB │ gzip:   5.26 kB
-dist/assets/AdminBroadcastsPage-a822fa64.js                15.53 kB │ gzip:   3.85 kB
-dist/assets/PricingPage-12ca8c37.js                        15.58 kB │ gzip:   4.59 kB
-dist/assets/AdminPaymentGatewaysPage-e3322ede.js           15.62 kB │ gzip:   3.94 kB
-dist/assets/DocHubPage-19c73995.js                         15.67 kB │ gzip:   5.06 kB
-dist/assets/AdminWorkspaceDetailPage-7512ca2e.js           15.86 kB │ gzip:   4.10 kB
-dist/assets/UserPlansPage-fc3db750.js                      15.87 kB │ gzip:   4.21 kB
-dist/assets/MeetingDetailPage-3bcf5e83.js                  16.49 kB │ gzip:   5.58 kB
-dist/assets/Privacy-177e13d2.js                            17.12 kB │ gzip:   5.91 kB
-dist/assets/Trademarks-6d001c9e.js                         17.42 kB │ gzip:   5.86 kB
-dist/assets/AdminMessagesPage-8b190cbb.js                  17.52 kB │ gzip:   4.94 kB
-dist/assets/AdminBillingPage-6c1e9f23.js                   17.73 kB │ gzip:   4.91 kB
-dist/assets/WorkspacesPage-f690da54.js                     18.04 kB │ gzip:   5.37 kB
-dist/assets/Blog-fdb2b74f.js                               18.15 kB │ gzip:   5.68 kB
-dist/assets/AdminSystemHealthPage-d62d5ffb.js              18.26 kB │ gzip:   5.25 kB
-dist/assets/AdminFormsPage-b2410bc6.js                     18.61 kB │ gzip:   4.72 kB
-dist/assets/VideoConferencingPage-c1bd3a17.js              18.70 kB │ gzip:   4.69 kB
-dist/assets/AdminOrganizationsPage-9fc6262f.js             18.96 kB │ gzip:   4.19 kB
-dist/assets/AdminSecurityPolicies-92c96974.js              19.03 kB │ gzip:   4.82 kB
-dist/assets/OrgDashboardPage-c574a53f.js                   19.34 kB │ gzip:   4.80 kB
-dist/assets/TextToVideoPage-3a4076fd.js                    19.52 kB │ gzip:   5.67 kB
-dist/assets/VoiceChatPage-54596386.js                      19.96 kB │ gzip:   6.29 kB
-dist/assets/CalendarPage-6ab6fd33.js                       20.14 kB │ gzip:   5.94 kB
-dist/assets/select-879d8875.js                             20.80 kB │ gzip:   7.31 kB
-dist/assets/MeetingRoomPage-2cfee57c.js                    20.88 kB │ gzip:   4.97 kB
-dist/assets/dropdown-menu-970e8517.js                      21.06 kB │ gzip:   6.13 kB
-dist/assets/purify.es-4f2d013f.js                          22.03 kB │ gzip:   8.77 kB
-dist/assets/AdminShiftsPage-ceb7a7de.js                    23.35 kB │ gzip:   5.02 kB
-dist/assets/AdminHeader-440743b3.js                        23.69 kB │ gzip:   6.17 kB
-dist/assets/MessageSettingsPage-f0f3b0bd.js                24.07 kB │ gzip:   5.19 kB
-dist/assets/SecurityPage-50703a66.js                       24.17 kB │ gzip:   8.63 kB
-dist/assets/FileManagementPage-bf34a395.js                 26.40 kB │ gzip:   7.34 kB
-dist/assets/AdvancedVideoCallInterface-52b6f4ad.js         26.55 kB │ gzip:   7.77 kB
-dist/assets/InstantMeetingRoom-e4be8255.js                 26.78 kB │ gzip:   7.76 kB
-dist/assets/jspdf.plugin.autotable-7a30d5a0.js             31.08 kB │ gzip:   9.91 kB
-dist/assets/AdminDashboard-1794b526.js                     31.62 kB │ gzip:   7.95 kB
-dist/assets/QuickRecordPage-9c0ccaa4.js                    33.50 kB │ gzip:   8.76 kB
-dist/assets/UserSettingsPage-f56925c9.js                   37.50 kB │ gzip:   9.08 kB
-dist/assets/UserLayout-d7a34bb1.js                         37.72 kB │ gzip:   9.72 kB
-dist/assets/AdminUserManagementPage-6442c02e.js            38.75 kB │ gzip:  10.09 kB
-dist/assets/MessagesPage-87997639.js                       44.29 kB │ gzip:   9.95 kB
-dist/assets/ReportsPage-4f37cff4.js                        45.02 kB │ gzip:  11.25 kB
-dist/assets/UserDashboard-8a554b97.js                      45.92 kB │ gzip:  12.00 kB
-dist/assets/TranscriptionDetailPage-02328073.js            46.10 kB │ gzip:  11.85 kB
-dist/assets/MeetingsPage-3b084c13.js                       48.33 kB │ gzip:  12.89 kB
-dist/assets/ShiftManagementPage-44e790c5.js                50.42 kB │ gzip:  12.04 kB
-dist/assets/ApprovalsPage-8076dcf9.js                      54.15 kB │ gzip:  12.42 kB
-dist/assets/ESignaturePage-22a55310.js                     70.48 kB │ gzip:  16.71 kB
-dist/assets/WorkspaceChatPage-54c70975.js                  78.25 kB │ gzip:  20.82 kB
-dist/assets/WorkspaceDetailPage-19ee687b.js                84.45 kB │ gzip:  19.20 kB
-dist/assets/index.es-6d128b82.js                          150.68 kB │ gzip:  51.57 kB
-dist/assets/vendor-react-e7411a69.js                      180.08 kB │ gzip:  59.11 kB
-dist/assets/html2canvas.esm-e0a7d97b.js                   201.43 kB │ gzip:  48.04 kB
-dist/assets/vendor-ui-ca5f1101.js                         237.70 kB │ gzip:  61.00 kB
-dist/assets/index-f6d79c21.js                             326.39 kB │ gzip:  93.30 kB
-dist/assets/jspdf.es.min-df00f268.js                      357.70 kB │ gzip: 117.98 kB
-dist/assets/vendor-charts-bf7b6caa.js                     408.20 kB │ gzip: 118.23 kB
-dist/assets/xlsx-6ed613d4.js                              429.67 kB │ gzip: 143.27 kB
-dist/assets/PDFEditorPage-71d5c3f8.js                     454.39 kB │ gzip: 185.44 kB
-dist/assets/index-05357a46.js                             461.01 kB │ gzip: 130.04 kB
-dist/assets/TextLayer-5bd2335d.js                         469.01 kB │ gzip: 138.78 kB
-dist/assets/AIChatPage-bdd2718c.js                        814.81 kB │ gzip: 279.33 kB
-dist/assets/SheetsSection-6ce194dd.js                   2,442.69 kB │ gzip: 609.09 kB
-✓ built in 27.40s
-Done in 28.82s. was executed so static files reflect the latest React changes.</analysis>
+    Issue: Implement Welcome Email with 2FA reminder on registration.
+    Backend files to check:  (Line ~218: )
+    Action:
+    1. Import  and  in .
+    2. Inside , after the user is saved to DB, construct the email HTML.
+    3. Use .
+    4. Register a dummy account via  to test the backend logic.</analysis>

@@ -12,6 +12,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Welcome Email on Registration — April 15, 2026
+- Sends branded "Welcome to Munal AI" email via Resend to every new user on registration
+- Includes 2FA activation reminder (Settings → Security)
+- Fire-and-forget (non-blocking) — won't break registration if email fails
+- Backend: `send_welcome_email()` in `/app/backend/routes/auth.py`
+- Testing: Verified via curl — Resend returns success IDs
+
 ### AI Features Hub (5 AI Capabilities) — April 8, 2026
 1. **AI Smart Search**: Natural language search across meetings, transcripts, documents, sheets, and chats with AI-generated answers
 2. **AI Document Summarizer**: Upload any PDF and get instant summary, key points extraction, or Q&A on the document

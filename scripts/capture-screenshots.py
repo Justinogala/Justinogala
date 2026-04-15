@@ -3,7 +3,7 @@
 import asyncio
 from playwright.async_api import async_playwright
 
-APP_URL = "https://transcript-dash.preview.emergentagent.com"
+APP_URL = "https://new-user-welcome-2.preview.emergentagent.com"
 RAW_DIR = "/app/store-assets/screenshots/raw"
 
 import os

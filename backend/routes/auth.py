@@ -166,6 +166,60 @@ async def send_verification_email(email: str, code: str, user_name: str, max_ret
     logger.error(f"Failed to send verification email to {email} after {max_retries} retries: {last_error}")
     raise last_error
 
+async def send_welcome_email(email: str, user_name: str):
+    """Send welcome email with 2FA activation reminder to new users"""
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="text-align: center; padding: 30px 0 20px;">
+            <h1 style="color: #7c3aed; margin: 0; font-size: 28px;">Munal AI</h1>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Workforce Management Platform</p>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-radius: 12px; padding: 32px; margin: 20px 0;">
+            <h2 style="color: #1f2937; margin-top: 0; font-size: 22px;">Welcome aboard, {user_name or "there"}!</h2>
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">
+                We're thrilled to have you on <strong>Munal AI</strong> &mdash; your all-in-one AI-powered workspace for meetings, collaboration, and productivity.
+            </p>
+
+            <p style="color: #4b5563; font-size: 15px; line-height: 1.6;">Here's what you can do right away:</p>
+            <ul style="color: #4b5563; font-size: 15px; line-height: 1.8; padding-left: 20px;">
+                <li>Schedule and auto-transcribe meetings with AI insights</li>
+                <li>Collaborate in real-time with Smart Spreadsheets</li>
+                <li>Use the AI Hub for smart search, summaries &amp; agendas</li>
+            </ul>
+
+            <div style="background-color: #ffffff; border-left: 4px solid #7c3aed; border-radius: 8px; padding: 20px; margin: 24px 0;">
+                <h3 style="color: #7c3aed; margin-top: 0; font-size: 16px;">Activate Two-Factor Authentication (2FA)</h3>
+                <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin-bottom: 0;">
+                    For your security, we strongly recommend enabling <strong>2FA</strong> on your next login. Head to
+                    <strong>Settings &rarr; Security</strong> to set it up in under a minute. It adds a powerful extra layer of protection to your account.
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px;">&copy; 2026 Munal AI. All rights reserved.</p>
+        </div>
+    </div>
+    """
+
+    params = {
+        "from": f"Munal AI <{SENDER_EMAIL}>",
+        "to": [email],
+        "subject": "Welcome to Munal AI! Activate 2FA for Better Security",
+        "html": html_content,
+        "reply_to": SENDER_EMAIL
+    }
+
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Welcome email sent to {email}, result: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send welcome email to {email}: {e}")
+        # Non-critical — don't raise, just log
+
+
 async def send_password_reset_email(email: str, temp_password: str, user_name: str):
     """Send password reset email with temporary password"""
     html_content = f"""
@@ -281,6 +335,9 @@ async def register_user(request: Request, user: UserCreate, invite_token: Option
     }
     
     await db.users.insert_one(user_doc)
+    
+    # Send welcome email (fire-and-forget — don't block registration)
+    asyncio.ensure_future(send_welcome_email(email, name))
     
     # Generate tokens
     token = create_jwt_token(user_id, email, user.role)
