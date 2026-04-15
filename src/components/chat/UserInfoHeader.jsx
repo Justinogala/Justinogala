@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import OnlineStatus from './OnlineStatus';
 import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ const UserInfoHeader = ({ user, isOnline }) => {
       <div className="flex items-center gap-3">
         <div className="relative">
           <Avatar className="h-9 w-9 ring-2 ring-white dark:ring-slate-900">
+            <AvatarImage src={user.avatar} />
             <AvatarFallback className={`${user.avatarColor || 'bg-slate-200'} text-white font-medium text-xs`}>
               {user.initials || user.name?.charAt(0)}
             </AvatarFallback>

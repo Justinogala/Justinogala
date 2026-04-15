@@ -27,6 +27,7 @@ const UserListSidebar = ({ users, selectedUserId, onSelectUser }) => {
             >
               <div className="relative">
                 <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-900 shadow-sm">
+                  <AvatarImage src={user.avatar} />
                   <AvatarFallback className={cn("text-white font-medium text-xs", user.avatarColor)}>
                     {user.initials}
                   </AvatarFallback>

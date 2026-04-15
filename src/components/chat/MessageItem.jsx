@@ -26,6 +26,7 @@ const MessageItem = ({ message, onMarkRead }) => {
           name={message.senderName} 
           email={message.senderEmail} 
           colorClass={message.avatarColor}
+          avatarUrl={message.senderAvatar}
         />
       </div>
 

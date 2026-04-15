@@ -54,6 +54,8 @@ const UserProfilePage = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
       setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
+      // Update auth context so sidebar/header reflect immediately
+      await updateProfile({ avatar: data.avatar_url });
       toast({ title: 'Photo uploaded', description: 'Your profile picture has been updated.' });
     } catch (err) {
       toast({ variant: 'destructive', title: 'Upload failed', description: err.message });

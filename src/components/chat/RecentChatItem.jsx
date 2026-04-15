@@ -40,6 +40,7 @@ const RecentChatItem = ({ chat, isActive, onClick, onArchive, onDelete }) => {
           name={user.name} 
           email={user.email} 
           colorClass={user.avatarColor}
+          avatarUrl={user.avatar}
           className="h-12 w-12 border-2 border-white dark:border-slate-800 shadow-sm"
         />
         <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-slate-800 rounded-full p-0.5">

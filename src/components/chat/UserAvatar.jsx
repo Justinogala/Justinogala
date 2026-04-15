@@ -3,7 +3,7 @@ import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
-const UserAvatar = ({ name, email, colorClass, size = 'default', className }) => {
+const UserAvatar = ({ name, email, colorClass, size = 'default', className, avatarUrl }) => {
   const getInitials = (name) => {
     if (!name) return '??';
     return name
@@ -42,7 +42,7 @@ const UserAvatar = ({ name, email, colorClass, size = 'default', className }) =>
 
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
-      <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${name}`} alt={name} />
+      {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
       <AvatarFallback className={cn("text-white font-medium", finalColor)}>
         {getInitials(name)}
       </AvatarFallback>

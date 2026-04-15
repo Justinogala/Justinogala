@@ -119,7 +119,7 @@ const WorkspaceChatPage = () => {
             email: m.user?.email || '',
             initials: m.user?.name?.charAt(0)?.toUpperCase() || m.user?.email?.charAt(0)?.toUpperCase() || '?',
             role: m.role,
-            avatar_url: m.user?.avatar_url
+            avatar: m.user?.avatar
           }));
         
         console.log('[Chat] Loaded workspace members:', workspaceUsers.length);
@@ -463,6 +463,7 @@ const WorkspaceChatPage = () => {
                   </Button>
                   <div className="relative">
                     <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-white dark:ring-slate-800 shadow-lg">
+                      <AvatarImage src={selectedUser.avatar} />
                       <AvatarFallback className={cn("text-white font-bold bg-gradient-to-br", getAvatarGradient(users.indexOf(selectedUser)))}>
                         {selectedUser.initials || selectedUser.name?.charAt(0)}
                       </AvatarFallback>
@@ -561,6 +562,7 @@ const WorkspaceChatPage = () => {
                         >
                           {!isMine && (
                             <Avatar className="h-8 w-8 mt-1">
+                              <AvatarImage src={sender?.avatar} />
                               <AvatarFallback className={cn("text-white text-xs font-bold bg-gradient-to-br", getAvatarGradient(users.indexOf(sender)))}>
                                 {sender?.initials || sender?.name?.charAt(0) || '?'}
                               </AvatarFallback>
@@ -751,6 +753,7 @@ const WorkspaceChatPage = () => {
                           className="flex gap-3 items-center"
                         >
                           <Avatar className="h-8 w-8">
+                            <AvatarImage src={selectedUser?.avatar} />
                             <AvatarFallback className={cn("text-white text-xs font-bold bg-gradient-to-br", getAvatarGradient(users.indexOf(selectedUser)))}>
                               {selectedUser?.initials || selectedUser?.name?.charAt(0)}
                             </AvatarFallback>
@@ -868,6 +871,7 @@ const UserItem = ({ user, index, isSelected, onClick, gradient }) => (
   >
     <div className="relative">
       <Avatar className="h-11 w-11 ring-2 ring-white dark:ring-slate-900 shadow-sm">
+        <AvatarImage src={user.avatar} />
         <AvatarFallback className={cn("text-white font-bold bg-gradient-to-br", gradient)}>
           {user.initials || user.name?.charAt(0)}
         </AvatarFallback>
