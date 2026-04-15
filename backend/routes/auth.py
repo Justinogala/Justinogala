@@ -13,6 +13,7 @@ import asyncio
 import resend
 import random
 import bcrypt
+import os
 from services.audit import log_audit_event, get_client_ip
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, SENDER_EMAIL, logger
@@ -168,10 +169,11 @@ async def send_verification_email(email: str, code: str, user_name: str, max_ret
 
 async def send_welcome_email(email: str, user_name: str):
     """Send welcome email with 2FA activation reminder to new users"""
+    logo_url = os.environ.get("FRONTEND_URL", "https://munal.ai").rstrip("/") + "/api/static/munal-logo.png"
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <div style="text-align: center; padding: 30px 0 20px;">
-            <h1 style="color: #7c3aed; margin: 0; font-size: 28px;">Munal AI</h1>
+            <img src="{logo_url}" alt="Munal AI" style="height: 56px; width: auto; margin-bottom: 8px;" />
             <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Workforce Management Platform</p>
         </div>
 
