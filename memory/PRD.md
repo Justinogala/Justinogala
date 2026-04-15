@@ -12,6 +12,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Profile Picture Upload — April 15, 2026
+- Users can upload profile pictures (JPEG, PNG, WebP, GIF up to 5MB) on the Profile Settings page
+- Click avatar in Edit mode to trigger file picker; uploaded to Emergent object storage
+- Backend: `POST /api/users/{user_id}/avatar` + `GET /api/users/{user_id}/avatar/image`
+- Frontend: Click-to-upload overlay with loading spinner on `UserProfilePage.jsx`
+- Testing: 93% backend (14/15), 100% frontend — Iteration 127
+
 ### Welcome Email on Registration — April 15, 2026
 - Sends branded "Welcome to Munal AI" email via Resend to every new user on registration
 - Includes 2FA activation reminder (Settings → Security)
