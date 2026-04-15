@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,17 +11,57 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Camera, Save, X, User as UserIcon } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 
+const API_URL = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '';
+
 const UserProfilePage = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef(null);
   
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: user?.full_name || user?.name || '',
     avatar_url: user?.avatar_url || user?.avatar || '',
     workplace_id: user?.workplace_id || 'default'
   });
+
+  const handleAvatarClick = () => {
+    if (isEditing && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: 'destructive', title: 'Invalid file', description: 'Please select an image file (JPEG, PNG, WebP, or GIF).' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be under 5 MB.' });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_URL}/api/users/${user.id}/avatar`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
+      toast({ title: 'Photo uploaded', description: 'Your profile picture has been updated.' });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Upload failed', description: err.message });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -82,10 +122,26 @@ const UserProfilePage = () => {
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[2px] z-20">
-                      <Camera className="text-white w-8 h-8" />
+                    <div
+                      data-testid="avatar-upload-overlay"
+                      onClick={handleAvatarClick}
+                      className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-[2px] z-20"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="text-white w-8 h-8 animate-spin" />
+                      ) : (
+                        <Camera className="text-white w-8 h-8" />
+                      )}
                     </div>
                   )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    data-testid="avatar-file-input"
+                  />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
                   {user.full_name || user.name || 'User'}

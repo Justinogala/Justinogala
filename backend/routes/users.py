@@ -1,18 +1,41 @@
 """
 User management routes.
 """
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 import bcrypt
+import os
+import requests
 
 from config import db, logger
 from models import UserCreate, UserUpdate, DEFAULT_PERMISSIONS
 
 router = APIRouter(prefix="/users", tags=["Users"])
 security = HTTPBearer(auto_error=False)
+
+# ============== Object Storage for Avatars ==============
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+_avatar_storage_key = None
+
+def _get_storage_key():
+    global _avatar_storage_key
+    if _avatar_storage_key:
+        return _avatar_storage_key
+    try:
+        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+        resp.raise_for_status()
+        _avatar_storage_key = resp.json()["storage_key"]
+        return _avatar_storage_key
+    except Exception as e:
+        logger.error(f"Avatar storage init failed: {e}")
+        return None
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 
@@ -146,6 +169,74 @@ async def update_user(user_id: str, user_update: UserUpdate):
     )
     
     return updated_user
+
+
+@router.post("/{user_id}/avatar")
+async def upload_avatar(user_id: str, file: UploadFile = File(...)):
+    """Upload or replace a user's profile picture"""
+    existing = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1})
+    if not existing:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, WebP or GIF images are allowed")
+
+    data = await file.read()
+    if len(data) > MAX_AVATAR_SIZE:
+        raise HTTPException(status_code=400, detail="Image must be under 5 MB")
+
+    key = _get_storage_key()
+    if not key:
+        raise HTTPException(status_code=503, detail="Storage service unavailable")
+
+    ext = file.filename.rsplit(".", 1)[-1] if "." in (file.filename or "") else "png"
+    storage_path = f"munal-echonote/avatars/{user_id}.{ext}"
+
+    try:
+        resp = requests.put(
+            f"{STORAGE_URL}/objects/{storage_path}",
+            headers={"X-Storage-Key": key, "Content-Type": file.content_type},
+            data=data, timeout=60,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.error(f"Avatar upload failed for {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload image")
+
+    avatar_url = f"/api/users/{user_id}/avatar/image"
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"avatar": avatar_url, "avatar_storage_path": storage_path, "updated_at": datetime.now(timezone.utc)}}
+    )
+
+    return {"success": True, "avatar_url": avatar_url}
+
+
+@router.get("/{user_id}/avatar/image")
+async def serve_avatar(user_id: str):
+    """Serve a user's avatar image from object storage"""
+    from fastapi.responses import Response as FastResponse
+    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "avatar_storage_path": 1})
+    if not user_doc or not user_doc.get("avatar_storage_path"):
+        raise HTTPException(status_code=404, detail="No avatar found")
+
+    key = _get_storage_key()
+    if not key:
+        raise HTTPException(status_code=503, detail="Storage unavailable")
+
+    try:
+        resp = requests.get(
+            f"{STORAGE_URL}/objects/{user_doc['avatar_storage_path']}",
+            headers={"X-Storage-Key": key}, timeout=30,
+        )
+        resp.raise_for_status()
+    except Exception:
+        raise HTTPException(status_code=404, detail="Avatar file not found")
+
+    ct = resp.headers.get("Content-Type", "image/png")
+    return FastResponse(content=resp.content, media_type=ct, headers={"Cache-Control": "public, max-age=3600"})
+
 
 @router.delete("/{user_id}")
 async def delete_user(user_id: str):
