@@ -17,7 +17,9 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Click avatar in Edit mode to trigger file picker; uploaded to Emergent object storage
 - Backend: `POST /api/users/{user_id}/avatar` + `GET /api/users/{user_id}/avatar/image`
 - Frontend: Click-to-upload overlay with loading spinner on `UserProfilePage.jsx`
-- Testing: 93% backend (14/15), 100% frontend — Iteration 127
+- **Avatar shown app-wide**: Header, sidebar footer, chat messages, user lists, meetings — 10+ components updated
+- Components: UserAvatar, UserHeader, UserSidebar, UserInfoHeader, UserListSidebar, MessageItem, RecentChatItem, MessageBubble, ConversationSidebar, WorkspaceChatPage, MemberTable, MeetingCard, MeetingDetailsPanel, AdminSidebar, AdminHeader, UserTableRow
+- Testing: 93% backend (Iteration 127), 100% frontend (Iteration 128)
 
 ### Welcome Email on Registration — April 15, 2026
 - Sends branded "Welcome to Munal AI" email via Resend to every new user on registration
