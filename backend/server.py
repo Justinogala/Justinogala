@@ -112,6 +112,24 @@ async def llms_full_txt():
     return Response(content="", media_type="text/plain")
 
 
+@app.get("/robots.txt")
+async def robots_txt():
+    """Robots.txt with AI crawler permissions"""
+    path = ROOT_DIR / "static" / "robots.txt"
+    if path.exists():
+        return Response(content=path.read_text(), media_type="text/plain; charset=utf-8")
+    return Response(content="User-agent: *\nAllow: /\n", media_type="text/plain")
+
+
+@app.get("/sitemap.xml")
+async def sitemap_xml():
+    """XML Sitemap for search engines"""
+    path = ROOT_DIR / "static" / "sitemap.xml"
+    if path.exists():
+        return Response(content=path.read_text(), media_type="application/xml; charset=utf-8")
+    return Response(content='<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>', media_type="application/xml")
+
+
 # ============== Health & Status Routes ==============
 
 @api_router.get("/")

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Main Pages -->
+  <url><loc>https://munal.ai/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://munal.ai/pricing</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://munal.ai/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/login</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://munal.ai/signup</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <!-- Industry Solution Pages (GEO) -->
+  <url><loc>https://munal.ai/solutions/healthcare</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://munal.ai/solutions/education</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://munal.ai/solutions/legal</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://munal.ai/solutions/finance</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+
+  <!-- Feature Pages -->
+  <url><loc>https://munal.ai/features</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://munal.ai/features/overview</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://munal.ai/features/meetings</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://munal.ai/features/transcriptions</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://munal.ai/features/video-conferencing</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/video-calls</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/chat-messaging</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/voice-chat</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/search</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/teams</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/file-management</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/analytics</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/dashboard</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/calendar-integration</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/esignature</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://munal.ai/features/approvals</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/features/shifts</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://munal.ai/features/ir-sor</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://munal.ai/features/notifications</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <!-- Use Cases -->
+  <url><loc>https://munal.ai/use-cases/sales</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://munal.ai/use-cases/customer-success</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://munal.ai/use-cases/product</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://munal.ai/use-cases/engineering</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://munal.ai/use-cases/hr</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <!-- Product Pages -->
+  <url><loc>https://munal.ai/product/security</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://munal.ai/product/roadmap</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Legal Pages -->
+  <url><loc>https://munal.ai/legal/privacy</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://munal.ai/legal/terms</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://munal.ai/legal/security</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://munal.ai/legal/cookies</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+
+  <!-- Resources -->
+  <url><loc>https://munal.ai/resources</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://munal.ai/resources/docs</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://munal.ai/resources/api</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://munal.ai/resources/community</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- Downloads -->
+  <url><loc>https://munal.ai/downloads</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://munal.ai/downloads/mobile-app</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://munal.ai/downloads/desktop-app</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+</urlset>

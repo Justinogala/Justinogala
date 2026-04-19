@@ -18,8 +18,9 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **4 Industry Solution Pages**: `/solutions/healthcare`, `/solutions/education`, `/solutions/legal`, `/solutions/finance` — each with GEO-optimized H1/H2 headings, 6 feature cards, 5 use cases, 5-6 FAQs with Schema.org FAQPage markup, and SoftwareApplication JSON-LD
 - **Enhanced Structured Data**: Expanded `index.html` SoftwareApplication featureList with 22 healthcare/enterprise keywords; added FAQPage schema with 8 AI-crawler-optimized Q&As
 - **Header Navigation**: Use Cases dropdown now links to solution pages (Healthcare, Education, Legal, Finance)
-- Backend: `/app/backend/server.py` (3 new endpoints), `/app/backend/static/llms.txt`, `/app/backend/static/ai-plugin.json`
-- Frontend: `/app/src/pages/solutions/` (5 files), `/app/frontend/startup.cjs` (proxy for root-level GEO paths)
+- **Sitemap & Robots.txt**: `/sitemap.xml` with 45+ URLs (solution pages, features, use cases, legal, resources) and `/robots.txt` explicitly allowing GPTBot, ClaudeBot, PerplexityBot, Google-Extended, Applebot, and 10+ AI crawlers
+- Backend: `/app/backend/server.py` (5 GEO endpoints total), `/app/backend/static/llms.txt`, `/app/backend/static/ai-plugin.json`, `/app/backend/static/sitemap.xml`, `/app/backend/static/robots.txt`
+- Frontend: `/app/src/pages/solutions/` (5 files), `/app/frontend/startup.cjs` (proxy for root-level GEO paths), `/app/public/robots.txt`
 - Testing: 100% backend + frontend — Iteration 129
 
 ### Profile Picture Upload — April 15, 2026

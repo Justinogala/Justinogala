@@ -75,7 +75,7 @@ function serveStatic(req, res) {
   }
 
   // Proxy GEO/AI crawler paths to backend
-  if (pathname === '/llms.txt' || pathname === '/llms-full.txt' || pathname.startsWith('/.well-known/')) {
+  if (pathname === '/llms.txt' || pathname === '/llms-full.txt' || pathname === '/robots.txt' || pathname === '/sitemap.xml' || pathname.startsWith('/.well-known/')) {
     const proxyReq = http.request({
       hostname: BACKEND_HOST, port: BACKEND_PORT,
       path: req.url, method: req.method,

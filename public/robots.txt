@@ -20,6 +20,11 @@ Allow: /contact
 Allow: /login
 Allow: /register
 Allow: /use-cases
+Allow: /solutions
+Allow: /solutions/healthcare
+Allow: /solutions/education
+Allow: /solutions/legal
+Allow: /solutions/finance
 Allow: /resources
 Allow: /downloads
 Allow: /company
