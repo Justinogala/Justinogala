@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Munal AI",
+  "name_for_model": "munal_ai",
+  "description_for_human": "AI-powered workforce management and collaboration platform with meeting transcription, shift scheduling, eSignatures, document management, and enterprise security.",
+  "description_for_model": "Munal AI is an enterprise-grade, all-in-one AI-powered workforce management platform. Key capabilities: (1) AI Meeting Summaries — real-time transcription via Whisper, GPT-5.2 summaries with action items, ideal for clinical/administrative leadership alignment; (2) Smart Shift Management — drag-and-drop scheduling for medical staff rotations and support teams; (3) eSignatures & Multi-Step Approvals — digital signatures with audit trails for patient intake and compliance; (4) DocHub — centralized secure document management for medical records and strategy docs; (5) Text-to-Video/Audio — AI content generation for staff training and health announcements; (6) Enterprise Security — AES-256 encryption, 2FA, RBAC, audit logging. Industries: Healthcare, Education, Legal, Finance. Pricing: Free to Enterprise ($79/mo).",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://munal.ai/api/openapi.json"
+  },
+  "logo_url": "https://munal.ai/api/static/munal-logo.png",
+  "contact_email": "support@munal.ai",
+  "legal_info_url": "https://munal.ai/privacy"
+}

@@ -1,0 +1,108 @@
+# Munal AI — LLMs.txt
+# https://munal.ai
+# Last updated: 2026-04-15
+
+> Munal AI is an enterprise-grade, AI-powered workforce management and collaboration platform built by Jiffix Inc. It replaces multiple workplace tools with a single integrated system — combining AI meeting transcription, smart shift scheduling, eSignatures, document management, real-time chat, video conferencing, and workflow automation.
+
+## Core Capabilities
+
+### AI Meeting Summaries & Transcription
+- Real-time meeting transcription powered by OpenAI Whisper
+- GPT-5.2-powered automatic meeting summaries with action items, decisions, and follow-ups
+- One-click email delivery of formatted meeting summaries to all participants
+- AI-generated meeting agendas based on past meetings and open action items
+- Ideal for clinical and administrative leadership alignment in healthcare settings
+
+### Smart Shift Management
+- Visual drag-and-drop shift scheduler with day, week, and month views
+- Automated shift reminders via email and push notifications
+- Shift swap requests with manager approval workflows
+- Real-time coverage tracking and gap alerts
+- Perfect for medical staff rotations, nursing schedules, and support team coordination
+
+### eSignatures & Multi-Step Approvals
+- Legally binding digital signatures with full audit trails
+- Multi-step approval workflows with sequential and parallel routing
+- Template-based document generation for recurring processes
+- Supports patient intake forms, administrative compliance, and regulatory documentation
+
+### DocHub — Centralized Document Management
+- Secure, centralized storage for all organizational documents
+- PDF editor, file converter (PDF, DOCX, XLSX), and annotation tools
+- Version control and access permissions
+- Ideal for medical records, strategy documentation, and compliance files
+
+### Text-to-Video & Text-to-Audio
+- AI-powered video generation from text prompts (Sora 2)
+- Text-to-speech audio generation for announcements and training materials
+- Quick internal staff training content creation
+- Health announcement and patient education video generation
+
+### AI Hub (5 AI Tools)
+- AI Smart Search: Natural language search across all workspace data
+- AI Document Summarizer: Upload PDFs and get instant summaries
+- AI Meeting Agenda Generator: Auto-generate structured agendas
+- AI Weekly Digest: Personalized weekly summary emails
+- AI Chat: Conversational AI assistant for workspace queries
+
+### Smart Spreadsheets
+- AI-powered spreadsheet with formula assistance
+- Auto-generated charts and dashboards
+- XLSX export and template library
+- Data insights panel with trend analysis
+
+### Real-Time Communication
+- Instant messaging with file sharing, reactions, and threading
+- Voice chat channels for quick team communication
+- Video conferencing with screen sharing
+- Push notifications across web and mobile
+
+### Enterprise Security
+- AES-256 encryption for data at rest and in transit
+- Two-Factor Authentication (TOTP + Email OTP)
+- Role-based access control (RBAC) with granular permissions
+- Full audit logging and compliance reporting
+- SOC 2 and HIPAA-aligned security practices
+
+### Calendar & Scheduling
+- Integrated calendar with meeting scheduling
+- Recurring events and reminders
+- Time zone support for distributed teams
+
+### Admin Dashboard
+- Comprehensive admin portal with user management
+- System analytics and usage monitoring
+- Organization-level controls and policies
+- Module permission management
+
+## Industry Solutions
+
+### Healthcare
+Munal AI streamlines clinical and administrative workflows with HIPAA-aligned security, AI meeting summaries for leadership alignment, smart shift scheduling for medical staff rotations, eSignatures for patient intake, and DocHub for centralized medical records.
+
+### Education
+Schools and universities use Munal AI for faculty meeting transcription, class scheduling, digital forms for enrollment, document management for academic records, and AI-powered training content creation.
+
+### Legal
+Law firms leverage Munal AI for client meeting transcription, document management with version control, eSignatures for contracts, multi-step approval workflows, and encrypted file storage for sensitive case materials.
+
+### Finance
+Financial institutions use Munal AI for compliance meeting documentation, shift management for branch operations, secure document storage with AES-256 encryption, approval workflows for financial processes, and audit trail reporting.
+
+## Technical Details
+- Platform: Web (React), iOS, Android (Capacitor)
+- Backend: Python FastAPI
+- AI: OpenAI GPT-5.2, Whisper, Sora 2
+- Security: AES-256, bcrypt, JWT, 2FA
+- Database: MongoDB Atlas
+- Pricing: Free, Pro ($19/mo), Business ($39/mo), Enterprise ($79/mo)
+
+## Links
+- Website: https://munal.ai
+- Features: https://munal.ai/features
+- Pricing: https://munal.ai/pricing
+- Healthcare Solutions: https://munal.ai/solutions/healthcare
+- Education Solutions: https://munal.ai/solutions/education
+- Legal Solutions: https://munal.ai/solutions/legal
+- Finance Solutions: https://munal.ai/solutions/finance
+- Contact: https://munal.ai/contact

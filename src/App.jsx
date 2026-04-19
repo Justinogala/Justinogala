@@ -75,6 +75,12 @@ const FeatureShiftsPage = lazy(() => import('@/pages/features/FeatureShiftsPage'
 const FeatureIRSORPage = lazy(() => import('@/pages/features/FeatureIRSORPage'));
 const FeatureNotificationsPage = lazy(() => import('@/pages/features/FeatureNotificationsPage'));
 
+// Solution Pages (GEO)
+const HealthcareSolutionPage = lazy(() => import('@/pages/solutions/HealthcareSolutionPage'));
+const EducationSolutionPage = lazy(() => import('@/pages/solutions/EducationSolutionPage'));
+const LegalSolutionPage = lazy(() => import('@/pages/solutions/LegalSolutionPage'));
+const FinanceSolutionPage = lazy(() => import('@/pages/solutions/FinanceSolutionPage'));
+
 // Payment Pages
 const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
 
@@ -374,6 +380,12 @@ function App() {
                               <Route path="/features/ir-sor" element={<FeatureIRSORPage />} />
                               <Route path="/features/notifications" element={<FeatureNotificationsPage />} />
                               
+                              {/* Industry Solution Pages (GEO) */}
+                              <Route path="/solutions/healthcare" element={<HealthcareSolutionPage />} />
+                              <Route path="/solutions/education" element={<EducationSolutionPage />} />
+                              <Route path="/solutions/legal" element={<LegalSolutionPage />} />
+                              <Route path="/solutions/finance" element={<FinanceSolutionPage />} />
+
                               <Route path="/login" element={<LoginPage />} />
                               <Route path="/login/otp" element={<OTPLoginPage />} />
                               <Route path="/signup" element={<SignupPage />} />

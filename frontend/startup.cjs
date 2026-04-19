@@ -74,6 +74,24 @@ function serveStatic(req, res) {
     return;
   }
 
+  // Proxy GEO/AI crawler paths to backend
+  if (pathname === '/llms.txt' || pathname === '/llms-full.txt' || pathname.startsWith('/.well-known/')) {
+    const proxyReq = http.request({
+      hostname: BACKEND_HOST, port: BACKEND_PORT,
+      path: req.url, method: req.method,
+      headers: { ...req.headers, host: `${BACKEND_HOST}:${BACKEND_PORT}` },
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => {
+      res.writeHead(502, { 'Content-Type': 'text/plain' });
+      res.end('Backend unavailable');
+    });
+    req.pipe(proxyReq);
+    return;
+  }
+
   // If app not ready yet, show loading
   if (!appReady) {
     res.writeHead(200, { 'Content-Type': 'text/html' });

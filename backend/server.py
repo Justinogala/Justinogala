@@ -84,6 +84,34 @@ async def assetlinks():
     return Response(content="[]", media_type="application/json")
 
 
+@app.get("/.well-known/ai-plugin.json")
+async def ai_plugin():
+    """AI plugin manifest for ChatGPT, Perplexity and other LLM agents"""
+    import json
+    path = ROOT_DIR / "static" / "ai-plugin.json"
+    if path.exists():
+        return Response(content=path.read_text(), media_type="application/json")
+    return Response(content="{}", media_type="application/json")
+
+
+@app.get("/llms.txt")
+async def llms_txt():
+    """LLMs.txt — structured information file for AI search engines"""
+    path = ROOT_DIR / "static" / "llms.txt"
+    if path.exists():
+        return Response(content=path.read_text(), media_type="text/plain; charset=utf-8")
+    return Response(content="", media_type="text/plain")
+
+
+@app.get("/llms-full.txt")
+async def llms_full_txt():
+    """Full version of LLMs.txt"""
+    path = ROOT_DIR / "static" / "llms.txt"
+    if path.exists():
+        return Response(content=path.read_text(), media_type="text/plain; charset=utf-8")
+    return Response(content="", media_type="text/plain")
+
+
 # ============== Health & Status Routes ==============
 
 @api_router.get("/")

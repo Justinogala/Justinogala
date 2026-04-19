@@ -121,11 +121,11 @@ const Header = () => {
       { label: 'Engineering', href: '/use-cases/engineering', icon: Code, col: 0 },
       { label: 'HR & Recruiting', href: '/use-cases/hr', icon: Users, col: 0 },
       // Column 1: By Industry
-      { label: 'Healthcare', href: '/use-cases/healthcare', icon: HeartPulse, col: 1, badge: 'NEW' },
-      { label: 'Education', href: '/use-cases/education', icon: BookOpen, col: 1, badge: 'NEW' },
+      { label: 'Healthcare', href: '/solutions/healthcare', icon: HeartPulse, col: 1, badge: 'NEW' },
+      { label: 'Education', href: '/solutions/education', icon: BookOpen, col: 1, badge: 'NEW' },
       { label: 'Government', href: '/use-cases/government', icon: Landmark, col: 1, badge: 'NEW' },
-      { label: 'Legal & Compliance', href: '/use-cases/legal', icon: Scale, col: 1, badge: 'NEW' },
-      { label: 'Finance', href: '/use-cases/finance', icon: Wallet, col: 1, badge: 'NEW' },
+      { label: 'Legal & Compliance', href: '/solutions/legal', icon: Scale, col: 1, badge: 'NEW' },
+      { label: 'Finance', href: '/solutions/finance', icon: Wallet, col: 1, badge: 'NEW' },
     ],
     'Product': [
       { label: 'Pricing', href: '/pricing', icon: Zap },
