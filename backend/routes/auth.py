@@ -641,8 +641,7 @@ async def forgot_password(request: Request, req: ForgotPasswordRequest):
     user = await db.users.find_one({"email": email})
     
     if not user:
-        # Don't reveal if email exists
-        return {"message": "If an account exists with this email, a password reset link has been sent."}
+        raise HTTPException(status_code=404, detail="No account found with this email address")
     
     # Generate temporary password
     temp_password = generate_temp_password()
