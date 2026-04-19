@@ -12,6 +12,16 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Generative Engine Optimization (GEO) — April 19, 2026
+- **llms.txt**: Comprehensive AI-readable description served at `/llms.txt` and `/llms-full.txt` covering all features, industries, and capabilities
+- **ai-plugin.json**: AI plugin manifest at `/.well-known/ai-plugin.json` for ChatGPT, Perplexity, and other LLM agents
+- **4 Industry Solution Pages**: `/solutions/healthcare`, `/solutions/education`, `/solutions/legal`, `/solutions/finance` — each with GEO-optimized H1/H2 headings, 6 feature cards, 5 use cases, 5-6 FAQs with Schema.org FAQPage markup, and SoftwareApplication JSON-LD
+- **Enhanced Structured Data**: Expanded `index.html` SoftwareApplication featureList with 22 healthcare/enterprise keywords; added FAQPage schema with 8 AI-crawler-optimized Q&As
+- **Header Navigation**: Use Cases dropdown now links to solution pages (Healthcare, Education, Legal, Finance)
+- Backend: `/app/backend/server.py` (3 new endpoints), `/app/backend/static/llms.txt`, `/app/backend/static/ai-plugin.json`
+- Frontend: `/app/src/pages/solutions/` (5 files), `/app/frontend/startup.cjs` (proxy for root-level GEO paths)
+- Testing: 100% backend + frontend — Iteration 129
+
 ### Profile Picture Upload — April 15, 2026
 - Users can upload profile pictures (JPEG, PNG, WebP, GIF up to 5MB) on the Profile Settings page
 - Click avatar in Edit mode to trigger file picker; uploaded to Emergent object storage
