@@ -11,6 +11,7 @@ const FinanceSolutionPage = () => (
     metaTitle="Munal AI for Finance — AI Compliance Documentation, Shift Scheduling, eSignatures & Encrypted Storage"
     metaDescription="Munal AI for finance: AI meeting documentation for compliance, shift scheduling for branch operations, eSignatures for financial agreements, AES-256 encrypted document storage, and audit trail reporting."
     ctaText="Start Free for Finance"
+    heroImage="https://images.unsplash.com/photo-1659241869140-3cb7cdff42fd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwyfHxmaW5hbmNlJTIwdGVhbSUyMG9mZmljZSUyMGJhbmtpbmclMjB0ZWNobm9sb2d5fGVufDB8fHx8MTc3NjYxNDc1OXww&ixlib=rb-4.1.0&q=85"
     features={[
       { icon: Brain, title: "AI Meeting Documentation for Compliance", description: "Automatically transcribe and summarize compliance meetings, risk reviews, and board sessions. AI-generated summaries with action items create auditable records for regulatory requirements." },
       { icon: Clock, title: "Shift Scheduling for Branch Operations", description: "Manage branch staffing, teller schedules, and support team rotations with visual drag-and-drop scheduling. Real-time coverage tracking ensures service continuity." },

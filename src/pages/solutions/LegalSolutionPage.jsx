@@ -11,6 +11,7 @@ const LegalSolutionPage = () => (
     metaTitle="Munal AI for Legal — AI Meeting Transcription, eSignatures, Case Document Management & Security"
     metaDescription="Munal AI for legal: AI transcription for client meetings, eSignatures for contracts, encrypted document management for case files, multi-step approval workflows, and AES-256 security for attorney-client privilege."
     ctaText="Start Free for Legal"
+    heroImage="https://images.pexels.com/photos/5673490/pexels-photo-5673490.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
     features={[
       { icon: Brain, title: "AI Meeting Transcription for Client Consultations", description: "Automatically transcribe client meetings, depositions, and partner conferences. AI extracts key points, action items, and case-relevant decisions to reduce manual documentation." },
       { icon: FileSignature, title: "eSignatures for Contracts & Legal Documents", description: "Execute contracts, retainer agreements, and legal forms with legally binding digital eSignatures. Multi-step approval workflows route documents through partners, associates, and clients." },

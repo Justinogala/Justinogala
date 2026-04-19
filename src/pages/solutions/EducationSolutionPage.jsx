@@ -11,6 +11,7 @@ const EducationSolutionPage = () => (
     metaTitle="Munal AI for Education — AI Meeting Notes, Staff Scheduling, Digital Forms & Secure DocHub"
     metaDescription="Munal AI for education: AI meeting transcription for faculty, smart scheduling for academic staff, digital enrollment forms, secure document management for student records, and AI training content creation."
     ctaText="Start Free for Education"
+    heroImage="https://images.unsplash.com/photo-1758270704534-fd9715bffc0e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjB1bml2ZXJzaXR5JTIwY2xhc3Nyb29tJTIwdGVjaG5vbG9neXxlbnwwfHx8fDE3NzY2MTQ3NTl8MA&ixlib=rb-4.1.0&q=85"
     features={[
       { icon: Brain, title: "AI Meeting Transcription for Faculty", description: "Automatically transcribe and summarize faculty meetings, department heads sessions, and board meetings. AI extracts key decisions, action items, and deadlines for institutional alignment." },
       { icon: Clock, title: "Smart Scheduling for Academic Staff", description: "Manage teaching schedules, exam invigilation rosters, and administrative shifts with visual drag-and-drop scheduling. Automated reminders keep staff informed." },

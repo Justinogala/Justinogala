@@ -10,7 +10,7 @@ import PageTransition from '@/components/PageTransition';
 
 const DOMAIN = 'https://munal.ai';
 
-const SolutionPage = ({ industry, headline, subtitle, description, metaTitle, metaDescription, features, faqs, useCases, ctaText }) => {
+const SolutionPage = ({ industry, headline, subtitle, description, metaTitle, metaDescription, features, faqs, useCases, ctaText, heroImage }) => {
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -55,33 +55,46 @@ const SolutionPage = ({ industry, headline, subtitle, description, metaTitle, me
 
         <main className="flex-grow">
           {/* Hero Section */}
-          <section className="relative py-20 md:py-28 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700" />
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvc3ZnPg==')] opacity-50" />
-            <div className="relative max-w-5xl mx-auto px-6 text-center">
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-white/90 text-sm font-medium mb-6 border border-white/20">
-                  <Building2 className="w-4 h-4" /> {industry} Solutions
-                </span>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight tracking-tight">
-                  {headline}
-                </h1>
-                <p className="text-lg md:text-xl text-white/80 max-w-3xl mx-auto mb-10 leading-relaxed">
-                  {subtitle}
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link to="/signup">
-                    <Button size="lg" className="bg-white text-violet-700 hover:bg-gray-100 rounded-full px-8 text-base font-semibold shadow-lg" data-testid="geo-cta-primary">
-                      {ctaText || 'Start Free Trial'} <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
-                  <Link to="/contact">
-                    <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 rounded-full px-8 text-base" data-testid="geo-cta-contact">
-                      Talk to Sales
-                    </Button>
-                  </Link>
-                </div>
-              </motion.div>
+          <section className="relative py-20 lg:py-28 overflow-hidden bg-white dark:bg-slate-900">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 via-transparent to-purple-50/50 dark:from-violet-900/10 dark:to-purple-900/10 pointer-events-none" />
+            <div className="container mx-auto px-6 relative z-10">
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}>
+                  <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-sm font-medium mb-6 border border-violet-200 dark:border-violet-800">
+                    <Building2 className="w-4 h-4" /> {industry} Solutions
+                  </span>
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight tracking-tight">
+                    {headline}
+                  </h1>
+                  <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+                    {subtitle}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Link to="/signup">
+                      <Button size="lg" className="bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25 rounded-full px-8 text-base font-semibold" data-testid="geo-cta-primary">
+                        {ctaText || 'Start Free Trial'} <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </Link>
+                    <Link to="/contact">
+                      <Button size="lg" variant="outline" className="border-gray-300 dark:border-gray-700 rounded-full px-8 text-base" data-testid="geo-cta-contact">
+                        Talk to Sales
+                      </Button>
+                    </Link>
+                  </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-violet-600 to-purple-700 rounded-2xl blur-3xl -z-10 opacity-20" />
+                  {heroImage && (
+                    <img
+                      src={heroImage}
+                      alt={`${industry} teams using Munal AI`}
+                      className="rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-800 w-full object-cover aspect-video hover:scale-[1.02] transition-transform duration-500"
+                      loading="lazy"
+                      data-testid="geo-hero-image"
+                    />
+                  )}
+                </motion.div>
+              </div>
             </div>
           </section>
 

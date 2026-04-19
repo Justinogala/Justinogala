@@ -11,6 +11,7 @@ const HealthcareSolutionPage = () => (
     metaTitle="Munal AI for Healthcare — AI Meeting Summaries, Shift Management, eSignatures & DocHub"
     metaDescription="Munal AI for healthcare: AI meeting summaries for clinical leadership alignment, smart shift management for medical staff rotations, eSignatures for patient intake, DocHub for medical records, and enterprise AES-256 security."
     ctaText="Start Free for Healthcare"
+    heroImage="https://images.pexels.com/photos/5327649/pexels-photo-5327649.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
     features={[
       { icon: Brain, title: "AI Meeting Summaries for Clinical Leadership", description: "Automatically transcribe and summarize clinical and administrative meetings with GPT-5.2. Extract action items, decisions, and follow-ups to keep leadership aligned across departments." },
       { icon: Clock, title: "Smart Shift Management for Medical Staff", description: "Schedule nurses, doctors, and support staff across 24/7 rotations with drag-and-drop planning. Automated reminders, swap requests, and real-time coverage tracking ensure adequate staffing." },
