@@ -25,6 +25,15 @@ const BackgroundThumbnail = ({ background, isSelected, onClick, onDelete }) => (
         <Ban className="w-8 h-8 mb-2" />
         <span className="text-xs font-medium">None</span>
       </div>
+    ) : background.type === 'blur' ? (
+      <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 dark:text-gray-300" style={{ background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%)', backdropFilter: `blur(${background.intensity === 'heavy' ? 10 : 4}px)` }}>
+        <div className="text-2xl mb-1" style={{ filter: `blur(${background.intensity === 'heavy' ? 4 : 2}px)` }}>BG</div>
+        <span className="text-xs font-medium">{background.name}</span>
+      </div>
+    ) : background.type === 'solid' ? (
+      <div className="w-full h-full flex items-center justify-center" style={{ background: background.color || '#374151' }}>
+        <span className="text-xs font-medium text-white drop-shadow">{background.name}</span>
+      </div>
     ) : (
       <>
         <div className="relative w-full h-full">

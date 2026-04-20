@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 
 import { getApiUrl, API_URL } from '@/lib/api';
 import BackgroundButton from '@/components/video/BackgroundButton';
+import { useVideoBackground } from '@/hooks/useVideoBackground';
 
 // Simple Video Tile Component
 const VideoTile = ({ stream, name, isLocal, isMuted, isVideoOff, isLarge }) => {
@@ -143,6 +144,9 @@ const InstantMeetingRoom = () => {
     ]
   }), []);
 
+  // Virtual background processing
+  const { processedStream } = useVideoBackground(localStream);
+
   // Initialize camera for preview
   const initCamera = useCallback(async () => {
     try {
@@ -187,6 +191,14 @@ const InstantMeetingRoom = () => {
       isMounted = false;
     };
   }, [joined, initCamera]);
+
+  // Update preview when processed (background-applied) stream changes
+  useEffect(() => {
+    if (processedStream && previewRef.current && !joined) {
+      previewRef.current.srcObject = processedStream;
+      previewRef.current.play().catch(() => {});
+    }
+  }, [processedStream, joined]);
 
   // Cleanup streams on unmount
   useEffect(() => {
@@ -894,7 +906,7 @@ const InstantMeetingRoom = () => {
       user_id: user?.id, 
       user_name: user?.name || 'You', 
       isLocal: true,
-      stream: isScreenSharing ? screenStream : localStream 
+      stream: isScreenSharing ? screenStream : (processedStream || localStream) 
     },
     ...participants
       .filter(p => p.user_id !== user?.id)

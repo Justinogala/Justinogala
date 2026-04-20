@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { getApiUrl, API_URL } from '@/lib/api';
 import BackgroundButton from '@/components/video/BackgroundButton';
+import { useVideoBackground } from '@/hooks/useVideoBackground';
 
 import {
   Tooltip,
@@ -125,6 +126,7 @@ const GroupMeetingRoom = () => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [handRaised, setHandRaised] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
+  const [rawCameraStream, setRawCameraStream] = useState(null);
   
   // UI state
   const [showChat, setShowChat] = useState(false);
@@ -156,6 +158,9 @@ const GroupMeetingRoom = () => {
       { urls: 'stun:stun1.l.google.com:19302' }
     ]
   };
+
+  // Virtual background processing
+  const { processedStream } = useVideoBackground(rawCameraStream);
 
   // Load meeting details
   useEffect(() => {
@@ -198,6 +203,7 @@ const GroupMeetingRoom = () => {
         audio: true
       });
       localStreamRef.current = stream;
+      setRawCameraStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
         await localVideoRef.current.play();
@@ -212,6 +218,15 @@ const GroupMeetingRoom = () => {
       });
     }
   };
+
+  // Update local video when processed (background-applied) stream changes
+  useEffect(() => {
+    if (processedStream && localVideoRef.current) {
+      localStreamRef.current = processedStream;
+      localVideoRef.current.srcObject = processedStream;
+      localVideoRef.current.play().catch(() => {});
+    }
+  }, [processedStream]);
 
   // Setup SSE for signaling
   const setupSignaling = useCallback(() => {
