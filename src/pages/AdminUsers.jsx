@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getAllUsers } from '@/services/adminService';
+import { adminUserDataService } from '@/services/adminUserDataService';
 import AddUserModal from '@/components/admin/modals/AddUserModal';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Plus, Search, Filter } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
 const AdminUsers = () => {
@@ -19,8 +19,16 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await getAllUsers({ search });
-      setUsers(data.users);
+      const data = await adminUserDataService.getAllUsers();
+      let allUsers = Array.isArray(data) ? data : (data.users || []);
+      if (search) {
+        const s = search.toLowerCase();
+        allUsers = allUsers.filter(u =>
+          (u.email || '').toLowerCase().includes(s) ||
+          (u.name || '').toLowerCase().includes(s)
+        );
+      }
+      setUsers(allUsers);
     } catch (error) {
       console.error("Failed to fetch users", error);
     } finally {
@@ -89,6 +97,7 @@ const AdminUsers = () => {
                       <td className="p-4 align-middle">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.avatar} />
                             <AvatarFallback>{user.name?.charAt(0) || user.email.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
@@ -103,7 +112,7 @@ const AdminUsers = () => {
                           {user.status || 'Active'}
                         </Badge>
                       </td>
-                      <td className="p-4 align-middle">{new Date(user.createdAt).toLocaleDateString()}</td>
+                      <td className="p-4 align-middle">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
                       <td className="p-4 align-middle text-right">
                         <Button variant="ghost" size="sm">Edit</Button>
                       </td>
