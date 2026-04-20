@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 
 import { getApiUrl, API_URL } from '@/lib/api';
+import BackgroundButton from '@/components/video/BackgroundButton';
 
 // Simple Video Tile Component
 const VideoTile = ({ stream, name, isLocal, isMuted, isVideoOff, isLarge }) => {
@@ -976,6 +977,11 @@ const InstantMeetingRoom = () => {
                     </Button>
                     <span className="text-xs text-white/70">{isVideoEnabled ? 'Stop Video' : 'Start Video'}</span>
                   </div>
+
+                  <div className="flex flex-col items-center gap-1">
+                    <BackgroundButton className="rounded-full w-14 h-14" />
+                    <span className="text-xs text-white/70">Background</span>
+                  </div>
                 </div>
               </div>
 
@@ -1243,6 +1249,12 @@ const InstantMeetingRoom = () => {
                 {isRecording ? <Square className="w-5 h-5 sm:w-6 sm:h-6" /> : <Circle className="w-5 h-5 sm:w-6 sm:h-6" />}
               </Button>
               <span className="text-xs text-slate-400">{isRecording ? 'Stop' : 'Record'}</span>
+            </div>
+
+            {/* Background */}
+            <div className="flex flex-col items-center gap-1">
+              <BackgroundButton className="rounded-full w-12 h-12 sm:w-14 sm:h-14" />
+              <span className="text-xs text-slate-400">Background</span>
             </div>
 
             {/* Leave Meeting */}

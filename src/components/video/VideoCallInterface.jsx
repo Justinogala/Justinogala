@@ -11,6 +11,7 @@ import ScreenShareManager from './ScreenShareManager';
 import MeetingRecorder from './MeetingRecorder';
 import InCallChatPanel from './InCallChatPanel';
 import ParticipantManager from './ParticipantManager';
+import BackgroundButton from './BackgroundButton';
 
 const VideoCallInterface = ({ onEndCall }) => {
   const [controls, setControls] = useState({
@@ -134,6 +135,8 @@ const VideoCallInterface = ({ onEndCall }) => {
             onStartRecording={() => setControls(c => ({...c, recording: true}))} 
             onStopRecording={() => setControls(c => ({...c, recording: false}))} 
           />
+
+          <BackgroundButton />
 
           <Button
              variant="ghost"

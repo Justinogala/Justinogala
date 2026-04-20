@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Video, VideoOff, Mic, MicOff, PhoneOff, Users, 
   MessageSquare, Monitor, MonitorOff, Copy, Check, Clock, Calendar,
-  Hand, MoreHorizontal, Grid, Maximize2, Pin, Volume2
+  Hand, MoreHorizontal, Grid, Maximize2, Pin, Volume2, Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { getApiUrl, API_URL } from '@/lib/api';
+import BackgroundButton from '@/components/video/BackgroundButton';
 
 import {
   Tooltip,
@@ -785,6 +786,16 @@ const GroupMeetingRoom = () => {
                     </TooltipTrigger>
                     <TooltipContent>Toggle camera</TooltipContent>
                   </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center gap-2">
+                        <BackgroundButton className="rounded-full h-16 w-16 shadow-lg" />
+                        <span className="text-sm text-white">Background</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Virtual background</TooltipContent>
+                  </Tooltip>
                 </div>
 
                 {/* Join Button */}
@@ -1027,6 +1038,16 @@ const GroupMeetingRoom = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent>Share screen</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col items-center">
+                  <BackgroundButton className="rounded-xl h-14 w-14 shadow-lg" />
+                  <span className="text-xs text-gray-300 mt-1.5">Background</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Virtual background</TooltipContent>
             </Tooltip>
 
             <Tooltip>
