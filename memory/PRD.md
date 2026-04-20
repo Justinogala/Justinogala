@@ -12,6 +12,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Virtual Backgrounds for Video Calls — April 19, 2026
+- Background button added to ALL video call types: GroupMeetingRoom (lobby + in-call), InstantMeetingRoom (lobby + in-call), VideoCallInterface, AdvancedVideoCallInterface (CallControlBar)
+- BackgroundSelectorModal with 8 tabs: All, Blur, Office, Nature, Cityscape, Colors, Abstract, Custom
+- 11 preset backgrounds: 2 blur, 2 office, 2 nature, 2 cityscape, 2 solid colors, 1 abstract gradient
+- Custom upload: drag-and-drop or click, supports JPG/PNG/WebP up to 5MB, stored in localStorage
+- TensorFlow.js BodyPix segmentation for person detection (useVirtualBackground.js)
+- Testing: 100% frontend — Iteration 130
+
 ### Generative Engine Optimization (GEO) — April 19, 2026
 - **llms.txt**: Comprehensive AI-readable description served at `/llms.txt` and `/llms-full.txt` covering all features, industries, and capabilities
 - **ai-plugin.json**: AI plugin manifest at `/.well-known/ai-plugin.json` for ChatGPT, Perplexity, and other LLM agents
