@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.munal.ai',
+  appId: 'com.jiffix.munalai.app',
   appName: 'Munal AI',
   webDir: 'dist',
   server: {

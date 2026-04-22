@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.munal.ai",
+      "package_name": "com.jiffix.munalai.app",
       "sha256_cert_fingerprints": [
         "FA:32:9A:07:5F:93:FD:45:09:90:E2:04:A2:0B:0E:86:A2:60:56:1A:94:83:13:34:B3:04:8A:76:8E:B8:75:AF"
       ]
