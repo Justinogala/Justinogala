@@ -7,12 +7,25 @@ import { cn } from '@/lib/utils';
 import {
   ArrowLeft, Save, Download, Loader2, Check, Plus, Trash2,
   Copy, ChevronUp, ChevronDown, Type, Columns, Layout, Square,
-  Presentation as PresentationIcon
+  Presentation as PresentationIcon, Palette
 } from 'lucide-react';
 
 const getToken = () => {
   try { return JSON.parse(localStorage.getItem('munal_sessions') || '{}').token || null; } catch { return null; }
 };
+
+const SLIDE_THEMES = [
+  { id: 'white', label: 'White', bg: 'bg-white', text: 'text-gray-900', subtitle: 'text-gray-500', canvas: '#ffffff' },
+  { id: 'dark', label: 'Dark', bg: 'bg-slate-900', text: 'text-white', subtitle: 'text-gray-300', canvas: '#0f172a' },
+  { id: 'violet', label: 'Violet', bg: 'bg-gradient-to-br from-violet-600 to-indigo-700', text: 'text-white', subtitle: 'text-violet-200', canvas: 'linear-gradient(135deg, #7c3aed, #4338ca)' },
+  { id: 'ocean', label: 'Ocean', bg: 'bg-gradient-to-br from-cyan-500 to-blue-600', text: 'text-white', subtitle: 'text-cyan-100', canvas: 'linear-gradient(135deg, #06b6d4, #2563eb)' },
+  { id: 'sunset', label: 'Sunset', bg: 'bg-gradient-to-br from-orange-500 to-rose-600', text: 'text-white', subtitle: 'text-orange-100', canvas: 'linear-gradient(135deg, #f97316, #e11d48)' },
+  { id: 'forest', label: 'Forest', bg: 'bg-gradient-to-br from-emerald-500 to-teal-700', text: 'text-white', subtitle: 'text-emerald-100', canvas: 'linear-gradient(135deg, #10b981, #0f766e)' },
+  { id: 'midnight', label: 'Midnight', bg: 'bg-gradient-to-br from-slate-800 to-indigo-900', text: 'text-white', subtitle: 'text-indigo-200', canvas: 'linear-gradient(135deg, #1e293b, #312e81)' },
+  { id: 'coral', label: 'Coral', bg: 'bg-gradient-to-br from-pink-400 to-red-500', text: 'text-white', subtitle: 'text-pink-100', canvas: 'linear-gradient(135deg, #f472b6, #ef4444)' },
+  { id: 'gold', label: 'Gold', bg: 'bg-gradient-to-br from-amber-400 to-yellow-600', text: 'text-gray-900', subtitle: 'text-amber-800', canvas: 'linear-gradient(135deg, #fbbf24, #ca8a04)' },
+  { id: 'mint', label: 'Mint', bg: 'bg-gradient-to-br from-green-100 to-teal-100', text: 'text-teal-900', subtitle: 'text-teal-600', canvas: 'linear-gradient(135deg, #dcfce7, #ccfbf1)' },
+];
 
 const LAYOUTS = [
   { id: 'title', label: 'Title Slide', icon: Layout },
@@ -22,124 +35,157 @@ const LAYOUTS = [
   { id: 'blank', label: 'Blank', icon: Square },
 ];
 
-const SlidePreview = ({ slide, index, isActive, onClick }) => (
-  <div
-    onClick={onClick}
-    className={cn(
-      "relative w-full aspect-video rounded-lg border-2 cursor-pointer transition-all overflow-hidden bg-white dark:bg-slate-800 p-2",
-      isActive ? "border-violet-500 shadow-md" : "border-gray-200 dark:border-slate-700 hover:border-violet-300"
-    )}
-    data-testid={`slide-thumb-${index}`}
-  >
-    <div className="absolute top-1 left-1 text-[9px] font-mono text-gray-400 bg-white/80 dark:bg-slate-900/80 rounded px-1">{index + 1}</div>
-    <div className="h-full flex flex-col items-center justify-center text-center overflow-hidden">
-      {slide.layout === 'title' ? (
-        <>
-          <p className="text-[8px] font-bold text-gray-800 dark:text-white leading-tight truncate w-full">{slide.title || 'Title'}</p>
-          <p className="text-[6px] text-gray-500 truncate w-full mt-0.5">{slide.subtitle || ''}</p>
-        </>
-      ) : slide.layout === 'section' ? (
-        <>
-          <p className="text-[8px] font-bold text-gray-800 dark:text-white truncate w-full">{slide.title || 'Section'}</p>
-          <p className="text-[6px] text-gray-500 truncate w-full">{slide.subtitle || ''}</p>
-        </>
-      ) : (
-        <>
-          <p className="text-[7px] font-bold text-gray-800 dark:text-white truncate w-full text-left">{slide.title || 'Slide'}</p>
-          <p className="text-[5px] text-gray-500 text-left w-full line-clamp-3 mt-0.5">{slide.body || slide.left || ''}</p>
-        </>
+const SlidePreview = ({ slide, index, isActive, onClick }) => {
+  const theme = SLIDE_THEMES.find(t => t.id === (slide.theme || 'white')) || SLIDE_THEMES[0];
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "relative w-full aspect-video rounded-lg border-2 cursor-pointer transition-all overflow-hidden p-2",
+        theme.bg,
+        isActive ? "border-violet-500 shadow-md ring-2 ring-violet-300" : "border-gray-200 dark:border-slate-700 hover:border-violet-300"
       )}
+      data-testid={`slide-thumb-${index}`}
+    >
+      <div className="absolute top-1 left-1 text-[9px] font-mono text-gray-400 bg-black/20 rounded px-1">{index + 1}</div>
+      <div className="h-full flex flex-col items-center justify-center text-center overflow-hidden">
+        {slide.layout === 'title' ? (
+          <>
+            <p className={cn("text-[8px] font-bold leading-tight truncate w-full", theme.text)}>{slide.title || 'Title'}</p>
+            <p className={cn("text-[6px] truncate w-full mt-0.5", theme.subtitle)}>{slide.subtitle || ''}</p>
+          </>
+        ) : slide.layout === 'section' ? (
+          <>
+            <p className={cn("text-[8px] font-bold truncate w-full", theme.text)}>{slide.title || 'Section'}</p>
+            <p className={cn("text-[6px] truncate w-full", theme.subtitle)}>{slide.subtitle || ''}</p>
+          </>
+        ) : (
+          <>
+            <p className={cn("text-[7px] font-bold truncate w-full text-left", theme.text)}>{slide.title || 'Slide'}</p>
+            <p className={cn("text-[5px] text-left w-full line-clamp-3 mt-0.5", theme.subtitle)}>{slide.body || slide.left || ''}</p>
+          </>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SlideCanvas = ({ slide, onChange }) => {
   if (!slide) return null;
 
   const update = (field, value) => onChange({ ...slide, [field]: value });
+  const theme = SLIDE_THEMES.find(t => t.id === (slide.theme || 'white')) || SLIDE_THEMES[0];
+  const [showThemes, setShowThemes] = useState(false);
 
   return (
-    <div className="w-full aspect-video bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 p-8 sm:p-12 flex flex-col" data-testid="slide-canvas">
-      {slide.layout === 'title' && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
-          <input
-            value={slide.title || ''}
-            onChange={e => update('title', e.target.value)}
-            placeholder="Presentation Title"
-            className="text-2xl sm:text-4xl font-bold text-center bg-transparent border-none outline-none w-full text-gray-900 dark:text-white placeholder-gray-300"
-            data-testid="slide-title-input"
-          />
-          <input
-            value={slide.subtitle || ''}
-            onChange={e => update('subtitle', e.target.value)}
-            placeholder="Subtitle"
-            className="text-base sm:text-xl text-center bg-transparent border-none outline-none w-full text-gray-500 dark:text-gray-400 placeholder-gray-300"
-          />
-        </div>
-      )}
-      {slide.layout === 'section' && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-          <input
-            value={slide.title || ''}
-            onChange={e => update('title', e.target.value)}
-            placeholder="Section Title"
-            className="text-2xl sm:text-3xl font-bold text-center bg-transparent border-none outline-none w-full text-gray-900 dark:text-white placeholder-gray-300"
-            data-testid="slide-title-input"
-          />
-          <input
-            value={slide.subtitle || ''}
-            onChange={e => update('subtitle', e.target.value)}
-            placeholder="Subtitle"
-            className="text-base sm:text-lg text-center bg-transparent border-none outline-none w-full text-gray-500 placeholder-gray-300"
-          />
-        </div>
-      )}
-      {slide.layout === 'content' && (
-        <div className="flex-1 flex flex-col gap-4">
-          <input
-            value={slide.title || ''}
-            onChange={e => update('title', e.target.value)}
-            placeholder="Slide Title"
-            className="text-xl sm:text-2xl font-bold bg-transparent border-none outline-none w-full text-gray-900 dark:text-white placeholder-gray-300"
-            data-testid="slide-title-input"
-          />
-          <textarea
-            value={slide.body || ''}
-            onChange={e => update('body', e.target.value)}
-            placeholder="Content (one bullet per line)"
-            className="flex-1 text-sm sm:text-base bg-transparent border-none outline-none w-full text-gray-700 dark:text-gray-300 placeholder-gray-300 resize-none leading-relaxed"
-            data-testid="slide-body-input"
-          />
-        </div>
-      )}
-      {slide.layout === 'two-column' && (
-        <div className="flex-1 flex flex-col gap-4">
-          <input
-            value={slide.title || ''}
-            onChange={e => update('title', e.target.value)}
-            placeholder="Slide Title"
-            className="text-xl sm:text-2xl font-bold bg-transparent border-none outline-none w-full text-gray-900 dark:text-white placeholder-gray-300"
-            data-testid="slide-title-input"
-          />
-          <div className="flex-1 grid grid-cols-2 gap-4">
-            <textarea
-              value={slide.left || ''}
-              onChange={e => update('left', e.target.value)}
-              placeholder="Left column"
-              className="text-sm bg-transparent border border-gray-200 dark:border-slate-700 rounded-lg p-3 outline-none w-full text-gray-700 dark:text-gray-300 resize-none"
+    <div className="relative">
+      {/* Theme Picker */}
+      <div className="flex items-center gap-2 mb-3">
+        <Button variant="outline" size="sm" onClick={() => setShowThemes(!showThemes)} className="gap-1.5" data-testid="slide-theme-btn">
+          <Palette className="w-4 h-4" /> Theme
+        </Button>
+        {showThemes && (
+          <div className="flex gap-1.5 flex-wrap" data-testid="theme-picker">
+            {SLIDE_THEMES.map(t => (
+              <button
+                key={t.id}
+                onClick={() => { update('theme', t.id); setShowThemes(false); }}
+                className={cn(
+                  "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
+                  t.bg,
+                  slide.theme === t.id ? "border-violet-500 ring-2 ring-violet-300" : "border-gray-300 dark:border-slate-600"
+                )}
+                title={t.label}
+                data-testid={`theme-${t.id}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Canvas */}
+      <div className={cn("w-full aspect-video rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 p-8 sm:p-12 flex flex-col transition-all", theme.bg)} data-testid="slide-canvas">
+        {slide.layout === 'title' && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
+            <input
+              value={slide.title || ''}
+              onChange={e => update('title', e.target.value)}
+              placeholder="Presentation Title"
+              className={cn("text-2xl sm:text-4xl font-bold text-center bg-transparent border-none outline-none w-full placeholder-current/30", theme.text)}
+              data-testid="slide-title-input"
             />
-            <textarea
-              value={slide.right || ''}
-              onChange={e => update('right', e.target.value)}
-              placeholder="Right column"
-              className="text-sm bg-transparent border border-gray-200 dark:border-slate-700 rounded-lg p-3 outline-none w-full text-gray-700 dark:text-gray-300 resize-none"
+            <input
+              value={slide.subtitle || ''}
+              onChange={e => update('subtitle', e.target.value)}
+              placeholder="Subtitle"
+              className={cn("text-base sm:text-xl text-center bg-transparent border-none outline-none w-full placeholder-current/30", theme.subtitle)}
             />
           </div>
-        </div>
-      )}
-      {slide.layout === 'blank' && (
-        <div className="flex-1 flex items-center justify-center text-gray-300 text-sm">Blank slide</div>
-      )}
+        )}
+        {slide.layout === 'section' && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
+            <input
+              value={slide.title || ''}
+              onChange={e => update('title', e.target.value)}
+              placeholder="Section Title"
+              className={cn("text-2xl sm:text-3xl font-bold text-center bg-transparent border-none outline-none w-full placeholder-current/30", theme.text)}
+              data-testid="slide-title-input"
+            />
+            <input
+              value={slide.subtitle || ''}
+              onChange={e => update('subtitle', e.target.value)}
+              placeholder="Subtitle"
+              className={cn("text-base sm:text-lg text-center bg-transparent border-none outline-none w-full placeholder-current/30", theme.subtitle)}
+            />
+          </div>
+        )}
+        {slide.layout === 'content' && (
+          <div className="flex-1 flex flex-col gap-4">
+            <input
+              value={slide.title || ''}
+              onChange={e => update('title', e.target.value)}
+              placeholder="Slide Title"
+              className={cn("text-xl sm:text-2xl font-bold bg-transparent border-none outline-none w-full placeholder-current/30", theme.text)}
+              data-testid="slide-title-input"
+            />
+            <textarea
+              value={slide.body || ''}
+              onChange={e => update('body', e.target.value)}
+              placeholder="Content (one bullet per line)"
+              className={cn("flex-1 text-sm sm:text-base bg-transparent border-none outline-none w-full placeholder-current/30 resize-none leading-relaxed", theme.subtitle)}
+              data-testid="slide-body-input"
+            />
+          </div>
+        )}
+        {slide.layout === 'two-column' && (
+          <div className="flex-1 flex flex-col gap-4">
+            <input
+              value={slide.title || ''}
+              onChange={e => update('title', e.target.value)}
+              placeholder="Slide Title"
+              className={cn("text-xl sm:text-2xl font-bold bg-transparent border-none outline-none w-full placeholder-current/30", theme.text)}
+              data-testid="slide-title-input"
+            />
+            <div className="flex-1 grid grid-cols-2 gap-4">
+              <textarea
+                value={slide.left || ''}
+                onChange={e => update('left', e.target.value)}
+                placeholder="Left column"
+                className={cn("text-sm bg-white/10 border border-white/20 rounded-lg p-3 outline-none w-full resize-none", theme.subtitle)}
+              />
+              <textarea
+                value={slide.right || ''}
+                onChange={e => update('right', e.target.value)}
+                placeholder="Right column"
+                className={cn("text-sm bg-white/10 border border-white/20 rounded-lg p-3 outline-none w-full resize-none", theme.subtitle)}
+              />
+            </div>
+          </div>
+        )}
+        {slide.layout === 'blank' && (
+          <div className={cn("flex-1 flex items-center justify-center text-sm opacity-50", theme.text)}>Blank slide</div>
+        )}
+      </div>
     </div>
   );
 };
