@@ -1,6 +1,6 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PenLine, FileText, RefreshCw, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { PenLine, FileText, RefreshCw, FileSpreadsheet, Loader2, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PageTransition from '@/components/PageTransition';
 import ESignaturePage from '@/pages/ESignaturePage';
@@ -8,8 +8,10 @@ import PDFEditorPage from '@/pages/PDFEditorPage';
 import FileConverterPage from '@/pages/FileConverterPage';
 
 const SheetsSection = lazy(() => import('@/components/sheets/SheetsSection'));
+const DocumentsSection = lazy(() => import('@/components/documents/DocumentsSection'));
 
 const tabs = [
+  { id: 'documents', label: 'Documents', icon: File },
   { id: 'sheets', label: 'Sheets', icon: FileSpreadsheet },
   { id: 'esignature', label: 'eSignature', icon: PenLine },
   { id: 'pdf-editor', label: 'PDF Editor', icon: FileText },
@@ -18,7 +20,7 @@ const tabs = [
 
 const DocHubPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'sheets';
+  const initialTab = searchParams.get('tab') || 'documents';
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const handleTabChange = (tabId) => {
@@ -60,6 +62,11 @@ const DocHubPage = () => {
         </div>
 
         {/* Tab Content */}
+        {activeTab === 'documents' && (
+          <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+            <DocumentsSection />
+          </Suspense>
+        )}
         {activeTab === 'sheets' && (
           <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
             <SheetsSection />

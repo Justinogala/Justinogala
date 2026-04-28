@@ -217,3 +217,62 @@ html, body, #root {
 }
 
 }
+/* TipTap Editor Styles */
+.tiptap {
+  outline: none;
+}
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+.tiptap table td, .tiptap table th {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 0.75rem;
+  min-width: 100px;
+}
+.tiptap table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+.dark .tiptap table td, .dark .tiptap table th {
+  border-color: #374151;
+}
+.dark .tiptap table th {
+  background-color: #1f2937;
+}
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.tiptap ul[data-type="taskList"] li input[type="checkbox"] {
+  margin-top: 0.25rem;
+}
+.tiptap mark {
+  background-color: #fef08a;
+  border-radius: 0.125rem;
+  padding: 0 0.125rem;
+}
+.tiptap blockquote {
+  border-left: 3px solid #7c3aed;
+  padding-left: 1rem;
+  color: #6b7280;
+  font-style: italic;
+}

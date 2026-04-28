@@ -364,6 +364,9 @@ api_router.include_router(sheets_router)
 from routes.ai_features import router as ai_features_router, run_ai_weekly_digest
 api_router.include_router(ai_features_router)
 
+from routes.documents import router as documents_router
+api_router.include_router(documents_router)
+
 
 # ============== Include Main Router ==============
 
