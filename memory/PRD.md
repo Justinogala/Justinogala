@@ -12,6 +12,17 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Documents Tab in DocHub — April 28, 2026
+- Full-featured rich text document editor (TipTap) added as first tab in DocHub
+- Features: Bold, italic, underline, strikethrough, highlight, headings (H1-H3), alignment (L/C/R/J), bullet lists, numbered lists, checklists, blockquotes, tables, images, links, horizontal rules, code, undo/redo
+- 6 Templates: Meeting Notes, Project Proposal, Weekly Report, Business Letter, SOP, Contract
+- Create with AI: Generate documents from text prompts
+- Auto-save (2s debounce), manual save, export to PDF (print) and HTML
+- Document list with search, rename, duplicate, delete
+- Backend: `/app/backend/routes/documents.py` (full CRUD + duplicate)
+- Frontend: `/app/src/components/documents/DocumentsSection.jsx`, `DocumentEditor.jsx`
+- Testing: 100% backend (9/9) + 100% frontend — Iteration 131
+
 ### Virtual Backgrounds for Video Calls — April 19, 2026
 - Background button added to ALL video call types: GroupMeetingRoom (lobby + in-call), InstantMeetingRoom (lobby + in-call), VideoCallInterface, AdvancedVideoCallInterface (CallControlBar)
 - BackgroundSelectorModal with 8 tabs: All, Blur, Office, Nature, Cityscape, Colors, Abstract, Custom
