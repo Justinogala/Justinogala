@@ -25,6 +25,8 @@ import { API_URL } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import WorkspaceICTSupport from '@/components/workspace/WorkspaceICTSupport';
 import WorkspaceForms from '@/components/workspace/WorkspaceForms';
+import WorkspaceDocuments from '@/components/workspace/WorkspaceDocuments';
+import WorkspaceSheets from '@/components/workspace/WorkspaceSheets';
 import PageTransition from '@/components/PageTransition';
 import WorkspaceMemberManagement from '@/components/WorkspaceMemberManagement';
 
@@ -777,10 +779,12 @@ const WorkspaceDetailPage = () => {
             <TabsList className="bg-white dark:bg-slate-900 p-1 rounded-xl border shadow-sm h-auto overflow-x-auto flex flex-nowrap md:flex-wrap scrollbar-hide">
               {[
                 { val: 'home', label: 'Home', icon: Activity },
+                { val: 'documents', label: 'Documents', icon: FileText },
+                { val: 'sheets', label: 'Sheets', icon: HardDrive },
                 { val: 'files', label: 'Files', icon: FolderOpen },
                 { val: 'news', label: 'News', icon: Megaphone },
                 { val: 'ict-support', label: 'ICT Support', icon: Monitor },
-                { val: 'forms', label: 'Forms', icon: FileText },
+                { val: 'forms', label: 'Forms', icon: FileCheck2 },
                 { val: 'members', label: 'Members', icon: Users },
                 { val: 'activity', label: 'Activity', icon: Clock },
                 { val: 'settings', label: 'Settings', icon: Settings },
@@ -940,6 +944,16 @@ const WorkspaceDetailPage = () => {
             {/* Files Tab */}
             <TabsContent value="files" className="animate-in fade-in-50">
               <WorkspaceFileManager workspaceId={workspaceId} isOwner={isOwner} />
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents" className="animate-in fade-in-50">
+              <WorkspaceDocuments workspaceId={workspaceId} />
+            </TabsContent>
+
+            {/* Sheets Tab */}
+            <TabsContent value="sheets" className="animate-in fade-in-50">
+              <WorkspaceSheets workspaceId={workspaceId} />
             </TabsContent>
 
             {/* News Tab */}

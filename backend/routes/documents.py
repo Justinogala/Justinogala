@@ -28,11 +28,16 @@ def _get_user_id(creds: HTTPAuthorizationCredentials):
 @router.get("")
 async def list_documents(
     search: Optional[str] = Query(None),
+    workspace_id: Optional[str] = Query(None),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """List all documents for the current user"""
+    """List all documents for the current user, optionally filtered by workspace"""
     user_id = _get_user_id(credentials)
     query = {"user_id": user_id, "deleted": {"$ne": True}}
+    if workspace_id:
+        query["workspace_id"] = workspace_id
+    else:
+        query["workspace_id"] = {"$in": [None, ""]}
     if search:
         query["title"] = {"$regex": search, "$options": "i"}
 
@@ -53,6 +58,7 @@ async def create_document(
     doc = {
         "id": doc_id,
         "user_id": user_id,
+        "workspace_id": body.get("workspace_id") or None,
         "title": body.get("title", "Untitled Document"),
         "content": body.get("content", ""),
         "template": body.get("template"),
