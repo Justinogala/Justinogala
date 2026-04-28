@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import uuid
 import jwt
+import os
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, logger
 
@@ -141,6 +142,82 @@ async def duplicate_document(
     await db.documents.insert_one(new_doc)
     new_doc.pop("_id", None)
     return new_doc
+
+
+@router.post("/ai-generate")
+async def ai_generate_document(
+    body: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Generate a document using AI from a text prompt"""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    user_id = _get_user_id(credentials)
+    prompt = body.get("prompt", "").strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="AI service not configured")
+
+    system_msg = """You are a professional document writer. Generate well-structured HTML content for a document based on the user's request. 
+Use proper HTML tags: <h1> for title, <h2> for sections, <h3> for subsections, <p> for paragraphs, <ul>/<ol>/<li> for lists, <strong> for bold, <em> for italic, <table>/<tr>/<th>/<td> for tables, <blockquote> for quotes.
+Make the content comprehensive, professional, and ready to use. Do NOT include <html>, <head>, or <body> tags - just the content HTML."""
+
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"doc-gen-{uuid.uuid4()}",
+            system_message=system_msg
+        ).with_model("openai", "gpt-5.2")
+
+        user_message = UserMessage(text=f"Create a professional document: {prompt}")
+        content = await chat.send_message(user_message)
+
+        # Extract title from first heading or prompt
+        import re
+        title_match = re.search(r'<h1[^>]*>(.*?)</h1>', content)
+        title = title_match.group(1) if title_match else prompt[:60]
+
+        # Save as new document
+        doc_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        doc = {
+            "id": doc_id,
+            "user_id": user_id,
+            "title": title,
+            "content": content,
+            "template": "ai-generated",
+            "word_count": len(content.split()),
+            "created_at": now,
+            "updated_at": now,
+            "deleted": False,
+        }
+        await db.documents.insert_one(doc)
+        doc.pop("_id", None)
+        return doc
+
+    except Exception as e:
+        logger.error(f"AI document generation failed: {e}")
+        # Fallback: create a basic document with the prompt
+        doc_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        fallback_content = f"<h1>{prompt}</h1><p>Start writing your document here...</p><h2>Overview</h2><p></p><h2>Details</h2><p></p><h2>Conclusion</h2><p></p>"
+        doc = {
+            "id": doc_id,
+            "user_id": user_id,
+            "title": prompt[:60],
+            "content": fallback_content,
+            "template": "ai-generated",
+            "word_count": len(fallback_content.split()),
+            "created_at": now,
+            "updated_at": now,
+            "deleted": False,
+        }
+        await db.documents.insert_one(doc)
+        doc.pop("_id", None)
+        return doc
 
 
 @router.get("/{doc_id}/export/docx")
