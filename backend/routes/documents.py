@@ -141,3 +141,187 @@ async def duplicate_document(
     await db.documents.insert_one(new_doc)
     new_doc.pop("_id", None)
     return new_doc
+
+
+@router.get("/{doc_id}/export/docx")
+async def export_docx(
+    doc_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Export a document as DOCX"""
+    from fastapi.responses import Response
+    from docx import Document as DocxDocument
+    from docx.shared import Pt, Inches, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from io import BytesIO
+    import re
+    from html.parser import HTMLParser
+
+    user_id = _get_user_id(credentials)
+    doc = await db.documents.find_one({"id": doc_id, "user_id": user_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Parse HTML to DOCX
+    docx_doc = DocxDocument()
+    html_content = doc.get("content", "")
+
+    class HTMLToDocx(HTMLParser):
+        def __init__(self, document):
+            super().__init__()
+            self.doc = document
+            self.current_para = None
+            self.current_run = None
+            self.bold = False
+            self.italic = False
+            self.underline = False
+            self.strike = False
+            self.in_heading = 0
+            self.in_list = False
+            self.in_ordered = False
+            self.list_counter = 0
+            self.in_blockquote = False
+            self.in_table = False
+            self.table = None
+            self.current_row = None
+            self.current_cell = None
+            self.text_align = None
+
+        def handle_starttag(self, tag, attrs):
+            attrs_dict = dict(attrs)
+            style = attrs_dict.get('style', '')
+
+            if tag in ('h1', 'h2', 'h3'):
+                level = int(tag[1])
+                self.in_heading = level
+                self.current_para = self.doc.add_heading('', level=level)
+            elif tag == 'p':
+                if self.in_table and self.current_cell:
+                    self.current_para = self.current_cell.paragraphs[0] if self.current_cell.paragraphs else self.current_cell.add_paragraph()
+                else:
+                    self.current_para = self.doc.add_paragraph()
+                if 'text-align: center' in style or 'text-align:center' in style:
+                    self.current_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                elif 'text-align: right' in style or 'text-align:right' in style:
+                    self.current_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                elif 'text-align: justify' in style or 'text-align:justify' in style:
+                    self.current_para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            elif tag == 'strong' or tag == 'b':
+                self.bold = True
+            elif tag == 'em' or tag == 'i':
+                self.italic = True
+            elif tag == 'u':
+                self.underline = True
+            elif tag == 's' or tag == 'del':
+                self.strike = True
+            elif tag == 'ul':
+                self.in_list = True
+                self.in_ordered = False
+            elif tag == 'ol':
+                self.in_list = True
+                self.in_ordered = True
+                self.list_counter = 0
+            elif tag == 'li':
+                if self.in_ordered:
+                    self.list_counter += 1
+                    self.current_para = self.doc.add_paragraph(f'{self.list_counter}. ', style='List Number')
+                else:
+                    self.current_para = self.doc.add_paragraph('', style='List Bullet')
+            elif tag == 'blockquote':
+                self.in_blockquote = True
+            elif tag == 'table':
+                self.in_table = True
+                self.table = self.doc.add_table(rows=0, cols=0)
+                self.table.style = 'Table Grid'
+            elif tag == 'tr':
+                if self.table:
+                    self.current_row = self.table.add_row() if self.table.rows else None
+                    if not self.current_row:
+                        self.table.add_row()
+                        self.current_row = self.table.rows[-1]
+            elif tag in ('td', 'th'):
+                if self.current_row:
+                    if len(self.current_row.cells) == 0 or self.current_cell is None:
+                        # Need to add column
+                        if len(self.table.columns) < len(self.current_row.cells) + 1:
+                            self.table.add_column(Inches(2))
+                        idx = 0 if self.current_cell is None else len([c for c in self.current_row.cells]) - 1
+                    self.current_cell = self.current_row.cells[min(len(self.current_row.cells)-1, 0)] if self.current_row.cells else None
+                    self.current_para = None
+            elif tag == 'br':
+                if self.current_para:
+                    self.current_para.add_run('\n')
+            elif tag == 'hr':
+                para = self.doc.add_paragraph()
+                para.add_run('─' * 50)
+            elif tag == 'img':
+                src = attrs_dict.get('src', '')
+                if src:
+                    para = self.doc.add_paragraph()
+                    para.add_run(f'[Image: {src}]')
+
+        def handle_endtag(self, tag):
+            if tag in ('h1', 'h2', 'h3'):
+                self.in_heading = 0
+                self.current_para = None
+            elif tag == 'p':
+                self.current_para = None
+            elif tag == 'strong' or tag == 'b':
+                self.bold = False
+            elif tag == 'em' or tag == 'i':
+                self.italic = False
+            elif tag == 'u':
+                self.underline = False
+            elif tag == 's' or tag == 'del':
+                self.strike = False
+            elif tag in ('ul', 'ol'):
+                self.in_list = False
+                self.in_ordered = False
+            elif tag == 'blockquote':
+                self.in_blockquote = False
+            elif tag == 'table':
+                self.in_table = False
+                self.table = None
+                self.current_row = None
+                self.current_cell = None
+            elif tag == 'tr':
+                self.current_row = None
+                self.current_cell = None
+            elif tag in ('td', 'th'):
+                self.current_cell = None
+
+        def handle_data(self, data):
+            text = data.strip()
+            if not text:
+                return
+            if self.current_para is None:
+                if self.in_blockquote:
+                    self.current_para = self.doc.add_paragraph(style='Quote') if 'Quote' in [s.name for s in self.doc.styles] else self.doc.add_paragraph()
+                else:
+                    self.current_para = self.doc.add_paragraph()
+
+            run = self.current_para.add_run(text)
+            if self.bold:
+                run.bold = True
+            if self.italic:
+                run.italic = True
+            if self.underline:
+                run.underline = True
+            if self.strike:
+                run.font.strike = True
+
+    parser = HTMLToDocx(docx_doc)
+    parser.feed(html_content)
+
+    # Save to bytes
+    buffer = BytesIO()
+    docx_doc.save(buffer)
+    buffer.seek(0)
+
+    filename = re.sub(r'[^\w\s\-]', '', doc.get("title", "document")).strip() or "document"
+
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.docx"'}
+    )

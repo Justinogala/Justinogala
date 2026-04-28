@@ -190,14 +190,22 @@ const DocumentEditor = ({ docId, onBack }) => {
   };
 
   const exportDocx = async () => {
-    const html = editor?.getHTML() || '';
-    const blob = new Blob([`<html><head><meta charset="utf-8"><title>${title}</title></head><body>${html}</body></html>`], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${title || 'document'}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_URL}/api/documents/${docId}/export/docx`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title || 'document'}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('DOCX export error:', e);
+    }
   };
 
   const exportPdf = () => {
@@ -238,7 +246,7 @@ const DocumentEditor = ({ docId, onBack }) => {
             <Download className="w-4 h-4" /> PDF
           </Button>
           <Button variant="outline" size="sm" onClick={exportDocx} data-testid="doc-export-docx" className="gap-1.5">
-            <Download className="w-4 h-4" /> HTML
+            <Download className="w-4 h-4" /> DOCX
           </Button>
         </div>
       </div>
