@@ -18,7 +18,7 @@ from services.audit import log_audit_event, get_client_ip
 
 from config import db, JWT_SECRET_KEY, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, SENDER_EMAIL, logger
 from models import UserCreate, UserLogin, ForgotPasswordRequest, ResetPasswordRequest
-from security import limiter, sanitize_text, guard_mongo_query, validate_password, log_audit
+from security import limiter, sanitize_text, guard_mongo_query, validate_password, log_audit, validate_name, validate_email_domain
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer(auto_error=False)
@@ -276,6 +276,16 @@ async def register_user(request: Request, user: UserCreate, invite_token: Option
     # Sanitize inputs
     email = guard_mongo_query(user.email.lower())
     name = sanitize_text(user.name) if user.name else ""
+
+    # Validate name against spam/bots
+    name_error = validate_name(name)
+    if name_error:
+        raise HTTPException(status_code=400, detail=name_error)
+
+    # Block disposable/spam email domains
+    email_error = validate_email_domain(email)
+    if email_error:
+        raise HTTPException(status_code=400, detail=email_error)
 
     # Enforce password policy on new registrations
     pw_error = validate_password(user.password)
