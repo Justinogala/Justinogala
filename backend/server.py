@@ -367,6 +367,9 @@ api_router.include_router(ai_features_router)
 from routes.documents import router as documents_router
 api_router.include_router(documents_router)
 
+from routes.presentations import router as presentations_router
+api_router.include_router(presentations_router)
+
 
 # ============== Include Main Router ==============
 
