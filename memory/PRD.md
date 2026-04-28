@@ -12,6 +12,18 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Presentations Tab in DocHub — April 28, 2026
+- Full slide presentation editor (like Google Slides/PowerPoint) added as second tab in DocHub
+- Slide editor: Thumbnail panel (left) + main editing canvas, add/delete/reorder/duplicate slides
+- 5 Slide layouts: Title, Content, Two Column, Section Header, Blank
+- 5 Templates: Business Pitch, Project Update, Training Session, Team Retrospective, Sales Report
+- Create with AI: Generate multi-slide presentations from prompts (GPT-5.2, 6-10 slides)
+- Export as PPTX: Server-side python-pptx conversion with proper slide layouts
+- Auto-save (2s debounce), full CRUD (create, edit, rename, duplicate, delete, search)
+- Backend: `/app/backend/routes/presentations.py` (8 endpoints)
+- Frontend: `/app/src/components/presentations/PresentationsSection.jsx`, `PresentationEditor.jsx`
+- Testing: 100% backend (11/11) + 100% frontend — Iteration 132
+
 ### Documents Tab in DocHub — April 28, 2026
 - Full-featured rich text document editor (TipTap) added as first tab in DocHub
 - Features: Bold, italic, underline, strikethrough, highlight, headings (H1-H3), alignment (L/C/R/J), bullet lists, numbered lists, checklists, blockquotes, tables, images, links, horizontal rules, code, undo/redo
