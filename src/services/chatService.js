@@ -1,8 +1,9 @@
 
 // This service handles RAG-based chat functionality
 
-const EMBEDDINGS_API_URL = 'https://api.openai.com/v1/embeddings';
-const COMPLETIONS_API_URL = 'https://api.openai.com/v1/chat/completions';
+const API_BASE = (import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '') + '/api';
+const EMBEDDINGS_API_URL = `${API_BASE}/chat/embeddings`;
+const COMPLETIONS_API_URL = `${API_BASE}/chat/completions`;
 
 /**
  * Generates embeddings for a text string
