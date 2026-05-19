@@ -430,6 +430,11 @@ async def startup_event():
             scheduler.add_job(run_data_health_digest, 'cron', day_of_week='mon', hour=9, minute=30, id='data_health_digest')
             scheduler.add_job(take_compliance_snapshot, 'cron', day_of_week='mon', hour=10, minute=30, id='compliance_snapshot')
             scheduler.add_job(run_ai_weekly_digest, 'cron', day_of_week='mon', hour=8, minute=0, id='ai_weekly_digest')
+
+            # Meeting reminders - check every minute for upcoming meetings
+            from routes.calendar import send_meeting_reminders
+            scheduler.add_job(send_meeting_reminders, 'interval', minutes=1, id='meeting_reminders')
+
             scheduler.start()
             logger.info("Escalation scheduler started (runs every 1 hour)")
             logger.info("Weekly digest scheduler started (runs every Monday 9 AM UTC)")
