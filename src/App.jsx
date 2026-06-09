@@ -22,6 +22,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { Toaster } from '@/components/ui/toaster';
 import CookieConsent from '@/components/CookieConsent';
 import PushNotificationPrompt from '@/components/PushNotificationPrompt';
+import OfflineBanner from '@/components/OfflineBanner';
 import { ToastContextProvider } from '@/components/ui/use-toast';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import AnnouncementManager from '@/components/AnnouncementManager'; 
@@ -594,6 +595,7 @@ function App() {
                           <Toaster />
                           <CookieConsent />
                           <PushNotificationPrompt />
+                          <OfflineBanner />
                           </HeroSlideProvider>
                         </CallStateProvider>
                       </AdvancedVideoCallProvider>

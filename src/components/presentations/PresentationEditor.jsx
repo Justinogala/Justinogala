@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { API_URL } from '@/lib/api';
+import offlineDB from '@/services/offlineDB';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -205,14 +206,25 @@ const PresentationEditor = ({ presId, onBack }) => {
       setLoading(true);
       try {
         const token = getToken();
-        const res = await fetch(`${API_URL}/api/presentations/${presId}`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const data = await res.json();
-          setPres(data);
-          setTitle(data.title);
-          setSlides(data.slides || []);
+        if (navigator.onLine) {
+          const res = await fetch(`${API_URL}/api/presentations/${presId}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) {
+            const data = await res.json();
+            setPres(data);
+            setTitle(data.title);
+            setSlides(data.slides || []);
+            await offlineDB.put('presentations', data);
+          }
+        } else {
+          const cached = await offlineDB.get('presentations', presId);
+          if (cached) { setPres(cached); setTitle(cached.title); setSlides(cached.slides || []); }
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        try {
+          const cached = await offlineDB.get('presentations', presId);
+          if (cached) { setPres(cached); setTitle(cached.title); setSlides(cached.slides || []); }
+        } catch {}
+      }
       setLoading(false);
     };
     load();
@@ -222,11 +234,18 @@ const PresentationEditor = ({ presId, onBack }) => {
     setSaving(true);
     try {
       const token = getToken();
-      await fetch(`${API_URL}/api/presentations/${presId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ slides: slidesData || slides, title: titleData || title }),
-      });
+      const payload = { slides: slidesData || slides, title: titleData || title };
+      if (navigator.onLine) {
+        await fetch(`${API_URL}/api/presentations/${presId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await offlineDB.put('presentations', { id: presId, ...payload, updated_at: new Date().toISOString() });
+        await offlineDB.queueAction({ endpoint: `/api/presentations/${presId}`, method: 'PUT', body: payload });
+        window.dispatchEvent(new Event('offline-action-queued'));
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) { console.error(e); }

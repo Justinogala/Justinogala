@@ -1,102 +1,132 @@
 
 /* eslint-disable no-restricted-globals */
 /* global clients */
-// Copy of src/services/serviceWorker.js for direct serving from public
-// This is required because vite dev server doesn't compile service worker file from src automatically
-// to root without plugin. For this environment, we place it in public.
+// Munal AI Service Worker - Offline Support
 
-const CACHE_VERSION = 'v1';
-const CACHE_NAME = `munal-cache-${CACHE_VERSION}`;
-const DYNAMIC_CACHE_NAME = `munal-dynamic-${CACHE_VERSION}`;
+const CACHE_VERSION = 'v2';
+const STATIC_CACHE = `munal-static-${CACHE_VERSION}`;
+const API_CACHE = `munal-api-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `munal-dynamic-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
-  '/offline.html',
   '/icons/icon-192x192.svg',
   '/icons/icon-512x512.svg'
 ];
 
+// API routes to cache for offline access (GET only)
+const CACHEABLE_API_ROUTES = [
+  '/api/documents',
+  '/api/presentations',
+  '/api/sheets',
+  '/api/calendar/events',
+  '/api/users',
+];
+
+// ============== Install ==============
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing Service Worker ...', event);
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(PRECACHE_URLS);
-      })
+    caches.open(STATIC_CACHE)
+      .then(cache => cache.addAll(PRECACHE_URLS))
       .then(() => self.skipWaiting())
   );
 });
 
+// ============== Activate ==============
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activating Service Worker ....', event);
   event.waitUntil(
-    caches.keys()
-      .then((keyList) => {
-        return Promise.all(keyList.map((key) => {
-          if (key !== CACHE_NAME && key !== DYNAMIC_CACHE_NAME) {
-            return caches.delete(key);
-          }
-        }));
-      })
-      .then(() => self.clients.claim())
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(k => k !== STATIC_CACHE && k !== API_CACHE && k !== DYNAMIC_CACHE)
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
+// ============== Fetch ==============
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  if (url.pathname.startsWith('/api/')) {
-    return; 
+  // API requests — Network first, fallback to cache
+  if (url.pathname.startsWith('/api/') && event.request.method === 'GET') {
+    const isCacheable = CACHEABLE_API_ROUTES.some(route => url.pathname.startsWith(route));
+    if (isCacheable) {
+      event.respondWith(
+        fetch(event.request)
+          .then(response => {
+            if (response.ok) {
+              const cloned = response.clone();
+              caches.open(API_CACHE).then(cache => cache.put(event.request, cloned));
+            }
+            return response;
+          })
+          .catch(() => {
+            return caches.match(event.request).then(cached => {
+              if (cached) return cached;
+              return new Response(JSON.stringify({ offline: true, data: [] }), {
+                headers: { 'Content-Type': 'application/json' }
+              });
+            });
+          })
+      );
+      return;
+    }
+    return;
   }
 
-  if (
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|woff2?|ttf)$/) ||
-    PRECACHE_URLS.includes(url.pathname)
-  ) {
+  // Non-GET API requests — pass through (sync queue handles offline)
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Static assets — Cache first
+  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|woff2?|ttf|ico|webp)$/)) {
     event.respondWith(
-      caches.match(event.request).then((response) => {
-        if (response) {
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          if (response.ok) {
+            const cloned = response.clone();
+            caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, cloned));
+          }
           return response;
-        }
-        return fetch(event.request).then((networkResponse) => {
-          return caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
-            cache.put(event.request.url, networkResponse.clone());
-            return networkResponse;
-          });
-        });
+        }).catch(() => new Response('', { status: 503 }));
       })
     );
     return;
   }
 
+  // Navigation — Network first, fallback to cached index
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .catch(() => {
-          return caches.match(event.request)
-            .then((response) => {
-              if (response) {
-                return response;
-              }
-              return caches.match('/offline.html');
-            });
+        .then(response => {
+          const cloned = response.clone();
+          caches.open(STATIC_CACHE).then(cache => cache.put('/', cloned));
+          return response;
         })
+        .catch(() => caches.match('/') || caches.match('/index.html'))
     );
     return;
   }
 });
 
+// ============== Background Sync ==============
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-new-transcriptions') {
-    event.waitUntil(Promise.resolve());
+  if (event.tag === 'sync-offline-actions') {
+    event.waitUntil(
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => client.postMessage({ type: 'SYNC_REQUESTED' }));
+      })
+    );
   }
 });
 
+// ============== Push Notifications ==============
 self.addEventListener('push', (event) => {
-  let title = 'Munal';
+  let title = 'Munal AI';
   let options = {
     body: 'New activity',
     icon: '/icons/icon-192x192.svg',
@@ -128,11 +158,9 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || '/';
-
   if (event.action === 'dismiss') return;
-
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
       for (const client of windowClients) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.navigate(url);

@@ -19,6 +19,7 @@ import { API_URL } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import offlineDB from '@/services/offlineDB';
 import {
   ArrowLeft, Save, Download, Loader2, Check,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
@@ -147,16 +148,38 @@ const DocumentEditor = ({ docId, onBack }) => {
       setLoading(true);
       try {
         const token = getToken();
-        const res = await fetch(`${API_URL}/api/documents/${docId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setDoc(data);
-          setTitle(data.title);
-          if (editor) editor.commands.setContent(data.content || '<p></p>');
+        if (navigator.onLine) {
+          const res = await fetch(`${API_URL}/api/documents/${docId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setDoc(data);
+            setTitle(data.title);
+            if (editor) editor.commands.setContent(data.content || '<p></p>');
+            // Cache locally for offline access
+            await offlineDB.put('documents', data);
+          }
+        } else {
+          // Load from IndexedDB
+          const cached = await offlineDB.get('documents', docId);
+          if (cached) {
+            setDoc(cached);
+            setTitle(cached.title);
+            if (editor) editor.commands.setContent(cached.content || '<p></p>');
+          }
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        // Fallback to offline cache
+        try {
+          const cached = await offlineDB.get('documents', docId);
+          if (cached) {
+            setDoc(cached);
+            setTitle(cached.title);
+            if (editor) editor.commands.setContent(cached.content || '<p></p>');
+          }
+        } catch {}
+      }
       setLoading(false);
     };
     if (docId && editor) loadDoc();
@@ -166,11 +189,22 @@ const DocumentEditor = ({ docId, onBack }) => {
     setSaving(true);
     try {
       const token = getToken();
-      await fetch(`${API_URL}/api/documents/${docId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content, title }),
-      });
+      if (navigator.onLine) {
+        await fetch(`${API_URL}/api/documents/${docId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ content, title }),
+        });
+      } else {
+        // Save locally and queue sync
+        await offlineDB.put('documents', { id: docId, content, title, updated_at: new Date().toISOString() });
+        await offlineDB.queueAction({
+          endpoint: `/api/documents/${docId}`,
+          method: 'PUT',
+          body: { content, title },
+        });
+        window.dispatchEvent(new Event('offline-action-queued'));
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e) { console.error(e); }

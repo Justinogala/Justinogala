@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_URL } from '@/lib/api';
+import offlineDB from '@/services/offlineDB';
 import {
   Plus, Sparkles, Loader2, Trash2, Copy,
   MoreHorizontal, Pencil, Check, X, Search,
@@ -77,7 +78,26 @@ const PresentationList = ({ onSelect, onTemplates, onCreateAI }) => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setItems(await api(`?search=${encodeURIComponent(search)}`)); } catch (e) { console.error(e); }
+    try {
+      if (navigator.onLine) {
+        const data = await api(`?search=${encodeURIComponent(search)}`);
+        setItems(data);
+        if (!search) await offlineDB.putAll('presentations', data);
+      } else {
+        let cached = await offlineDB.getAll('presentations');
+        if (search) {
+          const s = search.toLowerCase();
+          cached = cached.filter(p => (p.title || '').toLowerCase().includes(s));
+        }
+        setItems(cached);
+      }
+    } catch (e) {
+      try {
+        let cached = await offlineDB.getAll('presentations');
+        if (search) cached = cached.filter(p => (p.title || '').toLowerCase().includes(search.toLowerCase()));
+        setItems(cached);
+      } catch { console.error(e); }
+    }
     setLoading(false);
   }, [search]);
 

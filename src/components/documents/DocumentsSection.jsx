@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_URL } from '@/lib/api';
+import offlineDB from '@/services/offlineDB';
 import {
   Plus, Sparkles, ArrowLeft, Loader2, Trash2, Copy,
   FileText, MoreHorizontal, Pencil, Check, X, Search,
@@ -53,9 +54,31 @@ const DocumentList = ({ onSelect, onCreateAI, onTemplates }) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api(`?search=${encodeURIComponent(search)}`);
-      setDocs(data);
-    } catch (e) { console.error(e); }
+      if (navigator.onLine) {
+        const data = await api(`?search=${encodeURIComponent(search)}`);
+        setDocs(data);
+        // Cache for offline
+        if (!search) await offlineDB.putAll('documents', data);
+      } else {
+        // Load from IndexedDB
+        let cached = await offlineDB.getAll('documents');
+        if (search) {
+          const s = search.toLowerCase();
+          cached = cached.filter(d => (d.title || '').toLowerCase().includes(s));
+        }
+        setDocs(cached);
+      }
+    } catch (e) {
+      // Fallback to cache
+      try {
+        let cached = await offlineDB.getAll('documents');
+        if (search) {
+          const s = search.toLowerCase();
+          cached = cached.filter(d => (d.title || '').toLowerCase().includes(s));
+        }
+        setDocs(cached);
+      } catch { console.error(e); }
+    }
     setLoading(false);
   }, [search]);
 
