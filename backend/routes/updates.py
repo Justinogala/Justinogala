@@ -133,7 +133,8 @@ async def get_whats_new(user: dict = Depends(get_current_user)):
 @router.get("/admin/versions")
 async def admin_list_versions(user: dict = Depends(get_current_user)):
     """Admin: List all versions."""
-    if user.get("role") not in ["Super Admin", "Admin"]:
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
         raise HTTPException(403, "Admin access required")
     versions = await db.app_versions.find(
         {},
@@ -145,7 +146,8 @@ async def admin_list_versions(user: dict = Depends(get_current_user)):
 @router.post("/admin/versions")
 async def admin_create_version(data: VersionCreate, user: dict = Depends(get_current_user)):
     """Admin: Publish a new version entry."""
-    if user.get("role") not in ["Super Admin", "Admin"]:
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
         raise HTTPException(403, "Admin access required")
 
     # Check for duplicate version
@@ -184,7 +186,8 @@ async def admin_create_version(data: VersionCreate, user: dict = Depends(get_cur
 @router.patch("/admin/versions/{version_id}")
 async def admin_update_version(version_id: str, data: VersionUpdate, user: dict = Depends(get_current_user)):
     """Admin: Edit a version entry."""
-    if user.get("role") not in ["Super Admin", "Admin"]:
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
         raise HTTPException(403, "Admin access required")
 
     update_fields = {k: v for k, v in data.dict().items() if v is not None}
@@ -205,7 +208,8 @@ async def admin_update_version(version_id: str, data: VersionUpdate, user: dict 
 @router.delete("/admin/versions/{version_id}")
 async def admin_delete_version(version_id: str, user: dict = Depends(get_current_user)):
     """Admin: Delete a version entry."""
-    if user.get("role") not in ["Super Admin", "Admin"]:
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
         raise HTTPException(403, "Admin access required")
 
     result = await db.app_versions.delete_one({"id": version_id})

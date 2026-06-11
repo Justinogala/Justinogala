@@ -4,13 +4,14 @@ import offlineDB from '@/services/offlineDB';
 import {
   Plus, Sparkles, Loader2, Trash2, Copy,
   MoreHorizontal, Pencil, Check, X, Search,
-  LayoutTemplate, Presentation, Clock
+  LayoutTemplate, Presentation, Clock, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import PresentationEditor from './PresentationEditor';
+import LinkToWorkspaceDialog from '../workspace/LinkToWorkspaceDialog';
 
 const getToken = () => {
   try { return JSON.parse(localStorage.getItem('munal_sessions') || '{}').token || null; } catch { return null; }
@@ -75,7 +76,7 @@ const PresentationList = ({ onSelect, onTemplates, onCreateAI }) => {
   const [menuOpen, setMenuOpen] = useState(null);
   const [renaming, setRenaming] = useState(null);
   const [renameVal, setRenameVal] = useState('');
-
+  const [linkDialogItem, setLinkDialogItem] = useState(null);
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -178,6 +179,7 @@ const PresentationList = ({ onSelect, onTemplates, onCreateAI }) => {
                   <div className="absolute right-0 top-9 w-36 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 py-1 z-50">
                     <button className="w-full px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2" onClick={() => { setRenaming(item.id); setRenameVal(item.title); setMenuOpen(null); }}><Pencil className="w-3 h-3" /> Rename</button>
                     <button className="w-full px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2" onClick={() => { handleDuplicate(item.id); setMenuOpen(null); }}><Copy className="w-3 h-3" /> Duplicate</button>
+                    <button className="w-full px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2" onClick={() => { setLinkDialogItem(item); setMenuOpen(null); }} data-testid={`pres-link-ws-${item.id}`}><Link2 className="w-3 h-3" /> Link to Workspace</button>
                     <button className="w-full px-3 py-2 text-xs text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 flex items-center gap-2" onClick={() => { handleDelete(item.id); setMenuOpen(null); }}><Trash2 className="w-3 h-3" /> Delete</button>
                   </div>
                 )}
@@ -185,6 +187,18 @@ const PresentationList = ({ onSelect, onTemplates, onCreateAI }) => {
             </div>
           ))}
         </div>
+      )}
+
+      {linkDialogItem && (
+        <LinkToWorkspaceDialog
+          open={!!linkDialogItem}
+          onClose={() => setLinkDialogItem(null)}
+          itemId={linkDialogItem.id}
+          itemType="presentations"
+          currentWorkspaceId={linkDialogItem.workspace_id}
+          linkedWorkspaces={linkDialogItem.linked_workspaces || []}
+          onLinked={() => { load(); }}
+        />
       )}
     </div>
   );

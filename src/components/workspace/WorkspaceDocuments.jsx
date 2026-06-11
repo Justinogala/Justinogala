@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_URL } from '@/lib/api';
 import {
-  Plus, Sparkles, Loader2, Trash2, Copy,
-  MoreHorizontal, Pencil, Check, X, Search,
-  LayoutTemplate, File, Clock, FileSpreadsheet
+  Plus, Loader2, Trash2, Copy,
+  MoreHorizontal, Search,
+  LayoutTemplate, File, Clock, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import DocumentEditor from '@/components/documents/DocumentEditor';
+import LinkToWorkspaceDialog from './LinkToWorkspaceDialog';
 
 const getToken = () => {
   try { return JSON.parse(localStorage.getItem('munal_sessions') || '{}').token || null; } catch { return null; }
@@ -41,6 +42,7 @@ const WorkspaceDocuments = ({ workspaceId }) => {
   const [activeDocId, setActiveDocId] = useState(null);
   const [showTemplates, setShowTemplates] = useState(false);
   const [menuOpen, setMenuOpen] = useState(null);
+  const [linkDialogItem, setLinkDialogItem] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,6 +70,10 @@ const WorkspaceDocuments = ({ workspaceId }) => {
 
   const handleDelete = async (id) => { await api(`/${id}`, { method: 'DELETE' }); load(); };
   const handleDuplicate = async (id) => { await api(`/${id}/duplicate`, { method: 'POST' }); load(); };
+
+  const isLinkedItem = (doc) => {
+    return (doc.linked_workspaces || []).includes(workspaceId) && doc.workspace_id !== workspaceId;
+  };
 
   if (view === 'editor' && activeDocId) {
     return <DocumentEditor docId={activeDocId} onBack={() => { setView('list'); setActiveDocId(null); load(); }} />;
@@ -105,13 +111,21 @@ const WorkspaceDocuments = ({ workspaceId }) => {
                 <File className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-gray-900 dark:text-white truncate">{doc.title}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-medium text-sm text-gray-900 dark:text-white truncate">{doc.title}</p>
+                  {isLinkedItem(doc) && (
+                    <Badge variant="outline" className="text-[9px] h-4 px-1 border-blue-300 text-blue-600 shrink-0" data-testid={`linked-badge-${doc.id}`}>
+                      <Link2 className="w-2.5 h-2.5 mr-0.5" />Linked
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-xs text-gray-400 flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(doc.updated_at).toLocaleDateString()}</p>
               </div>
               <div className="relative" onClick={e => e.stopPropagation()}>
                 <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => setMenuOpen(menuOpen === doc.id ? null : doc.id)}><MoreHorizontal className="w-3.5 h-3.5" /></Button>
                 {menuOpen === doc.id && (
-                  <div className="absolute right-0 top-8 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-lg border py-1 z-50">
+                  <div className="absolute right-0 top-8 w-40 bg-white dark:bg-slate-800 rounded-lg shadow-lg border py-1 z-50">
+                    <button className="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2" onClick={() => { setLinkDialogItem(doc); setMenuOpen(null); }} data-testid={`link-ws-btn-${doc.id}`}><Link2 className="w-3 h-3" /> Link to Workspace</button>
                     <button className="w-full px-3 py-1.5 text-xs text-left hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2" onClick={() => { handleDuplicate(doc.id); setMenuOpen(null); }}><Copy className="w-3 h-3" /> Duplicate</button>
                     <button className="w-full px-3 py-1.5 text-xs text-left hover:bg-red-50 text-red-600 flex items-center gap-2" onClick={() => { handleDelete(doc.id); setMenuOpen(null); }}><Trash2 className="w-3 h-3" /> Delete</button>
                   </div>
@@ -135,6 +149,18 @@ const WorkspaceDocuments = ({ workspaceId }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {linkDialogItem && (
+        <LinkToWorkspaceDialog
+          open={!!linkDialogItem}
+          onClose={() => setLinkDialogItem(null)}
+          itemId={linkDialogItem.id}
+          itemType="documents"
+          currentWorkspaceId={workspaceId}
+          linkedWorkspaces={linkDialogItem.linked_workspaces || []}
+          onLinked={() => load()}
+        />
+      )}
     </div>
   );
 };

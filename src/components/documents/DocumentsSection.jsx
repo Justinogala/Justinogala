@@ -4,13 +4,14 @@ import offlineDB from '@/services/offlineDB';
 import {
   Plus, Sparkles, ArrowLeft, Loader2, Trash2, Copy,
   FileText, MoreHorizontal, Pencil, Check, X, Search,
-  Download, LayoutTemplate, File, Clock
+  Download, LayoutTemplate, File, Clock, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import DocumentEditor from './DocumentEditor';
+import LinkToWorkspaceDialog from '../workspace/LinkToWorkspaceDialog';
 
 const getToken = () => {
   try {
@@ -50,6 +51,7 @@ const DocumentList = ({ onSelect, onCreateAI, onTemplates }) => {
   const [menuOpen, setMenuOpen] = useState(null);
   const [renaming, setRenaming] = useState(null);
   const [renameVal, setRenameVal] = useState('');
+  const [linkDialogItem, setLinkDialogItem] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -189,6 +191,9 @@ const DocumentList = ({ onSelect, onCreateAI, onTemplates }) => {
                     <button className="w-full px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2" onClick={() => { handleDuplicate(doc.id); setMenuOpen(null); }}>
                       <Copy className="w-3 h-3" /> Duplicate
                     </button>
+                    <button className="w-full px-3 py-2 text-xs text-left hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2" onClick={() => { setLinkDialogItem(doc); setMenuOpen(null); }} data-testid={`doc-link-ws-${doc.id}`}>
+                      <Link2 className="w-3 h-3" /> Link to Workspace
+                    </button>
                     <button className="w-full px-3 py-2 text-xs text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 flex items-center gap-2" onClick={() => { handleDelete(doc.id); setMenuOpen(null); }}>
                       <Trash2 className="w-3 h-3" /> Delete
                     </button>
@@ -198,6 +203,18 @@ const DocumentList = ({ onSelect, onCreateAI, onTemplates }) => {
             </div>
           ))}
         </div>
+      )}
+
+      {linkDialogItem && (
+        <LinkToWorkspaceDialog
+          open={!!linkDialogItem}
+          onClose={() => setLinkDialogItem(null)}
+          itemId={linkDialogItem.id}
+          itemType="documents"
+          currentWorkspaceId={linkDialogItem.workspace_id}
+          linkedWorkspaces={linkDialogItem.linked_workspaces || []}
+          onLinked={() => { load(); }}
+        />
       )}
     </div>
   );

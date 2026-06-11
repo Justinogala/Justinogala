@@ -327,9 +327,14 @@ async def list_sheets(
     workspace_id: Optional[str] = None,
     user: dict = Depends(get_current_user)
 ):
-    query = {"created_by": user["id"]}
     if workspace_id:
-        query["workspace_id"] = workspace_id
+        # Show sheets owned by user in this workspace OR linked to this workspace
+        query = {"$or": [
+            {"created_by": user["id"], "workspace_id": workspace_id},
+            {"linked_workspaces": workspace_id},
+        ]}
+    else:
+        query = {"created_by": user["id"]}
     sheets = await db.sheets.find(query, {"_id": 0, "data": 0}).sort("updated_at", -1).to_list(200)
     return sheets
 
@@ -851,6 +856,12 @@ async def download_sheet(sheet_id: str, user: dict = Depends(get_current_user)):
 class AIInsightsRequest(BaseModel):
     sheet_data_summary: Optional[str] = None
 
+class LinkWorkspaceRequest(BaseModel):
+    workspace_id: str
+
+class MeetingToSheetRequest(BaseModel):
+    workspace_id: Optional[str] = None
+
 @router.post("/{sheet_id}/ai/insights")
 async def ai_insights(sheet_id: str, req: AIInsightsRequest, user: dict = Depends(get_current_user)):
     """Analyze sheet data and return AI-generated insights."""
@@ -928,3 +939,166 @@ SPREADSHEET DATA:
         raise HTTPException(422, "AI returned invalid insights. Try again.")
     except Exception as e:
         raise HTTPException(500, f"AI insights failed: {str(e)}")
+
+
+# ── Meeting Summary → Sheet ──
+
+@router.post("/from-meeting/{meeting_id}")
+async def create_sheet_from_meeting(meeting_id: str, req: MeetingToSheetRequest, user: dict = Depends(get_current_user)):
+    """Convert a meeting transcript's insights into a structured spreadsheet."""
+    doc = await db.meeting_transcripts.find_one({"id": meeting_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Meeting transcript not found")
+    if doc.get("status") != "completed":
+        raise HTTPException(400, "Meeting transcript not yet processed")
+
+    title = doc.get("title", "Meeting")
+    insights = doc.get("insights", {})
+    created = doc.get("created_at", "")[:10]
+    participants = doc.get("participants", [])
+    duration = doc.get("duration_seconds", 0)
+    dur_str = f"{duration // 60} min" if duration else "N/A"
+
+    celldata = []
+    row = 0
+
+    def add_header(r, text, bg="#4f46e5", fc="#ffffff"):
+        celldata.append({"r": r, "c": 0, "v": {"v": text, "m": text, "ct": {"fa": "General", "t": "g"}, "bl": 1, "bg": bg, "fc": fc}})
+        # Merge header across 4 columns visually by filling
+        for c in range(1, 4):
+            celldata.append({"r": r, "c": c, "v": {"v": "", "m": "", "ct": {"fa": "General", "t": "g"}, "bg": bg}})
+
+    def add_kv(r, key, val):
+        celldata.append({"r": r, "c": 0, "v": {"v": key, "m": key, "ct": {"fa": "General", "t": "g"}, "bl": 1, "bg": "#f0f4ff", "fc": "#1a1a2e"}})
+        celldata.append({"r": r, "c": 1, "v": {"v": str(val), "m": str(val), "ct": {"fa": "General", "t": "g"}}})
+
+    def add_row(r, vals, bold=False, bg=None):
+        for ci, v in enumerate(vals):
+            cell = {"v": str(v) if v else "", "m": str(v) if v else "", "ct": {"fa": "General", "t": "g"}}
+            if bold:
+                cell["bl"] = 1
+            if bg:
+                cell["bg"] = bg
+            celldata.append({"r": r, "c": ci, "v": cell})
+
+    # Meeting Overview
+    add_header(row, "MEETING OVERVIEW")
+    row += 1
+    add_kv(row, "Title", title); row += 1
+    add_kv(row, "Date", created); row += 1
+    add_kv(row, "Duration", dur_str); row += 1
+    add_kv(row, "Participants", ", ".join(participants) if participants else "N/A"); row += 1
+    add_kv(row, "Sentiment", insights.get("sentiment", "N/A")); row += 1
+    row += 1
+
+    # Summary
+    add_header(row, "SUMMARY")
+    row += 1
+    summary = insights.get("summary", "No summary available")
+    celldata.append({"r": row, "c": 0, "v": {"v": summary, "m": summary, "ct": {"fa": "General", "t": "g"}}})
+    row += 2
+
+    # Key Decisions
+    decisions = insights.get("key_decisions", [])
+    if decisions:
+        add_header(row, "KEY DECISIONS")
+        row += 1
+        add_row(row, ["Decision", "Context"], bold=True, bg="#f0f4ff")
+        row += 1
+        for d in decisions:
+            add_row(row, [d.get("decision", ""), d.get("context", "")])
+            row += 1
+        row += 1
+
+    # Action Items
+    actions = insights.get("action_items", [])
+    if actions:
+        add_header(row, "ACTION ITEMS")
+        row += 1
+        add_row(row, ["Task", "Assignee", "Priority", "Status"], bold=True, bg="#f0f4ff")
+        row += 1
+        for a in actions:
+            add_row(row, [a.get("task", ""), a.get("assignee", "Unassigned"), a.get("priority", "medium"), "Pending"])
+            row += 1
+        row += 1
+
+    # Topics Discussed
+    topics = insights.get("topics_discussed", [])
+    if topics:
+        add_header(row, "TOPICS DISCUSSED")
+        row += 1
+        add_row(row, ["Topic", "Duration", "Key Points"], bold=True, bg="#f0f4ff")
+        row += 1
+        for t in topics:
+            pts = ", ".join(t.get("key_points", []))
+            add_row(row, [t.get("topic", ""), t.get("duration_estimate", ""), pts])
+            row += 1
+        row += 1
+
+    # Follow-ups
+    followups = insights.get("follow_ups", [])
+    if followups:
+        add_header(row, "FOLLOW-UPS")
+        row += 1
+        add_row(row, ["Item", "Due"], bold=True, bg="#f0f4ff")
+        row += 1
+        for f in followups:
+            add_row(row, [f.get("item", ""), f.get("due", "TBD")])
+            row += 1
+
+    col_config = {"0": 220, "1": 180, "2": 120, "3": 120}
+    sheet_data = [{
+        "name": "Meeting Summary",
+        "celldata": celldata,
+        "order": 0,
+        "row": max(row + 10, 50),
+        "column": 26,
+        "status": 1,
+        "config": {"columnlen": col_config, "rowhidden": {}, "colhidden": {}},
+    }]
+
+    sheet = {
+        "id": str(uuid.uuid4()),
+        "title": f"{title} - Summary",
+        "workspace_id": req.workspace_id,
+        "created_by": user["id"],
+        "created_by_name": user.get("full_name", user.get("email", "")),
+        "data": sheet_data,
+        "source_meeting_id": meeting_id,
+        "linked_workspaces": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.sheets.insert_one(sheet)
+    sheet.pop("_id", None)
+    return sheet
+
+
+# ── Cross-Workspace Linking ──
+
+@router.post("/{sheet_id}/link-workspace")
+async def link_sheet_to_workspace(sheet_id: str, req: LinkWorkspaceRequest, user: dict = Depends(get_current_user)):
+    """Link a sheet to an additional workspace."""
+    sheet = await db.sheets.find_one({"id": sheet_id, "created_by": user["id"]}, {"_id": 0})
+    if sheet is None:
+        raise HTTPException(404, "Sheet not found")
+    linked = sheet.get("linked_workspaces", [])
+    if req.workspace_id in linked:
+        return {"status": "already_linked"}
+    await db.sheets.update_one(
+        {"id": sheet_id},
+        {"$addToSet": {"linked_workspaces": req.workspace_id}}
+    )
+    return {"status": "linked", "workspace_id": req.workspace_id}
+
+
+@router.delete("/{sheet_id}/unlink-workspace/{workspace_id}")
+async def unlink_sheet_from_workspace(sheet_id: str, workspace_id: str, user: dict = Depends(get_current_user)):
+    """Remove a sheet's link to a workspace."""
+    result = await db.sheets.update_one(
+        {"id": sheet_id, "created_by": user["id"]},
+        {"$pull": {"linked_workspaces": workspace_id}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Sheet not found")
+    return {"status": "unlinked"}

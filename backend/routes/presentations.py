@@ -33,10 +33,17 @@ DEFAULT_SLIDES = [
 @router.get("")
 async def list_presentations(
     search: Optional[str] = Query(None),
+    workspace_id: Optional[str] = Query(None),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     user_id = _get_user_id(credentials)
-    query = {"user_id": user_id, "deleted": {"$ne": True}}
+    if workspace_id:
+        query = {"$or": [
+            {"user_id": user_id, "workspace_id": workspace_id, "deleted": {"$ne": True}},
+            {"linked_workspaces": workspace_id, "deleted": {"$ne": True}},
+        ]}
+    else:
+        query = {"user_id": user_id, "deleted": {"$ne": True}, "workspace_id": {"$in": [None, ""]}}
     if search:
         query["title"] = {"$regex": search, "$options": "i"}
     docs = await db.presentations.find(query, {"_id": 0, "slides": 0}).sort("updated_at", -1).to_list(200)
@@ -56,10 +63,12 @@ async def create_presentation(
     doc = {
         "id": pres_id,
         "user_id": user_id,
+        "workspace_id": body.get("workspace_id") or None,
         "title": body.get("title", "Untitled Presentation"),
         "slides": slides,
         "slide_count": len(slides),
         "template": body.get("template"),
+        "linked_workspaces": [],
         "created_at": now,
         "updated_at": now,
         "deleted": False,
@@ -301,3 +310,46 @@ async def export_pptx(
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
         headers={"Content-Disposition": f'attachment; filename="{filename}.pptx"'}
     )
+
+
+# ── Cross-Workspace Linking ──
+
+@router.post("/{pres_id}/link-workspace")
+async def link_presentation_to_workspace(
+    pres_id: str,
+    body: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Link a presentation to an additional workspace."""
+    user_id = _get_user_id(credentials)
+    workspace_id = body.get("workspace_id")
+    if not workspace_id:
+        raise HTTPException(400, "workspace_id required")
+    doc = await db.presentations.find_one({"id": pres_id, "user_id": user_id}, {"_id": 0, "linked_workspaces": 1})
+    if doc is None:
+        raise HTTPException(404, "Presentation not found")
+    linked = doc.get("linked_workspaces", [])
+    if workspace_id in linked:
+        return {"status": "already_linked"}
+    await db.presentations.update_one(
+        {"id": pres_id},
+        {"$addToSet": {"linked_workspaces": workspace_id}}
+    )
+    return {"status": "linked", "workspace_id": workspace_id}
+
+
+@router.delete("/{pres_id}/unlink-workspace/{workspace_id}")
+async def unlink_presentation_from_workspace(
+    pres_id: str,
+    workspace_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Remove a presentation's link to a workspace."""
+    user_id = _get_user_id(credentials)
+    result = await db.presentations.update_one(
+        {"id": pres_id, "user_id": user_id},
+        {"$pull": {"linked_workspaces": workspace_id}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Presentation not found")
+    return {"status": "unlinked"}

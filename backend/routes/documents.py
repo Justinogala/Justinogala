@@ -33,11 +33,13 @@ async def list_documents(
 ):
     """List all documents for the current user, optionally filtered by workspace"""
     user_id = _get_user_id(credentials)
-    query = {"user_id": user_id, "deleted": {"$ne": True}}
     if workspace_id:
-        query["workspace_id"] = workspace_id
+        query = {"$or": [
+            {"user_id": user_id, "workspace_id": workspace_id, "deleted": {"$ne": True}},
+            {"linked_workspaces": workspace_id, "deleted": {"$ne": True}},
+        ]}
     else:
-        query["workspace_id"] = {"$in": [None, ""]}
+        query = {"user_id": user_id, "deleted": {"$ne": True}, "workspace_id": {"$in": [None, ""]}}
     if search:
         query["title"] = {"$regex": search, "$options": "i"}
 
@@ -408,3 +410,46 @@ async def export_docx(
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{filename}.docx"'}
     )
+
+
+# ── Cross-Workspace Linking ──
+
+@router.post("/{doc_id}/link-workspace")
+async def link_document_to_workspace(
+    doc_id: str,
+    body: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Link a document to an additional workspace."""
+    user_id = _get_user_id(credentials)
+    workspace_id = body.get("workspace_id")
+    if not workspace_id:
+        raise HTTPException(400, "workspace_id required")
+    doc = await db.documents.find_one({"id": doc_id, "user_id": user_id}, {"_id": 0, "linked_workspaces": 1})
+    if doc is None:
+        raise HTTPException(404, "Document not found")
+    linked = doc.get("linked_workspaces", [])
+    if workspace_id in linked:
+        return {"status": "already_linked"}
+    await db.documents.update_one(
+        {"id": doc_id},
+        {"$addToSet": {"linked_workspaces": workspace_id}}
+    )
+    return {"status": "linked", "workspace_id": workspace_id}
+
+
+@router.delete("/{doc_id}/unlink-workspace/{workspace_id}")
+async def unlink_document_from_workspace(
+    doc_id: str,
+    workspace_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Remove a document's link to a workspace."""
+    user_id = _get_user_id(credentials)
+    result = await db.documents.update_one(
+        {"id": doc_id, "user_id": user_id},
+        {"$pull": {"linked_workspaces": workspace_id}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Document not found")
+    return {"status": "unlinked"}

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Plus, Video, Copy, Check, Play, Link2, FileText, Search, Download, Loader2, Clock, Users, ChevronRight } from 'lucide-react';
+import { Calendar, Plus, Video, Copy, Check, Play, Link2, FileText, Search, Download, Loader2, Clock, Users, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,10 +27,16 @@ import {
 
 const TranscriptsWidget = ({ userId }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [transcripts, setTranscripts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState(null);
+  const [sendingToSheet, setSendingToSheet] = useState(null);
+
+  const getToken = () => {
+    try { return JSON.parse(localStorage.getItem('munal_sessions') || '{}').token || null; } catch { return null; }
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -64,6 +70,28 @@ const TranscriptsWidget = ({ userId }) => {
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
     setExporting(null);
+  };
+
+  const handleSendToSheet = async (meetingId) => {
+    setSendingToSheet(meetingId);
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_URL}/api/sheets/from-meeting/${meetingId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to create sheet');
+      }
+      const sheet = await res.json();
+      toast({ title: 'Sheet created', description: `"${sheet.title}" is ready in DocHub → Sheets` });
+      navigate(`/dochub?tab=sheets`);
+    } catch (e) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+    setSendingToSheet(null);
   };
 
   const filtered = transcripts.filter(t => {
@@ -132,6 +160,16 @@ const TranscriptsWidget = ({ userId }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {t.status === 'completed' && (
+                      <button
+                        title="Send to Sheet"
+                        onClick={e => { e.stopPropagation(); handleSendToSheet(t.id); }}
+                        className="p-1 rounded hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-slate-400 hover:text-emerald-600"
+                        data-testid={`send-to-sheet-${t.id}`}
+                      >
+                        {sendingToSheet === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
                     <button
                       title="Export PDF"
                       onClick={e => { e.stopPropagation(); handleExport(t.id, 'pdf'); }}

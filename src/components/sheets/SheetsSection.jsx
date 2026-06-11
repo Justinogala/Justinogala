@@ -6,7 +6,7 @@ import {
   Plus, Sparkles, Save, ArrowLeft, Loader2, Trash2, Copy,
   FileSpreadsheet, MoreHorizontal, Pencil, Check, X, Search,
   MessageSquare, Wand2, Zap, Download, BarChart3, LayoutTemplate,
-  Wallet, ClipboardList, Receipt, TrendingUp, Users, CalendarDays
+  Wallet, ClipboardList, Receipt, TrendingUp, Users, CalendarDays, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import SheetChatPanel from './SheetChatPanel';
 import SheetInsightsPanel from './SheetInsightsPanel';
 import { AIFormulaModal, SmartActionsModal } from './SheetAITools';
+import LinkToWorkspaceDialog from '../workspace/LinkToWorkspaceDialog';
 
 const getToken = () => {
   try {
@@ -45,7 +46,7 @@ const SheetList = ({ onSelect, onCreateAI, onTemplates }) => {
   const [menuOpen, setMenuOpen] = useState(null);
   const [renaming, setRenaming] = useState(null);
   const [renameVal, setRenameVal] = useState('');
-
+  const [linkDialogItem, setLinkDialogItem] = useState(null);
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -193,6 +194,9 @@ const SheetList = ({ onSelect, onCreateAI, onTemplates }) => {
                       <button onClick={e => { e.stopPropagation(); duplicateSheet(sheet.id); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700">
                         <Copy className="w-3.5 h-3.5" /> Duplicate
                       </button>
+                      <button onClick={e => { e.stopPropagation(); setLinkDialogItem(sheet); setMenuOpen(null); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700" data-testid={`sheet-link-ws-${sheet.id}`}>
+                        <Link2 className="w-3.5 h-3.5" /> Link to Workspace
+                      </button>
                       <button onClick={e => { e.stopPropagation(); deleteSheet(sheet.id); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">
                         <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
@@ -203,6 +207,18 @@ const SheetList = ({ onSelect, onCreateAI, onTemplates }) => {
             </div>
           ))}
         </div>
+      )}
+
+      {linkDialogItem && (
+        <LinkToWorkspaceDialog
+          open={!!linkDialogItem}
+          onClose={() => setLinkDialogItem(null)}
+          itemId={linkDialogItem.id}
+          itemType="sheets"
+          currentWorkspaceId={linkDialogItem.workspace_id}
+          linkedWorkspaces={linkDialogItem.linked_workspaces || []}
+          onLinked={() => { load(); }}
+        />
       )}
     </div>
   );
