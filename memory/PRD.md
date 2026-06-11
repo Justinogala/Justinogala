@@ -12,6 +12,23 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Dedicated Full-Page Meeting Transcript View — June 11, 2026
+- New route `/meeting-transcripts/:id` with full transcript text, timestamps/segments, search within transcript
+- AI insights sidebar: Summary, Action Items (with assignee/priority), Key Decisions, Topics Discussed, Follow-ups
+- Export bar: PDF, DOCX, Send to Sheet (all in sticky header)
+- Copy transcript, participant metadata, sentiment badge
+- TranscriptsWidget now links to this full page instead of processing page
+- Frontend: `/app/src/pages/MeetingTranscriptPage.jsx`
+- Testing: 100% — Iteration 135
+
+### Advanced Analytics/Reporting — June 11, 2026
+- **Admin Advanced Analytics** (`/admin/advanced-analytics`): 8 stat cards (users, active, meetings, transcripts, docs, sheets, presentations, AI conversations), user signups chart, meeting activity chart, peak meeting hours, content breakdown bars, period selector (7/30/90 days)
+- **User My Analytics** (`/my-analytics`): 5 stat cards (meetings, documents, sheets, presentations, AI chats), 7-day activity chart (meetings + documents)
+- Backend: `/app/backend/routes/advanced_analytics.py` (admin overview + user my-stats)
+- RBAC: Non-admin users get 403 on admin overview endpoint
+- Sidebar links added: "My Analytics" in user sidebar, "Advanced Analytics" in admin sidebar
+- Testing: 100% backend (7/7) + 100% frontend (7/7) — Iteration 135
+
 ### Admin System Updates Fix — June 11, 2026
 - Fixed admin user role being empty string (`""`) in database causing 403 on all admin Version Management endpoints
 - Root cause: Admin seed migration only checked for `role == "Admin"` but missed empty/null roles
@@ -132,8 +149,6 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Upcoming Tasks
 - P3: Custom Template option for Sheets
-- P3: Dedicated full-page view for Meeting Transcripts
-- P3: Advanced analytics/reporting
 - P3: Real-time collaborative editing
 
 ## Refactoring Needed

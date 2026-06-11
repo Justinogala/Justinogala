@@ -24,8 +24,6 @@ except ImportError:
 
 router = APIRouter(prefix="/updates", tags=["updates"])
 
-CURRENT_APP_VERSION = "2.1.0"
-
 
 class VersionCreate(BaseModel):
     version: str
@@ -60,7 +58,7 @@ async def check_for_updates(user: dict = Depends(get_current_user)):
     if not latest:
         return {
             "update_available": False,
-            "current_version": CURRENT_APP_VERSION,
+            "current_version": "2.4.0",
             "last_seen_version": last_seen,
             "latest_version": None,
         }
@@ -69,7 +67,7 @@ async def check_for_updates(user: dict = Depends(get_current_user)):
 
     return {
         "update_available": update_available,
-        "current_version": CURRENT_APP_VERSION,
+        "current_version": latest["version"],
         "last_seen_version": last_seen,
         "latest_version": {
             "id": latest["id"],

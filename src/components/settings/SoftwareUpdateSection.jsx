@@ -157,7 +157,7 @@ function SoftwareUpdateSection() {
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
                 <RefreshCw className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-1">Current version: <span className="font-mono font-semibold text-gray-800 dark:text-white">v{updateInfo?.current_version || '2.1.0'}</span></p>
+              <p className="text-gray-600 dark:text-gray-400 mb-1">Current version: <span className="font-mono font-semibold text-gray-800 dark:text-white">v{updateInfo?.current_version || updateInfo?.latest_version?.version || '2.4.0'}</span></p>
               <p className="text-sm text-gray-400 dark:text-gray-500 mb-6">Check if a newer version is available</p>
               <Button
                 onClick={checkForUpdates}
@@ -261,7 +261,7 @@ function SoftwareUpdateSection() {
               </div>
               <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">You're Up to Date</h4>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                Munal AI <span className="font-mono font-semibold">v{updateInfo?.current_version || '2.1.0'}</span>
+                Munal AI <span className="font-mono font-semibold">v{updateInfo?.current_version || updateInfo?.latest_version?.version || '2.4.0'}</span>
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-6">Last checked just now</p>
               <Button
