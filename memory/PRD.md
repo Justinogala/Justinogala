@@ -12,6 +12,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Admin System Updates Fix — June 11, 2026
+- Fixed admin user role being empty string (`""`) in database causing 403 on all admin Version Management endpoints
+- Root cause: Admin seed migration only checked for `role == "Admin"` but missed empty/null roles
+- Fix: Updated migration to set `Super_Admin` for any non-Super_Admin role (including empty)
+- Published v2.4.0 release notes, visible to users in What's New modal and Settings > Software Updates
+- Testing: Verified end-to-end: admin publish → user sees What's New modal + changelog
+
 ### Cross-Workspace Data Linking — June 11, 2026
 - Sheets, Documents, and Presentations can now be linked/shared across multiple workspaces
 - "Link to Workspace" option in context menus across DocHub Sheets, Documents, Presentations tabs and Workspace detail views

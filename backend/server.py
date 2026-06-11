@@ -468,13 +468,14 @@ async def startup_event():
                 await db.users.insert_one(admin_doc)
                 logger.info("Super Admin user seeded: admin@munal.ai")
             else:
-                # Migrate existing admin to Super_Admin if still on old "Admin" role
-                if admin.get("role") == "Admin":
+                # Migrate existing admin to Super_Admin if role is missing or outdated
+                current_role = (admin.get("role") or "").strip()
+                if current_role not in ["Super_Admin"]:
                     await db.users.update_one(
                         {"email": "admin@munal.ai"},
                         {"$set": {"role": "Super_Admin"}}
                     )
-                    logger.info("Migrated admin@munal.com to Super_Admin role")
+                    logger.info(f"Migrated admin role from '{current_role}' to Super_Admin")
                 # Auto-migrate admin plain-text password to bcrypt
                 stored_pw = admin.get("password", "")
                 if not (stored_pw.startswith('$2b$') or stored_pw.startswith('$2a$')):
