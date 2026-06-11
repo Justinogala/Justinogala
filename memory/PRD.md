@@ -17,6 +17,18 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Root cause: Admin seed migration only checked for `role == "Admin"` but missed empty/null roles
 - Fix: Updated migration to set `Super_Admin` for any non-Super_Admin role (including empty)
 - Published v2.4.0 release notes, visible to users in What's New modal and Settings > Software Updates
+
+### User Trash & Restore — June 11, 2026
+- Soft-delete: `DELETE /api/users/{id}` moves users to trash instead of permanent deletion
+- Trash listing: `GET /api/admin/users/trash` shows all soft-deleted users with deletion timestamps
+- Restore: `POST /api/admin/users/{id}/restore` recovers users to their pre-delete status
+- Permanent delete: `DELETE /api/admin/users/{id}/permanent` (only works on trashed users)
+- Deleted users blocked from login with clear error message
+- Admin User Management page: "Users / Trash" toggle tabs with counts, Restore + Delete Forever buttons
+- Stats card shows "In Trash" count
+- Backend: `/app/backend/routes/admin_users.py` (trash/restore/permanent), `/app/backend/routes/users.py` (soft-delete)
+- Frontend: `/app/src/pages/admin/AdminUserManagementPage.jsx` (Trash tab UI)
+- Testing: 100% backend (10/10) — Iteration 134
 - Testing: Verified end-to-end: admin publish → user sees What's New modal + changelog
 
 ### Cross-Workspace Data Linking — June 11, 2026

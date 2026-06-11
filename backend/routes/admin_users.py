@@ -161,11 +161,13 @@ async def restore_user(user_id: str, request: Request):
 
 @router.delete("/users/{user_id}/permanent")
 async def permanently_delete_user(user_id: str, request: Request):
-    """Permanently delete a user from the database. Cannot be undone."""
+    """Permanently delete a user from the database. Only works on trashed users."""
     try:
         user = await db.users.find_one({"id": user_id})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+        if not user.get("deleted"):
+            raise HTTPException(status_code=400, detail="User must be in trash before permanent deletion. Soft-delete first.")
         await db.users.delete_one({"id": user_id})
         await _audit(
             "user_permanent_delete", severity="warning",
