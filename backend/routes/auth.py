@@ -500,6 +500,10 @@ async def login_user(request: Request, credentials: UserLogin, skip_2fa: bool = 
     if user.get("status") == "Suspended":
         raise HTTPException(status_code=403, detail="Account is suspended")
     
+    # Check if user is soft-deleted
+    if user.get("deleted"):
+        raise HTTPException(status_code=401, detail="This account has been deleted. Contact your administrator.")
+    
     # Auto-verify any previously unverified users on login
     if not user.get("email_verified", True):
         await db.users.update_one(

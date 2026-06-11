@@ -46,7 +46,7 @@ async def get_admin_users_list(
     limit: int = 50
 ):
     try:
-        query = {}
+        query = {"deleted": {"$ne": True}}
         if status:
             query["status"] = status
         if role:
@@ -108,7 +108,77 @@ async def perform_user_action(user_id: str, action_data: UserAccountAction, requ
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/users/activity")
+@router.get("/users/trash")
+async def get_trashed_users(
+    search: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50
+):
+    """List all soft-deleted (trashed) users."""
+    try:
+        query = {"deleted": True}
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"email": {"$regex": search, "$options": "i"}}
+            ]
+        total = await db.users.count_documents(query)
+        users = await db.users.find(
+            query, {"_id": 0, "password": 0}
+        ).sort("deleted_at", -1).skip(skip).limit(limit).to_list(limit)
+        return {"users": users, "total": total}
+    except Exception as e:
+        logger.error(f"Error fetching trashed users: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/users/{user_id}/restore")
+async def restore_user(user_id: str, request: Request):
+    """Restore a soft-deleted user from trash."""
+    try:
+        user = await db.users.find_one({"id": user_id, "deleted": True})
+        if not user:
+            raise HTTPException(status_code=404, detail="Trashed user not found")
+        prev_status = user.get("pre_delete_status", "Active")
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"deleted": False, "status": prev_status, "restored_at": datetime.now(timezone.utc).isoformat()},
+             "$unset": {"deleted_at": "", "pre_delete_status": ""}}
+        )
+        await _audit(
+            "user_restore", severity="info",
+            details={"user_id": user_id, "restored_status": prev_status},
+            target_id=user_id, target_email=user.get("email"),
+            ip=get_client_ip(request), ua=get_user_agent(request),
+        )
+        return {"success": True, "message": f"User {user.get('email')} restored"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error restoring user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/users/{user_id}/permanent")
+async def permanently_delete_user(user_id: str, request: Request):
+    """Permanently delete a user from the database. Cannot be undone."""
+    try:
+        user = await db.users.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        await db.users.delete_one({"id": user_id})
+        await _audit(
+            "user_permanent_delete", severity="warning",
+            details={"user_id": user_id, "email": user.get("email")},
+            target_id=user_id, target_email=user.get("email"),
+            ip=get_client_ip(request), ua=get_user_agent(request),
+        )
+        return {"success": True, "message": "User permanently deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error permanently deleting user: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 async def get_user_activity(user_id: Optional[str] = None, days: int = 7, limit: int = 100):
     try:
         query = {}

@@ -82,7 +82,7 @@ async def get_users(
         except Exception:
             pass
 
-    query_filter = {}
+    query_filter = {"deleted": {"$ne": True}}
     # Admin/Manager with an org → see only their organization members
     if caller_role in ("admin", "manager"):
         if caller_org_id:
@@ -105,6 +105,7 @@ async def search_users(
 ):
     """Search users by name or email"""
     query = {
+        "deleted": {"$ne": True},
         "$or": [
             {"name": {"$regex": q, "$options": "i"}},
             {"email": {"$regex": q, "$options": "i"}}
@@ -240,13 +241,21 @@ async def serve_avatar(user_id: str):
 
 @router.delete("/{user_id}")
 async def delete_user(user_id: str):
-    """Delete a user"""
-    result = await db.users.delete_one({"id": user_id})
-    
-    if result.deleted_count == 0:
+    """Soft-delete a user (move to trash)"""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1})
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    return {"message": "User deleted successfully"}
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {
+            "deleted": True,
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+            "pre_delete_status": user.get("status", "Active"),
+            "status": "Deleted",
+        }}
+    )
+    return {"message": "User moved to trash"}
 
 @router.post("")
 async def create_user(user: UserCreate):

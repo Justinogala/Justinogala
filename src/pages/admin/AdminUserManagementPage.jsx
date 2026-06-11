@@ -5,7 +5,7 @@ import {
   UserPlus, Download, FileJson, FileSpreadsheet, Loader2, Search, 
   Filter, Users, Shield, Mail, MoreHorizontal, Edit2, Trash2, 
   Eye, UserX, UserCheck, RefreshCw, Crown, Sparkles, MessageSquare,
-  Building2, Link2, Unlink
+  Building2, Link2, Unlink, Undo2, AlertTriangle, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,6 +67,83 @@ const AdminUserManagementPage = () => {
 
   const apiUrl = getApiUrl();
   const token = localStorage.getItem('admin_token');
+
+  // Trash state
+  const [activeView, setActiveView] = useState('users'); // 'users' | 'trash'
+  const [trashedUsers, setTrashedUsers] = useState([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [trashSearch, setTrashSearch] = useState('');
+  const [restoringId, setRestoringId] = useState(null);
+  const [permanentDeletingId, setPermanentDeletingId] = useState(null);
+
+  const fetchTrashedUsers = useCallback(async () => {
+    setTrashLoading(true);
+    try {
+      const searchParam = trashSearch ? `&search=${encodeURIComponent(trashSearch)}` : '';
+      const res = await fetch(`${apiUrl}/api/admin/users/trash?limit=100${searchParam}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTrashedUsers(data.users || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch trashed users:', err);
+    } finally {
+      setTrashLoading(false);
+    }
+  }, [apiUrl, token, trashSearch]);
+
+  useEffect(() => {
+    if (activeView === 'trash') fetchTrashedUsers();
+  }, [activeView, fetchTrashedUsers]);
+
+  // Also fetch trash count on mount
+  useEffect(() => { fetchTrashedUsers(); }, []);
+
+  const handleRestoreUser = async (user) => {
+    setRestoringId(user.id);
+    try {
+      const res = await fetch(`${apiUrl}/api/admin/users/${user.id}/restore`, {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        toast({ title: 'User restored', description: `${user.name || user.email} has been restored.` });
+        fetchTrashedUsers();
+        fetchUsers();
+      } else {
+        const data = await res.json();
+        toast({ title: 'Error', description: data.detail || 'Failed to restore', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error', variant: 'destructive' });
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const handlePermanentDelete = async (user) => {
+    if (!window.confirm(`PERMANENTLY delete ${user.name || user.email}? This cannot be undone.`)) return;
+    setPermanentDeletingId(user.id);
+    try {
+      const res = await fetch(`${apiUrl}/api/admin/users/${user.id}/permanent`, {
+        method: 'DELETE',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        toast({ title: 'Permanently deleted', description: `${user.name || user.email} has been permanently removed.`, variant: 'destructive' });
+        fetchTrashedUsers();
+      } else {
+        const data = await res.json();
+        toast({ title: 'Error', description: data.detail || 'Failed', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error', variant: 'destructive' });
+    } finally {
+      setPermanentDeletingId(null);
+    }
+  };
 
   const fetchOrganizations = useCallback(async () => {
     setOrgsLoading(true);
@@ -209,9 +286,9 @@ const AdminUserManagementPage = () => {
   };
 
   const handleDeleteUser = async (user) => {
-    if (window.confirm(`Are you sure you want to delete ${user.name || user.email}? This action cannot be undone.`)) {
+    if (window.confirm(`Move ${user.name || user.email} to trash? You can restore them later.`)) {
       await deleteUser(user.id);
-      toast({ title: "User deleted", description: "The user has been removed.", variant: "destructive" });
+      toast({ title: "Moved to trash", description: `${user.name || user.email} can be restored from the Trash tab.` });
     }
   };
 
@@ -278,7 +355,7 @@ const AdminUserManagementPage = () => {
     { label: 'Total Users', value: users?.length || 0, icon: Users, color: 'from-violet-500 to-purple-600' },
     { label: 'Active', value: users?.filter(u => (u.status || 'Active') === 'Active').length || 0, icon: UserCheck, color: 'from-emerald-500 to-green-600' },
     { label: 'Suspended', value: users?.filter(u => u.status === 'Suspended').length || 0, icon: UserX, color: 'from-red-500 to-rose-600' },
-    { label: 'Pro/Enterprise', value: users?.filter(u => u.plan === 'Pro' || u.plan === 'Enterprise').length || 0, icon: Crown, color: 'from-amber-500 to-orange-600' },
+    { label: 'In Trash', value: trashedUsers.length, icon: Trash2, color: 'from-gray-500 to-slate-600' },
   ];
 
   return (
@@ -342,6 +419,137 @@ const AdminUserManagementPage = () => {
           ))}
         </motion.div>
 
+        {/* View Toggle: Users / Trash */}
+        <motion.div variants={item} className="flex gap-2">
+          <Button
+            variant={activeView === 'users' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveView('users')}
+            className={activeView === 'users' ? 'bg-violet-600 hover:bg-violet-700 text-white' : ''}
+            data-testid="view-users-tab"
+          >
+            <Users className="w-4 h-4 mr-1.5" /> Users ({users?.length || 0})
+          </Button>
+          <Button
+            variant={activeView === 'trash' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setActiveView('trash')}
+            className={activeView === 'trash' ? 'bg-slate-700 hover:bg-slate-800 text-white' : ''}
+            data-testid="view-trash-tab"
+          >
+            <Trash2 className="w-4 h-4 mr-1.5" /> Trash ({trashedUsers.length})
+          </Button>
+        </motion.div>
+
+        {activeView === 'trash' ? (
+          /* ========== TRASH VIEW ========== */
+          <motion.div variants={item} className="space-y-4">
+            {/* Trash Search */}
+            <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-4 border border-gray-200/50 dark:border-gray-800/50 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="Search trashed users..."
+                    value={trashSearch}
+                    onChange={(e) => setTrashSearch(e.target.value)}
+                    className="pl-9 bg-white dark:bg-slate-800"
+                    data-testid="trash-search-input"
+                  />
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchTrashedUsers} data-testid="refresh-trash-btn">
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Trash List */}
+            {trashLoading ? (
+              <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-12 border border-gray-200/50 dark:border-gray-800/50 flex flex-col items-center justify-center">
+                <Loader2 className="w-10 h-10 text-slate-500 animate-spin mb-4" />
+                <p className="text-gray-500">Loading trash...</p>
+              </div>
+            ) : trashedUsers.length === 0 ? (
+              <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-12 border border-gray-200/50 dark:border-gray-800/50 flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                  <Trash2 className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Trash is empty</h3>
+                <p className="text-gray-500 text-sm">Deleted users will appear here for recovery.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {trashedUsers.map((user, index) => {
+                  const userName = user.name || user.full_name || user.email?.split('@')[0] || 'Unknown';
+                  return (
+                    <motion.div
+                      key={user.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-4 border border-red-200/50 dark:border-red-800/30 shadow-sm hover:shadow-md transition-all"
+                      data-testid={`trash-user-${user.id}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <Avatar className="w-12 h-12 border-2 border-red-200 dark:border-red-900 shadow-sm opacity-60">
+                          <AvatarImage src={user.avatar} alt={userName} />
+                          <AvatarFallback className="bg-gradient-to-br from-slate-400 to-gray-500 text-white font-semibold">
+                            {getInitials(userName, user.email)}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-gray-600 dark:text-gray-300 truncate">{userName}</h3>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 border border-red-500/20">
+                              Deleted
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+                            <span className="flex items-center gap-1 truncate">
+                              <Mail className="w-3.5 h-3.5" /> {user.email}
+                            </span>
+                            {user.deleted_at && (
+                              <span className="flex items-center gap-1 text-xs">
+                                <Clock className="w-3 h-3" /> Deleted {formatDate(user.deleted_at)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleRestoreUser(user)}
+                            disabled={restoringId === user.id}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                            data-testid={`restore-user-${user.id}`}
+                          >
+                            {restoringId === user.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                            Restore
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePermanentDelete(user)}
+                            disabled={permanentDeletingId === user.id}
+                            className="text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 gap-1.5"
+                            data-testid={`perm-delete-${user.id}`}
+                          >
+                            {permanentDeletingId === user.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
+                            Delete Forever
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          /* ========== USERS VIEW (existing) ========== */
+          <>
         {/* Filters */}
         <motion.div variants={item} className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-xl p-4 border border-gray-200/50 dark:border-gray-800/50 shadow-sm">
           <div className="flex flex-col lg:flex-row gap-3">
@@ -529,6 +737,8 @@ const AdminUserManagementPage = () => {
           <motion.div variants={item} className="text-center text-sm text-gray-500 dark:text-gray-400">
             Showing {filteredUsers.length} of {users?.length || 0} users
           </motion.div>
+        )}
+          </>
         )}
       </motion.div>
 
