@@ -143,7 +143,7 @@ const TranscriptsWidget = ({ userId }) => {
               <div
                 key={t.id}
                 className="group p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-violet-50 dark:hover:bg-violet-900/10 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-violet-200 dark:hover:border-violet-800"
-                onClick={() => navigate(`/meeting/${t.id}/processing?title=${encodeURIComponent(t.title || '')}`)}
+                onClick={() => navigate(`/meeting-transcripts/${t.id}`)}
                 data-testid={`transcript-item-${t.id}`}
               >
                 <div className="flex items-start justify-between gap-2">

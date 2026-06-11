@@ -133,6 +133,7 @@ const CalendarPage = lazy(() => import('@/pages/CalendarPage'));
 const MeetingRoomPage = lazy(() => import('@/pages/MeetingRoomPage'));
 const InstantMeetingRoom = lazy(() => import('@/pages/InstantMeetingRoom'));
 const MeetingProcessingPage = lazy(() => import('@/pages/MeetingProcessingPage'));
+const MeetingTranscriptPage = lazy(() => import('@/pages/MeetingTranscriptPage'));
 
 // Payment Pages
 const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
@@ -144,6 +145,7 @@ const UserPaymentCheckoutPage = lazy(() => import('@/pages/user/UserPaymentCheck
 const UserPlansPage = lazy(() => import('@/pages/user/UserPlansPage'));
 const UserCouponsPage = lazy(() => import('@/pages/user/UserCouponsPage'));
 const UserTransactionsPage = lazy(() => import('@/pages/user/UserTransactionsPage'));
+const UserMyAnalyticsPage = lazy(() => import('@/pages/user/UserMyAnalyticsPage'));
 
 // Analytics & Reports
 const AnalyticsDashboardPage = lazy(() => import('@/pages/AnalyticsDashboardPage'));
@@ -216,6 +218,7 @@ const ContactFormPage = lazy(() => import('@/pages/ContactFormPage'));
 const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminSettings = lazy(() => import('@/pages/AdminSettings'));
 const AdminAnalytics = lazy(() => import('@/pages/AdminAnalytics'));
+const AdminAdvancedAnalyticsPage = lazy(() => import('@/pages/admin/AdminAdvancedAnalyticsPage'));
 const AdminReports = lazy(() => import('@/pages/AdminReports'));
 const AdminProfile = lazy(() => import('@/pages/AdminProfile'));
 const AdminContent = lazy(() => import('@/pages/AdminContent'));
@@ -455,6 +458,7 @@ function App() {
                                 <Route path="/workspace/meeting/:meetingId" element={<InstantMeetingRoom />} />
                                 <Route path="/workspace/meeting-old/:meetingId" element={<MeetingRoomPage />} />
                                 <Route path="/meeting/:meetingId/processing" element={<MeetingProcessingPage />} />
+                                <Route path="/meeting-transcripts/:id" element={<MeetingTranscriptPage />} />
 
                                 <Route path="/workspace/:workspaceId/call/:callId" element={<AdvancedVideoCallInterface />} />
                                 
@@ -465,6 +469,7 @@ function App() {
                                 <Route path="/user/plans" element={<UserPlansPage />} />
                                 <Route path="/user/coupons" element={<UserCouponsPage />} />
                                 <Route path="/user/transactions" element={<UserTransactionsPage />} />
+                                <Route path="/my-analytics" element={<UserMyAnalyticsPage />} />
 
                                 <Route path="/support" element={<SupportPage />} />
                                 <Route path="/support-tickets" element={<UserSupportTicketsPage />} />
@@ -544,6 +549,7 @@ function App() {
                                 <Route path="users" element={<AdminUserManagementPage />} />
                                 <Route path="settings" element={<AdminSettings />} />
                                 <Route path="analytics" element={<AdminAnalytics />} /> 
+                                <Route path="advanced-analytics" element={<AdminAdvancedAnalyticsPage />} />
                                 <Route path="reports" element={<AdminReports />} /> 
                                 <Route path="billing" element={<AdminBillingPage />} />
                                 <Route path="workspaces" element={<AdminWorkspacesPage />} />

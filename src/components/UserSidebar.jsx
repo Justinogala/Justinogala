@@ -5,7 +5,7 @@ import {
   ChevronRight, User, HardDrive, CreditCard, DollarSign, MessageSquare,
   CircleDot, ExternalLink, ChevronDown, ChevronUp, Coins, Tag, Receipt, Volume2,
   Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar, Video,
-  FileWarning, PenLine, FileCheck2, Building2, BotMessageSquare
+  FileWarning, PenLine, FileCheck2, Building2, BotMessageSquare, BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: MessageSquare, label: 'Messages', path: '/messages', gradient: 'from-sky-500 to-blue-500' },
     { icon: HardDrive, label: 'Files', path: '/files', gradient: 'from-slate-500 to-gray-500' },
     { icon: PenLine, label: 'DocHub', path: '/dochub', badge: 'NEW', gradient: 'from-emerald-500 to-teal-500' },
+    { icon: BarChart3, label: 'My Analytics', path: '/my-analytics', gradient: 'from-violet-500 to-indigo-500' },
     { icon: FileCheck2, label: 'Approvals', path: '/approvals', badge: 'NEW', gradient: 'from-violet-500 to-indigo-500' },
     { icon: FileWarning, label: 'IR / SOR Reports', path: '/reports', badge: 'NEW', gradient: 'from-red-500 to-orange-500' },
   ];
