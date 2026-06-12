@@ -302,3 +302,147 @@ def generate_bar_chart(data: dict) -> bytes:
     fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
     plt.close(fig)
     return buf.getvalue()
+
+
+def generate_line_chart(data: dict) -> bytes:
+    """Generate a line chart PNG from JSON data."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    title = data.get("title", "Line Chart")
+    labels = data.get("labels", [])
+    datasets = data.get("datasets", [])
+    default_palette = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#f97316', '#8b5cf6']
+
+    # Support single-series shortcut
+    if not datasets and data.get("values"):
+        datasets = [{"name": data.get("series_name", "Value"), "values": data["values"]}]
+
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor='#0f172a')
+    ax.set_facecolor('#0f172a')
+
+    for i, ds in enumerate(datasets):
+        color = (ds.get("color") or default_palette[i % len(default_palette)])
+        values = ds.get("values", [])
+        ax.plot(labels[:len(values)], values, color=color, linewidth=2.5, marker='o',
+                markersize=6, markerfacecolor='white', markeredgecolor=color, markeredgewidth=2,
+                label=ds.get("name", f"Series {i+1}"), zorder=3)
+        ax.fill_between(labels[:len(values)], values, alpha=0.08, color=color, zorder=2)
+
+    ax.set_title(title, color='white', fontsize=16, fontweight='bold', pad=15)
+    ax.tick_params(axis='x', colors='#94a3b8', labelsize=9)
+    ax.tick_params(axis='y', colors='#94a3b8', labelsize=9)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#334155')
+    ax.spines['bottom'].set_color('#334155')
+    ax.grid(axis='y', color='#1e293b', linewidth=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    if len(datasets) > 1:
+        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white', fontsize=9)
+    plt.xticks(rotation=30 if len(labels) > 6 else 0, ha='right' if len(labels) > 6 else 'center')
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return buf.getvalue()
+
+
+def generate_stacked_bar_chart(data: dict) -> bytes:
+    """Generate a stacked bar chart PNG from JSON data."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    title = data.get("title", "Stacked Bar Chart")
+    labels = data.get("labels", [])
+    datasets = data.get("datasets", [])
+    default_palette = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#f97316', '#8b5cf6']
+
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor='#0f172a')
+    ax.set_facecolor('#0f172a')
+
+    x = np.arange(len(labels))
+    bottoms = np.zeros(len(labels))
+    bar_width = 0.5
+
+    for i, ds in enumerate(datasets):
+        color = ds.get("color", default_palette[i % len(default_palette)])
+        values = np.array(ds.get("values", [0] * len(labels))[:len(labels)], dtype=float)
+        ax.bar(x, values, bar_width, bottom=bottoms, color=color, edgecolor='#1e293b',
+               linewidth=0.5, label=ds.get("name", f"Series {i+1}"), zorder=3)
+        bottoms += values
+
+    ax.set_title(title, color='white', fontsize=16, fontweight='bold', pad=15)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, color='#94a3b8', fontsize=10)
+    ax.tick_params(axis='y', colors='#94a3b8', labelsize=9)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#334155')
+    ax.spines['bottom'].set_color('#334155')
+    ax.grid(axis='y', color='#1e293b', linewidth=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white', fontsize=9,
+              loc='upper left')
+    plt.xticks(rotation=30 if len(labels) > 5 else 0, ha='right' if len(labels) > 5 else 'center')
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return buf.getvalue()
+
+
+def generate_radar_chart(data: dict) -> bytes:
+    """Generate a radar/spider chart PNG from JSON data."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    title = data.get("title", "Radar Chart")
+    labels = data.get("labels", [])
+    datasets = data.get("datasets", [])
+    default_palette = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+
+    if not datasets and data.get("values"):
+        datasets = [{"name": data.get("series_name", "Value"), "values": data["values"]}]
+
+    n = len(labels)
+    if n < 3:
+        raise ValueError("Radar chart needs at least 3 axes")
+
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False).tolist()
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True), facecolor='#0f172a')
+    ax.set_facecolor('#0f172a')
+
+    for i, ds in enumerate(datasets):
+        color = ds.get("color", default_palette[i % len(default_palette)])
+        values = ds.get("values", [0] * n)[:n]
+        values += values[:1]
+        ax.plot(angles, values, color=color, linewidth=2.5, label=ds.get("name", f"Series {i+1}"))
+        ax.fill(angles, values, color=color, alpha=0.15)
+
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels, color='#e2e8f0', fontsize=10)
+    ax.tick_params(axis='y', colors='#475569', labelsize=8)
+    ax.set_rlabel_position(30)
+    ax.spines['polar'].set_color('#334155')
+    ax.grid(color='#1e293b', linewidth=0.5)
+    ax.set_title(title, color='white', fontsize=16, fontweight='bold', pad=25, y=1.08)
+    if len(datasets) > 1:
+        ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='white', fontsize=9,
+                  loc='lower right', bbox_to_anchor=(1.15, -0.05))
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return buf.getvalue()

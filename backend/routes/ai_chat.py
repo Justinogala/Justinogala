@@ -82,6 +82,9 @@ You can help with:
 When a user asks you to generate an image, respond with the tag [GENERATE_IMAGE: description] where description is the detailed image prompt.
 When a user asks you to create a pie chart, respond with the tag [GENERATE_PIE_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
 When a user asks you to create a bar chart, respond with the tag [GENERATE_BAR_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
+When a user asks you to create a line chart or trend chart, respond with the tag [GENERATE_LINE_CHART: {"title":"Chart Title","labels":["Jan","Feb","Mar"],"datasets":[{"name":"Revenue","values":[100,150,200],"color":"#7c3aed"},{"name":"Costs","values":[80,90,110],"color":"#ef4444"}]}] — supports multiple series via datasets array.
+When a user asks you to create a stacked bar chart, respond with the tag [GENERATE_STACKED_BAR_CHART: {"title":"Chart Title","labels":["Q1","Q2","Q3"],"datasets":[{"name":"Product A","values":[30,40,50],"color":"#7c3aed"},{"name":"Product B","values":[20,30,25],"color":"#3b82f6"}]}] — multiple datasets stacked.
+When a user asks you to create a radar chart or spider chart, respond with the tag [GENERATE_RADAR_CHART: {"title":"Chart Title","labels":["Speed","Power","Range","Defense","Health"],"datasets":[{"name":"Player 1","values":[80,90,70,60,85],"color":"#7c3aed"}]}] — needs at least 3 axes.
 When a user asks you to create/generate/export a PDF document, include [GENERATE_PDF] at the end of your response — the system will auto-convert your response to a downloadable PDF.
 When a user asks you to create/generate/export a Word/DOCX document, include [GENERATE_DOCX] at the end of your response.
 When a user asks you to create/generate/export an Excel/spreadsheet, include [GENERATE_XLSX] at the end of your response.
@@ -96,6 +99,7 @@ from routes.ai_chat_files import (
     extract_file_content, generate_pdf_from_markdown,
     generate_docx_from_markdown, generate_xlsx_from_text,
     generate_pie_chart, generate_bar_chart,
+    generate_line_chart, generate_stacked_bar_chart, generate_radar_chart,
 )
 
 # Keep aliases for internal use
@@ -414,6 +418,29 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             quota = await check_quota(user["id"])
             return quota["can_generate"], quota["remaining_formatted"]
 
+        def _extract_chart_json(tag_name, text):
+            """Extract balanced JSON from a [TAG: {...}] pattern handling nested braces."""
+            marker = f"[{tag_name}:"
+            start = text.find(marker)
+            if start == -1:
+                return None, text
+            json_start = text.index("{", start)
+            depth = 0
+            for i in range(json_start, len(text)):
+                if text[i] == "{": depth += 1
+                elif text[i] == "}": depth -= 1
+                if depth == 0:
+                    json_str = text[json_start:i+1]
+                    # Find the closing ]
+                    end = text.find("]", i+1)
+                    if end == -1: end = i + 1
+                    clean_text = text[:start] + text[end+1:]
+                    try:
+                        return json.loads(json_str), clean_text.strip()
+                    except json.JSONDecodeError:
+                        return None, text
+            return None, text
+
         # Image generation
         img_match = re.search(r'\[GENERATE_IMAGE:\s*(.+?)\]', full_response)
         if img_match:
@@ -519,52 +546,89 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     logger.error(f"XLSX generation error: {e}")
 
         # Pie Chart generation
-        pie_match = re.search(r'\[GENERATE_PIE_CHART:\s*(\{.+?\})\]', full_response, re.DOTALL)
-        if pie_match:
+        pie_data, full_response = _extract_chart_json("GENERATE_PIE_CHART", full_response)
+        if pie_data:
             can_gen, remaining = await _check_user_quota()
             if not can_gen:
-                full_response = re.sub(r'\[GENERATE_PIE_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
                 full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
             else:
                 try:
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating pie chart...'})}\n\n"
-                    chart_data = json.loads(pie_match.group(1))
-                    chart_bytes = generate_pie_chart(chart_data)
+                    chart_bytes = generate_pie_chart(pie_data)
                     chart_id = str(uuid.uuid4())
                     _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
-                    generated_files.append({
-                        "type": "image", "file_id": chart_id, "filename": f"pie_chart_{chart_id[:8]}.png",
-                        "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"
-                    })
+                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"pie_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                     await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
-                    full_response = re.sub(r'\[GENERATE_PIE_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
                 except Exception as e:
                     logger.error(f"Pie chart generation error: {e}")
-                    full_response = re.sub(r'\[GENERATE_PIE_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
 
         # Bar Chart generation
-        bar_match = re.search(r'\[GENERATE_BAR_CHART:\s*(\{.+?\})\]', full_response, re.DOTALL)
-        if bar_match:
+        bar_data, full_response = _extract_chart_json("GENERATE_BAR_CHART", full_response)
+        if bar_data:
             can_gen, remaining = await _check_user_quota()
             if not can_gen:
-                full_response = re.sub(r'\[GENERATE_BAR_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
                 full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
             else:
                 try:
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating bar chart...'})}\n\n"
-                    chart_data = json.loads(bar_match.group(1))
-                    chart_bytes = generate_bar_chart(chart_data)
+                    chart_bytes = generate_bar_chart(bar_data)
                     chart_id = str(uuid.uuid4())
                     _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
-                    generated_files.append({
-                        "type": "image", "file_id": chart_id, "filename": f"bar_chart_{chart_id[:8]}.png",
-                        "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"
-                    })
+                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"bar_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                     await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
-                    full_response = re.sub(r'\[GENERATE_BAR_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
                 except Exception as e:
                     logger.error(f"Bar chart generation error: {e}")
-                    full_response = re.sub(r'\[GENERATE_BAR_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
+
+        # Line Chart generation
+        line_data, full_response = _extract_chart_json("GENERATE_LINE_CHART", full_response)
+        if line_data:
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating line chart...'})}\n\n"
+                    chart_bytes = generate_line_chart(line_data)
+                    chart_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"line_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
+                except Exception as e:
+                    logger.error(f"Line chart generation error: {e}")
+
+        # Stacked Bar Chart generation
+        stacked_data, full_response = _extract_chart_json("GENERATE_STACKED_BAR_CHART", full_response)
+        if stacked_data:
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating stacked bar chart...'})}\n\n"
+                    chart_bytes = generate_stacked_bar_chart(stacked_data)
+                    chart_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"stacked_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
+                except Exception as e:
+                    logger.error(f"Stacked bar chart generation error: {e}")
+
+        # Radar Chart generation
+        radar_data, full_response = _extract_chart_json("GENERATE_RADAR_CHART", full_response)
+        if radar_data:
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating radar chart...'})}\n\n"
+                    chart_bytes = generate_radar_chart(radar_data)
+                    chart_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"radar_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
+                except Exception as e:
+                    logger.error(f"Radar chart generation error: {e}")
 
         assistant_msg["content"] = full_response
         assistant_msg["attachments"] = generated_files
