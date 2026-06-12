@@ -403,14 +403,17 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
 
         async def _store_generated_metadata(file_info, conv_id, user_id, file_size=0):
             """Store file generation metadata in MongoDB for tracking/cleanup."""
+            filename = file_info.get("filename", "")
+            ext = filename.rsplit(".", 1)[-1] if "." in filename else file_info.get("type", "bin")
+            file_id = file_info.get("file_id", str(uuid.uuid4()))
             await db.ai_generated_files.insert_one({
-                "id": file_info.get("file_id", str(uuid.uuid4())),
+                "id": file_id,
                 "conversation_id": conv_id,
                 "user_id": user_id,
                 "type": file_info.get("type"),
-                "filename": file_info.get("filename"),
+                "filename": filename,
                 "content_type": file_info.get("content_type"),
-                "storage_path": f"ai-generated/{file_info.get('file_id', '')}.{file_info.get('type', 'bin')}",
+                "storage_path": f"ai-generated/{file_id}.{ext}",
                 "file_size": file_size,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             })
@@ -554,95 +557,32 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                 except Exception as e:
                     logger.error(f"XLSX generation error: {e}")
 
-        # Pie Chart generation
-        pie_data, full_response = _extract_chart_json("GENERATE_PIE_CHART", full_response)
-        if pie_data:
-            can_gen, remaining = await _check_user_quota()
-            if not can_gen:
-                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
-            else:
-                try:
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating pie chart...'})}\n\n"
-                    chart_bytes = await asyncio.to_thread(generate_pie_chart, pie_data)
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
-                    chart_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
-                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"pie_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
-                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
-                except Exception as e:
-                    logger.error(f"Pie chart generation error: {e}")
-
-        # Bar Chart generation
-        bar_data, full_response = _extract_chart_json("GENERATE_BAR_CHART", full_response)
-        if bar_data:
-            can_gen, remaining = await _check_user_quota()
-            if not can_gen:
-                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
-            else:
-                try:
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating bar chart...'})}\n\n"
-                    chart_bytes = await asyncio.to_thread(generate_bar_chart, bar_data)
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
-                    chart_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
-                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"bar_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
-                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
-                except Exception as e:
-                    logger.error(f"Bar chart generation error: {e}")
-
-        # Line Chart generation
-        line_data, full_response = _extract_chart_json("GENERATE_LINE_CHART", full_response)
-        if line_data:
-            can_gen, remaining = await _check_user_quota()
-            if not can_gen:
-                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
-            else:
-                try:
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating line chart...'})}\n\n"
-                    chart_bytes = await asyncio.to_thread(generate_line_chart, line_data)
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
-                    chart_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
-                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"line_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
-                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
-                except Exception as e:
-                    logger.error(f"Line chart generation error: {e}")
-
-        # Stacked Bar Chart generation
-        stacked_data, full_response = _extract_chart_json("GENERATE_STACKED_BAR_CHART", full_response)
-        if stacked_data:
-            can_gen, remaining = await _check_user_quota()
-            if not can_gen:
-                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
-            else:
-                try:
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating stacked bar chart...'})}\n\n"
-                    chart_bytes = await asyncio.to_thread(generate_stacked_bar_chart, stacked_data)
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
-                    chart_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
-                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"stacked_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
-                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
-                except Exception as e:
-                    logger.error(f"Stacked bar chart generation error: {e}")
-
-        # Radar Chart generation
-        radar_data, full_response = _extract_chart_json("GENERATE_RADAR_CHART", full_response)
-        if radar_data:
-            can_gen, remaining = await _check_user_quota()
-            if not can_gen:
-                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
-            else:
-                try:
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating radar chart...'})}\n\n"
-                    chart_bytes = await asyncio.to_thread(generate_radar_chart, radar_data)
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
-                    chart_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
-                    generated_files.append({"type": "image", "file_id": chart_id, "filename": f"radar_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
-                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
-                except Exception as e:
-                    logger.error(f"Radar chart generation error: {e}")
+        # Chart generation (all types via shared helper)
+        _chart_configs = [
+            ("GENERATE_PIE_CHART", generate_pie_chart, "pie_chart"),
+            ("GENERATE_BAR_CHART", generate_bar_chart, "bar_chart"),
+            ("GENERATE_LINE_CHART", generate_line_chart, "line_chart"),
+            ("GENERATE_STACKED_BAR_CHART", generate_stacked_bar_chart, "stacked_chart"),
+            ("GENERATE_RADAR_CHART", generate_radar_chart, "radar_chart"),
+        ]
+        for tag_name, gen_fn, prefix in _chart_configs:
+            chart_data, full_response = _extract_chart_json(tag_name, full_response)
+            if chart_data:
+                can_gen, remaining = await _check_user_quota()
+                if not can_gen:
+                    full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
+                else:
+                    try:
+                        label = tag_name.replace("GENERATE_", "").replace("_", " ").title()
+                        yield f"data: {json.dumps({'type': 'status', 'content': f'Creating {label.lower()}...'})}\n\n"
+                        chart_bytes = await asyncio.to_thread(gen_fn, chart_data)
+                        yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
+                        chart_id = str(uuid.uuid4())
+                        await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                        generated_files.append({"type": "image", "file_id": chart_id, "filename": f"{prefix}_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
+                        await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
+                    except Exception as e:
+                        logger.error(f"{prefix} generation error: {e}")
 
         assistant_msg["content"] = full_response
         assistant_msg["attachments"] = generated_files
@@ -765,7 +705,7 @@ async def regenerate_response(conv_id: str, user: dict = Depends(get_current_use
 # ============== Chat Export ==============
 
 @router.get("/conversations/{conv_id}/export")
-async def export_conversation(conv_id: str, format: str = Query("md", regex="^(md|pdf|docx)$"), user: dict = Depends(get_current_user)):
+async def export_conversation(conv_id: str, format: str = Query("md", pattern="^(md|pdf|docx)$"), user: dict = Depends(get_current_user)):
     conv = await db.ai_conversations.find_one({"id": conv_id, "user_id": user["id"]}, {"_id": 0})
     if not conv:
         raise HTTPException(404, "Conversation not found")
@@ -1028,7 +968,16 @@ async def download_file(file_id: str, user: dict = Depends(get_current_user)):
             logger.error(f"Download failed: {e}")
             raise HTTPException(500, "File download failed")
 
-    # Fallback: check AI-generated files in object storage
+    # Check AI-generated files metadata for direct path resolution
+    gen_record = await db.ai_generated_files.find_one({"id": file_id}, {"_id": 0})
+    if gen_record and gen_record.get("storage_path"):
+        try:
+            data, ct = _get_object(gen_record["storage_path"])
+            return Response(content=data, media_type=gen_record.get("content_type", ct))
+        except Exception:
+            pass
+
+    # Fallback: probe object storage by common extensions
     for ext in [".png", ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ""]:
         try:
             data, ct = _get_object(f"ai-generated/{file_id}{ext}")
