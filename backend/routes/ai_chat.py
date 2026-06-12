@@ -109,11 +109,9 @@ When a user asks you to create/generate/export an Excel/spreadsheet, include [GE
 
 Be concise, accurate, and helpful. Use markdown formatting when appropriate (headers, lists, code blocks, bold, etc.). When writing code, always specify the language for syntax highlighting."""
 
-SEARCH_FOLLOWUP_PROMPT = """Based on the web search results below, answer the user's question. Include specific facts from the sources. At the end of your response, add a "Sources" section listing the URLs you referenced in this format:
+SEARCH_FOLLOWUP_PROMPT = """Based on the web search results below, answer the user's question. Include specific facts from the sources. Reference sources by mentioning the source name in your text (e.g., "according to CNBC...").
 
-**Sources:**
-1. [Title](URL)
-2. [Title](URL)
+IMPORTANT: Do NOT include a "Sources" section at the end of your response — the system displays source links automatically. Do NOT use [WEB_SEARCH: ...] tags.
 
 Search Results:
 {search_results}
@@ -413,8 +411,9 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
         sources = []
         if web_search_match:
             search_query = web_search_match.group(1).strip()
-            full_response = re.sub(r'\[WEB_SEARCH:\s*.+?\]', '', full_response).strip()
+            full_response = ""  # Clear first response entirely (it was just the search tag)
             try:
+                yield f"data: {json.dumps({'type': 'search_start', 'content': ''})}\n\n"
                 yield f"data: {json.dumps({'type': 'status', 'content': 'Searching the web...'})}\n\n"
                 from routes.web_search import web_search, format_search_results
                 search_results = await web_search(search_query, db)
@@ -439,11 +438,39 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                         api_key=EMERGENT_KEY,
                         stream=True,
                     )
+                    tag_buffer = ""
+                    tag_stripped = False
                     for chunk in search_resp:
                         delta = chunk.choices[0].delta if chunk.choices else None
                         if delta and delta.content:
-                            full_response += delta.content
-                            yield f"data: {json.dumps({'type': 'chunk', 'content': delta.content})}\n\n"
+                            content = delta.content
+                            # Buffer and strip any [WEB_SEARCH: ...] tag from start of response
+                            if not tag_stripped:
+                                tag_buffer += content
+                                if "]" in tag_buffer:
+                                    tag_buffer = re.sub(r'\[WEB_SEARCH:\s*.+?\]', '', tag_buffer)
+                                    tag_stripped = True
+                                    if tag_buffer.strip():
+                                        full_response += tag_buffer
+                                        yield f"data: {json.dumps({'type': 'chunk', 'content': tag_buffer})}\n\n"
+                                    tag_buffer = ""
+                                elif len(tag_buffer) > 200:
+                                    tag_stripped = True
+                                    full_response += tag_buffer
+                                    yield f"data: {json.dumps({'type': 'chunk', 'content': tag_buffer})}\n\n"
+                                    tag_buffer = ""
+                                continue
+                            full_response += content
+                            yield f"data: {json.dumps({'type': 'chunk', 'content': content})}\n\n"
+                    # Flush any remaining buffer
+                    if tag_buffer:
+                        tag_buffer = re.sub(r'\[WEB_SEARCH:\s*.+?\]', '', tag_buffer)
+                        if tag_buffer.strip():
+                            full_response += tag_buffer
+                            yield f"data: {json.dumps({'type': 'chunk', 'content': tag_buffer})}\n\n"
+
+                    # Final cleanup
+                    full_response = re.sub(r'\[WEB_SEARCH:\s*.+?\]', '', full_response).strip()
 
                     sources = [{"title": r["title"], "url": r["url"]} for r in search_results if r.get("url")]
                 else:

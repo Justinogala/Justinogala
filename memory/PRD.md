@@ -12,15 +12,20 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
-### AI Chat Chart Performance Fix + Image Generation Enhancement — June 12, 2026
-- **Chart Fix Root Cause**: Charts took forever / never appeared. Three issues: (1) sync `requests.put()` blocked async event loop during storage upload, (2) matplotlib cold-imported on every chart call (~2-5s), (3) `<img src>` can't carry Bearer token → 401 on auth-protected file endpoint.
-- **Image Generation Fix**: Same root cause — `client.images.generate()` call blocked event loop for 15-45s causing production proxy timeouts. Now wrapped in `asyncio.to_thread()` with keepalive status events.
-- **System Prompt Enhancement**: Improved to reliably trigger `[GENERATE_IMAGE: ...]` for any subject (people, objects, scenes, animals, art, etc.). LLM auto-enhances short prompts into detailed image descriptions.
-- **Safety Handling**: OpenAI content safety rejections now show user-friendly message instead of raw API error.
-- **Backend Fixes**: Pre-imported matplotlib at module level, chart rendering + image generation + storage upload all via `asyncio.to_thread()`, SSE keepalive status events, reduced chart DPI 150→100, refactored 5 chart blocks into single loop.
-- **Frontend Fix**: `AuthenticatedImage` component fetches images with Bearer token via `fetch()` and displays via `blob:` URL. All file downloads use authenticated handlers.
-- **File Download Optimization**: Download endpoint checks `ai_generated_files` collection for direct `storage_path` lookup.
-- Testing: 100% backend (7/7) + 100% frontend — Iterations 137, 138
+### AI Chat Chart Performance Fix + Image Generation Enhancement + Web Search — June 12, 2026
+- **Chart Fix**: Sync I/O blocking async event loop → `asyncio.to_thread()`, matplotlib pre-import, SSE keepalives
+- **Image Gen Fix**: Same sync blocking → async, `AuthenticatedImage` component with blob URLs
+- **Image Gen Quick-Action Button**: New `ImagePlus` button in chat input bar opens a prompt dialog for one-click image generation
+- **Web Search**: AI Chat can now search the web when users ask about current events, news, prices, etc.
+  - LLM outputs `[WEB_SEARCH: query]` → backend intercepts, searches via DuckDuckGo (free), re-queries LLM with results
+  - Response includes clickable source link chips (title + URL) rendered below the message
+  - Frontend sends `search_start` SSE event to clear streamed tag, then streams clean search-informed response
+  - Pluggable provider architecture: DuckDuckGo (default/free), Tavily, Brave Search, Perplexity (configurable in Admin API Settings with API key)
+- **Admin Search API Config**: New card in Admin > API Configuration page — select provider + enter API key for premium search
+- **Endpoints**: `GET/PUT /api/admin/search-api`
+- Backend: `/app/backend/routes/web_search.py` (provider abstraction), `/app/backend/routes/ai_chat.py` (search detection)
+- Frontend: `AIChatPage.jsx` (ImageGenDialog, SourceLinks, AuthenticatedImage components)
+- Testing: 100% backend + 100% frontend — Iterations 137, 138, 139
 
 ### Storage Quota Management — June 12, 2026
 - **Plan-based quotas**: Free = 100 MB, Pro = 1 GB, Enterprise = 10 GB (configurable)

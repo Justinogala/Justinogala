@@ -686,6 +686,17 @@ export default function AIChatPage() {
             const data = JSON.parse(line.slice(6));
             if (data.type === 'thinking') {
               // Already showing thinking state, just keep it
+            } else if (data.type === 'search_start') {
+              // Web search detected — clear streamed content (was just the search tag)
+              fullContent = '';
+              setMessages(prev => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last && last.id === 'streaming') {
+                  updated[updated.length - 1] = { ...last, content: '', isThinking: true, isStreaming: false, statusText: 'Searching the web...' };
+                }
+                return updated;
+              });
             } else if (data.type === 'status') {
               // Show status messages like "Generating image..."
               setMessages(prev => {
