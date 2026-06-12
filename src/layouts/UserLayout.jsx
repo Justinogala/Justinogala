@@ -8,6 +8,7 @@ import MobileSearchOverlay from '@/components/search/MobileSearchOverlay';
 import OnboardingWalkthrough from '@/components/OnboardingWalkthrough';
 import UpdateNotificationBanner from '@/components/UpdateNotificationBanner';
 import WhatsNewModal from '@/components/WhatsNewModal';
+import StorageQuotaBanner from '@/components/StorageQuotaBanner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const UserLayout = () => {
@@ -26,6 +27,7 @@ const UserLayout = () => {
       
       {/* Global update notification banner */}
       <UpdateNotificationBanner />
+      <StorageQuotaBanner />
       <WhatsNewModal />
       
       <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex font-sans transition-colors duration-200 pt-safe">
