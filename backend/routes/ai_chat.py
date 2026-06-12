@@ -854,15 +854,26 @@ async def upload_file(
 
 @router.get("/files/{file_id}")
 async def download_file(file_id: str, user: dict = Depends(get_current_user)):
+    """Download uploaded or AI-generated files."""
+    # First check user-uploaded files in DB
     record = await db.ai_chat_files.find_one({"id": file_id, "user_id": user["id"]}, {"_id": 0})
-    if not record:
-        raise HTTPException(404, "File not found")
-    try:
-        data, ct = _get_object(record["storage_path"])
-        return Response(content=data, media_type=record.get("content_type", ct))
-    except Exception as e:
-        logger.error(f"Download failed: {e}")
-        raise HTTPException(500, "File download failed")
+    if record:
+        try:
+            data, ct = _get_object(record["storage_path"])
+            return Response(content=data, media_type=record.get("content_type", ct))
+        except Exception as e:
+            logger.error(f"Download failed: {e}")
+            raise HTTPException(500, "File download failed")
+
+    # Fallback: check AI-generated files in object storage
+    for ext in [".png", ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ""]:
+        try:
+            data, ct = _get_object(f"ai-generated/{file_id}{ext}")
+            return Response(content=data, media_type=ct)
+        except Exception:
+            continue
+
+    raise HTTPException(404, "File not found")
 
 
 # ============== Voice Transcription ==============
@@ -1025,24 +1036,3 @@ def _generate_xlsx_from_text(text: str) -> bytes:
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
-
-
-# ============== File Download Endpoint ==============
-
-@router.get("/files/{file_id}")
-async def download_generated_file(file_id: str):
-    """Download a generated or uploaded file."""
-    try:
-        # Try ai-generated first, then ai-chat-files
-        for prefix in ["ai-generated", "ai-chat-files"]:
-            for ext in [".png", ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ".gif", ""]:
-                try:
-                    data, ct = _get_object(f"{prefix}/{file_id}{ext}")
-                    return Response(content=data, media_type=ct)
-                except Exception:
-                    continue
-        raise HTTPException(404, "File not found")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, str(e))

@@ -12,6 +12,18 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### AI Chat Full File Suite — June 12, 2026
+- **File Reading**: Upload images (GPT vision), PDFs (pdfplumber text extraction), Excel/CSV (openpyxl parsing), DOCX (python-docx) — content sent to GPT-5.2 for analysis
+- **Image Generation**: AI detects "generate image" intent, creates images via GPT Image 1, displayed inline with download button
+- **PDF Generation**: AI responses with [GENERATE_PDF] tag auto-converted to downloadable PDF (reportlab)
+- **Word Generation**: AI responses with [GENERATE_DOCX] tag auto-converted to downloadable DOCX (python-docx)
+- **Excel Generation**: AI responses with [GENERATE_XLSX] tag auto-converted to downloadable XLSX (openpyxl)
+- **Download endpoint**: Unified GET /api/ai-chat/files/{file_id} handles both uploaded and generated files
+- **Frontend**: GeneratedFileDisplay component shows images inline, docs with download buttons, status messages during generation
+- Backend: `/app/backend/routes/ai_chat.py` (file utilities + generation + unified download)
+- Fixed: Route shadowing bug (duplicate /files/{file_id} endpoint) — merged into single auth-protected handler
+- Testing: 100% backend (15/15) — Iteration 136
+
 ### Dedicated Full-Page Meeting Transcript View — June 11, 2026
 - New route `/meeting-transcripts/:id` with full transcript text, timestamps/segments, search within transcript
 - AI insights sidebar: Summary, Action Items (with assignee/priority), Key Decisions, Topics Discussed, Follow-ups
