@@ -70,6 +70,9 @@ const FeatureVoiceChatPage = lazy(() => import('@/pages/features/FeatureVoiceCha
 const FeatureCalendarIntegrationPage = lazy(() => import('@/pages/features/FeatureCalendarIntegrationPage'));
 const FeatureVideoCallsPage = lazy(() => import('@/pages/features/FeatureVideoCallsPage'));
 const FeatureApprovalsPage = lazy(() => import('@/pages/features/FeatureApprovalsPage'));
+const FeatureTextToAudioPage = lazy(() => import('@/pages/features/FeatureTextToAudioPage'));
+const FeatureTextToVideoPage = lazy(() => import('@/pages/features/FeatureTextToVideoPage'));
+const FeatureQuickRecordPage = lazy(() => import('@/pages/features/FeatureQuickRecordPage'));
 const FeatureESignaturePage = lazy(() => import('@/pages/features/FeatureESignaturePage'));
 const FeatureShiftsPage = lazy(() => import('@/pages/features/FeatureShiftsPage'));
 const FeatureIRSORPage = lazy(() => import('@/pages/features/FeatureIRSORPage'));
@@ -377,6 +380,9 @@ function App() {
                               <Route path="/features/calendar-integration" element={<FeatureCalendarIntegrationPage />} />
                               <Route path="/features/video-calls" element={<FeatureVideoCallsPage />} />
                               <Route path="/features/approvals" element={<FeatureApprovalsPage />} />
+                              <Route path="/features/text-to-audio" element={<FeatureTextToAudioPage />} />
+                              <Route path="/features/text-to-video" element={<FeatureTextToVideoPage />} />
+                              <Route path="/features/quick-record" element={<FeatureQuickRecordPage />} />
                               <Route path="/features/esignature" element={<FeatureESignaturePage />} />
                               <Route path="/features/shifts" element={<FeatureShiftsPage />} />
                               <Route path="/features/ir-sor" element={<FeatureIRSORPage />} />
