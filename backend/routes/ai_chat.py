@@ -101,7 +101,63 @@ _encode_image_base64 = encode_image_base64
 
 
 async def _extract_file_content(attachment: dict) -> tuple:
-    return await extract_file_content(attachment, _get_object)
+    """Extract content from an uploaded file attachment, looking up the real storage path from DB."""
+    try:
+        file_id = attachment.get("file_id")
+        filename = attachment.get("filename") or attachment.get("original_filename", "")
+        content_type = attachment.get("content_type", "")
+
+        if not file_id:
+            return f"[File: {filename}]", None
+
+        # Look up the actual storage path from the DB record
+        record = await db.ai_chat_files.find_one({"id": file_id}, {"_id": 0})
+        if not record:
+            logger.warning(f"File record not found for id={file_id}")
+            return f"[File: {filename} — could not be read]", None
+
+        storage_path = record.get("storage_path", "")
+        content_type = content_type or record.get("content_type", "")
+        filename = filename or record.get("original_filename", "file")
+
+        try:
+            file_bytes, _ = _get_object(storage_path)
+        except Exception as e:
+            logger.error(f"Failed to read file from storage: {storage_path} — {e}")
+            return f"[File: {filename} — storage read error]", None
+
+        if content_type.startswith("image/"):
+            img_b64 = _encode_image_base64(file_bytes)
+            return f"[Image: {filename}]", f"data:{content_type};base64,{img_b64}"
+
+        ext = filename.lower().split(".")[-1] if "." in filename else ""
+
+        if content_type == "application/pdf" or ext == "pdf":
+            text = _extract_pdf_text(file_bytes)
+            return f"[PDF: {filename}]\n{text}", None
+
+        if content_type in ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel") or ext in ("xlsx", "xls"):
+            text = _extract_excel_data(file_bytes)
+            return f"[Spreadsheet: {filename}]\n{text}", None
+
+        if content_type.startswith("text/") or ext in ("txt", "csv", "json", "md", "py", "js", "ts", "html", "css"):
+            text = file_bytes.decode("utf-8", errors="replace")[:8000]
+            return f"[File: {filename}]\n{text}", None
+
+        if content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or ext == "docx":
+            try:
+                from docx import Document as DocxDocument
+                import io
+                doc = DocxDocument(io.BytesIO(file_bytes))
+                text = "\n".join([p.text for p in doc.paragraphs[:100]])[:8000]
+                return f"[Document: {filename}]\n{text}", None
+            except Exception as e:
+                return f"[Document: {filename} — could not read: {e}]", None
+
+        return f"[Attached file: {filename} ({content_type})]", None
+    except Exception as e:
+        logger.error(f"File extraction error: {e}")
+        return f"[Error reading file: {str(e)}]", None
 
 # ============== Conversations CRUD ==============
 
