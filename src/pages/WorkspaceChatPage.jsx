@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import UserPresenceStatus from '@/components/chat/UserPresenceStatus';
+import ChatSettingsPanel from '@/components/chat/ChatSettingsPanel';
 
 const WorkspaceChatPage = () => {
   const { user: currentUser } = useAuth();
@@ -84,6 +85,7 @@ const WorkspaceChatPage = () => {
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [showChatSettings, setShowChatSettings] = useState(false);
   const [convPrefs, setConvPrefs] = useState({}); // { conv_key: { starred, pinned, muted } }
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -463,7 +465,7 @@ const WorkspaceChatPage = () => {
                 </div>
                 Messages
               </h2>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setShowChatSettings(true)} data-testid="chat-settings-btn">
                 <Settings className="w-4 h-4 text-gray-500" />
               </Button>
             </div>
@@ -972,6 +974,14 @@ const WorkspaceChatPage = () => {
           onToggleVideo={toggleVideo}
         />
       )}
+
+      {/* Chat Settings Panel */}
+      <ChatSettingsPanel
+        open={showChatSettings}
+        onClose={() => setShowChatSettings(false)}
+        userId={activeUser?.id}
+        onBulkAction={() => setLocalMessages([])}
+      />
     </PageTransition>
   );
 };

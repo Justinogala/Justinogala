@@ -377,6 +377,69 @@ async def get_conversation_preferences(user_id: str):
     return {"preferences": prefs}
 
 
+# ============== Chat Settings ==============
+
+@router.get("/chat/settings/{user_id}")
+async def get_chat_settings(user_id: str):
+    """Get user's chat settings."""
+    settings = await db.chat_settings.find_one({"user_id": user_id}, {"_id": 0})
+    if not settings:
+        settings = {
+            "user_id": user_id,
+            "notification_sound": True,
+            "message_preview": True,
+            "read_receipts": True,
+            "auto_delete_days": 0,
+            "font_size": "medium",
+            "enter_to_send": True,
+        }
+    return settings
+
+
+@router.put("/chat/settings/{user_id}")
+async def update_chat_settings(user_id: str, body: dict):
+    """Update user's chat settings."""
+    allowed = {"notification_sound", "message_preview", "read_receipts", "auto_delete_days", "font_size", "enter_to_send"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if not updates:
+        raise HTTPException(400, "No valid settings provided")
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.chat_settings.update_one(
+        {"user_id": user_id},
+        {"$set": updates, "$setOnInsert": {"user_id": user_id}},
+        upsert=True
+    )
+    return await get_chat_settings(user_id)
+
+
+@router.post("/chat/conversations/archive-all-read")
+async def archive_all_read(body: dict):
+    """Mark all read conversations as archived for a user."""
+    user_id = body.get("user_id")
+    if not user_id:
+        raise HTTPException(400, "user_id required")
+    result = await db.chat_messages.update_many(
+        {"receiver_id": user_id, "is_read": True},
+        {"$set": {"archived": True}}
+    )
+    return {"archived_count": result.modified_count}
+
+
+@router.post("/chat/conversations/clear-all-read")
+async def clear_all_read(body: dict):
+    """Delete all read messages for a user."""
+    user_id = body.get("user_id")
+    if not user_id:
+        raise HTTPException(400, "user_id required")
+    result = await db.chat_messages.delete_many({
+        "$or": [
+            {"receiver_id": user_id, "is_read": True},
+            {"sender_id": user_id, "is_read": True}
+        ]
+    })
+    return {"deleted_count": result.deleted_count}
+
+
 @router.post("/chat/files/upload")
 async def upload_chat_file(
     file: UploadFile = File(None),
