@@ -12,6 +12,17 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Storage Quota Management — June 12, 2026
+- **Plan-based quotas**: Free = 100 MB, Pro = 1 GB, Enterprise = 10 GB (configurable)
+- **Admin Quota Management** page (`/admin/storage-quotas`): Lists all users with usage bars, plan badges, custom limit indicators; edit dialog to set custom limits per user or reset to plan default
+- **Quota enforcement**: AI Chat file generation checks quota before creating files; blocked with clear "storage quota exceeded" message
+- **User quota indicator**: Thin progress bar above chat input showing usage vs limit (color-coded: green → amber → red)
+- **File size tracking**: `file_size` field added to `ai_generated_files` metadata for accurate storage calculation
+- **Endpoints**: `GET /api/storage/my-quota`, `GET /api/storage/admin/quotas`, `PUT /api/storage/admin/quotas/{user_id}`, `PUT /api/storage/admin/plan-defaults`
+- Backend: `/app/backend/routes/storage_quotas.py`
+- Frontend: `/app/src/pages/admin/AdminStorageQuotasPage.jsx`
+- Admin sidebar: "Storage Quotas" link added
+
 ### AI Chat Full File Suite — June 12, 2026
 - **File Reading**: Upload images (GPT vision), PDFs (pdfplumber text extraction), Excel/CSV (openpyxl parsing), DOCX (python-docx) — content sent to GPT-5.2 for analysis
 - **Image Generation**: AI detects "generate image" intent, creates images via GPT Image 1, displayed inline with download button

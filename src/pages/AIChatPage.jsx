@@ -246,6 +246,7 @@ export default function AIChatPage() {
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [storageQuota, setStorageQuota] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [loadingConv, setLoadingConv] = useState(false);
@@ -304,6 +305,16 @@ export default function AIChatPage() {
   }, [getToken]);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
+
+  // Load storage quota
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetch(`${API}/api/storage/my-quota`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setStorageQuota(d))
+      .catch(() => {});
+  }, [messages.length]);
 
   // Load messages for active conversation (skip during streaming)
   useEffect(() => {
@@ -1035,6 +1046,17 @@ export default function AIChatPage() {
           )}
 
           <div className="max-w-4xl mx-auto flex items-end gap-2">
+            {/* Storage quota indicator */}
+            {storageQuota && storageQuota.usage_pct > 0 && (
+              <div className="absolute -top-6 left-0 right-0 max-w-4xl mx-auto flex items-center gap-2 px-1" data-testid="quota-indicator">
+                <div className="flex-1 h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className={cn('h-full rounded-full transition-all', storageQuota.usage_pct > 90 ? 'bg-red-500' : storageQuota.usage_pct > 70 ? 'bg-amber-500' : 'bg-violet-500')} style={{ width: `${Math.min(storageQuota.usage_pct, 100)}%` }} />
+                </div>
+                <span className={cn('text-[10px] shrink-0', storageQuota.usage_pct > 90 ? 'text-red-500 font-medium' : 'text-gray-400')}>
+                  {storageQuota.used_formatted} / {storageQuota.limit_formatted}
+                </span>
+              </div>
+            )}
             <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileUpload} accept="image/*,.pdf,.txt,.csv,.json,.md,.py,.js,.ts,.jsx,.tsx,.html,.css,.doc,.docx,.xls,.xlsx" />
 
             <button

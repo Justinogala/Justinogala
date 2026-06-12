@@ -221,6 +221,7 @@ const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminSettings = lazy(() => import('@/pages/AdminSettings'));
 const AdminAnalytics = lazy(() => import('@/pages/AdminAnalytics'));
 const AdminAdvancedAnalyticsPage = lazy(() => import('@/pages/admin/AdminAdvancedAnalyticsPage'));
+const AdminStorageQuotasPage = lazy(() => import('@/pages/admin/AdminStorageQuotasPage'));
 const AdminReports = lazy(() => import('@/pages/AdminReports'));
 const AdminProfile = lazy(() => import('@/pages/AdminProfile'));
 const AdminContent = lazy(() => import('@/pages/AdminContent'));
@@ -554,6 +555,7 @@ function App() {
                                 <Route path="settings" element={<AdminSettings />} />
                                 <Route path="analytics" element={<AdminAnalytics />} /> 
                                 <Route path="advanced-analytics" element={<AdminAdvancedAnalyticsPage />} />
+                                <Route path="storage-quotas" element={<AdminStorageQuotasPage />} />
                                 <Route path="reports" element={<AdminReports />} /> 
                                 <Route path="billing" element={<AdminBillingPage />} />
                                 <Route path="workspaces" element={<AdminWorkspacesPage />} />

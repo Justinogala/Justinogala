@@ -373,6 +373,9 @@ api_router.include_router(presentations_router)
 from routes.advanced_analytics import router as advanced_analytics_router
 api_router.include_router(advanced_analytics_router)
 
+from routes.storage_quotas import router as storage_quotas_router
+api_router.include_router(storage_quotas_router)
+
 
 # ============== Include Main Router ==============
 

@@ -328,7 +328,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
         generated_files = []
         import re
 
-        async def _store_generated_metadata(file_info, conv_id, user_id):
+        async def _store_generated_metadata(file_info, conv_id, user_id, file_size=0):
             """Store file generation metadata in MongoDB for tracking/cleanup."""
             await db.ai_generated_files.insert_one({
                 "id": file_info.get("file_id", str(uuid.uuid4())),
@@ -338,92 +338,119 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                 "filename": file_info.get("filename"),
                 "content_type": file_info.get("content_type"),
                 "storage_path": f"ai-generated/{file_info.get('file_id', '')}.{file_info.get('type', 'bin')}",
+                "file_size": file_size,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             })
+
+        async def _check_user_quota():
+            """Check if user has storage quota remaining."""
+            from routes.storage_quotas import check_quota
+            quota = await check_quota(user["id"])
+            return quota["can_generate"], quota["remaining_formatted"]
 
         # Image generation
         img_match = re.search(r'\[GENERATE_IMAGE:\s*(.+?)\]', full_response)
         if img_match:
-            img_prompt = img_match.group(1)
-            try:
-                yield f"data: {json.dumps({'type': 'status', 'content': 'Generating image...'})}\n\n"
-                from llm_client import get_client
-                client = get_client(EMERGENT_KEY)
-                img_resp = client.images.generate(
-                    model="gpt-image-1",
-                    prompt=img_prompt,
-                    n=1,
-                    size="1024x1024",
-                )
-                if img_resp.data and img_resp.data[0].b64_json:
-                    import base64 as b64
-                    img_bytes = b64.b64decode(img_resp.data[0].b64_json)
-                    img_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{img_id}.png", img_bytes, "image/png")
-                    generated_files.append({
-                        "type": "image", "file_id": img_id, "filename": f"generated_{img_id[:8]}.png",
-                        "content_type": "image/png", "url": f"/api/ai-chat/files/{img_id}"
-                    })
-                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"])
-                elif img_resp.data and img_resp.data[0].url:
-                    generated_files.append({
-                        "type": "image", "url": img_resp.data[0].url, "filename": "generated_image.png",
-                        "content_type": "image/png"
-                    })
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
                 full_response = re.sub(r'\[GENERATE_IMAGE:\s*.+?\]', '', full_response).strip()
-            except Exception as e:
-                logger.error(f"Image generation error: {e}")
-                full_response += f"\n\n*Image generation failed: {str(e)}*"
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining). Upgrade your plan to generate more files.*"
+            else:
+                img_prompt = img_match.group(1)
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Generating image...'})}\n\n"
+                    from llm_client import get_client
+                    client = get_client(EMERGENT_KEY)
+                    img_resp = client.images.generate(
+                        model="gpt-image-1",
+                        prompt=img_prompt,
+                        n=1,
+                        size="1024x1024",
+                    )
+                    if img_resp.data and img_resp.data[0].b64_json:
+                        import base64 as b64
+                        img_bytes = b64.b64decode(img_resp.data[0].b64_json)
+                        img_id = str(uuid.uuid4())
+                        _put_object(f"ai-generated/{img_id}.png", img_bytes, "image/png")
+                        generated_files.append({
+                            "type": "image", "file_id": img_id, "filename": f"generated_{img_id[:8]}.png",
+                            "content_type": "image/png", "url": f"/api/ai-chat/files/{img_id}"
+                        })
+                        await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(img_bytes))
+                    elif img_resp.data and img_resp.data[0].url:
+                        generated_files.append({
+                            "type": "image", "url": img_resp.data[0].url, "filename": "generated_image.png",
+                            "content_type": "image/png"
+                        })
+                    full_response = re.sub(r'\[GENERATE_IMAGE:\s*.+?\]', '', full_response).strip()
+                except Exception as e:
+                    logger.error(f"Image generation error: {e}")
+                    full_response += f"\n\n*Image generation failed: {str(e)}*"
 
         # PDF generation
         if "[GENERATE_PDF]" in full_response:
-            try:
-                yield f"data: {json.dumps({'type': 'status', 'content': 'Creating PDF...'})}\n\n"
-                pdf_bytes = generate_pdf_from_markdown(full_response.replace("[GENERATE_PDF]", "").strip())
-                pdf_id = str(uuid.uuid4())
-                _put_object(f"ai-generated/{pdf_id}.pdf", pdf_bytes, "application/pdf")
-                generated_files.append({
-                    "type": "pdf", "file_id": pdf_id, "filename": f"document_{pdf_id[:8]}.pdf",
-                    "content_type": "application/pdf", "url": f"/api/ai-chat/files/{pdf_id}"
-                })
-                await _store_generated_metadata(generated_files[-1], conv_id, user["id"])
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
                 full_response = full_response.replace("[GENERATE_PDF]", "").strip()
-            except Exception as e:
-                logger.error(f"PDF generation error: {e}")
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining). Upgrade your plan.*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating PDF...'})}\n\n"
+                    pdf_bytes = generate_pdf_from_markdown(full_response.replace("[GENERATE_PDF]", "").strip())
+                    pdf_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{pdf_id}.pdf", pdf_bytes, "application/pdf")
+                    generated_files.append({
+                        "type": "pdf", "file_id": pdf_id, "filename": f"document_{pdf_id[:8]}.pdf",
+                        "content_type": "application/pdf", "url": f"/api/ai-chat/files/{pdf_id}"
+                    })
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(pdf_bytes))
+                    full_response = full_response.replace("[GENERATE_PDF]", "").strip()
+                except Exception as e:
+                    logger.error(f"PDF generation error: {e}")
 
         # DOCX generation
         if "[GENERATE_DOCX]" in full_response:
-            try:
-                yield f"data: {json.dumps({'type': 'status', 'content': 'Creating Word document...'})}\n\n"
-                docx_bytes = generate_docx_from_markdown(full_response.replace("[GENERATE_DOCX]", "").strip())
-                docx_id = str(uuid.uuid4())
-                _put_object(f"ai-generated/{docx_id}.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-                generated_files.append({
-                    "type": "docx", "file_id": docx_id, "filename": f"document_{docx_id[:8]}.docx",
-                    "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "url": f"/api/ai-chat/files/{docx_id}"
-                })
-                await _store_generated_metadata(generated_files[-1], conv_id, user["id"])
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
                 full_response = full_response.replace("[GENERATE_DOCX]", "").strip()
-            except Exception as e:
-                logger.error(f"DOCX generation error: {e}")
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining). Upgrade your plan.*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating Word document...'})}\n\n"
+                    docx_bytes = generate_docx_from_markdown(full_response.replace("[GENERATE_DOCX]", "").strip())
+                    docx_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{docx_id}.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                    generated_files.append({
+                        "type": "docx", "file_id": docx_id, "filename": f"document_{docx_id[:8]}.docx",
+                        "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "url": f"/api/ai-chat/files/{docx_id}"
+                    })
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(docx_bytes))
+                    full_response = full_response.replace("[GENERATE_DOCX]", "").strip()
+                except Exception as e:
+                    logger.error(f"DOCX generation error: {e}")
 
         # XLSX generation
         if "[GENERATE_XLSX]" in full_response:
-            try:
-                yield f"data: {json.dumps({'type': 'status', 'content': 'Creating spreadsheet...'})}\n\n"
-                xlsx_bytes = generate_xlsx_from_text(full_response.replace("[GENERATE_XLSX]", "").strip())
-                xlsx_id = str(uuid.uuid4())
-                _put_object(f"ai-generated/{xlsx_id}.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                generated_files.append({
-                    "type": "xlsx", "file_id": xlsx_id, "filename": f"spreadsheet_{xlsx_id[:8]}.xlsx",
-                    "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "url": f"/api/ai-chat/files/{xlsx_id}"
-                })
-                await _store_generated_metadata(generated_files[-1], conv_id, user["id"])
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
                 full_response = full_response.replace("[GENERATE_XLSX]", "").strip()
-            except Exception as e:
-                logger.error(f"XLSX generation error: {e}")
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining). Upgrade your plan.*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating spreadsheet...'})}\n\n"
+                    xlsx_bytes = generate_xlsx_from_text(full_response.replace("[GENERATE_XLSX]", "").strip())
+                    xlsx_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{xlsx_id}.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    generated_files.append({
+                        "type": "xlsx", "file_id": xlsx_id, "filename": f"spreadsheet_{xlsx_id[:8]}.xlsx",
+                        "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "url": f"/api/ai-chat/files/{xlsx_id}"
+                    })
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(xlsx_bytes))
+                    full_response = full_response.replace("[GENERATE_XLSX]", "").strip()
+                except Exception as e:
+                    logger.error(f"XLSX generation error: {e}")
 
         assistant_msg["content"] = full_response
         assistant_msg["attachments"] = generated_files

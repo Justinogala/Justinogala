@@ -5,7 +5,7 @@ import {
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
   Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList,
-  HeartPulse, Package, TrendingUp
+  HeartPulse, Package, TrendingUp, HardDrive
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -178,6 +178,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: FileText, label: 'PDF Templates', path: '/admin/pdf-templates', gradient: 'from-purple-500 to-indigo-500', moduleKey: 'pdf_editor' },
     { icon: BarChart3, label: 'Meeting Analytics', path: '/admin/meeting-analytics', gradient: 'from-blue-500 to-indigo-500', moduleKey: 'meeting_analytics' },
     { icon: TrendingUp, label: 'Advanced Analytics', path: '/admin/advanced-analytics', gradient: 'from-violet-500 to-purple-500' },
+    { icon: HardDrive, label: 'Storage Quotas', path: '/admin/storage-quotas', gradient: 'from-teal-500 to-cyan-500' },
     { icon: Cloud, label: 'Cloud Storage', path: '/admin/cloud-storage', gradient: 'from-sky-500 to-blue-500', moduleKey: 'cloud_storage' },
     { icon: Video, label: 'Video Settings', path: '/admin/video-settings', gradient: 'from-fuchsia-500 to-pink-500', moduleKey: 'video_settings' },
     { icon: CreditCard, label: 'Stripe Settings', path: '/admin/stripe-settings', gradient: 'from-green-500 to-emerald-500', moduleKey: 'stripe_settings' },
