@@ -728,6 +728,7 @@ export default function AIChatPage() {
                     ...last,
                     id: data.message_id,
                     isStreaming: false,
+                    isThinking: false,
                     statusText: null,
                     generated_files: data.generated_files || [],
                     sources: data.sources || []
@@ -849,7 +850,7 @@ export default function AIChatPage() {
                 const updated = [...prev];
                 const last = updated[updated.length - 1];
                 if (last && last.id === 'streaming') {
-                  updated[updated.length - 1] = { ...last, id: data.message_id, isStreaming: false };
+                  updated[updated.length - 1] = { ...last, id: data.message_id, isStreaming: false, isThinking: false };
                 }
                 return updated;
               });

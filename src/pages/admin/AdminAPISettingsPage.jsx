@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Save, RotateCcw } from 'lucide-react';
+import { Loader2, Save, RotateCcw, Globe, CheckCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import SettingsStatusBadge from '@/components/admin/SettingsStatusBadge';
+import { getApiUrl } from '@/lib/api';
 
 const AdminAPISettingsPage = () => {
   const { 
@@ -19,6 +21,44 @@ const AdminAPISettingsPage = () => {
   const [testing, setTesting] = useState({ openai: false, googleCloud: false });
   const [localConfig, setLocalConfig] = useState(null);
   const [saving, setSaving] = useState(false);
+  const API = getApiUrl();
+
+  // Search API config
+  const [searchProvider, setSearchProvider] = useState('duckduckgo');
+  const [searchApiKey, setSearchApiKey] = useState('');
+  const [searchSaving, setSearchSaving] = useState(false);
+
+  useEffect(() => {
+    const token = JSON.parse(localStorage.getItem('admin_token') || 'null');
+    if (!token) return;
+    fetch(`${API}/api/admin/search-api`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.provider) setSearchProvider(data.provider);
+        if (data?.api_key) setSearchApiKey(data.api_key);
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveSearchConfig = async () => {
+    setSearchSaving(true);
+    try {
+      const token = JSON.parse(localStorage.getItem('admin_token') || 'null');
+      const res = await fetch(`${API}/api/admin/search-api`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ provider: searchProvider, api_key: searchApiKey }),
+      });
+      if (res.ok) {
+        toast({ title: "Saved", description: `AI Search provider set to ${searchProvider}.` });
+      } else {
+        toast({ title: "Error", description: "Failed to save search config", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setSearchSaving(false);
+  };
 
   React.useEffect(() => {
     if (apiConfig) {
@@ -250,6 +290,50 @@ const AdminAPISettingsPage = () => {
                   </Select>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Web Search Configuration */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5" /> AI Web Search</CardTitle>
+                {searchProvider !== 'duckduckgo' && searchApiKey && <CheckCircle className="text-green-500 w-5 h-5" />}
+              </div>
+              <CardDescription>
+                Configure the search provider for AI Chat web search. DuckDuckGo is free and works out of the box.
+                Switch to a premium provider for better results at scale.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Search Provider</Label>
+                <Select value={searchProvider} onValueChange={setSearchProvider}>
+                  <SelectTrigger data-testid="search-provider-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="duckduckgo">DuckDuckGo (Free — No API Key)</SelectItem>
+                    <SelectItem value="tavily">Tavily Search API</SelectItem>
+                    <SelectItem value="brave">Brave Search API</SelectItem>
+                    <SelectItem value="perplexity">Perplexity Sonar API</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {searchProvider !== 'duckduckgo' && (
+                <div className="space-y-2">
+                  <Label>API Key {searchProvider === 'tavily' ? '(tavily.com)' : searchProvider === 'brave' ? '(brave.com/search/api)' : '(perplexity.ai)'}</Label>
+                  <Input
+                    type="password"
+                    placeholder={`Enter ${searchProvider} API key...`}
+                    value={searchApiKey}
+                    onChange={e => setSearchApiKey(e.target.value)}
+                    data-testid="search-api-key-input"
+                  />
+                </div>
+              )}
+              <Button onClick={saveSearchConfig} disabled={searchSaving} data-testid="save-search-config-btn">
+                {searchSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                {searchSaving ? 'Saving...' : 'Save Search Config'}
+              </Button>
             </CardContent>
           </Card>
         </div>
