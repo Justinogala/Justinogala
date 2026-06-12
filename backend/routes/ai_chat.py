@@ -40,17 +40,26 @@ def _init_storage():
         logger.error(f"AI Chat storage init failed: {e}")
         return None
 
-def _put_object(path, data, content_type):
+def _put_object_sync(path, data, content_type):
+    """Synchronous storage upload — use _put_object_async in async contexts."""
     key = _init_storage()
     if not key:
         raise Exception("Storage not initialized")
     resp = requests.put(
         f"{STORAGE_URL}/objects/{path}",
         headers={"X-Storage-Key": key, "Content-Type": content_type},
-        data=data, timeout=120
+        data=data, timeout=60
     )
     resp.raise_for_status()
     return resp.json()
+
+async def _put_object_async(path, data, content_type):
+    """Non-blocking storage upload via thread pool."""
+    return await asyncio.to_thread(_put_object_sync, path, data, content_type)
+
+def _put_object(path, data, content_type):
+    """Legacy sync wrapper — prefer _put_object_async in streaming contexts."""
+    return _put_object_sync(path, data, content_type)
 
 def _get_object(path):
     key = _init_storage()
@@ -464,7 +473,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                         import base64 as b64
                         img_bytes = b64.b64decode(img_resp.data[0].b64_json)
                         img_id = str(uuid.uuid4())
-                        _put_object(f"ai-generated/{img_id}.png", img_bytes, "image/png")
+                        await _put_object_async(f"ai-generated/{img_id}.png", img_bytes, "image/png")
                         generated_files.append({
                             "type": "image", "file_id": img_id, "filename": f"generated_{img_id[:8]}.png",
                             "content_type": "image/png", "url": f"/api/ai-chat/files/{img_id}"
@@ -491,7 +500,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating PDF...'})}\n\n"
                     pdf_bytes = generate_pdf_from_markdown(full_response.replace("[GENERATE_PDF]", "").strip())
                     pdf_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{pdf_id}.pdf", pdf_bytes, "application/pdf")
+                    await _put_object_async(f"ai-generated/{pdf_id}.pdf", pdf_bytes, "application/pdf")
                     generated_files.append({
                         "type": "pdf", "file_id": pdf_id, "filename": f"document_{pdf_id[:8]}.pdf",
                         "content_type": "application/pdf", "url": f"/api/ai-chat/files/{pdf_id}"
@@ -512,7 +521,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating Word document...'})}\n\n"
                     docx_bytes = generate_docx_from_markdown(full_response.replace("[GENERATE_DOCX]", "").strip())
                     docx_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{docx_id}.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                    await _put_object_async(f"ai-generated/{docx_id}.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                     generated_files.append({
                         "type": "docx", "file_id": docx_id, "filename": f"document_{docx_id[:8]}.docx",
                         "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -534,7 +543,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating spreadsheet...'})}\n\n"
                     xlsx_bytes = generate_xlsx_from_text(full_response.replace("[GENERATE_XLSX]", "").strip())
                     xlsx_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{xlsx_id}.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    await _put_object_async(f"ai-generated/{xlsx_id}.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                     generated_files.append({
                         "type": "xlsx", "file_id": xlsx_id, "filename": f"spreadsheet_{xlsx_id[:8]}.xlsx",
                         "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -554,9 +563,10 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             else:
                 try:
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating pie chart...'})}\n\n"
-                    chart_bytes = generate_pie_chart(pie_data)
+                    chart_bytes = await asyncio.to_thread(generate_pie_chart, pie_data)
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
                     chart_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
                     generated_files.append({"type": "image", "file_id": chart_id, "filename": f"pie_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                     await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
                 except Exception as e:
@@ -571,9 +581,10 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             else:
                 try:
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating bar chart...'})}\n\n"
-                    chart_bytes = generate_bar_chart(bar_data)
+                    chart_bytes = await asyncio.to_thread(generate_bar_chart, bar_data)
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
                     chart_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
                     generated_files.append({"type": "image", "file_id": chart_id, "filename": f"bar_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                     await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
                 except Exception as e:
@@ -588,9 +599,10 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             else:
                 try:
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating line chart...'})}\n\n"
-                    chart_bytes = generate_line_chart(line_data)
+                    chart_bytes = await asyncio.to_thread(generate_line_chart, line_data)
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
                     chart_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
                     generated_files.append({"type": "image", "file_id": chart_id, "filename": f"line_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                     await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
                 except Exception as e:
@@ -605,9 +617,10 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             else:
                 try:
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating stacked bar chart...'})}\n\n"
-                    chart_bytes = generate_stacked_bar_chart(stacked_data)
+                    chart_bytes = await asyncio.to_thread(generate_stacked_bar_chart, stacked_data)
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
                     chart_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
                     generated_files.append({"type": "image", "file_id": chart_id, "filename": f"stacked_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                     await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
                 except Exception as e:
@@ -622,9 +635,10 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             else:
                 try:
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating radar chart...'})}\n\n"
-                    chart_bytes = generate_radar_chart(radar_data)
+                    chart_bytes = await asyncio.to_thread(generate_radar_chart, radar_data)
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
                     chart_id = str(uuid.uuid4())
-                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
                     generated_files.append({"type": "image", "file_id": chart_id, "filename": f"radar_chart_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                     await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
                 except Exception as e:

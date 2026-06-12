@@ -92,19 +92,81 @@ function CodeBlock({ inline, className, children, ...props }) {
   );
 }
 
+function getStoredToken() {
+  try {
+    const session = JSON.parse(localStorage.getItem('munal_sessions') || '{}');
+    return session.token || null;
+  } catch { return null; }
+}
+
+function AuthenticatedImage({ src, alt, className }) {
+  const [blobUrl, setBlobUrl] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchImage = async () => {
+      try {
+        const tk = getStoredToken();
+        if (!tk) return;
+        const res = await fetch(src, { headers: { Authorization: `Bearer ${tk}` } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (!cancelled) setBlobUrl(URL.createObjectURL(blob));
+      } catch {
+        if (!cancelled) setBlobUrl(null);
+      }
+    };
+    if (src) fetchImage();
+    return () => { cancelled = true; };
+  }, [src]);
+
+  useEffect(() => {
+    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  }, [blobUrl]);
+
+  if (!blobUrl) {
+    return (
+      <div className={cn("flex items-center justify-center bg-gray-100 dark:bg-slate-700 animate-pulse", className)} style={{ minHeight: 120 }}>
+        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+      </div>
+    );
+  }
+  return <img src={blobUrl} alt={alt} className={className} />;
+}
+
 function GeneratedFileDisplay({ file }) {
   const API_BASE = getApiUrl();
   const fileUrl = file.url?.startsWith('/') ? `${API_BASE}${file.url}` : file.url;
 
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    try {
+      const tk = getStoredToken();
+      const res = await fetch(fileUrl, { headers: tk ? { Authorization: `Bearer ${tk}` } : {} });
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+    }
+  };
+
   if (file.type === 'image') {
     return (
       <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 max-w-sm" data-testid="generated-image">
-        <img src={fileUrl} alt={file.filename} className="w-full" loading="lazy" />
+        <AuthenticatedImage src={fileUrl} alt={file.filename} className="w-full" />
         <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-slate-800">
           <span className="text-xs text-gray-500 truncate">{file.filename}</span>
-          <a href={fileUrl} download={file.filename} className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 font-medium">
+          <button onClick={handleDownload} className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 font-medium">
             <Download className="w-3.5 h-3.5" /> Download
-          </a>
+          </button>
         </div>
       </div>
     );
@@ -124,9 +186,9 @@ function GeneratedFileDisplay({ file }) {
         <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{file.filename}</p>
         <p className="text-[10px] text-gray-400 uppercase">{file.type} document</p>
       </div>
-      <a href={fileUrl} download={file.filename} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors" title="Download">
+      <button onClick={handleDownload} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors" title="Download">
         <Download className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-      </a>
+      </button>
     </div>
   );
 }

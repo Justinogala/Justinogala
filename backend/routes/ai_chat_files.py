@@ -1,11 +1,17 @@
 """
 AI Chat - File extraction and generation utilities.
-Handles reading uploaded files (PDF, Excel, images, DOCX) and generating files (PDF, DOCX, XLSX).
+Handles reading uploaded files (PDF, Excel, images, DOCX) and generating files (PDF, DOCX, XLSX, Charts).
 """
 import io
 import re
 import logging
 import base64 as b64
+
+# Pre-import matplotlib at module load to avoid cold-start penalty (~2-5s) on first chart request
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -229,10 +235,6 @@ def generate_xlsx_from_text(text: str) -> bytes:
 
 def generate_pie_chart(data: dict) -> bytes:
     """Generate a pie chart PNG from JSON data."""
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-
     title = data.get("title", "Pie Chart")
     labels = data.get("labels", [])
     values = data.get("values", [])
@@ -257,17 +259,13 @@ def generate_pie_chart(data: dict) -> bytes:
     plt.tight_layout()
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor=fig.get_facecolor())
     plt.close(fig)
     return buf.getvalue()
 
 
 def generate_bar_chart(data: dict) -> bytes:
     """Generate a bar chart PNG from JSON data."""
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-
     title = data.get("title", "Bar Chart")
     labels = data.get("labels", [])
     values = data.get("values", [])
@@ -299,18 +297,13 @@ def generate_bar_chart(data: dict) -> bytes:
     plt.tight_layout()
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor=fig.get_facecolor())
     plt.close(fig)
     return buf.getvalue()
 
 
 def generate_line_chart(data: dict) -> bytes:
     """Generate a line chart PNG from JSON data."""
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    import numpy as np
-
     title = data.get("title", "Line Chart")
     labels = data.get("labels", [])
     datasets = data.get("datasets", [])
@@ -346,18 +339,13 @@ def generate_line_chart(data: dict) -> bytes:
     plt.tight_layout()
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor=fig.get_facecolor())
     plt.close(fig)
     return buf.getvalue()
 
 
 def generate_stacked_bar_chart(data: dict) -> bytes:
     """Generate a stacked bar chart PNG from JSON data."""
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    import numpy as np
-
     title = data.get("title", "Stacked Bar Chart")
     labels = data.get("labels", [])
     datasets = data.get("datasets", [])
@@ -393,18 +381,13 @@ def generate_stacked_bar_chart(data: dict) -> bytes:
     plt.tight_layout()
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor=fig.get_facecolor())
     plt.close(fig)
     return buf.getvalue()
 
 
 def generate_radar_chart(data: dict) -> bytes:
     """Generate a radar/spider chart PNG from JSON data."""
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    import numpy as np
-
     title = data.get("title", "Radar Chart")
     labels = data.get("labels", [])
     datasets = data.get("datasets", [])
@@ -443,6 +426,6 @@ def generate_radar_chart(data: dict) -> bytes:
     plt.tight_layout()
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor=fig.get_facecolor())
     plt.close(fig)
     return buf.getvalue()
