@@ -1,7 +1,6 @@
 import React from 'react';
 import { Video, Shield, Users, Mic } from 'lucide-react';
 import FeaturePageLayout from '@/components/features/FeaturePageLayout';
-import { API_URL } from '@/lib/api';
 
 const FeatureVideoCallsPage = () => {
   return (
@@ -9,7 +8,7 @@ const FeatureVideoCallsPage = () => {
       title="Video Calls"
       subtitle="Crystal-Clear Video Conferencing"
       description="Connect face-to-face with your team anywhere in the world. High-quality video calls with screen sharing, recording, and real-time collaboration built right in."
-      heroImage={`${API_URL}/api/static/feature_videocalls.png`}
+      heroImage="https://images.unsplash.com/photo-1586985564150-11ee04838034?w=800&q=80"
       benefits={[
         { icon: Video, title: "HD Video & Audio", description: "Crystal-clear video with adaptive quality that adjusts to your bandwidth." },
         { icon: Users, title: "Group Calls", description: "Host meetings with up to 100 participants with gallery and speaker views." },
