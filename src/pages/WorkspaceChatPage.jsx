@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, Search, MoreVertical, Phone, Video, Info, Send, Smile,
-  Paperclip, Image, Mic, Hash, Users, Settings, Bell, Star, Pin,
+  Paperclip, Image, Mic, Hash, Users, Settings, Bell, BellOff, Star, Pin,
   MessageSquare, Circle, CheckCheck, Clock, Sparkles, ChevronDown,
-  MapPin, BarChart3, User, ArrowLeft
+  MapPin, BarChart3, User, ArrowLeft, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,8 +84,102 @@ const WorkspaceChatPage = () => {
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const [convPrefs, setConvPrefs] = useState({}); // { conv_key: { starred, pinned, muted } }
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  const API_BASE = (import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_BACKEND_URL || '') + '/api';
+
+  const getConvKey = (uid1, uid2) => {
+    const a = uid1 < uid2 ? uid1 : uid2;
+    const b = uid1 < uid2 ? uid2 : uid1;
+    return `${a}_${b}`;
+  };
+
+  const currentConvPrefs = selectedUserId && activeUser
+    ? (convPrefs[getConvKey(activeUser.id, selectedUserId)] || {})
+    : {};
+
+  // Load conversation preferences
+  useEffect(() => {
+    if (!activeUser?.id) return;
+    const loadPrefs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/chat/conversations/preferences/${activeUser.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          const map = {};
+          (data.preferences || []).forEach(p => { map[p.conversation_key] = p; });
+          setConvPrefs(map);
+        }
+      } catch (e) { console.error('Failed to load chat prefs:', e); }
+    };
+    loadPrefs();
+  }, [activeUser?.id, API_BASE]);
+
+  const handleStarConversation = async () => {
+    if (!activeUser?.id || !selectedUserId) return;
+    try {
+      const res = await fetch(`${API_BASE}/chat/conversations/star`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: activeUser.id, partner_id: selectedUserId }),
+      });
+      if (res.ok) {
+        const { starred } = await res.json();
+        const key = getConvKey(activeUser.id, selectedUserId);
+        setConvPrefs(prev => ({ ...prev, [key]: { ...prev[key], starred } }));
+        toast({ title: starred ? 'Conversation starred' : 'Star removed' });
+      }
+    } catch (e) { toast({ title: 'Error', description: 'Failed to star', variant: 'destructive' }); }
+  };
+
+  const handlePinConversation = async () => {
+    if (!activeUser?.id || !selectedUserId) return;
+    try {
+      const res = await fetch(`${API_BASE}/chat/conversations/pin`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: activeUser.id, partner_id: selectedUserId }),
+      });
+      if (res.ok) {
+        const { pinned } = await res.json();
+        const key = getConvKey(activeUser.id, selectedUserId);
+        setConvPrefs(prev => ({ ...prev, [key]: { ...prev[key], pinned } }));
+        toast({ title: pinned ? 'Pinned to top' : 'Unpinned' });
+      }
+    } catch (e) { toast({ title: 'Error', description: 'Failed to pin', variant: 'destructive' }); }
+  };
+
+  const handleMuteConversation = async () => {
+    if (!activeUser?.id || !selectedUserId) return;
+    try {
+      const res = await fetch(`${API_BASE}/chat/conversations/mute`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: activeUser.id, partner_id: selectedUserId }),
+      });
+      if (res.ok) {
+        const { muted } = await res.json();
+        const key = getConvKey(activeUser.id, selectedUserId);
+        setConvPrefs(prev => ({ ...prev, [key]: { ...prev[key], muted } }));
+        toast({ title: muted ? 'Notifications muted' : 'Notifications unmuted' });
+      }
+    } catch (e) { toast({ title: 'Error', description: 'Failed to mute', variant: 'destructive' }); }
+  };
+
+  const handleClearChat = async () => {
+    if (!activeUser?.id || !selectedUserId) return;
+    if (!window.confirm('Clear all messages in this conversation? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`${API_BASE}/chat/conversations/clear`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: activeUser.id, partner_id: selectedUserId }),
+      });
+      if (res.ok) {
+        const { deleted_count } = await res.json();
+        setLocalMessages([]);
+        toast({ title: 'Chat cleared', description: `${deleted_count} messages removed` });
+      }
+    } catch (e) { toast({ title: 'Error', description: 'Failed to clear chat', variant: 'destructive' }); }
+  };
 
   const conversationId = selectedUserId && activeUser 
     ? getConversationId(activeUser.id, selectedUserId)
@@ -317,7 +411,18 @@ const WorkspaceChatPage = () => {
     u.id !== activeUser?.id && 
     (u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
      u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ).sort((a, b) => {
+    // Pinned conversations first
+    const aKey = activeUser ? getConvKey(activeUser.id, a.id) : '';
+    const bKey = activeUser ? getConvKey(activeUser.id, b.id) : '';
+    const aPinned = convPrefs[aKey]?.pinned ? 1 : 0;
+    const bPinned = convPrefs[bKey]?.pinned ? 1 : 0;
+    if (bPinned !== aPinned) return bPinned - aPinned;
+    // Then starred
+    const aStarred = convPrefs[aKey]?.starred ? 1 : 0;
+    const bStarred = convPrefs[bKey]?.starred ? 1 : 0;
+    return bStarred - aStarred;
+  });
 
   const formatTime = (date) => {
     if (!date) return '';
@@ -398,6 +503,7 @@ const WorkspaceChatPage = () => {
                         isSelected={selectedUserId === user.id}
                         onClick={() => handleSelectUser(user.id)}
                         gradient={getAvatarGradient(index)}
+                        prefs={activeUser ? convPrefs[getConvKey(activeUser.id, user.id)] : null}
                       />
                     ))}
                   </div>
@@ -417,6 +523,7 @@ const WorkspaceChatPage = () => {
                     isSelected={selectedUserId === user.id}
                     onClick={() => handleSelectUser(user.id)}
                     gradient={getAvatarGradient(index + filteredUsers.filter(u => isUserOnline(u.id)).length)}
+                    prefs={activeUser ? convPrefs[getConvKey(activeUser.id, user.id)] : null}
                   />
                 ))}
               </div>
@@ -518,11 +625,24 @@ const WorkspaceChatPage = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem><Star className="w-4 h-4 mr-2" /> Star conversation</DropdownMenuItem>
-                      <DropdownMenuItem><Pin className="w-4 h-4 mr-2" /> Pin to top</DropdownMenuItem>
-                      <DropdownMenuItem><Bell className="w-4 h-4 mr-2" /> Mute notifications</DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleStarConversation} data-testid="star-conversation-btn">
+                        <Star className={cn("w-4 h-4 mr-2", currentConvPrefs.starred && "fill-amber-400 text-amber-400")} />
+                        {currentConvPrefs.starred ? 'Unstar conversation' : 'Star conversation'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handlePinConversation} data-testid="pin-conversation-btn">
+                        <Pin className={cn("w-4 h-4 mr-2", currentConvPrefs.pinned && "fill-violet-500 text-violet-500")} />
+                        {currentConvPrefs.pinned ? 'Unpin' : 'Pin to top'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleMuteConversation} data-testid="mute-conversation-btn">
+                        {currentConvPrefs.muted
+                          ? <><BellOff className="w-4 h-4 mr-2 text-orange-500" /> Unmute notifications</>
+                          : <><Bell className="w-4 h-4 mr-2" /> Mute notifications</>
+                        }
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600"><Hash className="w-4 h-4 mr-2" /> Clear chat</DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleClearChat} className="text-red-600 focus:text-red-600" data-testid="clear-chat-btn">
+                        <Trash2 className="w-4 h-4 mr-2" /> Clear chat
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -857,7 +977,7 @@ const WorkspaceChatPage = () => {
 };
 
 // User Item Component
-const UserItem = ({ user, index, isSelected, onClick, gradient }) => (
+const UserItem = ({ user, index, isSelected, onClick, gradient, prefs }) => (
   <motion.button
     onClick={onClick}
     className={cn(
@@ -885,16 +1005,21 @@ const UserItem = ({ user, index, isSelected, onClick, gradient }) => (
     <div className="flex-1 min-w-0">
       <div className="flex justify-between items-center mb-0.5">
         <span className={cn(
-          "font-semibold text-sm truncate",
+          "font-semibold text-sm truncate flex items-center gap-1",
           isSelected ? "text-violet-600 dark:text-violet-400" : "text-gray-900 dark:text-white"
         )}>
           {user.name}
+          {prefs?.starred && <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />}
+          {prefs?.muted && <BellOff className="w-3 h-3 text-gray-400 shrink-0" />}
         </span>
-        {user.isOnline && (
-          <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full font-bold">
-            Online
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {prefs?.pinned && <Pin className="w-3 h-3 fill-violet-500 text-violet-500" />}
+          {user.isOnline && (
+            <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded-full font-bold">
+              Online
+            </span>
+          )}
+        </div>
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
     </div>

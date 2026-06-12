@@ -295,6 +295,88 @@ async def send_typing_indicator(user_id: str, receiver_id: str, is_typing: bool 
     return {"status": "sent"}
 
 
+# ============== Conversation Actions ==============
+
+@router.post("/chat/conversations/star")
+async def star_conversation(body: dict):
+    """Toggle star on a conversation."""
+    user_id = body.get("user_id")
+    partner_id = body.get("partner_id")
+    if not user_id or not partner_id:
+        raise HTTPException(400, "user_id and partner_id required")
+    conv_key = f"{min(user_id, partner_id)}_{max(user_id, partner_id)}"
+    pref = await db.chat_preferences.find_one({"user_id": user_id, "conversation_key": conv_key})
+    current = (pref or {}).get("starred", False)
+    await db.chat_preferences.update_one(
+        {"user_id": user_id, "conversation_key": conv_key},
+        {"$set": {"starred": not current, "updated_at": datetime.now(timezone.utc).isoformat()},
+         "$setOnInsert": {"user_id": user_id, "conversation_key": conv_key, "partner_id": partner_id}},
+        upsert=True
+    )
+    return {"starred": not current}
+
+
+@router.post("/chat/conversations/pin")
+async def pin_conversation(body: dict):
+    """Toggle pin on a conversation."""
+    user_id = body.get("user_id")
+    partner_id = body.get("partner_id")
+    if not user_id or not partner_id:
+        raise HTTPException(400, "user_id and partner_id required")
+    conv_key = f"{min(user_id, partner_id)}_{max(user_id, partner_id)}"
+    pref = await db.chat_preferences.find_one({"user_id": user_id, "conversation_key": conv_key})
+    current = (pref or {}).get("pinned", False)
+    await db.chat_preferences.update_one(
+        {"user_id": user_id, "conversation_key": conv_key},
+        {"$set": {"pinned": not current, "updated_at": datetime.now(timezone.utc).isoformat()},
+         "$setOnInsert": {"user_id": user_id, "conversation_key": conv_key, "partner_id": partner_id}},
+        upsert=True
+    )
+    return {"pinned": not current}
+
+
+@router.post("/chat/conversations/mute")
+async def mute_conversation(body: dict):
+    """Toggle mute on a conversation."""
+    user_id = body.get("user_id")
+    partner_id = body.get("partner_id")
+    if not user_id or not partner_id:
+        raise HTTPException(400, "user_id and partner_id required")
+    conv_key = f"{min(user_id, partner_id)}_{max(user_id, partner_id)}"
+    pref = await db.chat_preferences.find_one({"user_id": user_id, "conversation_key": conv_key})
+    current = (pref or {}).get("muted", False)
+    await db.chat_preferences.update_one(
+        {"user_id": user_id, "conversation_key": conv_key},
+        {"$set": {"muted": not current, "updated_at": datetime.now(timezone.utc).isoformat()},
+         "$setOnInsert": {"user_id": user_id, "conversation_key": conv_key, "partner_id": partner_id}},
+        upsert=True
+    )
+    return {"muted": not current}
+
+
+@router.post("/chat/conversations/clear")
+async def clear_conversation(body: dict):
+    """Clear all messages in a conversation between two users."""
+    user_id = body.get("user_id")
+    partner_id = body.get("partner_id")
+    if not user_id or not partner_id:
+        raise HTTPException(400, "user_id and partner_id required")
+    result = await db.chat_messages.delete_many({
+        "$or": [
+            {"sender_id": user_id, "receiver_id": partner_id},
+            {"sender_id": partner_id, "receiver_id": user_id},
+        ]
+    })
+    return {"cleared": True, "deleted_count": result.deleted_count}
+
+
+@router.get("/chat/conversations/preferences/{user_id}")
+async def get_conversation_preferences(user_id: str):
+    """Get all conversation preferences for a user (stars, pins, mutes)."""
+    prefs = await db.chat_preferences.find({"user_id": user_id}, {"_id": 0}).to_list(200)
+    return {"preferences": prefs}
+
+
 @router.post("/chat/files/upload")
 async def upload_chat_file(
     file: UploadFile = File(None),
