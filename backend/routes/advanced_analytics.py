@@ -84,6 +84,42 @@ async def admin_analytics_overview(days: int = Query(30, ge=1, le=365), user: di
     total_ai_messages = await db.ai_messages.count_documents({})
     ai_chats_period = await db.ai_conversations.count_documents({"created_at": {"$gte": since}})
 
+    # ── AI File Generation Stats ──
+    total_generated = await db.ai_generated_files.count_documents({})
+    gen_period = await db.ai_generated_files.count_documents({"created_at": {"$gte": since}})
+    gen_images = await db.ai_generated_files.count_documents({"type": "image"})
+    gen_pdfs = await db.ai_generated_files.count_documents({"type": "pdf"})
+    gen_docx = await db.ai_generated_files.count_documents({"type": "docx"})
+    gen_xlsx = await db.ai_generated_files.count_documents({"type": "xlsx"})
+    gen_images_period = await db.ai_generated_files.count_documents({"type": "image", "created_at": {"$gte": since}})
+    gen_pdfs_period = await db.ai_generated_files.count_documents({"type": "pdf", "created_at": {"$gte": since}})
+    gen_docx_period = await db.ai_generated_files.count_documents({"type": "docx", "created_at": {"$gte": since}})
+    gen_xlsx_period = await db.ai_generated_files.count_documents({"type": "xlsx", "created_at": {"$gte": since}})
+
+    # Top generators
+    pipeline = [
+        {"$group": {"_id": "$user_id", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    top_generators = []
+    async for doc in db.ai_generated_files.aggregate(pipeline):
+        user_doc = await db.users.find_one({"id": doc["_id"]}, {"_id": 0, "name": 1, "email": 1})
+        top_generators.append({
+            "user": (user_doc or {}).get("name") or (user_doc or {}).get("email", "Unknown"),
+            "count": doc["count"]
+        })
+
+    # Generation daily trend
+    gen_daily = []
+    for i in range(min(days, 30) - 1, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        count = await db.ai_generated_files.count_documents({
+            "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
+        })
+        gen_daily.append({"date": day_start.strftime("%b %d"), "count": count})
+
     return {
         "period_days": days,
         "users": {
@@ -115,6 +151,18 @@ async def admin_analytics_overview(days: int = Query(30, ge=1, le=365), user: di
             "total_conversations": total_ai_chats,
             "total_messages": total_ai_messages,
             "conversations_this_period": ai_chats_period,
+        },
+        "file_generation": {
+            "total": total_generated,
+            "this_period": gen_period,
+            "by_type": {
+                "images": {"total": gen_images, "period": gen_images_period},
+                "pdfs": {"total": gen_pdfs, "period": gen_pdfs_period},
+                "docx": {"total": gen_docx, "period": gen_docx_period},
+                "xlsx": {"total": gen_xlsx, "period": gen_xlsx_period},
+            },
+            "top_generators": top_generators,
+            "daily": gen_daily,
         },
     }
 

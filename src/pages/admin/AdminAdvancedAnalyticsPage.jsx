@@ -3,7 +3,8 @@ import { Helmet } from 'react-helmet';
 import {
   Users, Video, FileText, Brain, TrendingUp, TrendingDown,
   BarChart3, Clock, Loader2, RefreshCw, Calendar, FileSpreadsheet,
-  Presentation, MessageSquare, ArrowUpRight, ArrowDownRight, Minus
+  Presentation, MessageSquare, ArrowUpRight, ArrowDownRight, Minus,
+  Image, FileDown, Trophy, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -75,7 +76,8 @@ const AdminAdvancedAnalytics = () => {
     );
   }
 
-  const { users, meetings, workspace, ai_usage } = data;
+  const { users, meetings, workspace, ai_usage, file_generation } = data;
+  const fg = file_generation || { total: 0, this_period: 0, by_type: { images: {}, pdfs: {}, docx: {}, xlsx: {} }, top_generators: [], daily: [] };
 
   const statCards = [
     { label: 'Total Users', value: users.total, icon: Users, color: 'from-violet-500 to-purple-600', sub: `${users.new_this_period} new this period` },
@@ -224,6 +226,94 @@ const AdminAdvancedAnalytics = () => {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* AI File Generation Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" data-testid="file-generation-stats">
+        {/* Generation Overview */}
+        <Card className="lg:col-span-2">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-violet-500" /> AI File Generation
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">{fg.total} files generated ({fg.this_period} this period)</p>
+              </div>
+            </div>
+
+            {/* Type Breakdown Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+              {[
+                { label: 'Images', icon: Image, total: fg.by_type.images?.total || 0, period: fg.by_type.images?.period || 0, color: 'text-pink-500 bg-pink-50 dark:bg-pink-900/20' },
+                { label: 'PDFs', icon: FileText, total: fg.by_type.pdfs?.total || 0, period: fg.by_type.pdfs?.period || 0, color: 'text-red-500 bg-red-50 dark:bg-red-900/20' },
+                { label: 'Word', icon: FileDown, total: fg.by_type.docx?.total || 0, period: fg.by_type.docx?.period || 0, color: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' },
+                { label: 'Excel', icon: FileSpreadsheet, total: fg.by_type.xlsx?.total || 0, period: fg.by_type.xlsx?.period || 0, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' },
+              ].map((t, i) => (
+                <div key={i} className="p-3 rounded-xl border border-gray-100 dark:border-slate-800 text-center">
+                  <div className={cn('w-8 h-8 rounded-lg mx-auto flex items-center justify-center mb-2', t.color)}>
+                    <t.icon className="w-4 h-4" />
+                  </div>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{t.total}</p>
+                  <p className="text-[10px] text-gray-400">{t.label}</p>
+                  {t.period > 0 && <p className="text-[10px] text-emerald-500 mt-0.5">+{t.period} this period</p>}
+                </div>
+              ))}
+            </div>
+
+            {/* Daily Generation Trend */}
+            {fg.daily?.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2 font-medium">Generation Activity</p>
+                <MiniChart data={fg.daily} color="#8b5cf6" height={60} />
+                <div className="flex justify-between mt-1 text-[10px] text-gray-400">
+                  <span>{fg.daily[0]?.date}</span>
+                  <span>{fg.daily[fg.daily.length - 1]?.date}</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Generators */}
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+              <Trophy className="w-4 h-4 text-amber-500" /> Top File Generators
+            </h3>
+            {fg.top_generators?.length > 0 ? (
+              <div className="space-y-3">
+                {fg.top_generators.map((g, i) => {
+                  const maxCount = fg.top_generators[0]?.count || 1;
+                  return (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={cn(
+                            'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0',
+                            i === 0 ? 'bg-amber-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-400' : 'bg-gray-300'
+                          )}>
+                            {i + 1}
+                          </span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{g.user}</span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white shrink-0">{g.count}</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden ml-7">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all"
+                          style={{ width: `${(g.count / maxCount) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-6">No files generated yet</p>
+            )}
           </CardContent>
         </Card>
       </div>
