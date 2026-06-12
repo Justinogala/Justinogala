@@ -191,6 +191,54 @@ async def get_my_quota(user: dict = Depends(get_current_user)):
     return await check_quota(user["id"])
 
 
+@router.get("/my-files")
+async def get_my_files(
+    sort: str = Query("created_at", regex="^(created_at|file_size|filename|type)$"),
+    order: str = Query("desc", regex="^(asc|desc)$"),
+    file_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    user: dict = Depends(get_current_user)
+):
+    """Get user's generated files with sorting and filtering."""
+    query = {"user_id": user["id"]}
+    if file_type:
+        query["type"] = file_type
+    sort_dir = 1 if order == "asc" else -1
+    files = await db.ai_generated_files.find(query, {"_id": 0}).sort(sort, sort_dir).skip(skip).limit(limit).to_list(limit)
+    total = await db.ai_generated_files.count_documents(query)
+    # Format file sizes
+    for f in files:
+        f["file_size_formatted"] = _format_bytes(f.get("file_size", 0))
+    return {"files": files, "total": total}
+
+
+@router.delete("/my-files/{file_id}")
+async def delete_my_file(file_id: str, user: dict = Depends(get_current_user)):
+    """Delete a specific generated file to free storage."""
+    record = await db.ai_generated_files.find_one({"id": file_id, "user_id": user["id"]})
+    if not record:
+        raise HTTPException(404, "File not found")
+    # Delete from object storage
+    try:
+        from config import STORAGE_URL, STORAGE_KEY, BUCKET_NAME
+        import requests
+        path = record.get("storage_path", "")
+        if path:
+            requests.delete(f"{STORAGE_URL}/{BUCKET_NAME}/{path}", headers={"x-api-key": STORAGE_KEY}, timeout=10)
+    except Exception as e:
+        logger.warning(f"Could not delete from storage: {e}")
+    # Delete metadata
+    await db.ai_generated_files.delete_one({"id": file_id, "user_id": user["id"]})
+    # Reset quota alerts if usage dropped below thresholds
+    quota = await check_quota(user["id"])
+    if quota["usage_pct"] < 80:
+        await db.quota_alerts.delete_many({"user_id": user["id"]})
+    elif quota["usage_pct"] < 100:
+        await db.quota_alerts.delete_one({"user_id": user["id"], "threshold": 100})
+    return {"deleted": True, "freed": _format_bytes(record.get("file_size", 0))}
+
+
 # ============== Admin Endpoints ==============
 
 @router.get("/admin/quotas")

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Bell, Shield, AlertTriangle, Music, Lock, Download } from 'lucide-react';
+import { User, Bell, Shield, AlertTriangle, Music, Lock, Download, HardDrive } from 'lucide-react';
 import PageTransition from '@/components/PageTransition';
 import AccountSettingsSection from '@/components/settings/AccountSettingsSection';
 import NotificationsSettingsSection from '@/components/settings/NotificationsSettingsSection';
@@ -12,6 +12,7 @@ import DangerZoneSection from '@/components/settings/DangerZoneSection';
 import CallRingtoneSettings from '@/components/video/CallRingtoneSettings';
 import UserTwoFactorSetup from '@/components/UserTwoFactorSetup';
 import SoftwareUpdateSection from '@/components/settings/SoftwareUpdateSection';
+import StorageManagementSection from '@/components/settings/StorageManagementSection';
 import { useAuth } from '@/context/AuthContext';
 
 const UserSettingsPage = () => {
@@ -75,6 +76,14 @@ const UserSettingsPage = () => {
                 Security
               </TabsTrigger>
               <TabsTrigger 
+                value="storage"
+                className="data-[state=active]:bg-violet-100 dark:data-[state=active]:bg-violet-900/30 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-300 rounded-lg px-4 py-2 transition-all hover:text-violet-600"
+                data-testid="storage-tab"
+              >
+                <HardDrive className="w-4 h-4 mr-2 hidden sm:inline" />
+                Storage
+              </TabsTrigger>
+              <TabsTrigger 
                 value="danger"
                 className="data-[state=active]:bg-red-50 dark:data-[state=active]:bg-red-950/20 data-[state=active]:text-red-600 hover:text-red-500 transition-all rounded-lg px-4 py-2"
               >
@@ -116,6 +125,10 @@ const UserSettingsPage = () => {
 
               <TabsContent value="security" className="mt-0 focus-visible:outline-none">
                 <UserTwoFactorSetup user={user} />
+              </TabsContent>
+
+              <TabsContent value="storage" className="mt-0 focus-visible:outline-none">
+                <StorageManagementSection />
               </TabsContent>
 
               <TabsContent value="danger" className="mt-0 focus-visible:outline-none">
