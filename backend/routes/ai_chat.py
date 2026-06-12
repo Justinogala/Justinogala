@@ -341,6 +341,12 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                 "file_size": file_size,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             })
+            # Check quota and send email alerts if thresholds crossed
+            try:
+                from routes.storage_quotas import check_and_alert_quota
+                await check_and_alert_quota(user_id)
+            except Exception as e:
+                logger.warning(f"Quota alert check failed: {e}")
 
         async def _check_user_quota():
             """Check if user has storage quota remaining."""

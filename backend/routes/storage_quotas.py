@@ -1,12 +1,17 @@
 """
 Storage Quota Management — per-user storage limits based on plan.
-Admin endpoints for viewing/managing quotas.
+Admin endpoints for viewing/managing quotas. Email alerts at 80% and 100%.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, timezone
 from typing import Optional
-from config import db, logger
+from config import db, logger, SENDER_EMAIL
 from routes.auth import get_current_user
+import resend
+import asyncio
+import os
+
+resend.api_key = os.environ.get("RESEND_API_KEY", "")
 
 router = APIRouter(prefix="/storage", tags=["Storage Quotas"])
 
@@ -67,6 +72,115 @@ async def check_quota(user_id: str, additional_bytes: int = 0) -> dict:
         "usage_pct": round((used / max(limit, 1)) * 100, 1),
         "can_generate": (used + additional_bytes) <= limit,
     }
+
+
+async def check_and_alert_quota(user_id: str):
+    """Check quota and send email alerts at 80% and 100% thresholds."""
+    quota = await check_quota(user_id)
+    pct = quota["usage_pct"]
+
+    if pct < 80:
+        return quota
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1, "name": 1})
+    if not user:
+        return quota
+
+    email = user.get("email", "")
+    name = user.get("name", email.split("@")[0])
+
+    # Check if we already sent an alert for this threshold
+    threshold = 100 if pct >= 100 else 80
+    alert_key = f"quota_alert_{threshold}"
+    existing = await db.quota_alerts.find_one({"user_id": user_id, "threshold": threshold})
+    if existing:
+        return quota
+
+    # Record that we sent this alert
+    await db.quota_alerts.update_one(
+        {"user_id": user_id, "threshold": threshold},
+        {"$set": {"sent_at": datetime.now(timezone.utc).isoformat(), "usage_pct": pct}},
+        upsert=True
+    )
+
+    # Send the email
+    try:
+        if threshold == 100:
+            subject = "Storage Quota Full — Munal AI"
+            html = _build_quota_email(name, quota, is_full=True)
+        else:
+            subject = "Storage Almost Full (80%) — Munal AI"
+            html = _build_quota_email(name, quota, is_full=False)
+
+        await asyncio.to_thread(resend.Emails.send, {
+            "from": f"Munal AI <{SENDER_EMAIL}>",
+            "to": [email],
+            "subject": subject,
+            "html": html,
+        })
+        logger.info(f"Quota alert ({threshold}%) sent to {email}")
+    except Exception as e:
+        logger.error(f"Failed to send quota alert to {email}: {e}")
+
+    return quota
+
+
+def _build_quota_email(name: str, quota: dict, is_full: bool) -> str:
+    """Build HTML email for quota alerts."""
+    pct = quota["usage_pct"]
+    used = quota["used_formatted"]
+    limit = quota["limit_formatted"]
+    remaining = quota["remaining_formatted"]
+    bar_color = "#ef4444" if is_full else "#f59e0b"
+    bar_width = min(pct, 100)
+
+    if is_full:
+        msg = f"Your Munal AI storage is <strong>completely full</strong>. You won't be able to generate new files (images, PDFs, documents) until you free up space or upgrade your plan."
+    else:
+        msg = f"Your Munal AI storage has reached <strong>80%</strong> capacity. Consider upgrading your plan or cleaning up old files to avoid disruption."
+
+    cta_text = "Upgrade Plan" if is_full else "Manage Storage"
+    icon_bg = "#fef2f2" if is_full else "#fffbeb"
+    emoji = "&#128683;" if is_full else "&#9888;&#65039;"
+    heading = "Storage Quota Full" if is_full else "Storage Almost Full"
+
+    return f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="width: 48px; height: 48px; background: {icon_bg}; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                <span style="font-size: 24px;">{emoji}</span>
+            </div>
+            <h1 style="font-size: 22px; color: #111827; margin: 0;">{heading}</h1>
+        </div>
+
+        <p style="font-size: 15px; color: #374151; line-height: 1.6;">Hi {name},</p>
+        <p style="font-size: 15px; color: #374151; line-height: 1.6;">{msg}</p>
+
+        <div style="background: #f9fafb; border-radius: 12px; padding: 20px; margin: 24px 0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 13px; color: #6b7280;">Used</span>
+                <span style="font-size: 13px; font-weight: 600; color: #111827;">{used} / {limit}</span>
+            </div>
+            <div style="height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                <div style="height: 100%; width: {bar_width}%; background: {bar_color}; border-radius: 4px;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+                <span style="font-size: 12px; color: #9ca3af;">{pct}% used</span>
+                <span style="font-size: 12px; color: #9ca3af;">{remaining} remaining</span>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+            <a href="https://munal.ai/settings" style="display: inline-block; padding: 12px 28px; background: #7c3aed; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                {cta_text}
+            </a>
+        </div>
+
+        <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-top: 32px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+            Munal AI by Jiffix Inc.
+        </p>
+    </div>
+    """
 
 
 # ============== User Endpoints ==============
@@ -164,3 +278,13 @@ async def admin_update_plan_defaults(body: dict, user: dict = Depends(get_curren
             PLAN_QUOTAS[plan_name] = int(limit_bytes)
 
     return {"plan_defaults": {k: {"bytes": v, "formatted": _format_bytes(v)} for k, v in PLAN_QUOTAS.items()}}
+
+
+@router.delete("/admin/quota-alerts/{user_id}")
+async def admin_reset_quota_alerts(user_id: str, user: dict = Depends(get_current_user)):
+    """Admin: Reset quota alert flags so user receives fresh alerts."""
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
+        raise HTTPException(403, "Admin access required")
+    result = await db.quota_alerts.delete_many({"user_id": user_id})
+    return {"reset": True, "cleared": result.deleted_count}
