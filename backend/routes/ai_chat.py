@@ -315,6 +315,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
 
     user_text = body.get("content", "").strip()
     attachments = body.get("attachments", [])
+    web_search_enabled = body.get("web_search", True)
 
     if not user_text and not attachments:
         raise HTTPException(400, "Message content required")
@@ -407,8 +408,11 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
 
         # ============== Web Search Detection ==============
         import re
-        web_search_match = re.search(r'\[WEB_SEARCH:\s*(.+?)\]', full_response)
+        web_search_match = re.search(r'\[WEB_SEARCH:\s*(.+?)\]', full_response) if web_search_enabled else None
         sources = []
+        # If search is disabled but LLM still produced the tag, strip it
+        if not web_search_enabled and '[WEB_SEARCH:' in full_response:
+            full_response = re.sub(r'\[WEB_SEARCH:\s*.+?\]', '', full_response).strip()
         if web_search_match:
             search_query = web_search_match.group(1).strip()
             full_response = ""  # Clear first response entirely (it was just the search tag)

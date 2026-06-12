@@ -415,6 +415,7 @@ export default function AIChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [imageGenOpen, setImageGenOpen] = useState(false);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(true);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -654,7 +655,8 @@ export default function AIChatPage() {
         headers: { Authorization: `Bearer ${authToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: text,
-          attachments: uploadedFiles.map(f => ({ filename: f.original_filename, content_type: f.content_type, file_id: f.id }))
+          attachments: uploadedFiles.map(f => ({ filename: f.original_filename, content_type: f.content_type, file_id: f.id })),
+          web_search: webSearchEnabled
         }),
         signal: controller.signal
       });
@@ -1266,6 +1268,23 @@ export default function AIChatPage() {
               title="Generate image"
             >
               <ImagePlus className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={() => setWebSearchEnabled(prev => !prev)}
+              className={cn(
+                "p-2.5 rounded-xl transition-all flex-shrink-0 relative",
+                webSearchEnabled
+                  ? "text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
+                  : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+              )}
+              data-testid="web-search-toggle"
+              title={webSearchEnabled ? "Web search: ON — AI will search the web when needed" : "Web search: OFF — AI answers from knowledge only"}
+            >
+              <Globe className="w-5 h-5" />
+              {webSearchEnabled && (
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900" />
+              )}
             </button>
 
             <div className="flex-1 relative">

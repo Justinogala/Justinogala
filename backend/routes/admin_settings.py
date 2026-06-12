@@ -2,7 +2,7 @@
 Admin Settings Routes — settings CRUD, SMTP test, security policies, 2FA enforcement.
 Split from admin.py for maintainability.
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from datetime import datetime, timezone
 from typing import Dict
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ import asyncio
 import resend
 
 from config import db, logger, SENDER_EMAIL
+from routes.auth import get_current_user
 
 router = APIRouter(prefix="/admin", tags=["Admin Settings"])
 
@@ -165,14 +166,20 @@ class SearchAPIConfig(BaseModel):
     api_key: str = ""
 
 @router.get("/search-api")
-async def get_search_api_config():
+async def get_search_api_config(user: dict = Depends(get_current_user)):
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
+        raise HTTPException(403, "Admin access required")
     config = await db.admin_settings.find_one({"category": "search_api"}, {"_id": 0})
     if not config:
         return {"provider": "duckduckgo", "api_key": ""}
     return {"provider": config.get("provider", "duckduckgo"), "api_key": config.get("api_key", "")}
 
 @router.put("/search-api")
-async def update_search_api_config(config: SearchAPIConfig):
+async def update_search_api_config(config: SearchAPIConfig, user: dict = Depends(get_current_user)):
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
+        raise HTTPException(403, "Admin access required")
     await db.admin_settings.update_one(
         {"category": "search_api"},
         {"$set": {

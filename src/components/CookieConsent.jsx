@@ -41,10 +41,10 @@ const CookieConsent = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed bottom-0 left-0 right-0 z-[100] p-3 sm:p-6"
+          className="fixed bottom-0 left-0 right-0 z-40 p-3 sm:p-6 pointer-events-none"
           data-testid="cookie-consent"
         >
-          <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-black/10 border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl shadow-black/10 border border-gray-200 dark:border-gray-800 overflow-hidden pointer-events-auto">
             {/* Main banner */}
             <div className="p-4 sm:p-6">
               <div className="flex items-start gap-3 sm:gap-4">
