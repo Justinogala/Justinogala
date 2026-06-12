@@ -12,13 +12,15 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
-### AI Chat Chart Performance Fix — June 12, 2026
-- **Root Cause**: Charts took forever / never appeared. Three issues: (1) sync `requests.put()` blocked async event loop during storage upload, (2) matplotlib cold-imported on every chart call (~2-5s), (3) `<img src>` can't carry Bearer token → 401 on auth-protected file endpoint.
-- **Backend Fixes**: Pre-imported matplotlib at module level in `ai_chat_files.py`, chart rendering + storage upload wrapped in `asyncio.to_thread()`, SSE keepalive status events ("Creating chart...", "Uploading chart..."), reduced DPI from 150→100, refactored 5 chart blocks into a single loop.
-- **Frontend Fix**: `AuthenticatedImage` component fetches images with Bearer token via `fetch()` and displays via `blob:` URL. `GeneratedFileDisplay` uses authenticated download handler.
-- **File Download Optimization**: Download endpoint now checks `ai_generated_files` collection for direct `storage_path` lookup instead of probing 6 extensions.
-- **Result**: Chart generation now completes in ~3 seconds end-to-end (was timing out before).
-- Testing: 100% backend (3/3) + 100% frontend — Iteration 137
+### AI Chat Chart Performance Fix + Image Generation Enhancement — June 12, 2026
+- **Chart Fix Root Cause**: Charts took forever / never appeared. Three issues: (1) sync `requests.put()` blocked async event loop during storage upload, (2) matplotlib cold-imported on every chart call (~2-5s), (3) `<img src>` can't carry Bearer token → 401 on auth-protected file endpoint.
+- **Image Generation Fix**: Same root cause — `client.images.generate()` call blocked event loop for 15-45s causing production proxy timeouts. Now wrapped in `asyncio.to_thread()` with keepalive status events.
+- **System Prompt Enhancement**: Improved to reliably trigger `[GENERATE_IMAGE: ...]` for any subject (people, objects, scenes, animals, art, etc.). LLM auto-enhances short prompts into detailed image descriptions.
+- **Safety Handling**: OpenAI content safety rejections now show user-friendly message instead of raw API error.
+- **Backend Fixes**: Pre-imported matplotlib at module level, chart rendering + image generation + storage upload all via `asyncio.to_thread()`, SSE keepalive status events, reduced chart DPI 150→100, refactored 5 chart blocks into single loop.
+- **Frontend Fix**: `AuthenticatedImage` component fetches images with Bearer token via `fetch()` and displays via `blob:` URL. All file downloads use authenticated handlers.
+- **File Download Optimization**: Download endpoint checks `ai_generated_files` collection for direct `storage_path` lookup.
+- Testing: 100% backend (7/7) + 100% frontend — Iterations 137, 138
 
 ### Storage Quota Management — June 12, 2026
 - **Plan-based quotas**: Free = 100 MB, Pro = 1 GB, Enterprise = 10 GB (configurable)
