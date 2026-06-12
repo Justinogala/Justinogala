@@ -288,14 +288,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // Prefetch lazy-loaded routes after initial paint
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          var routes = ['/src/components/landing/BenefitsSection.jsx','/src/components/landing/HowItWorksSection.jsx','/src/components/landing/PricingSection.jsx'];
-          routes.forEach(function(r) { var l = document.createElement('link'); l.rel = 'modulepreload'; l.href = r; document.head.appendChild(l); });
-        }, 1000);
-      });
-    </script>
   </body>
 </html>

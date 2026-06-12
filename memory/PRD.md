@@ -123,5 +123,6 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - P3: Real-time collaborative editing
 - P3: Auto-deletion policies for generated files
 
-## Refactoring Needed
-- `/app/backend/routes/auth.py` is large — extract validation/email utilities
+## Refactoring Done
+- `ai_chat.py` extracted from 1131→815 lines: Storage + prompts → `ai_chat_config.py` (115 lines), Export (MD/PDF/DOCX) → `ai_chat_export.py` (214 lines)
+- Stale `index.html` modulepreload prefetch for raw `.jsx` paths removed (was causing 404 + MIME errors in production builds)

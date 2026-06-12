@@ -3,124 +3,25 @@ AI Chat routes - GPT-5.2 powered conversational AI with streaming, file upload, 
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Query
 from fastapi.responses import StreamingResponse, Response
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timezone
-from typing import Optional
 import uuid
 import json
 import os
 import asyncio
-import requests
+import re
 import tempfile
-
-from dotenv import load_dotenv
-load_dotenv()
 
 from config import db, logger
 from routes.auth import get_current_user
+from routes.ai_chat_config import (
+    EMERGENT_KEY, APP_NAME, SYSTEM_PROMPT, SEARCH_FOLLOWUP_PROMPT,
+    put_object_sync, put_object_async, put_object, get_object,
+)
+from routes.ai_chat_export import export_conversation_handler
 
 router = APIRouter(prefix="/ai-chat", tags=["AI Chat"])
 
-# ============== Object Storage (reuse from chat.py) ==============
-STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
-APP_NAME = "munal-aichat"
-_storage_key = None
-
-def _init_storage():
-    global _storage_key
-    if _storage_key:
-        return _storage_key
-    try:
-        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-        resp.raise_for_status()
-        _storage_key = resp.json()["storage_key"]
-        return _storage_key
-    except Exception as e:
-        logger.error(f"AI Chat storage init failed: {e}")
-        return None
-
-def _put_object_sync(path, data, content_type):
-    """Synchronous storage upload — use _put_object_async in async contexts."""
-    key = _init_storage()
-    if not key:
-        raise Exception("Storage not initialized")
-    resp = requests.put(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key, "Content-Type": content_type},
-        data=data, timeout=60
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-async def _put_object_async(path, data, content_type):
-    """Non-blocking storage upload via thread pool."""
-    return await asyncio.to_thread(_put_object_sync, path, data, content_type)
-
-def _put_object(path, data, content_type):
-    """Legacy sync wrapper — prefer _put_object_async in streaming contexts."""
-    return _put_object_sync(path, data, content_type)
-
-def _get_object(path):
-    key = _init_storage()
-    if not key:
-        raise Exception("Storage not initialized")
-    resp = requests.get(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key}, timeout=60
-    )
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
-
-# ============== System Prompt ==============
-SYSTEM_PROMPT = """You are Munal AI Assistant, a helpful and knowledgeable AI powered by GPT-5.2. You are part of the Munal AI platform — an all-in-one AI-powered workforce and meeting companion built by Jiffix Inc.
-
-You can help with:
-- General questions on any topic (coding, writing, math, science, business, etc.)
-- Meeting preparation, agendas, and follow-up action items
-- Summarizing documents, notes, and transcriptions
-- Writing emails, reports, proposals, and professional documents
-- Brainstorming ideas and strategic planning
-- Technical problem-solving and code assistance
-- Data analysis and interpretation
-- Analyzing uploaded images, PDFs, and spreadsheets
-- Generating images of anything — people, animals, objects, scenes, logos, illustrations, art, etc.
-- Creating data visualization charts (pie, bar, line, stacked bar, radar)
-- Creating downloadable documents (PDF, DOCX, XLSX)
-- Searching the web for current information, news, facts, prices, events, and real-time data
-
-When you need to look up current/real-time information, recent events, live data, prices, news, weather, sports scores, or anything that requires up-to-date facts, respond with [WEB_SEARCH: search query] at the very start of your response. The system will search the web and provide you with results. You MUST use web search when:
-- The user asks about current events, recent news, or "latest" anything
-- The user asks about prices, stock market, weather, sports scores
-- The user asks "what is" or "who is" about something you're unsure about
-- The user asks for information that may have changed after your training data
-- The user explicitly says "search", "look up", "find", or "google"
-Do NOT search for general knowledge, coding questions, math, or things you already know well.
-
-When a user asks you to generate, create, draw, or make an image of ANYTHING (people, animals, objects, scenes, landscapes, abstract art, etc.), ALWAYS respond with [GENERATE_IMAGE: detailed description]. Enhance their request into a rich, detailed prompt for best results. Examples: "generate a cat" → [GENERATE_IMAGE: A fluffy orange tabby cat sitting on a windowsill, soft natural lighting, photorealistic, high detail], "draw a house" → [GENERATE_IMAGE: A cozy two-story house with warm lights in the windows, surrounded by a garden, watercolor style, evening atmosphere].
-When a user asks you to create a pie chart, respond with the tag [GENERATE_PIE_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
-When a user asks you to create a bar chart, respond with the tag [GENERATE_BAR_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
-When a user asks you to create a line chart or trend chart, respond with the tag [GENERATE_LINE_CHART: {"title":"Chart Title","labels":["Jan","Feb","Mar"],"datasets":[{"name":"Revenue","values":[100,150,200],"color":"#7c3aed"},{"name":"Costs","values":[80,90,110],"color":"#ef4444"}]}] — supports multiple series via datasets array.
-When a user asks you to create a stacked bar chart, respond with the tag [GENERATE_STACKED_BAR_CHART: {"title":"Chart Title","labels":["Q1","Q2","Q3"],"datasets":[{"name":"Product A","values":[30,40,50],"color":"#7c3aed"},{"name":"Product B","values":[20,30,25],"color":"#3b82f6"}]}] — multiple datasets stacked.
-When a user asks you to create a radar chart or spider chart, respond with the tag [GENERATE_RADAR_CHART: {"title":"Chart Title","labels":["Speed","Power","Range","Defense","Health"],"datasets":[{"name":"Player 1","values":[80,90,70,60,85],"color":"#7c3aed"}]}] — needs at least 3 axes.
-When a user asks you to create/generate/export a PDF document, include [GENERATE_PDF] at the end of your response — the system will auto-convert your response to a downloadable PDF.
-When a user asks you to create/generate/export a Word/DOCX document, include [GENERATE_DOCX] at the end of your response.
-When a user asks you to create/generate/export an Excel/spreadsheet, include [GENERATE_XLSX] at the end of your response.
-
-Be concise, accurate, and helpful. Use markdown formatting when appropriate (headers, lists, code blocks, bold, etc.). When writing code, always specify the language for syntax highlighting."""
-
-SEARCH_FOLLOWUP_PROMPT = """Based on the web search results below, answer the user's question. Include specific facts from the sources. Reference sources by mentioning the source name in your text (e.g., "according to CNBC...").
-
-IMPORTANT: Do NOT include a "Sources" section at the end of your response — the system displays source links automatically. Do NOT use [WEB_SEARCH: ...] tags.
-
-Search Results:
-{search_results}
-
-User's Question: {user_question}"""
-
-
 # ============== File Processing Utilities ==============
-# Imported from ai_chat_files.py module
 from routes.ai_chat_files import (
     extract_pdf_text, extract_excel_data, encode_image_base64,
     extract_file_content, generate_pdf_from_markdown,
@@ -128,11 +29,6 @@ from routes.ai_chat_files import (
     generate_pie_chart, generate_bar_chart,
     generate_line_chart, generate_stacked_bar_chart, generate_radar_chart,
 )
-
-# Keep aliases for internal use
-_extract_pdf_text = extract_pdf_text
-_extract_excel_data = extract_excel_data
-_encode_image_base64 = encode_image_base64
 
 
 async def _extract_file_content(attachment: dict) -> tuple:
@@ -156,23 +52,23 @@ async def _extract_file_content(attachment: dict) -> tuple:
         filename = filename or record.get("original_filename", "file")
 
         try:
-            file_bytes, _ = _get_object(storage_path)
+            file_bytes, _ = get_object(storage_path)
         except Exception as e:
             logger.error(f"Failed to read file from storage: {storage_path} — {e}")
             return f"[File: {filename} — storage read error]", None
 
         if content_type.startswith("image/"):
-            img_b64 = _encode_image_base64(file_bytes)
+            img_b64 = encode_image_base64(file_bytes)
             return f"[Image: {filename}]", f"data:{content_type};base64,{img_b64}"
 
         ext = filename.lower().split(".")[-1] if "." in filename else ""
 
         if content_type == "application/pdf" or ext == "pdf":
-            text = _extract_pdf_text(file_bytes)
+            text = extract_pdf_text(file_bytes)
             return f"[PDF: {filename}]\n{text}", None
 
         if content_type in ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel") or ext in ("xlsx", "xls"):
-            text = _extract_excel_data(file_bytes)
+            text = extract_excel_data(file_bytes)
             return f"[Spreadsheet: {filename}]\n{text}", None
 
         if content_type.startswith("text/") or ext in ("txt", "csv", "json", "md", "py", "js", "ts", "html", "css"):
@@ -407,7 +303,6 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             yield f"data: {json.dumps({'type': 'chunk', 'content': full_response})}\n\n"
 
         # ============== Web Search Detection ==============
-        import re
         web_search_match = re.search(r'\[WEB_SEARCH:\s*(.+?)\]', full_response) if web_search_enabled else None
         sources = []
         # If search is disabled but LLM still produced the tag, strip it
@@ -579,7 +474,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                         img_bytes = b64.b64decode(img_resp.data[0].b64_json)
                         img_id = str(uuid.uuid4())
                         yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading image...'})}\n\n"
-                        await _put_object_async(f"ai-generated/{img_id}.png", img_bytes, "image/png")
+                        await put_object_async(f"ai-generated/{img_id}.png", img_bytes, "image/png")
                         generated_files.append({
                             "type": "image", "file_id": img_id, "filename": f"generated_{img_id[:8]}.png",
                             "content_type": "image/png", "url": f"/api/ai-chat/files/{img_id}"
@@ -611,7 +506,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating PDF...'})}\n\n"
                     pdf_bytes = generate_pdf_from_markdown(full_response.replace("[GENERATE_PDF]", "").strip())
                     pdf_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{pdf_id}.pdf", pdf_bytes, "application/pdf")
+                    await put_object_async(f"ai-generated/{pdf_id}.pdf", pdf_bytes, "application/pdf")
                     generated_files.append({
                         "type": "pdf", "file_id": pdf_id, "filename": f"document_{pdf_id[:8]}.pdf",
                         "content_type": "application/pdf", "url": f"/api/ai-chat/files/{pdf_id}"
@@ -632,7 +527,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating Word document...'})}\n\n"
                     docx_bytes = generate_docx_from_markdown(full_response.replace("[GENERATE_DOCX]", "").strip())
                     docx_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{docx_id}.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                    await put_object_async(f"ai-generated/{docx_id}.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                     generated_files.append({
                         "type": "docx", "file_id": docx_id, "filename": f"document_{docx_id[:8]}.docx",
                         "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -654,7 +549,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     yield f"data: {json.dumps({'type': 'status', 'content': 'Creating spreadsheet...'})}\n\n"
                     xlsx_bytes = generate_xlsx_from_text(full_response.replace("[GENERATE_XLSX]", "").strip())
                     xlsx_id = str(uuid.uuid4())
-                    await _put_object_async(f"ai-generated/{xlsx_id}.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    await put_object_async(f"ai-generated/{xlsx_id}.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                     generated_files.append({
                         "type": "xlsx", "file_id": xlsx_id, "filename": f"spreadsheet_{xlsx_id[:8]}.xlsx",
                         "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -686,7 +581,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                         chart_bytes = await asyncio.to_thread(gen_fn, chart_data)
                         yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading chart...'})}\n\n"
                         chart_id = str(uuid.uuid4())
-                        await _put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                        await put_object_async(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
                         generated_files.append({"type": "image", "file_id": chart_id, "filename": f"{prefix}_{chart_id[:8]}.png", "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"})
                         await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
                     except Exception as e:
@@ -819,218 +714,7 @@ async def regenerate_response(conv_id: str, user: dict = Depends(get_current_use
 
 @router.get("/conversations/{conv_id}/export")
 async def export_conversation(conv_id: str, format: str = Query("md", pattern="^(md|pdf|docx)$"), user: dict = Depends(get_current_user)):
-    conv = await db.ai_conversations.find_one({"id": conv_id, "user_id": user["id"]}, {"_id": 0})
-    if not conv:
-        raise HTTPException(404, "Conversation not found")
-
-    msgs = await db.ai_messages.find(
-        {"conversation_id": conv_id, "role": {"$in": ["user", "assistant"]}},
-        {"_id": 0}
-    ).sort("created_at", 1).to_list(length=500)
-
-    title = conv.get("title", "Chat Export")
-    created = conv.get("created_at", "")
-
-    if format == "md":
-        md = _build_markdown(title, created, msgs)
-        return Response(
-            content=md.encode("utf-8"),
-            media_type="text/markdown",
-            headers={"Content-Disposition": f'attachment; filename="{_safe_filename(title)}.md"'}
-        )
-    elif format == "pdf":
-        pdf_bytes = _build_pdf(title, created, msgs)
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{_safe_filename(title)}.pdf"'}
-        )
-    elif format == "docx":
-        docx_bytes = _build_docx(title, created, msgs)
-        return Response(
-            content=docx_bytes,
-            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f'attachment; filename="{_safe_filename(title)}.docx"'}
-        )
-
-
-def _safe_filename(title: str) -> str:
-    import re
-    safe = re.sub(r'[^\w\s-]', '', title)[:60].strip()
-    return safe or "chat-export"
-
-
-def _build_markdown(title: str, created: str, msgs: list) -> str:
-    lines = [f"# {title}\n"]
-    if created:
-        try:
-            dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-            lines.append(f"*Exported from Munal AI &mdash; {dt.strftime('%B %d, %Y')}*\n")
-        except Exception:
-            lines.append(f"*Exported from Munal AI*\n")
-    lines.append("---\n")
-
-    for msg in msgs:
-        role = "You" if msg["role"] == "user" else "Munal AI"
-        lines.append(f"### {role}\n")
-        lines.append(f"{msg.get('content', '')}\n")
-        lines.append("")
-
-    lines.append("---\n*Exported from Munal AI*")
-    return "\n".join(lines)
-
-
-def _build_pdf(title: str, created: str, msgs: list) -> bytes:
-    import fitz  # PyMuPDF
-
-    doc = fitz.open()
-    WIDTH, HEIGHT = 595, 842  # A4
-    MARGIN = 50
-    usable_w = WIDTH - 2 * MARGIN
-    y = MARGIN
-
-    def new_page():
-        nonlocal y
-        page = doc.new_page(width=WIDTH, height=HEIGHT)
-        y = MARGIN
-        return page
-
-    page = new_page()
-
-    # Title
-    y += 10
-    page.insert_text((MARGIN, y), title[:80], fontsize=18, fontname="helv", color=(0.29, 0.27, 0.53))
-    y += 28
-
-    # Date
-    date_str = "Exported from Munal AI"
-    if created:
-        try:
-            dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-            date_str = f"Exported from Munal AI — {dt.strftime('%B %d, %Y')}"
-        except Exception:
-            pass
-    page.insert_text((MARGIN, y), date_str, fontsize=9, fontname="helv", color=(0.5, 0.5, 0.5))
-    y += 20
-
-    # Divider
-    page.draw_line((MARGIN, y), (WIDTH - MARGIN, y), color=(0.85, 0.85, 0.85), width=0.5)
-    y += 15
-
-    for msg in msgs:
-        role = "You" if msg["role"] == "user" else "Munal AI"
-        content = msg.get("content", "")
-        role_color = (0.29, 0.27, 0.53) if msg["role"] == "assistant" else (0.2, 0.2, 0.2)
-
-        # Role header
-        if y > HEIGHT - 80:
-            page = new_page()
-        page.insert_text((MARGIN, y), role, fontsize=11, fontname="helvetica-bold", color=role_color)
-        y += 18
-
-        # Content - wrap text manually
-        lines = []
-        for paragraph in content.split('\n'):
-            if not paragraph.strip():
-                lines.append("")
-                continue
-            words = paragraph.split(' ')
-            current_line = ""
-            for word in words:
-                test_line = f"{current_line} {word}".strip() if current_line else word
-                text_width = fitz.get_text_length(test_line, fontname="helv", fontsize=10)
-                if text_width > usable_w:
-                    lines.append(current_line)
-                    current_line = word
-                else:
-                    current_line = test_line
-            if current_line:
-                lines.append(current_line)
-
-        for line in lines:
-            if y > HEIGHT - MARGIN:
-                page = new_page()
-            page.insert_text((MARGIN, y), line, fontsize=10, fontname="helv", color=(0.15, 0.15, 0.15))
-            y += 14
-
-        y += 12  # spacing between messages
-
-    # Footer on last page
-    if y > HEIGHT - 40:
-        page = new_page()
-    page.draw_line((MARGIN, HEIGHT - 40), (WIDTH - MARGIN, HEIGHT - 40), color=(0.85, 0.85, 0.85), width=0.5)
-    page.insert_text((MARGIN, HEIGHT - 28), "Exported from Munal AI", fontsize=8, fontname="helv", color=(0.6, 0.6, 0.6))
-
-    pdf_bytes = doc.tobytes()
-    doc.close()
-    return pdf_bytes
-
-
-def _build_docx(title: str, created: str, msgs: list) -> bytes:
-    from docx import Document
-    from docx.shared import Pt, Inches, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    import io
-
-    doc = Document()
-
-    # Set default font
-    style = doc.styles['Normal']
-    font = style.font
-    font.name = 'Calibri'
-    font.size = Pt(11)
-
-    # Title
-    heading = doc.add_heading(title, level=1)
-    for run in heading.runs:
-        run.font.color.rgb = RGBColor(75, 69, 135)
-
-    # Date
-    date_str = "Exported from Munal AI"
-    if created:
-        try:
-            dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
-            date_str = f"Exported from Munal AI — {dt.strftime('%B %d, %Y')}"
-        except Exception:
-            pass
-    date_para = doc.add_paragraph(date_str)
-    date_para.runs[0].font.size = Pt(9)
-    date_para.runs[0].font.color.rgb = RGBColor(128, 128, 128)
-
-    doc.add_paragraph("").paragraph_format.space_after = Pt(4)
-
-    for msg in msgs:
-        role = "You" if msg["role"] == "user" else "Munal AI"
-        content = msg.get("content", "")
-
-        # Role heading
-        role_para = doc.add_paragraph()
-        role_run = role_para.add_run(role)
-        role_run.bold = True
-        role_run.font.size = Pt(11)
-        if msg["role"] == "assistant":
-            role_run.font.color.rgb = RGBColor(75, 69, 135)
-        role_para.paragraph_format.space_after = Pt(2)
-
-        # Content
-        for paragraph_text in content.split('\n'):
-            p = doc.add_paragraph(paragraph_text)
-            p.paragraph_format.space_after = Pt(2)
-            for run in p.runs:
-                run.font.size = Pt(10)
-
-        # Spacer
-        doc.add_paragraph("").paragraph_format.space_after = Pt(6)
-
-    # Footer
-    footer_para = doc.add_paragraph("Exported from Munal AI")
-    footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    footer_para.runs[0].font.size = Pt(8)
-    footer_para.runs[0].font.color.rgb = RGBColor(160, 160, 160)
-
-    buf = io.BytesIO()
-    doc.save(buf)
-    return buf.getvalue()
+    return await export_conversation_handler(conv_id, format, user)
 
 
 # ============== File Upload (original) ==============
@@ -1049,7 +733,7 @@ async def upload_file(
     storage_path = f"{APP_NAME}/uploads/{user['id']}/{uuid.uuid4()}.{ext}"
 
     try:
-        result = _put_object(storage_path, data, file.content_type or "application/octet-stream")
+        result = put_object(storage_path, data, file.content_type or "application/octet-stream")
     except Exception as e:
         logger.error(f"Upload failed: {e}")
         raise HTTPException(500, "File upload failed")
@@ -1075,7 +759,7 @@ async def download_file(file_id: str, user: dict = Depends(get_current_user)):
     record = await db.ai_chat_files.find_one({"id": file_id, "user_id": user["id"]}, {"_id": 0})
     if record:
         try:
-            data, ct = _get_object(record["storage_path"])
+            data, ct = get_object(record["storage_path"])
             return Response(content=data, media_type=record.get("content_type", ct))
         except Exception as e:
             logger.error(f"Download failed: {e}")
@@ -1085,7 +769,7 @@ async def download_file(file_id: str, user: dict = Depends(get_current_user)):
     gen_record = await db.ai_generated_files.find_one({"id": file_id}, {"_id": 0})
     if gen_record and gen_record.get("storage_path"):
         try:
-            data, ct = _get_object(gen_record["storage_path"])
+            data, ct = get_object(gen_record["storage_path"])
             return Response(content=data, media_type=gen_record.get("content_type", ct))
         except Exception:
             pass
@@ -1093,7 +777,7 @@ async def download_file(file_id: str, user: dict = Depends(get_current_user)):
     # Fallback: probe object storage by common extensions
     for ext in [".png", ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ""]:
         try:
-            data, ct = _get_object(f"ai-generated/{file_id}{ext}")
+            data, ct = get_object(f"ai-generated/{file_id}{ext}")
             return Response(content=data, media_type=ct)
         except Exception:
             continue
