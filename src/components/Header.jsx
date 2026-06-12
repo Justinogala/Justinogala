@@ -10,7 +10,7 @@ import {
   PenLine, FileOutput, AlertTriangle, CreditCard,
   Clock, Headphones, LayoutDashboard, CircleDot,
   FolderOpen, Bell, CheckCircle, Phone, GitBranch,
-  Building, Scale, Landmark, HeartPulse, BookOpen, Wallet
+  Building, Scale, Landmark, HeartPulse, BookOpen, Wallet, Download
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll } from 'framer-motion';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
@@ -131,6 +131,7 @@ const Header = () => {
       { label: 'Pricing', href: '/pricing', icon: Zap },
       { label: 'Security', href: '/product/security', icon: Shield },
       { label: 'Roadmap', href: '/product/roadmap', icon: LayoutGrid },
+      { label: 'Downloads', href: '/downloads/mobile-app', icon: Download },
     ],
   };
 
