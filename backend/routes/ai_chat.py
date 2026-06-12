@@ -74,8 +74,107 @@ You can help with:
 - Brainstorming ideas and strategic planning
 - Technical problem-solving and code assistance
 - Data analysis and interpretation
+- Analyzing uploaded images, PDFs, and spreadsheets
+- Generating images from text descriptions
+- Creating downloadable documents (PDF, DOCX, XLSX)
+
+When a user asks you to generate an image, respond with the tag [GENERATE_IMAGE: description] where description is the detailed image prompt.
+When a user asks you to create/generate/export a PDF document, include [GENERATE_PDF] at the end of your response — the system will auto-convert your response to a downloadable PDF.
+When a user asks you to create/generate/export a Word/DOCX document, include [GENERATE_DOCX] at the end of your response.
+When a user asks you to create/generate/export an Excel/spreadsheet, include [GENERATE_XLSX] at the end of your response.
 
 Be concise, accurate, and helpful. Use markdown formatting when appropriate (headers, lists, code blocks, bold, etc.). When writing code, always specify the language for syntax highlighting."""
+
+
+# ============== File Processing Utilities ==============
+
+def _extract_pdf_text(file_bytes: bytes, max_chars: int = 8000) -> str:
+    """Extract text from a PDF file."""
+    try:
+        import pdfplumber
+        import io
+        text_parts = []
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            for i, page in enumerate(pdf.pages[:20]):
+                page_text = page.extract_text() or ""
+                text_parts.append(f"[Page {i+1}]\n{page_text}")
+        full_text = "\n\n".join(text_parts)
+        return full_text[:max_chars]
+    except Exception as e:
+        logger.error(f"PDF extraction error: {e}")
+        return f"[Error reading PDF: {str(e)}]"
+
+
+def _extract_excel_data(file_bytes: bytes, max_chars: int = 6000) -> str:
+    """Extract data from an Excel/CSV file."""
+    try:
+        import openpyxl
+        import io
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
+        result = []
+        for sheet_name in wb.sheetnames[:5]:
+            ws = wb[sheet_name]
+            result.append(f"[Sheet: {sheet_name}]")
+            rows = []
+            for row in ws.iter_rows(max_row=50, values_only=True):
+                rows.append(" | ".join([str(c) if c is not None else "" for c in row]))
+            result.append("\n".join(rows))
+        text = "\n\n".join(result)
+        return text[:max_chars]
+    except Exception as e:
+        logger.error(f"Excel extraction error: {e}")
+        return f"[Error reading spreadsheet: {str(e)}]"
+
+
+def _encode_image_base64(file_bytes: bytes) -> str:
+    """Encode image bytes to base64 data URL for vision API."""
+    import base64 as b64
+    encoded = b64.b64encode(file_bytes).decode("utf-8")
+    return encoded
+
+
+async def _extract_file_content(attachment: dict) -> tuple:
+    """Extract content from an uploaded file attachment. Returns (text_content, image_data_url_or_None)."""
+    try:
+        file_id = attachment.get("file_id")
+        filename = attachment.get("filename", "")
+        content_type = attachment.get("content_type", "")
+        
+        if not file_id:
+            return f"[File: {filename}]", None
+        
+        file_bytes, _ = _get_object(f"ai-chat-files/{file_id}")
+        
+        if content_type.startswith("image/"):
+            img_b64 = _encode_image_base64(file_bytes)
+            return f"[Image: {filename}]", f"data:{content_type};base64,{img_b64}"
+        
+        if content_type == "application/pdf" or filename.lower().endswith(".pdf"):
+            text = _extract_pdf_text(file_bytes)
+            return f"[PDF: {filename}]\n{text}", None
+        
+        if content_type in ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel") or filename.lower().endswith((".xlsx", ".xls")):
+            text = _extract_excel_data(file_bytes)
+            return f"[Spreadsheet: {filename}]\n{text}", None
+        
+        if content_type.startswith("text/") or filename.lower().endswith((".txt", ".csv", ".json", ".md", ".py", ".js", ".ts", ".html", ".css")):
+            text = file_bytes.decode("utf-8", errors="replace")[:8000]
+            return f"[File: {filename}]\n{text}", None
+        
+        if content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or filename.lower().endswith(".docx"):
+            try:
+                from docx import Document as DocxDocument
+                import io
+                doc = DocxDocument(io.BytesIO(file_bytes))
+                text = "\n".join([p.text for p in doc.paragraphs[:100]])[:8000]
+                return f"[Document: {filename}]\n{text}", None
+            except Exception as e:
+                return f"[Document: {filename} - could not read: {e}]", None
+        
+        return f"[Attached file: {filename} ({content_type})]", None
+    except Exception as e:
+        logger.error(f"File extraction error: {e}")
+        return f"[Error reading file: {str(e)}]", None
 
 # ============== Conversations CRUD ==============
 
@@ -241,16 +340,33 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             for msg in history[-20:]:
                 llm_messages.append({"role": msg["role"], "content": msg["content"]})
 
+            # Process file attachments for current message
             current_content = user_text
+            image_urls = []
             if attachments:
-                file_desc = ", ".join([a.get("filename", "file") for a in attachments])
-                current_content += f"\n\n[Attached files: {file_desc}]"
+                file_texts = []
+                for att in attachments:
+                    text, img_data = await _extract_file_content(att)
+                    file_texts.append(text)
+                    if img_data:
+                        image_urls.append(img_data)
+                current_content += "\n\n" + "\n".join(file_texts)
 
-            # Ensure last message is the current user message
-            if llm_messages and llm_messages[-1]["role"] == "user":
-                llm_messages[-1]["content"] = current_content
+            # Build current user message - use vision format if images present
+            if image_urls:
+                content_parts = [{"type": "text", "text": current_content}]
+                for img_url in image_urls:
+                    content_parts.append({"type": "image_url", "image_url": {"url": img_url, "detail": "auto"}})
+                # Ensure last message is multimodal
+                if llm_messages and llm_messages[-1]["role"] == "user":
+                    llm_messages[-1]["content"] = content_parts
+                else:
+                    llm_messages.append({"role": "user", "content": content_parts})
             else:
-                llm_messages.append({"role": "user", "content": current_content})
+                if llm_messages and llm_messages[-1]["role"] == "user":
+                    llm_messages[-1]["content"] = current_content
+                else:
+                    llm_messages.append({"role": "user", "content": current_content})
 
             # Real streaming call via OpenAI SDK
             response = chat_completion(
@@ -280,13 +396,100 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             "attachments": [],
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
+
+        # Detect and handle generation tags
+        generated_files = []
+        import re
+
+        # Image generation
+        img_match = re.search(r'\[GENERATE_IMAGE:\s*(.+?)\]', full_response)
+        if img_match:
+            img_prompt = img_match.group(1)
+            try:
+                yield f"data: {json.dumps({'type': 'status', 'content': 'Generating image...'})}\n\n"
+                from llm_client import get_client
+                client = get_client(EMERGENT_KEY)
+                img_resp = client.images.generate(
+                    model="gpt-image-1",
+                    prompt=img_prompt,
+                    n=1,
+                    size="1024x1024",
+                )
+                if img_resp.data and img_resp.data[0].b64_json:
+                    import base64 as b64
+                    img_bytes = b64.b64decode(img_resp.data[0].b64_json)
+                    img_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{img_id}.png", img_bytes, "image/png")
+                    generated_files.append({
+                        "type": "image", "file_id": img_id, "filename": f"generated_{img_id[:8]}.png",
+                        "content_type": "image/png", "url": f"/api/ai-chat/files/{img_id}"
+                    })
+                elif img_resp.data and img_resp.data[0].url:
+                    generated_files.append({
+                        "type": "image", "url": img_resp.data[0].url, "filename": "generated_image.png",
+                        "content_type": "image/png"
+                    })
+                full_response = re.sub(r'\[GENERATE_IMAGE:\s*.+?\]', '', full_response).strip()
+            except Exception as e:
+                logger.error(f"Image generation error: {e}")
+                full_response += f"\n\n*Image generation failed: {str(e)}*"
+
+        # PDF generation
+        if "[GENERATE_PDF]" in full_response:
+            try:
+                yield f"data: {json.dumps({'type': 'status', 'content': 'Creating PDF...'})}\n\n"
+                pdf_bytes = _generate_pdf_from_markdown(full_response.replace("[GENERATE_PDF]", "").strip())
+                pdf_id = str(uuid.uuid4())
+                _put_object(f"ai-generated/{pdf_id}.pdf", pdf_bytes, "application/pdf")
+                generated_files.append({
+                    "type": "pdf", "file_id": pdf_id, "filename": f"document_{pdf_id[:8]}.pdf",
+                    "content_type": "application/pdf", "url": f"/api/ai-chat/files/{pdf_id}"
+                })
+                full_response = full_response.replace("[GENERATE_PDF]", "").strip()
+            except Exception as e:
+                logger.error(f"PDF generation error: {e}")
+
+        # DOCX generation
+        if "[GENERATE_DOCX]" in full_response:
+            try:
+                yield f"data: {json.dumps({'type': 'status', 'content': 'Creating Word document...'})}\n\n"
+                docx_bytes = _generate_docx_from_markdown(full_response.replace("[GENERATE_DOCX]", "").strip())
+                docx_id = str(uuid.uuid4())
+                _put_object(f"ai-generated/{docx_id}.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                generated_files.append({
+                    "type": "docx", "file_id": docx_id, "filename": f"document_{docx_id[:8]}.docx",
+                    "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "url": f"/api/ai-chat/files/{docx_id}"
+                })
+                full_response = full_response.replace("[GENERATE_DOCX]", "").strip()
+            except Exception as e:
+                logger.error(f"DOCX generation error: {e}")
+
+        # XLSX generation
+        if "[GENERATE_XLSX]" in full_response:
+            try:
+                yield f"data: {json.dumps({'type': 'status', 'content': 'Creating spreadsheet...'})}\n\n"
+                xlsx_bytes = _generate_xlsx_from_text(full_response.replace("[GENERATE_XLSX]", "").strip())
+                xlsx_id = str(uuid.uuid4())
+                _put_object(f"ai-generated/{xlsx_id}.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                generated_files.append({
+                    "type": "xlsx", "file_id": xlsx_id, "filename": f"spreadsheet_{xlsx_id[:8]}.xlsx",
+                    "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "url": f"/api/ai-chat/files/{xlsx_id}"
+                })
+                full_response = full_response.replace("[GENERATE_XLSX]", "").strip()
+            except Exception as e:
+                logger.error(f"XLSX generation error: {e}")
+
+        assistant_msg["content"] = full_response
+        assistant_msg["attachments"] = generated_files
         await db.ai_messages.insert_one(assistant_msg)
         await db.ai_conversations.update_one(
             {"id": conv_id},
             {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
         )
 
-        yield f"data: {json.dumps({'type': 'done', 'message_id': assistant_msg_id})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'message_id': assistant_msg_id, 'generated_files': generated_files})}\n\n"
 
     return StreamingResponse(
         stream_response(),
@@ -690,3 +893,156 @@ async def transcribe_voice(
     except Exception as e:
         logger.error(f"Voice transcription failed: {e}")
         raise HTTPException(500, f"Transcription failed: {str(e)}")
+
+
+# ============== File Generation Utilities ==============
+
+def _generate_pdf_from_markdown(text: str) -> bytes:
+    """Convert markdown-like text to a PDF."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    import io
+    import re
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, leftMargin=72, rightMargin=72, topMargin=72, bottomMargin=72)
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='CustomH1', parent=styles['Heading1'], fontSize=18, spaceAfter=12))
+    styles.add(ParagraphStyle(name='CustomH2', parent=styles['Heading2'], fontSize=14, spaceAfter=8))
+    styles.add(ParagraphStyle(name='CustomBody', parent=styles['Normal'], fontSize=11, leading=16))
+
+    story = []
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line:
+            story.append(Spacer(1, 6))
+            continue
+        # Clean markdown bold/italic
+        line = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line)
+        line = re.sub(r'\*(.+?)\*', r'<i>\1</i>', line)
+        line = re.sub(r'`(.+?)`', r'<font face="Courier">\1</font>', line)
+
+        if line.startswith("# "):
+            story.append(Paragraph(line[2:], styles['CustomH1']))
+        elif line.startswith("## "):
+            story.append(Paragraph(line[3:], styles['CustomH2']))
+        elif line.startswith("### "):
+            story.append(Paragraph(line[4:], styles['Heading3']))
+        elif line.startswith("- ") or line.startswith("* "):
+            story.append(Paragraph(f"• {line[2:]}", styles['CustomBody']))
+        else:
+            story.append(Paragraph(line, styles['CustomBody']))
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def _generate_docx_from_markdown(text: str) -> bytes:
+    """Convert markdown-like text to a DOCX."""
+    from docx import Document
+    from docx.shared import Pt
+    import io
+    import re
+
+    doc = Document()
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line:
+            doc.add_paragraph()
+            continue
+        # Remove markdown formatting
+        clean = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+        clean = re.sub(r'\*(.+?)\*', r'\1', clean)
+        clean = re.sub(r'`(.+?)`', r'\1', clean)
+
+        if line.startswith("# "):
+            doc.add_heading(clean[2:], level=1)
+        elif line.startswith("## "):
+            doc.add_heading(clean[3:], level=2)
+        elif line.startswith("### "):
+            doc.add_heading(clean[4:], level=3)
+        elif line.startswith("- ") or line.startswith("* "):
+            doc.add_paragraph(clean[2:], style='List Bullet')
+        elif re.match(r'^\d+\.\s', line):
+            doc.add_paragraph(re.sub(r'^\d+\.\s', '', clean), style='List Number')
+        else:
+            p = doc.add_paragraph()
+            # Handle bold
+            parts = re.split(r'(\*\*.+?\*\*)', line)
+            for part in parts:
+                if part.startswith("**") and part.endswith("**"):
+                    run = p.add_run(part[2:-2])
+                    run.bold = True
+                else:
+                    p.add_run(part)
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    return buffer.getvalue()
+
+
+def _generate_xlsx_from_text(text: str) -> bytes:
+    """Extract table-like data from text and create an XLSX."""
+    import openpyxl
+    import io
+    import re
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Generated Data"
+
+    # Try to find markdown tables
+    lines = text.split("\n")
+    row_num = 1
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("---") or re.match(r'^[\|\-\s:]+$', line):
+            continue
+        if "|" in line:
+            cells = [c.strip() for c in line.split("|") if c.strip()]
+            for col_num, cell in enumerate(cells, 1):
+                ws.cell(row=row_num, column=col_num, value=cell)
+            row_num += 1
+        elif line.startswith("- ") or line.startswith("* "):
+            ws.cell(row=row_num, column=1, value=line[2:])
+            row_num += 1
+        elif ":" in line and not line.startswith("#"):
+            parts = line.split(":", 1)
+            ws.cell(row=row_num, column=1, value=parts[0].strip())
+            ws.cell(row=row_num, column=2, value=parts[1].strip())
+            row_num += 1
+        elif not line.startswith("#") and not line.startswith("*"):
+            ws.cell(row=row_num, column=1, value=line)
+            row_num += 1
+
+    # Auto-width columns
+    for col in ws.columns:
+        max_len = max((len(str(c.value or "")) for c in col), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 50)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
+
+
+# ============== File Download Endpoint ==============
+
+@router.get("/files/{file_id}")
+async def download_generated_file(file_id: str):
+    """Download a generated or uploaded file."""
+    try:
+        # Try ai-generated first, then ai-chat-files
+        for prefix in ["ai-generated", "ai-chat-files"]:
+            for ext in [".png", ".pdf", ".docx", ".xlsx", ".jpg", ".jpeg", ".gif", ""]:
+                try:
+                    data, ct = _get_object(f"{prefix}/{file_id}{ext}")
+                    return Response(content=data, media_type=ct)
+                except Exception:
+                    continue
+        raise HTTPException(404, "File not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))

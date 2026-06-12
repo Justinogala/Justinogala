@@ -92,6 +92,45 @@ function CodeBlock({ inline, className, children, ...props }) {
   );
 }
 
+function GeneratedFileDisplay({ file }) {
+  const API_BASE = getApiUrl();
+  const fileUrl = file.url?.startsWith('/') ? `${API_BASE}${file.url}` : file.url;
+
+  if (file.type === 'image') {
+    return (
+      <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 max-w-sm" data-testid="generated-image">
+        <img src={fileUrl} alt={file.filename} className="w-full" loading="lazy" />
+        <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-slate-800">
+          <span className="text-xs text-gray-500 truncate">{file.filename}</span>
+          <a href={fileUrl} download={file.filename} className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 font-medium">
+            <Download className="w-3.5 h-3.5" /> Download
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const iconMap = { pdf: FileText, docx: FileText, xlsx: FileIcon };
+  const colorMap = { pdf: 'text-red-500 bg-red-50 dark:bg-red-900/20', docx: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20', xlsx: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' };
+  const Icon = iconMap[file.type] || FileIcon;
+  const color = colorMap[file.type] || 'text-gray-500 bg-gray-50 dark:bg-gray-900/20';
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 max-w-xs" data-testid={`generated-${file.type}`}>
+      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', color)}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{file.filename}</p>
+        <p className="text-[10px] text-gray-400 uppercase">{file.type} document</p>
+      </div>
+      <a href={fileUrl} download={file.filename} className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors" title="Download">
+        <Download className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+      </a>
+    </div>
+  );
+}
+
 function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCurrentlyStreaming }) {
   const isUser = message.role === 'user';
   const [msgCopied, setMsgCopied] = useState(false);
@@ -135,7 +174,7 @@ function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCu
                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span className="text-sm text-gray-400 dark:text-gray-500">Thinking...</span>
+              <span className="text-sm text-gray-400 dark:text-gray-500">{message.statusText || 'Thinking...'}</span>
             </div>
           ) : message.isStreaming ? (
             <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:my-0 prose-code:before:content-[''] prose-code:after:content-['']">
@@ -149,6 +188,14 @@ function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCu
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: CodeBlock }}>
                 {message.content}
               </ReactMarkdown>
+            </div>
+          )}
+          {/* Generated Files Display */}
+          {message.generated_files?.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {message.generated_files.map((file, i) => (
+                <GeneratedFileDisplay key={i} file={file} />
+              ))}
             </div>
           )}
         </div>
@@ -270,7 +317,12 @@ export default function AIChatPage() {
       .then(r => r.json())
       .then(data => {
         if (!streamingRef.current) {
-          setMessages(data.messages || []);
+          // Map attachments with type/url to generated_files for display
+          const msgs = (data.messages || []).map(m => ({
+            ...m,
+            generated_files: m.role === 'assistant' ? (m.attachments || []).filter(a => a.type) : []
+          }));
+          setMessages(msgs);
         }
         setLoadingConv(false);
       })
@@ -459,13 +511,23 @@ export default function AIChatPage() {
             const data = JSON.parse(line.slice(6));
             if (data.type === 'thinking') {
               // Already showing thinking state, just keep it
+            } else if (data.type === 'status') {
+              // Show status messages like "Generating image..."
+              setMessages(prev => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last && last.id === 'streaming') {
+                  updated[updated.length - 1] = { ...last, statusText: data.content, isThinking: true, isStreaming: false };
+                }
+                return updated;
+              });
             } else if (data.type === 'chunk') {
               fullContent += data.content;
               setMessages(prev => {
                 const updated = [...prev];
                 const last = updated[updated.length - 1];
                 if (last && last.id === 'streaming') {
-                  updated[updated.length - 1] = { ...last, content: fullContent, isThinking: false, isStreaming: true };
+                  updated[updated.length - 1] = { ...last, content: fullContent, isThinking: false, isStreaming: true, statusText: null };
                 }
                 return updated;
               });
@@ -474,7 +536,13 @@ export default function AIChatPage() {
                 const updated = [...prev];
                 const last = updated[updated.length - 1];
                 if (last && last.id === 'streaming') {
-                  updated[updated.length - 1] = { ...last, id: data.message_id, isStreaming: false };
+                  updated[updated.length - 1] = {
+                    ...last,
+                    id: data.message_id,
+                    isStreaming: false,
+                    statusText: null,
+                    generated_files: data.generated_files || []
+                  };
                 }
                 return updated;
               });
