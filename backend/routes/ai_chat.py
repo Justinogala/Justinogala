@@ -87,6 +87,15 @@ You can help with:
 - Generating images of anything — people, animals, objects, scenes, logos, illustrations, art, etc.
 - Creating data visualization charts (pie, bar, line, stacked bar, radar)
 - Creating downloadable documents (PDF, DOCX, XLSX)
+- Searching the web for current information, news, facts, prices, events, and real-time data
+
+When you need to look up current/real-time information, recent events, live data, prices, news, weather, sports scores, or anything that requires up-to-date facts, respond with [WEB_SEARCH: search query] at the very start of your response. The system will search the web and provide you with results. You MUST use web search when:
+- The user asks about current events, recent news, or "latest" anything
+- The user asks about prices, stock market, weather, sports scores
+- The user asks "what is" or "who is" about something you're unsure about
+- The user asks for information that may have changed after your training data
+- The user explicitly says "search", "look up", "find", or "google"
+Do NOT search for general knowledge, coding questions, math, or things you already know well.
 
 When a user asks you to generate, create, draw, or make an image of ANYTHING (people, animals, objects, scenes, landscapes, abstract art, etc.), ALWAYS respond with [GENERATE_IMAGE: detailed description]. Enhance their request into a rich, detailed prompt for best results. Examples: "generate a cat" → [GENERATE_IMAGE: A fluffy orange tabby cat sitting on a windowsill, soft natural lighting, photorealistic, high detail], "draw a house" → [GENERATE_IMAGE: A cozy two-story house with warm lights in the windows, surrounded by a garden, watercolor style, evening atmosphere].
 When a user asks you to create a pie chart, respond with the tag [GENERATE_PIE_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
@@ -99,6 +108,17 @@ When a user asks you to create/generate/export a Word/DOCX document, include [GE
 When a user asks you to create/generate/export an Excel/spreadsheet, include [GENERATE_XLSX] at the end of your response.
 
 Be concise, accurate, and helpful. Use markdown formatting when appropriate (headers, lists, code blocks, bold, etc.). When writing code, always specify the language for syntax highlighting."""
+
+SEARCH_FOLLOWUP_PROMPT = """Based on the web search results below, answer the user's question. Include specific facts from the sources. At the end of your response, add a "Sources" section listing the URLs you referenced in this format:
+
+**Sources:**
+1. [Title](URL)
+2. [Title](URL)
+
+Search Results:
+{search_results}
+
+User's Question: {user_question}"""
 
 
 # ============== File Processing Utilities ==============
@@ -387,6 +407,52 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             full_response = "I'm sorry, I encountered an error processing your request. Please try again."
             yield f"data: {json.dumps({'type': 'chunk', 'content': full_response})}\n\n"
 
+        # ============== Web Search Detection ==============
+        import re
+        web_search_match = re.search(r'\[WEB_SEARCH:\s*(.+?)\]', full_response)
+        sources = []
+        if web_search_match:
+            search_query = web_search_match.group(1).strip()
+            full_response = re.sub(r'\[WEB_SEARCH:\s*.+?\]', '', full_response).strip()
+            try:
+                yield f"data: {json.dumps({'type': 'status', 'content': 'Searching the web...'})}\n\n"
+                from routes.web_search import web_search, format_search_results
+                search_results = await web_search(search_query, db)
+                logger.info(f"Web search for '{search_query}' returned {len(search_results)} results")
+
+                if search_results:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Analyzing search results...'})}\n\n"
+                    formatted = format_search_results(search_results)
+                    search_prompt = SEARCH_FOLLOWUP_PROMPT.format(
+                        search_results=formatted,
+                        user_question=user_text
+                    )
+                    search_messages = [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": search_prompt}
+                    ]
+
+                    full_response = ""
+                    search_resp = chat_completion(
+                        messages=search_messages,
+                        model="gpt-5.2",
+                        api_key=EMERGENT_KEY,
+                        stream=True,
+                    )
+                    for chunk in search_resp:
+                        delta = chunk.choices[0].delta if chunk.choices else None
+                        if delta and delta.content:
+                            full_response += delta.content
+                            yield f"data: {json.dumps({'type': 'chunk', 'content': delta.content})}\n\n"
+
+                    sources = [{"title": r["title"], "url": r["url"]} for r in search_results if r.get("url")]
+                else:
+                    full_response = "I tried searching the web but couldn't find relevant results. Let me try answering from my knowledge instead.\n\n" + full_response
+                    yield f"data: {json.dumps({'type': 'chunk', 'content': full_response})}\n\n"
+            except Exception as e:
+                logger.error(f"Web search error: {e}")
+                yield f"data: {json.dumps({'type': 'chunk', 'content': 'Web search encountered an error. Answering from my knowledge.'})}\n\n"
+
         # Save assistant message
         assistant_msg = {
             "id": assistant_msg_id,
@@ -399,7 +465,6 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
 
         # Detect and handle generation tags
         generated_files = []
-        import re
 
         async def _store_generated_metadata(file_info, conv_id, user_id, file_size=0):
             """Store file generation metadata in MongoDB for tracking/cleanup."""
@@ -598,13 +663,18 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
 
         assistant_msg["content"] = full_response
         assistant_msg["attachments"] = generated_files
+        if sources:
+            assistant_msg["sources"] = sources
         await db.ai_messages.insert_one(assistant_msg)
         await db.ai_conversations.update_one(
             {"id": conv_id},
             {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
         )
 
-        yield f"data: {json.dumps({'type': 'done', 'message_id': assistant_msg_id, 'generated_files': generated_files})}\n\n"
+        done_data = {'type': 'done', 'message_id': assistant_msg_id, 'generated_files': generated_files}
+        if sources:
+            done_data['sources'] = sources
+        yield f"data: {json.dumps(done_data)}\n\n"
 
     return StreamingResponse(
         stream_response(),

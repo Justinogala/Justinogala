@@ -156,3 +156,31 @@ async def update_security_policies(request: Request):
         upsert=True,
     )
     return {"success": True}
+
+
+# ── Search API Configuration ──
+
+class SearchAPIConfig(BaseModel):
+    provider: str  # "duckduckgo" | "perplexity" | "tavily" | "brave"
+    api_key: str = ""
+
+@router.get("/search-api")
+async def get_search_api_config():
+    config = await db.admin_settings.find_one({"category": "search_api"}, {"_id": 0})
+    if not config:
+        return {"provider": "duckduckgo", "api_key": ""}
+    return {"provider": config.get("provider", "duckduckgo"), "api_key": config.get("api_key", "")}
+
+@router.put("/search-api")
+async def update_search_api_config(config: SearchAPIConfig):
+    await db.admin_settings.update_one(
+        {"category": "search_api"},
+        {"$set": {
+            "category": "search_api",
+            "provider": config.provider,
+            "api_key": config.api_key,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+    return {"success": True, "provider": config.provider}

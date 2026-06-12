@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,8 @@ import { useAdminSettings } from '@/context/AdminSettingsContext';
 import { useToast } from '@/components/ui/use-toast';
 import AdminHeader from '@/components/AdminHeader';
 import AdminSidebar from '@/components/AdminSidebar';
-import { Key, ShieldAlert, CheckCircle, Trash2 } from 'lucide-react';
+import { Key, ShieldAlert, CheckCircle, Trash2, Globe, Search } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 const AdminAPISettings = () => {
   const { 
@@ -26,6 +27,44 @@ const AdminAPISettings = () => {
   const [keys, setKeys] = useState({ openai: '', google: '' });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const API = getApiUrl();
+
+  // Search API state
+  const [searchProvider, setSearchProvider] = useState('duckduckgo');
+  const [searchApiKey, setSearchApiKey] = useState('');
+  const [searchSaving, setSearchSaving] = useState(false);
+
+  useEffect(() => {
+    const token = JSON.parse(localStorage.getItem('admin_token') || 'null');
+    if (!token) return;
+    fetch(`${API}/api/admin/search-api`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.provider) setSearchProvider(data.provider);
+        if (data.api_key) setSearchApiKey(data.api_key);
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveSearchConfig = async () => {
+    setSearchSaving(true);
+    try {
+      const token = JSON.parse(localStorage.getItem('admin_token') || 'null');
+      const res = await fetch(`${API}/api/admin/search-api`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ provider: searchProvider, api_key: searchApiKey }),
+      });
+      if (res.ok) {
+        toast({ title: "Saved", description: `Search API set to ${searchProvider}.` });
+      } else {
+        toast({ title: "Error", description: "Failed to save search config", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setSearchSaving(false);
+  };
 
   const handleSave = async (provider) => {
     setLoading(true);
@@ -158,6 +197,49 @@ const AdminAPISettings = () => {
             </CardContent>
           </Card>
           
+          {/* Search API Configuration */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5" /> AI Web Search</CardTitle>
+                {searchProvider !== 'duckduckgo' && searchApiKey && <CheckCircle className="text-green-500 w-5 h-5" />}
+              </div>
+              <CardDescription>
+                Configure the search provider for AI Chat web search. DuckDuckGo is free and works out of the box. 
+                Switch to a premium provider for better results at scale.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Search Provider</Label>
+                <Select value={searchProvider} onValueChange={setSearchProvider}>
+                  <SelectTrigger data-testid="search-provider-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="duckduckgo">DuckDuckGo (Free — No API Key)</SelectItem>
+                    <SelectItem value="tavily">Tavily Search API</SelectItem>
+                    <SelectItem value="brave">Brave Search API</SelectItem>
+                    <SelectItem value="perplexity">Perplexity Sonar API</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {searchProvider !== 'duckduckgo' && (
+                <div className="space-y-2">
+                  <Label>API Key {searchProvider === 'tavily' ? '(tavily.com)' : searchProvider === 'brave' ? '(brave.com/search/api)' : '(perplexity.ai)'}</Label>
+                  <Input
+                    type="password"
+                    placeholder={`Enter ${searchProvider} API key...`}
+                    value={searchApiKey}
+                    onChange={e => setSearchApiKey(e.target.value)}
+                    data-testid="search-api-key-input"
+                  />
+                </div>
+              )}
+              <Button onClick={saveSearchConfig} disabled={searchSaving} data-testid="save-search-config-btn">
+                {searchSaving ? 'Saving...' : 'Save Search Config'}
+              </Button>
+            </CardContent>
+          </Card>
+
           <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg flex gap-3 text-sm text-yellow-800">
             <ShieldAlert className="w-5 h-5 shrink-0" />
             <p>

@@ -35,7 +35,10 @@ import {
   Search,
   Pin,
   PinOff,
-  Download
+  Download,
+  ImagePlus,
+  Globe,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
@@ -193,6 +196,101 @@ function GeneratedFileDisplay({ file }) {
   );
 }
 
+function SourceLinks({ sources }) {
+  if (!sources?.length) return null;
+  return (
+    <div className="mt-3 pt-2 border-t border-gray-100 dark:border-slate-700/50" data-testid="source-links">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Globe className="w-3.5 h-3.5 text-gray-400" />
+        <span className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Sources</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {sources.map((src, i) => (
+          <a
+            key={i}
+            href={src.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-slate-700/50 border border-gray-200 dark:border-slate-600 text-xs text-gray-600 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:border-violet-300 dark:hover:border-violet-600 hover:text-violet-700 dark:hover:text-violet-300 transition-all group"
+            data-testid={`source-link-${i}`}
+            title={src.url}
+          >
+            <span className="max-w-[180px] truncate">{src.title || new URL(src.url).hostname}</span>
+            <ExternalLink className="w-3 h-3 opacity-50 group-hover:opacity-100 flex-shrink-0" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ImageGenDialog({ open, onClose, onSubmit }) {
+  const [prompt, setPrompt] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      setPrompt('');
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!prompt.trim()) return;
+    onSubmit(`Generate an image of: ${prompt.trim()}`);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose} data-testid="image-gen-dialog">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 w-full max-w-md mx-4 p-5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+            <ImagePlus className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Generate Image</h3>
+            <p className="text-[11px] text-gray-400">Describe what you want to create</p>
+          </div>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <textarea
+            ref={inputRef}
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            placeholder="A sunset over mountains, a futuristic city, a cat wearing a hat..."
+            className="w-full rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+            rows={3}
+            data-testid="image-gen-prompt"
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(e); } }}
+          />
+          <div className="flex justify-end gap-2 mt-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!prompt.trim()}
+              className={cn(
+                "px-4 py-2 rounded-xl text-sm font-medium transition-colors",
+                prompt.trim()
+                  ? "bg-violet-600 hover:bg-violet-700 text-white"
+                  : "bg-gray-100 dark:bg-slate-700 text-gray-400 cursor-not-allowed"
+              )}
+              data-testid="image-gen-submit"
+            >
+              Generate
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCurrentlyStreaming }) {
   const isUser = message.role === 'user';
   const [msgCopied, setMsgCopied] = useState(false);
@@ -260,6 +358,8 @@ function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCu
               ))}
             </div>
           )}
+          {/* Source Links */}
+          {!message.isThinking && !message.isStreaming && <SourceLinks sources={message.sources} />}
         </div>
         {/* Action buttons for assistant messages */}
         {!isUser && !message.isThinking && !message.isStreaming && message.content && (
@@ -314,6 +414,7 @@ export default function AIChatPage() {
   const [loadingConv, setLoadingConv] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
+  const [imageGenOpen, setImageGenOpen] = useState(false);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -393,7 +494,8 @@ export default function AIChatPage() {
           // Map attachments with type/url to generated_files for display
           const msgs = (data.messages || []).map(m => ({
             ...m,
-            generated_files: m.role === 'assistant' ? (m.attachments || []).filter(a => a.type) : []
+            generated_files: m.role === 'assistant' ? (m.attachments || []).filter(a => a.type) : [],
+            sources: m.sources || []
           }));
           setMessages(msgs);
         }
@@ -493,8 +595,8 @@ export default function AIChatPage() {
     } catch (e) { console.error(e); }
   };
 
-  const sendMessage = async () => {
-    const text = input.trim();
+  const sendMessage = async (overrideText) => {
+    const text = overrideText || input.trim();
     if (!text && uploadedFiles.length === 0) return;
     if (isStreaming) return;
 
@@ -614,7 +716,8 @@ export default function AIChatPage() {
                     id: data.message_id,
                     isStreaming: false,
                     statusText: null,
-                    generated_files: data.generated_files || []
+                    generated_files: data.generated_files || [],
+                    sources: data.sources || []
                   };
                 }
                 return updated;
@@ -1145,6 +1248,15 @@ export default function AIChatPage() {
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
 
+            <button
+              onClick={() => setImageGenOpen(true)}
+              className="p-2.5 rounded-xl text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors flex-shrink-0"
+              data-testid="image-gen-btn"
+              title="Generate image"
+            >
+              <ImagePlus className="w-5 h-5" />
+            </button>
+
             <div className="flex-1 relative">
               <textarea
                 ref={inputRef}
@@ -1191,6 +1303,16 @@ export default function AIChatPage() {
           </p>
         </div>
       </div>
+
+      {/* Image Generation Dialog */}
+      <ImageGenDialog
+        open={imageGenOpen}
+        onClose={() => setImageGenOpen(false)}
+        onSubmit={(prompt) => {
+          setInput(prompt);
+          setTimeout(() => sendMessage(prompt), 100);
+        }}
+      />
     </div>
   );
 }
