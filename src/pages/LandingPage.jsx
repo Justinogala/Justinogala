@@ -11,7 +11,6 @@ import PageTransition from '@/components/PageTransition';
 import DemoVideoModal from '@/components/DemoVideoModal';
 import { useHeroSlide } from '@/contexts/HeroSlideContext';
 
-const BenefitsSection = lazy(() => import('@/components/landing/BenefitsSection'));
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
 const PricingSection = lazy(() => import('@/components/landing/PricingSection'));
 const TestimonialsSection = lazy(() => import('@/components/landing/TestimonialsSection'));
@@ -273,9 +272,6 @@ const LandingPage = () => {
           </Suspense>
 
           <div id="features">
-            <Suspense fallback={null}>
-              <BenefitsSection />
-            </Suspense>
           </div>
 
           <Suspense fallback={null}>

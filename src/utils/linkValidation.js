@@ -12,7 +12,6 @@ const VALID_ROUTES = [
   '/features/overview',
   '/features/meetings',
   '/features/transcriptions',
-  '/features/video-conferencing',
   '/features/search',
   '/features/chat-messaging',
   '/features/teams',
