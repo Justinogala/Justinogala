@@ -22,6 +22,10 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
   - Frontend sends `search_start` SSE event to clear streamed tag, then streams clean search-informed response
   - Pluggable provider architecture: DuckDuckGo (default/free), Tavily, Brave Search, Perplexity (configurable in Admin API Settings with API key)
 - **Admin Search API Config**: New card in Admin > API Configuration page — select provider + enter API key for premium search
+- **Web Search Toggle**: Globe button in chat input bar — green (ON) or gray (OFF). Users can force disable/enable web search per session. When OFF, LLM answers from knowledge only (faster). When ON, AI searches the web for current events.
+  - Backend respects `web_search` flag in message payload; strips leaked tags when disabled
+  - **Admin Auth Guard**: `GET/PUT /api/admin/search-api` now requires admin authentication (401 unauthenticated, 403 non-admin)
+  - **Cookie Consent Fix**: Banner z-index lowered from z-[100] to z-40 with `pointer-events-none` wrapper — no longer blocks chat input
 - **Endpoints**: `GET/PUT /api/admin/search-api`
 - Backend: `/app/backend/routes/web_search.py` (provider abstraction), `/app/backend/routes/ai_chat.py` (search detection)
 - Frontend: `AIChatPage.jsx` (ImageGenDialog, SourceLinks, AuthenticatedImage components)
