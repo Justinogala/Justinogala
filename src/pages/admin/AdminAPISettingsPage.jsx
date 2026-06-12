@@ -29,7 +29,7 @@ const AdminAPISettingsPage = () => {
   const [searchSaving, setSearchSaving] = useState(false);
 
   useEffect(() => {
-    const token = JSON.parse(localStorage.getItem('admin_token') || 'null');
+    const token = localStorage.getItem('admin_token');
     if (!token) return;
     fetch(`${API}/api/admin/search-api`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
@@ -43,7 +43,7 @@ const AdminAPISettingsPage = () => {
   const saveSearchConfig = async () => {
     setSearchSaving(true);
     try {
-      const token = JSON.parse(localStorage.getItem('admin_token') || 'null');
+      const token = localStorage.getItem('admin_token');
       const res = await fetch(`${API}/api/admin/search-api`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
