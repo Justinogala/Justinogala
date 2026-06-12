@@ -84,11 +84,11 @@ You can help with:
 - Technical problem-solving and code assistance
 - Data analysis and interpretation
 - Analyzing uploaded images, PDFs, and spreadsheets
-- Generating images from text descriptions
-- Creating charts (pie charts, bar charts) from data
+- Generating images of anything — people, animals, objects, scenes, logos, illustrations, art, etc.
+- Creating data visualization charts (pie, bar, line, stacked bar, radar)
 - Creating downloadable documents (PDF, DOCX, XLSX)
 
-When a user asks you to generate an image, respond with the tag [GENERATE_IMAGE: description] where description is the detailed image prompt.
+When a user asks you to generate, create, draw, or make an image of ANYTHING (people, animals, objects, scenes, landscapes, abstract art, etc.), ALWAYS respond with [GENERATE_IMAGE: detailed description]. Enhance their request into a rich, detailed prompt for best results. Examples: "generate a cat" → [GENERATE_IMAGE: A fluffy orange tabby cat sitting on a windowsill, soft natural lighting, photorealistic, high detail], "draw a house" → [GENERATE_IMAGE: A cozy two-story house with warm lights in the windows, surrounded by a garden, watercolor style, evening atmosphere].
 When a user asks you to create a pie chart, respond with the tag [GENERATE_PIE_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
 When a user asks you to create a bar chart, respond with the tag [GENERATE_BAR_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
 When a user asks you to create a line chart or trend chart, respond with the tag [GENERATE_LINE_CHART: {"title":"Chart Title","labels":["Jan","Feb","Mar"],"datasets":[{"name":"Revenue","values":[100,150,200],"color":"#7c3aed"},{"name":"Costs","values":[80,90,110],"color":"#ef4444"}]}] — supports multiple series via datasets array.
@@ -463,19 +463,26 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             else:
                 img_prompt = img_match.group(1)
                 try:
-                    yield f"data: {json.dumps({'type': 'status', 'content': 'Generating image...'})}\n\n"
-                    from llm_client import get_client
-                    client = get_client(EMERGENT_KEY)
-                    img_resp = client.images.generate(
-                        model="gpt-image-1",
-                        prompt=img_prompt,
-                        n=1,
-                        size="1024x1024",
-                    )
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Generating image... This may take 15-30 seconds.'})}\n\n"
+
+                    def _generate_image_sync(prompt):
+                        from llm_client import get_client
+                        client = get_client(EMERGENT_KEY)
+                        return client.images.generate(
+                            model="gpt-image-1",
+                            prompt=prompt,
+                            n=1,
+                            size="1024x1024",
+                        )
+
+                    # Run image generation in thread to avoid blocking event loop
+                    img_resp = await asyncio.to_thread(_generate_image_sync, img_prompt)
+
                     if img_resp.data and img_resp.data[0].b64_json:
                         import base64 as b64
                         img_bytes = b64.b64decode(img_resp.data[0].b64_json)
                         img_id = str(uuid.uuid4())
+                        yield f"data: {json.dumps({'type': 'status', 'content': 'Uploading image...'})}\n\n"
                         await _put_object_async(f"ai-generated/{img_id}.png", img_bytes, "image/png")
                         generated_files.append({
                             "type": "image", "file_id": img_id, "filename": f"generated_{img_id[:8]}.png",
@@ -490,7 +497,12 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     full_response = re.sub(r'\[GENERATE_IMAGE:\s*.+?\]', '', full_response).strip()
                 except Exception as e:
                     logger.error(f"Image generation error: {e}")
-                    full_response += f"\n\n*Image generation failed: {str(e)}*"
+                    full_response = re.sub(r'\[GENERATE_IMAGE:\s*.+?\]', '', full_response).strip()
+                    err_str = str(e)
+                    if "safety" in err_str.lower() or "rejected" in err_str.lower() or "content_policy" in err_str.lower():
+                        full_response += "\n\n*The image couldn't be generated because it was flagged by the content safety filter. Try rephrasing your request or using a different subject.*"
+                    else:
+                        full_response += f"\n\n*Image generation failed. Please try again.*"
 
         # PDF generation
         if "[GENERATE_PDF]" in full_response:
