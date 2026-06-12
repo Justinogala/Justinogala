@@ -1313,7 +1313,7 @@ export default function AIChatPage() {
               </button>
             ) : (
               <button
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={!input.trim() && uploadedFiles.length === 0}
                 className={cn(
                   "p-2.5 rounded-xl transition-colors flex-shrink-0",
