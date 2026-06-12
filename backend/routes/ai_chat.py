@@ -76,9 +76,12 @@ You can help with:
 - Data analysis and interpretation
 - Analyzing uploaded images, PDFs, and spreadsheets
 - Generating images from text descriptions
+- Creating charts (pie charts, bar charts) from data
 - Creating downloadable documents (PDF, DOCX, XLSX)
 
 When a user asks you to generate an image, respond with the tag [GENERATE_IMAGE: description] where description is the detailed image prompt.
+When a user asks you to create a pie chart, respond with the tag [GENERATE_PIE_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
+When a user asks you to create a bar chart, respond with the tag [GENERATE_BAR_CHART: {"title":"Chart Title","labels":["A","B","C"],"values":[30,50,20],"colors":["#7c3aed","#3b82f6","#10b981"]}] — provide valid JSON with title, labels, values, and optional colors array.
 When a user asks you to create/generate/export a PDF document, include [GENERATE_PDF] at the end of your response — the system will auto-convert your response to a downloadable PDF.
 When a user asks you to create/generate/export a Word/DOCX document, include [GENERATE_DOCX] at the end of your response.
 When a user asks you to create/generate/export an Excel/spreadsheet, include [GENERATE_XLSX] at the end of your response.
@@ -92,6 +95,7 @@ from routes.ai_chat_files import (
     extract_pdf_text, extract_excel_data, encode_image_base64,
     extract_file_content, generate_pdf_from_markdown,
     generate_docx_from_markdown, generate_xlsx_from_text,
+    generate_pie_chart, generate_bar_chart,
 )
 
 # Keep aliases for internal use
@@ -513,6 +517,54 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     full_response = full_response.replace("[GENERATE_XLSX]", "").strip()
                 except Exception as e:
                     logger.error(f"XLSX generation error: {e}")
+
+        # Pie Chart generation
+        pie_match = re.search(r'\[GENERATE_PIE_CHART:\s*(\{.+?\})\]', full_response, re.DOTALL)
+        if pie_match:
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
+                full_response = re.sub(r'\[GENERATE_PIE_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating pie chart...'})}\n\n"
+                    chart_data = json.loads(pie_match.group(1))
+                    chart_bytes = generate_pie_chart(chart_data)
+                    chart_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    generated_files.append({
+                        "type": "image", "file_id": chart_id, "filename": f"pie_chart_{chart_id[:8]}.png",
+                        "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"
+                    })
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
+                    full_response = re.sub(r'\[GENERATE_PIE_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
+                except Exception as e:
+                    logger.error(f"Pie chart generation error: {e}")
+                    full_response = re.sub(r'\[GENERATE_PIE_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
+
+        # Bar Chart generation
+        bar_match = re.search(r'\[GENERATE_BAR_CHART:\s*(\{.+?\})\]', full_response, re.DOTALL)
+        if bar_match:
+            can_gen, remaining = await _check_user_quota()
+            if not can_gen:
+                full_response = re.sub(r'\[GENERATE_BAR_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
+                full_response += f"\n\n*Storage quota exceeded ({remaining} remaining).*"
+            else:
+                try:
+                    yield f"data: {json.dumps({'type': 'status', 'content': 'Creating bar chart...'})}\n\n"
+                    chart_data = json.loads(bar_match.group(1))
+                    chart_bytes = generate_bar_chart(chart_data)
+                    chart_id = str(uuid.uuid4())
+                    _put_object(f"ai-generated/{chart_id}.png", chart_bytes, "image/png")
+                    generated_files.append({
+                        "type": "image", "file_id": chart_id, "filename": f"bar_chart_{chart_id[:8]}.png",
+                        "content_type": "image/png", "url": f"/api/ai-chat/files/{chart_id}"
+                    })
+                    await _store_generated_metadata(generated_files[-1], conv_id, user["id"], len(chart_bytes))
+                    full_response = re.sub(r'\[GENERATE_BAR_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
+                except Exception as e:
+                    logger.error(f"Bar chart generation error: {e}")
+                    full_response = re.sub(r'\[GENERATE_BAR_CHART:\s*\{.+?\}\]', '', full_response, flags=re.DOTALL).strip()
 
         assistant_msg["content"] = full_response
         assistant_msg["attachments"] = generated_files

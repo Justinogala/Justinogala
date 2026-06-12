@@ -223,3 +223,82 @@ def generate_xlsx_from_text(text: str) -> bytes:
     buffer = io.BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
+
+
+# ============== Chart Generation ==============
+
+def generate_pie_chart(data: dict) -> bytes:
+    """Generate a pie chart PNG from JSON data."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    title = data.get("title", "Pie Chart")
+    labels = data.get("labels", [])
+    values = data.get("values", [])
+    colors = data.get("colors", None)
+
+    fig, ax = plt.subplots(figsize=(8, 6), facecolor='#0f172a')
+    wedges, texts, autotexts = ax.pie(
+        values, labels=labels, colors=colors,
+        autopct='%1.1f%%', startangle=90, pctdistance=0.82,
+        wedgeprops=dict(width=0.5, edgecolor='#1e293b', linewidth=2),
+    )
+    for t in texts:
+        t.set_color('white')
+        t.set_fontsize(11)
+    for t in autotexts:
+        t.set_color('white')
+        t.set_fontsize(10)
+        t.set_fontweight('bold')
+    ax.set_title(title, color='white', fontsize=16, fontweight='bold', pad=20)
+    ax.legend(labels, loc='lower center', bbox_to_anchor=(0.5, -0.08), ncol=min(len(labels), 4),
+              facecolor='#1e293b', edgecolor='#334155', labelcolor='white', fontsize=9)
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return buf.getvalue()
+
+
+def generate_bar_chart(data: dict) -> bytes:
+    """Generate a bar chart PNG from JSON data."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    title = data.get("title", "Bar Chart")
+    labels = data.get("labels", [])
+    values = data.get("values", [])
+    colors = data.get("colors", None)
+
+    if not colors:
+        default_palette = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316']
+        colors = [default_palette[i % len(default_palette)] for i in range(len(labels))]
+
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor='#0f172a')
+    ax.set_facecolor('#0f172a')
+    bars = ax.bar(labels, values, color=colors, edgecolor='#1e293b', linewidth=1, width=0.6, zorder=3)
+
+    # Add value labels on bars
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max(values) * 0.02,
+                str(val), ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
+
+    ax.set_title(title, color='white', fontsize=16, fontweight='bold', pad=15)
+    ax.tick_params(axis='x', colors='#94a3b8', labelsize=10)
+    ax.tick_params(axis='y', colors='#94a3b8', labelsize=9)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#334155')
+    ax.spines['bottom'].set_color('#334155')
+    ax.grid(axis='y', color='#1e293b', linewidth=0.5, zorder=0)
+    ax.set_axisbelow(True)
+    plt.xticks(rotation=30 if len(labels) > 5 else 0, ha='right' if len(labels) > 5 else 'center')
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return buf.getvalue()
