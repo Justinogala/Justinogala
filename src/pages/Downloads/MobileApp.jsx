@@ -29,13 +29,20 @@ const MobileApp = () => {
       <Header />
       <div className="container mx-auto px-6"><BreadcrumbNav /></div>
 
-      {/* Hero Section - consistent with other pages */}
-      <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-24 overflow-hidden bg-bg-primary" data-testid="mobile-app-hero">
-        <div className="absolute inset-0 bg-gradient-to-b from-violet-500/5 via-transparent to-transparent" />
+      {/* Hero Section - with background image */}
+      <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-24 overflow-hidden" data-testid="mobile-app-hero">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1614851099511-773084f6911d?w=1920&q=80"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+        </div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-sm font-medium mb-6"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white text-sm font-medium mb-6 border border-white/20"
               {...presets.fadeInUp}
             >
               <Download className="w-4 h-4" />
@@ -43,7 +50,7 @@ const MobileApp = () => {
             </motion.div>
 
             <motion.h1
-              className="text-4xl md:text-5xl lg:text-6xl font-bold font-heading mb-6 bg-clip-text text-transparent bg-gradient-to-r from-text-primary via-accent to-purple-600 leading-tight"
+              className="text-4xl md:text-5xl lg:text-6xl font-bold font-heading mb-6 text-white leading-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.6 }}
@@ -53,7 +60,7 @@ const MobileApp = () => {
             </motion.h1>
 
             <motion.p
-              className="text-lg md:text-xl text-text-secondary mb-10 leading-relaxed max-w-2xl mx-auto"
+              className="text-lg md:text-xl text-white/80 mb-10 leading-relaxed max-w-2xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
@@ -105,7 +112,7 @@ const MobileApp = () => {
             </ul>
           </div>
           <div className="rounded-xl overflow-hidden shadow-2xl border border-border max-w-sm mx-auto">
-            <img src="https://images.unsplash.com/photo-1600783245891-f275a1575d93" alt="Mobile App Interface" className="w-full" />
+            <img src="https://images.unsplash.com/photo-1512428559087-560fa5ceab42?w=600&q=80" alt="Person using Munal AI on smartphone" className="w-full" />
           </div>
         </div>
 
