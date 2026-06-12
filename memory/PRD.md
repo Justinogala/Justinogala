@@ -18,9 +18,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **PDF Generation**: AI responses with [GENERATE_PDF] tag auto-converted to downloadable PDF (reportlab)
 - **Word Generation**: AI responses with [GENERATE_DOCX] tag auto-converted to downloadable DOCX (python-docx)
 - **Excel Generation**: AI responses with [GENERATE_XLSX] tag auto-converted to downloadable XLSX (openpyxl)
+- **Voice-to-Chat**: Whisper-powered voice input (microphone button in chat) — already existed, verified working
 - **Download endpoint**: Unified GET /api/ai-chat/files/{file_id} handles both uploaded and generated files
 - **Frontend**: GeneratedFileDisplay component shows images inline, docs with download buttons, status messages during generation
-- Backend: `/app/backend/routes/ai_chat.py` (file utilities + generation + unified download)
+- **Refactored**: ai_chat.py (1038→850 lines) — extracted file utilities to `ai_chat_files.py` (225 lines)
+- **File metadata tracking**: Generated files stored in `ai_generated_files` MongoDB collection with user_id, type, conversation_id for cleanup/quota
 - Fixed: Route shadowing bug (duplicate /files/{file_id} endpoint) — merged into single auth-protected handler
 - Testing: 100% backend (15/15) — Iteration 136
 
