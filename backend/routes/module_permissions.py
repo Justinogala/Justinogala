@@ -110,6 +110,23 @@ DEFAULT_TEMPLATES = {
         "pdf_editor": True,
         "module_permissions": False,
     },
+    "user": {
+        "dashboard": True,
+        "users": False, "organizations": False, "workspaces": True,
+        "reports": False, "ir_sor_templates": False,
+        "chat_moderation": False, "shifts": True,
+        "support_tickets": True, "messages": True, "broadcasts": False,
+        "approval_templates": False, "forms": True,
+        "billing": False,
+        "monitoring": False, "security_policies": False,
+        "meeting_analytics": False, "cloud_storage": False,
+        "video_settings": False, "stripe_settings": False,
+        "video_history": False, "api_settings": False,
+        "transcription_settings": False, "integrations": False,
+        "audit_logs": False, "general_settings": False,
+        "pdf_editor": False,
+        "module_permissions": False,
+    },
 }
 
 
