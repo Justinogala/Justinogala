@@ -164,15 +164,43 @@ const Documentation = () => {
                 <button onClick={() => setSearchParams({})} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-violet-600 dark:hover:text-violet-400 mb-6 transition-colors" data-testid="back-to-docs">
                   <ArrowLeft className="w-4 h-4" /> Back to all docs
                 </button>
-                <div className="mb-8">
-                  <p className="text-sm text-violet-600 dark:text-violet-400 font-medium mb-2">{activeArticle.sectionTitle}</p>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">{activeArticle.title}</h1>
-                  <div className="flex items-center gap-3 text-sm text-gray-500">
+                <div className="mb-6">
+                  <p className="text-xs text-violet-600 dark:text-violet-400 font-medium mb-1.5 uppercase tracking-wide">{activeArticle.sectionTitle}</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">{activeArticle.title}</h1>
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
                     <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {activeArticle.readTime} read</span>
                   </div>
                 </div>
-                <article className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-bold prose-h2:text-2xl prose-h3:text-xl prose-h2:mt-10 prose-h3:mt-8 prose-p:leading-relaxed prose-li:leading-relaxed prose-table:text-sm prose-th:bg-gray-50 dark:prose-th:bg-slate-800 prose-th:px-4 prose-th:py-2 prose-td:px-4 prose-td:py-2 prose-table:border prose-th:border prose-td:border prose-table:border-gray-200 dark:prose-table:border-slate-700 prose-code:bg-gray-100 dark:prose-code:bg-slate-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-violet-600 dark:prose-code:text-violet-400 prose-code:font-normal prose-code:before:content-none prose-code:after:content-none" data-testid="article-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <article className="docs-article text-sm leading-relaxed text-gray-700 dark:text-gray-300" data-testid="article-content">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      h2: ({children}) => <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-3">{children}</h2>,
+                      h3: ({children}) => <h3 className="text-base font-bold text-gray-900 dark:text-white mt-6 mb-2">{children}</h3>,
+                      h4: ({children}) => <h4 className="text-sm font-bold text-gray-900 dark:text-white mt-4 mb-1.5">{children}</h4>,
+                      p: ({children}) => <p className="mb-3 leading-relaxed">{children}</p>,
+                      ul: ({children}) => <ul className="mb-3 pl-5 space-y-1 list-disc marker:text-violet-400">{children}</ul>,
+                      ol: ({children}) => <ol className="mb-3 pl-5 space-y-1 list-decimal marker:text-violet-400">{children}</ol>,
+                      li: ({children}) => <li className="leading-relaxed">{children}</li>,
+                      strong: ({children}) => <strong className="font-semibold text-gray-900 dark:text-white">{children}</strong>,
+                      code: ({children, className}) => {
+                        if (className) return <code className={cn("block bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono overflow-x-auto my-3", className)}>{children}</code>;
+                        return <code className="bg-gray-100 dark:bg-slate-800 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>;
+                      },
+                      a: ({href, children}) => <a href={href} className="text-violet-600 dark:text-violet-400 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                      hr: () => <hr className="my-6 border-gray-200 dark:border-slate-700" />,
+                      table: ({children}) => (
+                        <div className="my-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700">
+                          <table className="w-full text-xs">{children}</table>
+                        </div>
+                      ),
+                      thead: ({children}) => <thead className="bg-gray-50 dark:bg-slate-800">{children}</thead>,
+                      th: ({children}) => <th className="px-4 py-2.5 text-left font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700">{children}</th>,
+                      td: ({children}) => <td className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800 text-gray-600 dark:text-gray-400">{children}</td>,
+                      tr: ({children}) => <tr className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30">{children}</tr>,
+                      blockquote: ({children}) => <blockquote className="border-l-3 border-violet-400 pl-4 my-4 text-gray-500 dark:text-gray-400 italic">{children}</blockquote>,
+                    }}
+                  >
                     {activeArticle.content}
                   </ReactMarkdown>
                 </article>

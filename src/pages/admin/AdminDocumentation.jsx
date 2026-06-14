@@ -100,8 +100,33 @@ const AdminDocumentation = () => {
               <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
                 <Clock className="w-3.5 h-3.5" /> {activeArticle.readTime} read
               </div>
-              <article className="prose prose-gray dark:prose-invert max-w-none prose-headings:font-bold prose-table:text-sm prose-th:bg-gray-50 dark:prose-th:bg-slate-800 prose-th:px-4 prose-th:py-2 prose-td:px-4 prose-td:py-2 prose-table:border prose-th:border prose-td:border prose-code:bg-gray-100 dark:prose-code:bg-slate-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-violet-600 dark:prose-code:text-violet-400 prose-code:before:content-none prose-code:after:content-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeArticle.content}</ReactMarkdown>
+              <article className="docs-article text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h2: ({children}) => <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-8 mb-3">{children}</h2>,
+                    h3: ({children}) => <h3 className="text-base font-bold text-gray-900 dark:text-white mt-6 mb-2">{children}</h3>,
+                    h4: ({children}) => <h4 className="text-sm font-bold text-gray-900 dark:text-white mt-4 mb-1.5">{children}</h4>,
+                    p: ({children}) => <p className="mb-3 leading-relaxed">{children}</p>,
+                    ul: ({children}) => <ul className="mb-3 pl-5 space-y-1 list-disc marker:text-violet-400">{children}</ul>,
+                    ol: ({children}) => <ol className="mb-3 pl-5 space-y-1 list-decimal marker:text-violet-400">{children}</ol>,
+                    li: ({children}) => <li className="leading-relaxed">{children}</li>,
+                    strong: ({children}) => <strong className="font-semibold text-gray-900 dark:text-white">{children}</strong>,
+                    code: ({children, className}) => {
+                      if (className) return <code className={cn("block bg-gray-50 dark:bg-slate-800 rounded-lg p-4 text-xs font-mono overflow-x-auto my-3", className)}>{children}</code>;
+                      return <code className="bg-gray-100 dark:bg-slate-800 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>;
+                    },
+                    table: ({children}) => (
+                      <div className="my-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-slate-700">
+                        <table className="w-full text-xs">{children}</table>
+                      </div>
+                    ),
+                    thead: ({children}) => <thead className="bg-gray-50 dark:bg-slate-800">{children}</thead>,
+                    th: ({children}) => <th className="px-4 py-2.5 text-left font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700">{children}</th>,
+                    td: ({children}) => <td className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800 text-gray-600 dark:text-gray-400">{children}</td>,
+                    tr: ({children}) => <tr className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30">{children}</tr>,
+                  }}
+                >{activeArticle.content}</ReactMarkdown>
               </article>
             </div>
           ) : (
