@@ -336,3 +336,35 @@ async def admin_reset_quota_alerts(user_id: str, user: dict = Depends(get_curren
         raise HTTPException(403, "Admin access required")
     result = await db.quota_alerts.delete_many({"user_id": user_id})
     return {"reset": True, "cleared": result.deleted_count}
+
+
+# ── Auto-Deletion Policy (public read for banner) ──
+
+@router.get("/auto-delete-policy")
+async def get_auto_delete_policy():
+    """Get the current auto-deletion policy (public — for user banner display)."""
+    from scheduled.auto_delete_files import get_auto_delete_config
+    config = await get_auto_delete_config()
+    # Also get last run stats
+    doc = await db.admin_settings.find_one({"category": "auto_delete_policy"}, {"_id": 0})
+    return {
+        "enabled": config["enabled"],
+        "retention_days": config["retention_days"],
+        "exclude_starred": config["exclude_starred"],
+        "dry_run": config["dry_run"],
+        "last_run": doc.get("last_run") if doc else None,
+        "last_run_deleted": doc.get("last_run_deleted", 0) if doc else 0,
+        "last_run_freed": doc.get("last_run_freed", 0) if doc else 0,
+        "last_dry_run_count": doc.get("last_dry_run_count", 0) if doc else 0,
+        "last_dry_run_size": doc.get("last_dry_run_size", 0) if doc else 0,
+    }
+
+@router.post("/auto-delete-policy/run-now")
+async def run_auto_delete_now(user: dict = Depends(get_current_user)):
+    """Manually trigger the auto-deletion job (admin only)."""
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ["super_admin", "admin"]:
+        raise HTTPException(403, "Admin access required")
+    from scheduled.auto_delete_files import run_auto_deletion
+    await run_auto_deletion()
+    return {"success": True, "message": "Auto-deletion job executed"}

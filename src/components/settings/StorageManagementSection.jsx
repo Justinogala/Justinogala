@@ -32,6 +32,7 @@ const StorageManagementSection = () => {
   const [sortField, setSortField] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [autoDeletePolicy, setAutoDeletePolicy] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,6 +57,14 @@ const StorageManagementSection = () => {
   }, [sortField, sortOrder, typeFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Fetch auto-delete policy
+  useEffect(() => {
+    fetch(`${API_URL}/api/storage/auto-delete-policy`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setAutoDeletePolicy(data); })
+      .catch(() => {});
+  }, []);
 
   const handleDelete = async (file) => {
     if (!window.confirm(`Delete "${file.filename}"? This frees ${file.file_size_formatted || '0 B'}.`)) return;
@@ -103,6 +112,13 @@ const StorageManagementSection = () => {
         </h2>
         <p className="text-sm text-gray-500 mt-1">View and manage your AI-generated files</p>
       </div>
+
+      {autoDeletePolicy?.enabled && !autoDeletePolicy?.dry_run && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-sm text-amber-700 dark:text-amber-400" data-testid="auto-delete-banner">
+          <Trash2 className="w-4 h-4 flex-shrink-0" />
+          <span>Files older than <strong>{autoDeletePolicy.retention_days} days</strong> are automatically deleted.{autoDeletePolicy.exclude_starred ? ' Pinned conversations are excluded.' : ''}</span>
+        </div>
+      )}
 
       {/* Quota Overview */}
       {quota && (

@@ -443,6 +443,10 @@ async def startup_event():
             from routes.calendar import send_meeting_reminders
             scheduler.add_job(send_meeting_reminders, 'interval', minutes=1, id='meeting_reminders')
 
+            # Auto-delete old generated files - runs daily at 3 AM UTC
+            from scheduled.auto_delete_files import run_auto_deletion
+            scheduler.add_job(run_auto_deletion, 'cron', hour=3, minute=0, id='auto_delete_files')
+
             scheduler.start()
             logger.info("Escalation scheduler started (runs every 1 hour)")
             logger.info("Weekly digest scheduler started (runs every Monday 9 AM UTC)")

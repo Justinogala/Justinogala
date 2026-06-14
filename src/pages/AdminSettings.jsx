@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Save, RefreshCw, Undo, Loader2, CheckCircle, AlertCircle, Clock, MessageSquare, Send } from 'lucide-react';
+import { Save, RefreshCw, Undo, Loader2, CheckCircle, AlertCircle, Clock, MessageSquare, Send, Trash2, Play } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -77,6 +77,64 @@ const AdminSettings = () => {
       else toast({ title: "Failed", description: data.detail || "Could not send test", variant: "destructive" });
     } catch { toast({ title: "Error", description: "Network error", variant: "destructive" }); }
     setSmsTesting(false);
+  };
+
+  // Auto-deletion policy state
+  const [autoDeleteConfig, setAutoDeleteConfig] = useState({
+    enabled: false, retention_days: 30, exclude_starred: true, dry_run: false,
+    last_run: null, last_run_deleted: 0, last_run_freed: 0, last_dry_run_count: 0, last_dry_run_size: 0,
+  });
+  const [autoDeleteSaving, setAutoDeleteSaving] = useState(false);
+  const [autoDeleteRunning, setAutoDeleteRunning] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/api/storage/auto-delete-policy`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setAutoDeleteConfig(prev => ({ ...prev, ...data })); })
+      .catch(() => {});
+  }, []);
+
+  const saveAutoDeletePolicy = async () => {
+    setAutoDeleteSaving(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${API}/api/admin/settings/auto_delete_policy`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          category: 'auto_delete_policy',
+          settings: {
+            enabled: autoDeleteConfig.enabled,
+            retention_days: autoDeleteConfig.retention_days,
+            exclude_starred: autoDeleteConfig.exclude_starred,
+            dry_run: autoDeleteConfig.dry_run,
+          }
+        }),
+      });
+      if (res.ok) toast({ title: "Auto-Delete Policy Saved", description: autoDeleteConfig.enabled ? `Files older than ${autoDeleteConfig.retention_days} days will be cleaned up daily.` : "Auto-deletion disabled." });
+      else toast({ title: "Error", description: "Failed to save", variant: "destructive" });
+    } catch { toast({ title: "Error", description: "Network error", variant: "destructive" }); }
+    setAutoDeleteSaving(false);
+  };
+
+  const runAutoDeleteNow = async () => {
+    if (!window.confirm(autoDeleteConfig.dry_run ? "Run dry-run preview? No files will be deleted." : "Run auto-deletion NOW? This will permanently delete files.")) return;
+    setAutoDeleteRunning(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${API}/api/storage/auto-delete-policy/run-now`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "Job Complete", description: data.message });
+        // Refresh config to get updated last_run stats
+        const updated = await fetch(`${API}/api/storage/auto-delete-policy`).then(r => r.json());
+        setAutoDeleteConfig(prev => ({ ...prev, ...updated }));
+      } else toast({ title: "Failed", description: data.detail || "Job failed", variant: "destructive" });
+    } catch { toast({ title: "Error", description: "Network error", variant: "destructive" }); }
+    setAutoDeleteRunning(false);
   };
 
   // Load settings on mount
@@ -606,6 +664,84 @@ const AdminSettings = () => {
                       onChange={(e) => handleFieldChange('system', 'apiRateLimit', parseInt(e.target.value) || 0)}
                     />
                  </div>
+
+                 {/* Auto-Deletion Policy */}
+                 <div className="pt-6 mt-2 border-t border-gray-100 dark:border-gray-800">
+                   <Card className="border-amber-200 dark:border-amber-800/50">
+                     <CardHeader className="pb-3">
+                       <div className="flex justify-between items-center">
+                         <div>
+                           <CardTitle className="flex items-center gap-2 text-base"><Trash2 className="w-4 h-4 text-amber-500" /> Auto-Deletion Policy</CardTitle>
+                           <CardDescription>Automatically delete AI-generated files (images, PDFs, charts) older than a set period.</CardDescription>
+                         </div>
+                         <Switch
+                           checked={autoDeleteConfig.enabled}
+                           onCheckedChange={(v) => setAutoDeleteConfig(p => ({ ...p, enabled: v }))}
+                           data-testid="auto-delete-enabled"
+                         />
+                       </div>
+                     </CardHeader>
+                     {autoDeleteConfig.enabled && (
+                       <CardContent className="space-y-4 pt-0">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           <div className="grid gap-2">
+                             <Label>Delete files older than</Label>
+                             <Select value={String(autoDeleteConfig.retention_days)} onValueChange={v => setAutoDeleteConfig(p => ({ ...p, retention_days: parseInt(v) }))}>
+                               <SelectTrigger data-testid="retention-days-select"><SelectValue /></SelectTrigger>
+                               <SelectContent>
+                                 <SelectItem value="7">7 days</SelectItem>
+                                 <SelectItem value="14">14 days</SelectItem>
+                                 <SelectItem value="30">30 days</SelectItem>
+                                 <SelectItem value="60">60 days</SelectItem>
+                                 <SelectItem value="90">90 days</SelectItem>
+                                 <SelectItem value="180">180 days</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </div>
+                           <div className="space-y-3">
+                             <div className="flex items-center gap-2">
+                               <Switch
+                                 checked={autoDeleteConfig.exclude_starred}
+                                 onCheckedChange={(v) => setAutoDeleteConfig(p => ({ ...p, exclude_starred: v }))}
+                                 data-testid="exclude-starred-toggle"
+                               />
+                               <Label className="text-sm">Exclude pinned conversations</Label>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <Switch
+                                 checked={autoDeleteConfig.dry_run}
+                                 onCheckedChange={(v) => setAutoDeleteConfig(p => ({ ...p, dry_run: v }))}
+                                 data-testid="dry-run-toggle"
+                               />
+                               <Label className="text-sm">Dry-run mode (preview only)</Label>
+                             </div>
+                           </div>
+                         </div>
+                         {autoDeleteConfig.last_run && (
+                           <div className="p-3 rounded-lg bg-gray-50 dark:bg-slate-800/50 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                             <p>Last run: {new Date(autoDeleteConfig.last_run).toLocaleString()} — {autoDeleteConfig.last_run_deleted} files deleted, {(autoDeleteConfig.last_run_freed / 1024 / 1024).toFixed(1)} MB freed</p>
+                           </div>
+                         )}
+                         {autoDeleteConfig.dry_run && autoDeleteConfig.last_dry_run_count > 0 && (
+                           <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 text-xs text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800/30">
+                             Dry-run preview: {autoDeleteConfig.last_dry_run_count} files ({(autoDeleteConfig.last_dry_run_size / 1024 / 1024).toFixed(1)} MB) would be deleted
+                           </div>
+                         )}
+                         <div className="flex gap-2">
+                           <Button onClick={saveAutoDeletePolicy} disabled={autoDeleteSaving} size="sm" data-testid="save-auto-delete-btn">
+                             {autoDeleteSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                             Save Policy
+                           </Button>
+                           <Button variant="outline" onClick={runAutoDeleteNow} disabled={autoDeleteRunning} size="sm" data-testid="run-auto-delete-btn">
+                             {autoDeleteRunning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                             {autoDeleteConfig.dry_run ? 'Preview Now' : 'Run Now'}
+                           </Button>
+                         </div>
+                       </CardContent>
+                     )}
+                   </Card>
+                 </div>
+
                  <div className="pt-6 mt-2 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center justify-between p-4 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900 rounded-lg">
                       <div className="space-y-0.5">
