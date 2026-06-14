@@ -285,7 +285,7 @@ async def get_workspace_shifts(
 ):
     """Get all shifts for a workspace"""
     try:
-        query = {"workspace_id": workspace_id}
+        query = {"workspace_id": workspace_id, "deleted": {"$ne": True}}
         
         if start_date and end_date:
             query["date"] = {"$gte": start_date, "$lte": end_date}
@@ -431,20 +431,23 @@ async def update_shift(shift_id: str, request: ShiftUpdate, background_tasks: Ba
 
 @router.delete("/{shift_id}")
 async def delete_shift(shift_id: str, delete_recurring: bool = False):
-    """Delete a shift"""
+    """Soft-delete a shift (moves to trash)."""
     try:
-        shift = await db.shifts.find_one({"id": shift_id})
+        shift = await db.shifts.find_one({"id": shift_id, "deleted": {"$ne": True}})
         if not shift:
             raise HTTPException(status_code=404, detail="Shift not found")
         
-        # Delete the shift
-        await db.shifts.delete_one({"id": shift_id})
+        from routes.admin_trash import soft_delete_item
+        await soft_delete_item("shifts", {"id": shift_id})
         
-        # Delete recurring shifts if requested
         deleted_count = 1
         if delete_recurring and shift.get("is_recurring"):
-            result = await db.shifts.delete_many({"parent_shift_id": shift_id})
-            deleted_count += result.deleted_count
+            now = __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()
+            result = await db.shifts.update_many(
+                {"parent_shift_id": shift_id, "deleted": {"$ne": True}},
+                {"$set": {"deleted": True, "deleted_at": now}}
+            )
+            deleted_count += result.modified_count
         
         return {"success": True, "deleted_count": deleted_count}
     except HTTPException:

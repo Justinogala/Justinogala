@@ -5,7 +5,7 @@ import {
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
   Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList,
-  HeartPulse, Package, TrendingUp, HardDrive, BookOpen
+  HeartPulse, Package, TrendingUp, HardDrive, BookOpen, Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -485,6 +485,14 @@ const AdminSidebar = ({ onClose, isMobile }) => {
           <NavItem
             link={{ icon: Shield, label: 'Module Permissions', path: '/admin/module-permissions', gradient: 'from-red-600 to-rose-600' }}
             index={primaryLinks.length + managementLinks.length + configLinks.length}
+            collapsed={collapsed}
+            onClose={onClose}
+            hoveredItem={hoveredItem}
+            setHoveredItem={setHoveredItem}
+          />
+          <NavItem
+            link={{ icon: Trash2, label: 'Recycle Bin', path: '/admin/trash', gradient: 'from-red-500 to-orange-500' }}
+            index={primaryLinks.length + managementLinks.length + configLinks.length + 1}
             collapsed={collapsed}
             onClose={onClose}
             hoveredItem={hoveredItem}

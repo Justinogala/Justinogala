@@ -223,8 +223,9 @@ async def delete_ir_template(template_id: str):
         if t["id"] == template_id:
             raise HTTPException(status_code=400, detail="Cannot delete default templates")
 
-    result = await db.ir_sor_templates.delete_one({"id": template_id})
-    if result.deleted_count == 0:
+    from routes.admin_trash import soft_delete_item
+    deleted = await soft_delete_item("ir_sor_templates", {"id": template_id})
+    if not deleted:
         raise HTTPException(status_code=404, detail="Template not found")
     return {"success": True}
 

@@ -217,17 +217,17 @@ async def update_organization(org_id: str, updates: OrgUpdate):
 
 @router.delete("/{org_id}")
 async def delete_organization(org_id: str):
-    """Delete an organization. Members become personal accounts."""
-    result = await db.organizations.delete_one({"id": org_id})
-    if result.deleted_count == 0:
+    """Soft-delete an organization. Members become personal accounts."""
+    from routes.admin_trash import soft_delete_item
+    deleted = await soft_delete_item("organizations", {"id": org_id})
+    if not deleted:
         raise HTTPException(status_code=404, detail="Organization not found")
-    # Downgrade members to personal
     await db.users.update_many(
         {"organization_id": org_id},
         {"$set": {"organization_id": None, "account_type": "personal"}}
     )
-    logger.info(f"Organization {org_id} deleted, members downgraded to personal")
-    return {"success": True, "message": "Organization deleted. Members converted to personal accounts."}
+    logger.info(f"Organization {org_id} soft-deleted, members downgraded to personal")
+    return {"success": True, "message": "Organization moved to trash. Members converted to personal accounts."}
 
 
 # ============== Member Management ==============

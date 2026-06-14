@@ -273,6 +273,7 @@ from routes.audit_logs import router as audit_logs_router
 from routes.admin_2fa_dashboard import router as admin_2fa_dashboard_router, run_2fa_auto_reminders
 from routes.admin_compliance import router as admin_compliance_router, take_compliance_snapshot
 from routes.sms_notifications import router as sms_notifications_router
+from routes.admin_trash import router as admin_trash_router
 from routes.updates import router as updates_router
 from scheduled.data_health_digest import run_data_health_digest
 
@@ -359,6 +360,7 @@ api_router.include_router(admin_2fa_dashboard_router)
 api_router.include_router(admin_compliance_router)
 api_router.include_router(sms_notifications_router)
 api_router.include_router(updates_router)
+api_router.include_router(admin_trash_router)
 
 from routes.sheets import router as sheets_router
 api_router.include_router(sheets_router)

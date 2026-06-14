@@ -371,7 +371,7 @@ async def get_workspaces(user_id: str = None):
     """Get all workspaces for a user"""
     try:
         # Exclude deleted workspaces for regular users
-        not_deleted = {"status": {"$ne": "deleted"}}
+        not_deleted = {"status": {"$ne": "deleted"}, "deleted": {"$ne": True}}
         
         if user_id:
             owned = await db.workspaces.find(
@@ -629,26 +629,13 @@ async def update_workspace(workspace_id: str, updates: WorkspaceUpdate):
 
 @router.delete("/{workspace_id}")
 async def delete_workspace(workspace_id: str):
-    """Delete a workspace and all its members"""
+    """Soft-delete a workspace (moves to trash)."""
     try:
-        result = await db.workspaces.delete_one({"id": workspace_id})
-        if result.deleted_count == 0:
+        from routes.admin_trash import soft_delete_item
+        deleted = await soft_delete_item("workspaces", {"id": workspace_id})
+        if not deleted:
             raise HTTPException(status_code=404, detail="Workspace not found")
-        
-        await db.workspace_members.delete_many({"workspace_id": workspace_id})
-        
-        # Clean up workspace files from GridFS
-        ws_files = await db.workspace_files.find({"workspace_id": workspace_id}, {"grid_id": 1}).to_list(500)
-        if ws_files:
-            from bson import ObjectId
-            for wf in ws_files:
-                try:
-                    await fs_workspace_files.delete(ObjectId(wf["grid_id"]))
-                except Exception:
-                    pass
-            await db.workspace_files.delete_many({"workspace_id": workspace_id})
-        
-        return {"success": True, "message": "Workspace deleted"}
+        return {"success": True, "message": "Workspace moved to trash"}
     except HTTPException:
         raise
     except Exception as e:

@@ -120,7 +120,7 @@ async def delete_document(
     user_id = _get_user_id(credentials)
     result = await db.documents.update_one(
         {"id": doc_id, "user_id": user_id},
-        {"$set": {"deleted": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {"deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat(), "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Document not found")

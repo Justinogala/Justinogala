@@ -209,9 +209,10 @@ async def update_template(template_id: str, request: CreateTemplateRequest):
 
 @router.delete("/templates/{template_id}")
 async def delete_template(template_id: str):
-    """Delete a custom template."""
-    result = await db.approval_templates.delete_one({"id": template_id})
-    if result.deleted_count == 0:
+    """Soft-delete a custom template (moves to trash)."""
+    from routes.admin_trash import soft_delete_item
+    deleted = await soft_delete_item("approval_templates", {"id": template_id})
+    if not deleted:
         raise HTTPException(status_code=404, detail="Template not found or is a default template")
     return {"success": True}
 
