@@ -1,14 +1,13 @@
 # Test Credentials
 
-## Super Admin
+## Admin
 - Email: admin@munal.ai
 - Password: Admin@123456
-- Note: Requires 2FA verification (method: both - TOTP + email)
 
-## Standard Test Users (preview)
-- Email: analytics@munal.ai / Password: Test@12345
-- Email: chattest@munal.ai / Password: Test@12345
+## Standard User
+- Email: previewtest@munal.ai
+- Password: Test@12345
 
-## Previous User (production only)
+## Standard User (production)
 - Email: justinogala@outlook.com
 - Password: 4edfdukD@1

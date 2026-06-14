@@ -86,6 +86,12 @@ async def update_admin_settings(update: AdminSettingsUpdate, request: Request):
         logger.error(f"Error updating settings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/settings/{category}")
+async def update_admin_settings_by_category(category: str, update: AdminSettingsUpdate, request: Request):
+    """Alias route — frontend calls PUT /settings/{section}."""
+    update.category = category
+    return await update_admin_settings(update, request)
+
 
 @router.post("/smtp/test")
 async def test_smtp(request_data: SMTPTestRequest):

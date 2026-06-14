@@ -298,8 +298,16 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     yield f"data: {json.dumps({'type': 'chunk', 'content': delta.content})}\n\n"
 
         except Exception as e:
-            logger.error(f"AI Chat streaming error: {e}")
-            full_response = "I'm sorry, I encountered an error processing your request. Please try again."
+            err_str = str(e)
+            logger.error(f"AI Chat streaming error: {err_str}")
+            if "budget" in err_str.lower() or "balance" in err_str.lower() or "quota" in err_str.lower() or "insufficient" in err_str.lower():
+                full_response = "The AI service is temporarily unavailable due to usage limits. Please contact your administrator to add balance to the Universal Key (Profile → Universal Key → Add Balance)."
+            elif "rate" in err_str.lower() and "limit" in err_str.lower():
+                full_response = "Too many requests. Please wait a moment and try again."
+            elif "api_key" in err_str.lower() or "auth" in err_str.lower() or "401" in err_str:
+                full_response = "AI service authentication failed. Please contact your administrator to check the API key configuration."
+            else:
+                full_response = f"I encountered an error processing your request. Please try again. (Error: {err_str[:100]})"
             yield f"data: {json.dumps({'type': 'chunk', 'content': full_response})}\n\n"
 
         # ============== Web Search Detection ==============
