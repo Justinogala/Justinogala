@@ -2,19 +2,37 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { Bell, Mail, Calendar, CheckSquare, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Bell, Mail, Calendar, CheckSquare, Loader2, Send, MessageCircle } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
+import { useToast } from '@/components/ui/use-toast';
 
 const NotificationsSettingsSection = () => {
   const { preferences, updateNotificationPreferences, loading } = useUserSettings();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const API = getApiUrl();
   const [localPrefs, setLocalPrefs] = useState(preferences);
 
-  // Sync with hook state on mount or change
+  // Telegram Chat ID state
+  const [telegramChatId, setTelegramChatId] = useState('');
+  const [telegramSaving, setTelegramSaving] = useState(false);
+  const [telegramTesting, setTelegramTesting] = useState(false);
+
+  useEffect(() => { setLocalPrefs(preferences); }, [preferences]);
+
+  // Load user's Telegram Chat ID
   useEffect(() => {
-    setLocalPrefs(preferences);
-  }, [preferences]);
+    if (!user?.id) return;
+    fetch(`${API}/api/users/${user.id}/telegram`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.telegram_chat_id) setTelegramChatId(data.telegram_chat_id); })
+      .catch(() => {});
+  }, [user?.id]);
 
   const handleToggle = (key) => {
     setLocalPrefs(prev => ({ ...prev, [key]: !prev[key] }));
@@ -22,6 +40,38 @@ const NotificationsSettingsSection = () => {
 
   const handleSave = () => {
     updateNotificationPreferences(localPrefs);
+  };
+
+  const saveTelegramId = async () => {
+    if (!user?.id) return;
+    setTelegramSaving(true);
+    try {
+      const res = await fetch(`${API}/api/users/${user.id}/telegram`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_chat_id: telegramChatId }),
+      });
+      if (res.ok) toast({ title: "Saved", description: "Telegram Chat ID updated." });
+      else toast({ title: "Error", description: "Failed to save", variant: "destructive" });
+    } catch { toast({ title: "Error", description: "Network error", variant: "destructive" }); }
+    setTelegramSaving(false);
+  };
+
+  const testTelegram = async () => {
+    if (!telegramChatId.trim()) { toast({ title: "Enter your Chat ID first", variant: "destructive" }); return; }
+    setTelegramTesting(true);
+    try {
+      const token = localStorage.getItem('admin_token') || JSON.parse(localStorage.getItem('munal_sessions') || '{}').token;
+      const res = await fetch(`${API}/api/admin/sms/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ chat_id: telegramChatId }),
+      });
+      const data = await res.json();
+      if (res.ok) toast({ title: "Test Sent!", description: "Check your Telegram for the message." });
+      else toast({ title: "Failed", description: data.detail || "Could not send test. Ask admin to configure Telegram bot.", variant: "destructive" });
+    } catch { toast({ title: "Error", description: "Network error", variant: "destructive" }); }
+    setTelegramTesting(false);
   };
 
   const NotificationItem = ({ icon: Icon, title, description, checked, onCheckedChange }) => (
@@ -42,6 +92,7 @@ const NotificationsSettingsSection = () => {
   );
 
   return (
+    <>
     <Card className="border-border shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -102,6 +153,48 @@ const NotificationsSettingsSection = () => {
         </Button>
       </CardFooter>
     </Card>
+
+    {/* Telegram Notifications Card */}
+    <Card className="border-border shadow-sm mt-4">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageCircle className="w-5 h-5 text-sky-500" />
+          Telegram Notifications
+        </CardTitle>
+        <CardDescription>
+          Link your Telegram account to receive instant notifications for meeting reminders, task assignments, and alerts directly on your phone.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="p-4 rounded-xl bg-sky-50/50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-800/30 space-y-3">
+          <div className="grid gap-2">
+            <Label>Your Telegram Chat ID</Label>
+            <Input
+              placeholder="e.g., 123456789"
+              value={telegramChatId}
+              onChange={e => setTelegramChatId(e.target.value)}
+              data-testid="user-telegram-chat-id"
+            />
+          </div>
+          <p className="text-xs text-gray-400">
+            To find your Chat ID: 1) Search for your admin's Munal bot on Telegram, 2) Send it any message, 3) Ask your admin for the Chat ID, or use <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-violet-500 hover:underline">@userinfobot</a>.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={saveTelegramId} disabled={telegramSaving} data-testid="save-telegram-id-btn">
+            {telegramSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            {telegramSaving ? 'Saving...' : 'Save Chat ID'}
+          </Button>
+          {telegramChatId && (
+            <Button variant="outline" onClick={testTelegram} disabled={telegramTesting} data-testid="test-telegram-btn">
+              {telegramTesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              Send Test
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  </>
   );
 };
 

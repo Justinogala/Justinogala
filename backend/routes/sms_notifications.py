@@ -143,7 +143,9 @@ async def _send_telegram(bot_token: str, chat_id: str, text: str) -> bool:
 # ── Public send function (used by other modules) ──
 
 async def send_notification(recipient: str, message: str) -> bool:
-    """Send a notification using the configured SMS provider. Returns True on success."""
+    """Send a notification using the configured SMS provider.
+    `recipient` can be a Telegram chat ID or a phone number.
+    Returns True on success."""
     config = await db.admin_settings.find_one({"category": "sms_notifications"}, {"_id": 0})
     if not config or not config.get("enabled"):
         return False
@@ -158,3 +160,11 @@ async def send_notification(recipient: str, message: str) -> bool:
 
     # Future: Twilio, Vonage, MSG91 implementations
     return False
+
+
+async def send_notification_to_user(user_id: str, message: str) -> bool:
+    """Send a notification to a user by their user_id. Looks up their Telegram Chat ID."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "telegram_chat_id": 1})
+    if not user or not user.get("telegram_chat_id"):
+        return False
+    return await send_notification(user["telegram_chat_id"], message)

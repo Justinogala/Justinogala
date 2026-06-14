@@ -135,6 +135,7 @@ class UserUpdate(BaseModel):
     avatar: Optional[str] = None
     account_type: Optional[str] = None
     organization_id: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: str

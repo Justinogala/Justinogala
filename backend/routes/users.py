@@ -324,3 +324,30 @@ async def reset_onboarding(user_id: str):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"success": True, "onboarding_completed": False}
+
+
+# ── Telegram Chat ID (user self-service) ──
+
+from pydantic import BaseModel as PydanticBaseModel
+
+class TelegramChatIdUpdate(PydanticBaseModel):
+    telegram_chat_id: str = ""
+
+@router.get("/{user_id}/telegram")
+async def get_telegram_chat_id(user_id: str):
+    """Get a user's Telegram Chat ID."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "telegram_chat_id": 1})
+    if not user:
+        raise HTTPException(404, "User not found")
+    return {"telegram_chat_id": user.get("telegram_chat_id", "")}
+
+@router.put("/{user_id}/telegram")
+async def update_telegram_chat_id(user_id: str, body: TelegramChatIdUpdate):
+    """Update a user's Telegram Chat ID for notifications."""
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"telegram_chat_id": body.telegram_chat_id.strip()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "User not found")
+    return {"success": True, "telegram_chat_id": body.telegram_chat_id.strip()}
