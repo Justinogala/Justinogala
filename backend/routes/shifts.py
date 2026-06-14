@@ -174,6 +174,10 @@ async def notify_workspace_owner(workspace_id: str, title: str, message: str, no
             message,
             f"/workspace/{workspace_id}/shifts",
         )
+
+        # Send Telegram notification
+        from routes.sms_notifications import send_notification_to_user
+        background_tasks.add_task(send_notification_to_user, owner["id"], f"📋 <b>{title}</b>\n\n{message}")
     except Exception as e:
         logger.error(f"Error notifying workspace owner: {e}")
 
@@ -406,6 +410,15 @@ async def update_shift(shift_id: str, request: ShiftUpdate, background_tasks: Ba
                     "Shift Assignment Update",
                     f"<p>You have been assigned to a shift:</p><p><strong>Date:</strong> {request.date or shift.get('date')}<br><strong>Time:</strong> {request.start_time or shift.get('start_time')} - {request.end_time or shift.get('end_time')}</p>"
                 )
+            # Telegram notification for assignment
+            from routes.sms_notifications import send_notification_to_user
+            shift_date = request.date or shift.get('date', '')
+            shift_start = request.start_time or shift.get('start_time', '')
+            shift_end = request.end_time or shift.get('end_time', '')
+            background_tasks.add_task(
+                send_notification_to_user, request.assigned_to,
+                f"📋 <b>Shift Assigned</b>\n\nYou've been assigned a shift:\n📅 {shift_date}\n⏰ {shift_start} - {shift_end}"
+            )
         
         updated_shift = await db.shifts.find_one({"id": shift_id}, {"_id": 0})
         return {"success": True, "shift": updated_shift}

@@ -384,6 +384,16 @@ async def send_meeting_reminders():
                                 except Exception as e:
                                     logger.error(f"Email reminder failed for {user_id}: {e}")
 
+                            # Telegram notification
+                            try:
+                                from routes.sms_notifications import send_notification_to_user
+                                tg_msg = f"📅 <b>Meeting Reminder</b>\n\n<b>{title}</b> starts in {mins_before} minutes."
+                                if meeting_link:
+                                    tg_msg += f"\n\n🔗 <a href=\"{meeting_link}\">Join Meeting</a>"
+                                await send_notification_to_user(user_id, tg_msg)
+                            except Exception as e:
+                                logger.error(f"Telegram reminder failed for {user_id}: {e}")
+
                         # Mark this reminder as sent
                         await db.calendar_events.update_one(
                             {"id": event_id, f"reminders.minutes_before": mins_before},

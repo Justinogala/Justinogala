@@ -77,6 +77,21 @@ async def create_shift_notification(user_id: str, shift: dict, minutes_until: in
     }
     
     await db.notifications.insert_one(notification)
+
+    # Telegram notification
+    try:
+        from routes.sms_notifications import send_notification_to_user
+        shift_date = shift.get("date", "")
+        shift_start = shift.get("start_time", "")
+        shift_end = shift.get("end_time", "")
+        if minutes_until > 0:
+            tg_msg = f"⏰ <b>Shift Reminder</b>\n\nYour shift starts in {minutes_until} minutes.\n📅 {shift_date}\n⏰ {shift_start} - {shift_end}"
+        else:
+            tg_msg = f"⏰ <b>Shift Reminder</b>\n\nYour shift is starting now!\n📅 {shift_date}\n⏰ {shift_start} - {shift_end}"
+        await send_notification_to_user(user_id, tg_msg)
+    except Exception as e:
+        logger.error(f"Telegram shift reminder failed for {user_id}: {e}")
+
     return notification
 
 
