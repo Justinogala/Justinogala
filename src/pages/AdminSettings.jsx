@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Save, RefreshCw, Undo, Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Save, RefreshCw, Undo, Loader2, CheckCircle, AlertCircle, Clock, MessageSquare, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageTransition from '@/components/PageTransition';
 import { useToast } from '@/components/ui/use-toast';
 import { adminSettingsPersistenceService } from '@/services/adminSettingsPersistenceService';
 import SettingsStatusBadge from '@/components/admin/SettingsStatusBadge';
+import { getApiUrl } from '@/lib/api';
 
 const AdminSettings = () => {
   const { toast } = useToast();
@@ -21,6 +23,61 @@ const AdminSettings = () => {
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [activeTab, setActiveTab] = useState("general");
+  const API = getApiUrl();
+
+  // SMS notification settings
+  const [smsConfig, setSmsConfig] = useState({
+    provider: 'telegram', enabled: false,
+    telegram_bot_token: '', telegram_bot_name: '',
+    twilio_account_sid: '', twilio_auth_token: '', twilio_phone_number: '',
+    vonage_api_key: '', vonage_api_secret: '', vonage_from_number: '',
+    msg91_auth_key: '', msg91_sender_id: '', msg91_template_id: '',
+  });
+  const [smsSaving, setSmsSaving] = useState(false);
+  const [smsTesting, setSmsTesting] = useState(false);
+  const [testChatId, setTestChatId] = useState('');
+
+  // Load SMS config
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+    fetch(`${API}/api/admin/sms`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSmsConfig(prev => ({ ...prev, ...data })); })
+      .catch(() => {});
+  }, []);
+
+  const saveSmsConfig = async () => {
+    setSmsSaving(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${API}/api/admin/sms`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(smsConfig),
+      });
+      if (res.ok) toast({ title: "SMS Settings Saved", description: `Provider: ${smsConfig.provider}` });
+      else toast({ title: "Error", description: "Failed to save SMS config", variant: "destructive" });
+    } catch { toast({ title: "Error", description: "Network error", variant: "destructive" }); }
+    setSmsSaving(false);
+  };
+
+  const sendTestSms = async () => {
+    if (!testChatId.trim()) { toast({ title: "Enter a Chat ID", variant: "destructive" }); return; }
+    setSmsTesting(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${API}/api/admin/sms/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ chat_id: testChatId }),
+      });
+      const data = await res.json();
+      if (res.ok) toast({ title: "Test Sent!", description: data.message });
+      else toast({ title: "Failed", description: data.detail || "Could not send test", variant: "destructive" });
+    } catch { toast({ title: "Error", description: "Network error", variant: "destructive" }); }
+    setSmsTesting(false);
+  };
 
   // Load settings on mount
   const loadSettings = useCallback(async () => {
@@ -366,6 +423,156 @@ const AdminSettings = () => {
                        />
                     </div>
                   ))}
+              </CardContent>
+            </Card>
+
+            {/* SMS / Messaging Settings */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><MessageSquare className="w-5 h-5" /> SMS & Messaging Settings</CardTitle>
+                    <CardDescription>Configure SMS/messaging providers for phone notifications. Select a provider and enter credentials.</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Enable</Label>
+                    <Switch
+                      checked={smsConfig.enabled}
+                      onCheckedChange={(v) => setSmsConfig(p => ({ ...p, enabled: v }))}
+                      data-testid="sms-enabled-toggle"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Provider Selection */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { id: 'telegram', name: 'Telegram', color: 'text-sky-500', desc: 'Free' },
+                    { id: 'twilio', name: 'Twilio', color: 'text-red-500', desc: 'Paid' },
+                    { id: 'vonage', name: 'Vonage', color: 'text-gray-700 dark:text-gray-300', desc: 'Paid' },
+                    { id: 'msg91', name: 'MSG91', color: 'text-blue-600', desc: 'Paid' },
+                  ].map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSmsConfig(prev => ({ ...prev, provider: p.id }))}
+                      className={`p-4 rounded-xl border-2 text-center transition-all ${
+                        smsConfig.provider === p.id
+                          ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-sm'
+                          : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
+                      }`}
+                      data-testid={`sms-provider-${p.id}`}
+                    >
+                      <span className={`text-sm font-bold ${p.color}`}>{p.name}</span>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{p.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Telegram Config */}
+                {smsConfig.provider === 'telegram' && (
+                  <div className="space-y-4 p-4 rounded-xl bg-sky-50/50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-800/30">
+                    <p className="text-xs text-sky-700 dark:text-sky-400 font-medium">Telegram is free — create a bot via @BotFather on Telegram to get your token.</p>
+                    <div className="grid gap-2">
+                      <Label>Telegram Bot Token *</Label>
+                      <Input type="password" placeholder="123456:ABC-DEF1234..." value={smsConfig.telegram_bot_token}
+                        onChange={e => setSmsConfig(p => ({ ...p, telegram_bot_token: e.target.value }))} data-testid="telegram-bot-token" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Telegram Bot Name</Label>
+                      <Input placeholder="Munal Notifications" value={smsConfig.telegram_bot_name}
+                        onChange={e => setSmsConfig(p => ({ ...p, telegram_bot_name: e.target.value }))} data-testid="telegram-bot-name" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Twilio Config */}
+                {smsConfig.provider === 'twilio' && (
+                  <div className="space-y-4 p-4 rounded-xl bg-red-50/50 dark:bg-red-900/10 border border-red-100 dark:border-red-800/30">
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">Twilio requires a paid account — get credentials at twilio.com/console</p>
+                    <div className="grid gap-2">
+                      <Label>Account SID</Label>
+                      <Input placeholder="ACxxxxxxxx..." value={smsConfig.twilio_account_sid}
+                        onChange={e => setSmsConfig(p => ({ ...p, twilio_account_sid: e.target.value }))} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Auth Token</Label>
+                      <Input type="password" placeholder="Auth token..." value={smsConfig.twilio_auth_token}
+                        onChange={e => setSmsConfig(p => ({ ...p, twilio_auth_token: e.target.value }))} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Phone Number</Label>
+                      <Input placeholder="+1234567890" value={smsConfig.twilio_phone_number}
+                        onChange={e => setSmsConfig(p => ({ ...p, twilio_phone_number: e.target.value }))} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Vonage Config */}
+                {smsConfig.provider === 'vonage' && (
+                  <div className="space-y-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Vonage (Nexmo) — get credentials at dashboard.nexmo.com</p>
+                    <div className="grid gap-2">
+                      <Label>API Key</Label>
+                      <Input placeholder="API key..." value={smsConfig.vonage_api_key}
+                        onChange={e => setSmsConfig(p => ({ ...p, vonage_api_key: e.target.value }))} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>API Secret</Label>
+                      <Input type="password" placeholder="API secret..." value={smsConfig.vonage_api_secret}
+                        onChange={e => setSmsConfig(p => ({ ...p, vonage_api_secret: e.target.value }))} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>From Number</Label>
+                      <Input placeholder="+1234567890" value={smsConfig.vonage_from_number}
+                        onChange={e => setSmsConfig(p => ({ ...p, vonage_from_number: e.target.value }))} />
+                    </div>
+                  </div>
+                )}
+
+                {/* MSG91 Config */}
+                {smsConfig.provider === 'msg91' && (
+                  <div className="space-y-4 p-4 rounded-xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">MSG91 — get credentials at msg91.com/signup</p>
+                    <div className="grid gap-2">
+                      <Label>Auth Key</Label>
+                      <Input type="password" placeholder="Auth key..." value={smsConfig.msg91_auth_key}
+                        onChange={e => setSmsConfig(p => ({ ...p, msg91_auth_key: e.target.value }))} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Sender ID</Label>
+                      <Input placeholder="MUNALAI" value={smsConfig.msg91_sender_id}
+                        onChange={e => setSmsConfig(p => ({ ...p, msg91_sender_id: e.target.value }))} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Template ID</Label>
+                      <Input placeholder="Template ID..." value={smsConfig.msg91_template_id}
+                        onChange={e => setSmsConfig(p => ({ ...p, msg91_template_id: e.target.value }))} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Button onClick={saveSmsConfig} disabled={smsSaving} data-testid="save-sms-btn">
+                    {smsSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    {smsSaving ? 'Saving...' : 'Save SMS Settings'}
+                  </Button>
+                  {smsConfig.provider === 'telegram' && smsConfig.enabled && (
+                    <div className="flex items-center gap-2">
+                      <Input placeholder="Telegram Chat ID" value={testChatId} onChange={e => setTestChatId(e.target.value)}
+                        className="w-48" data-testid="test-chat-id" />
+                      <Button variant="outline" onClick={sendTestSms} disabled={smsTesting} data-testid="send-test-sms-btn">
+                        {smsTesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                        Test
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {smsConfig.provider === 'telegram' && (
+                  <p className="text-xs text-gray-400">Tip: To get your Telegram Chat ID, message your bot and visit <code className="text-violet-500">api.telegram.org/bot[token]/getUpdates</code></p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
