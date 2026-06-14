@@ -12,6 +12,14 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### Universal Trash System (Recycle Bin) — June 14, 2026
+- **Soft-delete across all entities**: Users, Workspaces, Organizations, Approvals, Approval Templates, IR/SOR Reports, IR/SOR Templates, Shifts, Meetings, Documents, Presentations, Sheets, Form Templates
+- **Admin Recycle Bin page** (`/admin/trash`): Category tabs with badge counts, item list with name/extra/deletion date, Restore and Delete Forever actions, search filter, Empty Trash per category
+- **Backend**: `/app/backend/routes/admin_trash.py` with RESOURCE_MAP for 13 entity types, route ordering fix (empty/all before {item_id})
+- **Sidebar**: "Recycle Bin" link in Super Admin section
+- **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
+- Testing: 100% backend + 100% frontend — Iteration 141
+
 ### AI Chat Chart Performance Fix + Image Generation Enhancement + Web Search — June 12, 2026
 - **Chart Fix**: Sync I/O blocking async event loop → `asyncio.to_thread()`, matplotlib pre-import, SSE keepalives
 - **Image Gen Fix**: Same sync blocking → async, `AuthenticatedImage` component with blob URLs
@@ -93,6 +101,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Key API Endpoints
 - AI Chat: `POST /api/ai-chat/conversations/{id}/messages` (streaming), `GET /api/ai-chat/files/{file_id}`
+- Admin Trash: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`
 - Storage: `GET /api/storage/my-quota`, `GET /api/storage/files`
 - Cross-Workspace: `POST /api/{sheets|documents|presentations}/{id}/link-workspace`
 - Meeting: `POST /api/ai/meeting/process`, `GET /api/ai/meeting/{id}/export`
@@ -121,7 +130,6 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ## Upcoming Tasks
 - P3: Custom Template option for Sheets
 - P3: Real-time collaborative editing
-- P3: Auto-deletion policies for generated files
 
 ## Refactoring Done
 - `ai_chat.py` extracted from 1131→815 lines: Storage + prompts → `ai_chat_config.py` (115 lines), Export (MD/PDF/DOCX) → `ai_chat_export.py` (214 lines)
