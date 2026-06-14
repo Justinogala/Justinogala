@@ -129,6 +129,7 @@ const Header = () => {
     ],
     'Product': [
       { label: 'Pricing', href: '/pricing', icon: Zap },
+      { label: 'Documentation', href: '/resources/docs', icon: BookOpen },
       { label: 'Security', href: '/product/security', icon: Shield },
       { label: 'Roadmap', href: '/product/roadmap', icon: LayoutGrid },
       { label: 'Downloads', href: '/downloads/mobile-app', icon: Download },

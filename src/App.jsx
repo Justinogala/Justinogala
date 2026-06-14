@@ -240,6 +240,7 @@ const AdminIntegrationsPage = lazy(() => import('@/pages/admin/AdminIntegrations
 const AdminAPILogs = lazy(() => import('@/pages/admin/AdminAPILogs'));
 const AdminIntegrationLogs = lazy(() => import('@/pages/admin/AdminIntegrationLogs'));
 const AdminSettingsPersistenceTest = lazy(() => import('@/pages/admin/AdminSettingsPersistenceTest'));
+const AdminDocumentation = lazy(() => import('@/pages/admin/AdminDocumentation'));
 const AdminTranscriptionSettingsPage = lazy(() => import('@/pages/admin/AdminTranscriptionSettingsPage')); 
 const AdminVideoSettingsPage = lazy(() => import('@/pages/admin/AdminVideoSettingsPage'));
 const AdminStripeSettingsPage = lazy(() => import('@/pages/admin/AdminStripeSettingsPage'));
@@ -573,6 +574,7 @@ function App() {
                                 <Route path="broadcasts" element={<AdminBroadcastsPage />} />
                                 <Route path="api-settings" element={<AdminAPISettingsPage />} />
                                 <Route path="integrations" element={<AdminIntegrationsPage />} />
+                                <Route path="documentation" element={<AdminDocumentation />} />
                                 <Route path="payment-gateways" element={<AdminPaymentGatewaysPage />} />
                                 <Route path="plans" element={<AdminPlansPage />} />
                                 <Route path="coupons" element={<AdminCouponsPage />} />

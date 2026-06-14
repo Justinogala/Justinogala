@@ -5,7 +5,7 @@ import {
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
   Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList,
-  HeartPulse, Package, TrendingUp, HardDrive
+  HeartPulse, Package, TrendingUp, HardDrive, BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -189,6 +189,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
     { icon: FileText, label: 'Audit Logs', path: '/admin/audit-logs', gradient: 'from-rose-500 to-pink-500', moduleKey: 'audit_logs' },
     { icon: Package, label: 'System Updates', path: '/admin/system-updates', gradient: 'from-teal-500 to-cyan-500', moduleKey: 'dashboard' },
     { icon: Settings, label: 'Settings', path: '/admin/settings', gradient: 'from-slate-500 to-gray-500', moduleKey: 'general_settings' },
+    { icon: BookOpen, label: 'Admin Docs', path: '/admin/documentation', gradient: 'from-violet-500 to-purple-500', moduleKey: 'dashboard' },
   ];
 
   // Filter config links based on module permissions
