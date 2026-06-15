@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
+import BuilderView from '@/components/ai-builder/BuilderView';
 
 const API = getApiUrl();
 
@@ -399,6 +400,7 @@ export default function AIChatPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [token, setToken] = useState(null);
+  const [builderMode, setBuilderMode] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -993,6 +995,11 @@ export default function AIChatPage() {
     );
   }
 
+  // Builder Mode
+  if (builderMode) {
+    return <BuilderView onSwitchToChat={() => setBuilderMode(false)} />;
+  }
+
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-slate-950" data-testid="ai-chat-page">
       <Helmet><title>AI Chat - Munal AI</title></Helmet>
@@ -1116,10 +1123,11 @@ export default function AIChatPage() {
               <p className="text-[10px] text-gray-400">GPT-5.2 · Always ready</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50" data-testid="ai-builder-badge">
+          <button onClick={() => setBuilderMode(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50 hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors cursor-pointer" data-testid="ai-builder-badge">
             <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400" />
             <span className="text-sm font-medium text-violet-600 dark:text-violet-400 hidden sm:inline">AI Builder</span>
-          </div>
+          </button>
           {/* Export Button */}
           {activeConvId && messages.length > 0 && (
             <div className="ml-auto relative" ref={exportRef}>
