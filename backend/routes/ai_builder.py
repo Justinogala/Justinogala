@@ -19,21 +19,24 @@ router = APIRouter(prefix="/ai-builder", tags=["AI Builder"])
 EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
 
 SECTIONS = [
-    "overview", "requirements", "architecture", "database",
-    "security", "apis", "documentation", "roadmap", "code", "deployment"
+    "build", "architecture", "database", "security", "apis",
+    "cloud", "documentation", "code", "roadmap",
+    "business_plan", "cost_estimate", "investor_deck"
 ]
 
 SECTION_LABELS = {
-    "overview": "Overview",
-    "requirements": "Requirements",
+    "build": "Build",
     "architecture": "Architecture",
     "database": "Database",
     "security": "Security",
     "apis": "APIs",
+    "cloud": "Cloud",
     "documentation": "Documentation",
-    "roadmap": "Roadmap",
     "code": "Code",
-    "deployment": "Deployment",
+    "roadmap": "Roadmap",
+    "business_plan": "Business Plan",
+    "cost_estimate": "Cost Estimate",
+    "investor_deck": "Investor Deck",
 }
 
 
@@ -60,11 +63,11 @@ class UpdateSectionRequest(BaseModel):
 def _build_section_prompt(section: str, title: str, description: str, app_type: str, existing_overview: str = "") -> str:
     """Build a detailed system prompt for each section."""
     context = f"Project: {title}\nType: {app_type}\nDescription: {description}"
-    if existing_overview and section != "overview":
+    if existing_overview and section != "build":
         context += f"\n\nProject Overview (already generated):\n{existing_overview[:2000]}"
 
     prompts = {
-        "overview": f"""You are an expert AI Product Manager and Business Analyst. Generate a comprehensive project overview for the following idea.
+        "build": f"""You are an expert AI Product Manager, Business Analyst, and UX Strategist. Generate a comprehensive product build plan.
 
 {context}
 
@@ -82,6 +85,25 @@ Describe 3-4 user personas with demographics, pain points, and goals.
 ## Value Proposition
 What makes this product unique? Why would users choose this over alternatives?
 
+## Feature List
+### Core Features (P0 — Must Have)
+List 8-12 core features with descriptions.
+
+### Growth Features (P1 — Should Have)
+List 5-8 growth features.
+
+### Nice-to-Have (P2 — Could Have)
+List 5-8 nice-to-have features.
+
+## User Stories
+Write 10-15 user stories in format: "As a [persona], I want to [action] so that [benefit]"
+
+## Acceptance Criteria
+For the top 5 user stories, define 3-5 acceptance criteria each.
+
+## Non-Functional Requirements
+- Performance targets, Scalability needs, Reliability SLA, Accessibility (WCAG 2.1), Browser/device support, i18n
+
 ## Success Metrics
 Define 5-8 KPIs that will measure product success.
 
@@ -92,52 +114,6 @@ Brief analysis of 3-5 competitors and how this product differentiates.
 List top 5 risks with mitigation strategies.
 
 Be specific, actionable, and professional. Use real-world examples where applicable.""",
-
-        "requirements": f"""You are an expert Business Analyst and Product Manager. Generate comprehensive business and functional requirements.
-
-{context}
-
-Generate the following in well-structured Markdown:
-
-## Functional Requirements
-### Core Features
-List 10-15 core functional requirements with priority (P0/P1/P2) and descriptions.
-
-### User Stories
-Write 10-15 user stories in the format: "As a [persona], I want to [action] so that [benefit]"
-
-### Acceptance Criteria
-For each top 5 user story, define 3-5 acceptance criteria.
-
-## Non-Functional Requirements
-### Performance
-- Response time targets
-- Throughput requirements
-- Concurrent user capacity
-
-### Scalability
-- Horizontal scaling requirements
-- Data growth projections
-
-### Reliability
-- Uptime SLA targets
-- Disaster recovery requirements
-- Data backup requirements
-
-### Usability
-- Accessibility standards (WCAG 2.1)
-- Browser/device support matrix
-- Internationalization requirements
-
-### Security
-- Authentication requirements
-- Data encryption requirements
-- Compliance requirements (GDPR, SOC2, HIPAA if applicable)
-
-## Feature Priority Matrix
-Create a MoSCoW priority matrix (Must Have, Should Have, Could Have, Won't Have).
-
-Be thorough, specific, and actionable.""",
 
         "architecture": f"""You are an expert Solution Architect and Cloud Architect. Generate a comprehensive system architecture design.
 
@@ -594,29 +570,29 @@ project/
 
 Generate production-quality, well-commented code with proper error handling.""",
 
-        "deployment": f"""You are an expert DevOps Engineer. Generate a comprehensive deployment and infrastructure design.
+        "cloud": f"""You are an expert DevOps Engineer and Cloud Architect. Generate a comprehensive cloud infrastructure and deployment design.
 
 {context}
 
 Generate the following in well-structured Markdown:
 
+## Cloud Architecture
+- Cloud provider recommendation (AWS/GCP/Azure) with justification
+- Region and availability zone strategy
+- VPC/network architecture
+- CDN configuration
+- DNS and domain management
+
 ## CI/CD Pipeline
 ### Build Stage
-- Build steps
-- Linting and formatting
-- Unit test execution
-- Code coverage requirements
+- Build steps, linting, unit tests, code coverage requirements
 
 ### Test Stage
-- Integration tests
-- E2E tests
-- Security scanning
-- Performance tests
+- Integration tests, E2E tests, security scanning, performance tests
 
 ### Deploy Stage
-- Staging deployment
-- Production deployment
-- Blue-green deployment strategy
+- Staging → Production deployment flow
+- Blue-green / canary deployment strategy
 - Rollback procedures
 
 ## Infrastructure as Code
@@ -633,8 +609,8 @@ Generate the following in well-structured Markdown:
 
 ### Docker Compose
 ```yaml
-# docker-compose.yml
-[Generate docker-compose for local development]
+# docker-compose.yml for local development
+[Generate docker-compose]
 ```
 
 ### Kubernetes (Production)
@@ -643,42 +619,239 @@ Generate the following in well-structured Markdown:
 [Generate K8s deployment manifest]
 ```
 
-## Monitoring
-- Application monitoring (metrics to track)
-- Infrastructure monitoring
-- APM tool recommendation
+## Monitoring & Observability
+- Application monitoring (metrics, APM tool recommendation)
+- Infrastructure monitoring (CPU, memory, disk, network)
 - Dashboard design
-
-## Logging
-- Logging strategy
-- Log aggregation tool
-- Log retention policy
-- Structured logging format
+- Structured logging strategy, log aggregation tool, retention policy
 
 ## Alerting
-- Alert rules definition
-- Escalation procedures
-- On-call rotation
+- Alert rules definition, escalation procedures, on-call rotation
 
 ## Scalability
-- Auto-scaling policies
+- Auto-scaling policies (horizontal + vertical)
 - Load balancer configuration
 - CDN configuration
 - Database scaling strategy
 
 ## Disaster Recovery
-- Backup strategy
-- Recovery procedures
-- Failover architecture
+- Backup strategy (frequency, RPO, RTO)
+- Recovery procedures, failover architecture
 - Business continuity plan
 
 ## Storage Design
-- File storage architecture
-- Document management system
-- Backup storage
-- Archival strategy
+- File/object storage architecture
+- Document management, backup storage, archival strategy
 
-Provide specific configurations and tool recommendations.""",
+Provide specific configurations, tool recommendations, and cost-optimized architecture.""",
+
+        "business_plan": f"""You are an expert Business Strategist, MBA consultant, and Startup Advisor. Generate a comprehensive business plan.
+
+{context}
+
+Generate the following in well-structured Markdown:
+
+## Executive Summary
+3-4 paragraph executive summary covering the opportunity, solution, market, and business model.
+
+## Problem Statement
+- What problem does this solve?
+- How big is the problem?
+- Who experiences this problem?
+- What are the current workarounds?
+
+## Solution
+- How does this product solve the problem?
+- Key differentiators
+- Unique value proposition
+
+## Market Analysis
+### Total Addressable Market (TAM)
+### Serviceable Addressable Market (SAM)
+### Serviceable Obtainable Market (SOM)
+Include estimated market sizes with sources/reasoning.
+
+## Competitive Analysis
+| Competitor | Strengths | Weaknesses | Our Advantage |
+|-----------|-----------|------------|---------------|
+Analyze 5-7 competitors.
+
+## Business Model
+- Revenue model (subscription, freemium, transaction-based, etc.)
+- Pricing tiers with features and prices
+- Unit economics (LTV, CAC, LTV:CAC ratio)
+- Revenue projections (Year 1, 2, 3)
+
+## Go-to-Market Strategy
+- Launch strategy
+- Marketing channels (paid, organic, partnerships)
+- Sales strategy
+- Customer acquisition funnel
+
+## Growth Strategy
+- Viral loops and network effects
+- Expansion into new markets/segments
+- Partnership opportunities
+- Internationalization plan
+
+## Team Requirements
+- Key roles needed and when to hire
+- Org chart for first 12 months
+- Advisory board recommendations
+
+## Key Milestones
+| Milestone | Timeline | Success Criteria |
+|-----------|----------|-----------------|
+List 8-10 key milestones for the first 18 months.
+
+## Risk Analysis
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|------------|
+List 8-10 business risks.
+
+Be specific with numbers, timelines, and actionable strategies.""",
+
+        "cost_estimate": f"""You are an expert Financial Analyst, CTO, and Project Manager. Generate a detailed cost estimate and financial projection.
+
+{context}
+
+Generate the following in well-structured Markdown:
+
+## Development Costs
+
+### Team Composition
+| Role | Count | Monthly Cost | Duration | Total |
+|------|-------|-------------|----------|-------|
+List all required roles with realistic salary/contractor rates.
+
+### Phase Breakdown
+#### Phase 1: MVP (Months 1-3)
+- Features included, team needed, estimated cost
+
+#### Phase 2: Growth (Months 4-8)
+- Features included, team needed, estimated cost
+
+#### Phase 3: Scale (Months 9-12)
+- Features included, team needed, estimated cost
+
+### Total Development Cost Summary
+| Phase | Duration | Cost |
+|-------|----------|------|
+
+## Infrastructure Costs (Monthly)
+| Service | Provider | Tier | Monthly Cost |
+|---------|----------|------|-------------|
+Include: hosting, database, CDN, email, monitoring, CI/CD, domains, SSL, etc.
+
+### Scaling Projections
+| Users | Monthly Infra Cost |
+|-------|--------------------|
+| 100 | $ |
+| 1,000 | $ |
+| 10,000 | $ |
+| 100,000 | $ |
+
+## Third-Party Services
+| Service | Purpose | Monthly Cost |
+|---------|---------|-------------|
+Include: payment processing, analytics, email, SMS, AI APIs, etc.
+
+## Total Cost Summary
+| Category | Year 1 | Year 2 | Year 3 |
+|----------|--------|--------|--------|
+
+## Revenue Projections
+| Metric | Year 1 | Year 2 | Year 3 |
+|--------|--------|--------|--------|
+| Users | | | |
+| Paying Users | | | |
+| MRR | | | |
+| ARR | | | |
+
+## Break-Even Analysis
+- When does the product break even?
+- Key assumptions
+
+## ROI Analysis
+- Return on investment timeline
+- 3-year projected ROI
+
+Provide realistic, market-rate estimates. Be specific with dollar amounts.""",
+
+        "investor_deck": f"""You are an expert Startup Advisor and VC pitch deck consultant who has helped raise $100M+ in funding. Generate a compelling investor pitch deck content.
+
+{context}
+
+Generate the following in well-structured Markdown — each section represents a slide:
+
+## Slide 1: Title
+- Company name, tagline (one sentence), founding date, location
+
+## Slide 2: Problem
+- The core problem in 2-3 bullet points
+- Market pain points with real statistics
+- "Before" scenario showing the frustration
+
+## Slide 3: Solution
+- How the product solves the problem
+- Key features (3-5 bullet points)
+- "After" scenario showing the improvement
+- Screenshot/mockup description
+
+## Slide 4: Market Opportunity
+- TAM / SAM / SOM with dollar figures
+- Market growth rate
+- Why now? (market timing)
+
+## Slide 5: Product
+- Key features and capabilities
+- Technology differentiators
+- Product screenshots/demo description
+- User testimonials (suggested)
+
+## Slide 6: Business Model
+- Revenue model
+- Pricing strategy
+- Unit economics (LTV, CAC, margins)
+
+## Slide 7: Traction
+- Key metrics to highlight (users, revenue, growth rate)
+- Milestone timeline
+- Customer logos/testimonials (suggested)
+
+## Slide 8: Competitive Landscape
+- Market positioning map
+- Key differentiators vs top 3-5 competitors
+- Moats and defensibility
+
+## Slide 9: Go-to-Market
+- Customer acquisition strategy
+- Distribution channels
+- Partnership strategy
+- Sales process
+
+## Slide 10: Team
+- Key team members needed with backgrounds
+- Advisory board recommendations
+- Key hires planned
+
+## Slide 11: Financials
+- Revenue projections (3 years)
+- Key financial metrics
+- Path to profitability
+- Burn rate and runway
+
+## Slide 12: The Ask
+- Funding amount sought
+- Use of funds breakdown (pie chart description)
+- Key milestones the funding will achieve
+- Expected timeline to next round
+
+## Appendix: Key Assumptions
+- List all major assumptions underlying the financial projections
+- Sensitivity analysis on key variables
+
+Make the content compelling, data-driven, and investor-ready. Use specific numbers and percentages.""",
     }
 
     return prompts.get(section, f"Generate comprehensive documentation for the '{section}' section of: {context}")
@@ -794,12 +967,12 @@ async def generate_section(project_id: str, section: str, user: dict = Depends(g
     if not project:
         raise HTTPException(404, "Project not found")
 
-    # Get existing overview for context
+    # Get existing build/overview for context
     existing_overview = ""
-    if section != "overview":
-        overview_sec = project.get("sections", {}).get("overview", {})
-        if overview_sec.get("status") == "done":
-            existing_overview = overview_sec.get("content", "")
+    if section != "build":
+        build_sec = project.get("sections", {}).get("build", {})
+        if build_sec.get("status") == "done":
+            existing_overview = build_sec.get("content", "")
 
     # Mark as generating
     await db.ai_builder_projects.update_one(
@@ -921,7 +1094,7 @@ async def generate_all_sections(project_id: str, user: dict = Depends(get_curren
     async def stream():
         from llm_client import chat_completion
 
-        overview_content = ""
+        build_content = ""
 
         for section in SECTIONS:
             try:
@@ -935,7 +1108,7 @@ async def generate_all_sections(project_id: str, user: dict = Depends(get_curren
 
                 prompt = _build_section_prompt(
                     section, project["title"], project["description"],
-                    project.get("app_type", "saas"), overview_content
+                    project.get("app_type", "saas"), build_content
                 )
 
                 response = await asyncio.to_thread(
@@ -958,8 +1131,8 @@ async def generate_all_sections(project_id: str, user: dict = Depends(get_curren
                         yield f"data: {json.dumps({'type': 'chunk', 'section': section, 'content': delta.content})}\n\n"
                     await asyncio.sleep(0)
 
-                if section == "overview":
-                    overview_content = full
+                if section == "build":
+                    build_content = full
 
                 now = datetime.now(timezone.utc).isoformat()
                 await db.ai_builder_projects.update_one(

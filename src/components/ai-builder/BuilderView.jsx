@@ -8,7 +8,8 @@ import {
   X, ChevronRight, Search, Copy, Share2, Link2,
   Edit3, Save, Pencil, HelpCircle, ExternalLink,
   Layers, ShoppingCart, Users, Bot, Heart, Building,
-  BookOpen, MessageSquare, Check, ChevronDown
+  BookOpen, MessageSquare, Check, ChevronDown,
+  Cloud, DollarSign, TrendingUp, Presentation
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
@@ -21,16 +22,18 @@ import ThemeSwitcher from '@/components/ThemeSwitcher';
 const API = getApiUrl();
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'from-violet-500 to-indigo-500' },
-  { id: 'requirements', label: 'Requirements', icon: ClipboardList, color: 'from-blue-500 to-cyan-500' },
+  { id: 'build', label: 'Build', icon: Rocket, color: 'from-violet-500 to-indigo-500' },
   { id: 'architecture', label: 'Architecture', icon: Server, color: 'from-emerald-500 to-teal-500' },
   { id: 'database', label: 'Database', icon: Database, color: 'from-amber-500 to-orange-500' },
   { id: 'security', label: 'Security', icon: Shield, color: 'from-red-500 to-rose-500' },
   { id: 'apis', label: 'APIs', icon: Cog, color: 'from-purple-500 to-fuchsia-500' },
-  { id: 'documentation', label: 'Docs', icon: FileText, color: 'from-sky-500 to-blue-500' },
-  { id: 'roadmap', label: 'Roadmap', icon: Map, color: 'from-pink-500 to-rose-500' },
+  { id: 'cloud', label: 'Cloud', icon: Cloud, color: 'from-sky-500 to-blue-500' },
+  { id: 'documentation', label: 'Docs', icon: FileText, color: 'from-teal-500 to-cyan-500' },
   { id: 'code', label: 'Code', icon: Code2, color: 'from-green-500 to-emerald-500' },
-  { id: 'deployment', label: 'Deploy', icon: Rocket, color: 'from-orange-500 to-red-500' },
+  { id: 'business_plan', label: 'Business Plan', icon: TrendingUp, color: 'from-pink-500 to-rose-500' },
+  { id: 'cost_estimate', label: 'Cost Estimate', icon: DollarSign, color: 'from-orange-500 to-amber-500' },
+  { id: 'investor_deck', label: 'Investor Deck', icon: Presentation, color: 'from-indigo-500 to-violet-500' },
+  { id: 'roadmap', label: 'Roadmap', icon: Map, color: 'from-fuchsia-500 to-pink-500' },
 ];
 
 const APP_TYPES = [
@@ -394,7 +397,7 @@ export default function BuilderView({ onSwitchToChat }) {
   const [token, setToken] = useState(null);
   const [projects, setProjects] = useState([]);
   const [activeProject, setActiveProject] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('build');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -448,7 +451,7 @@ export default function BuilderView({ onSwitchToChat }) {
 
   const loadProject = useCallback(async (id) => {
     if (!token) return;
-    try { const res = await fetch(`${API}/api/ai-builder/projects/${id}`, { headers: authHeaders() }); if (res.ok) { setActiveProject(await res.json()); setActiveTab('overview'); setEditMode(false); } } catch {}
+    try { const res = await fetch(`${API}/api/ai-builder/projects/${id}`, { headers: authHeaders() }); if (res.ok) { setActiveProject(await res.json()); setActiveTab('build'); setEditMode(false); } } catch {}
   }, [token, authHeaders]);
 
   const handleCreate = async ({ title, description, app_type }) => {
@@ -459,13 +462,13 @@ export default function BuilderView({ onSwitchToChat }) {
         setNewProjectOpen(false);
         await loadProjects();
         setActiveProject(project);
-        setActiveTab('overview');
+        setActiveTab('build');
         // Fetch clarifying questions
         try {
           const cRes = await fetch(`${API}/api/ai-builder/projects/${project.id}/clarify`, { method: 'POST', headers: authHeaders() });
           if (cRes.ok) { const cData = await cRes.json(); if (cData.questions?.length) { setClarifyQuestions(cData.questions); setClarifyOpen(true); return; } }
         } catch {}
-        setTimeout(() => generateSection('overview', project.id), 300);
+        setTimeout(() => generateSection('build', project.id), 300);
       }
     } catch {}
   };
@@ -477,7 +480,7 @@ export default function BuilderView({ onSwitchToChat }) {
         await fetch(`${API}/api/ai-builder/projects/${activeProject.id}/clarify-answers`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify({ answers }) });
         await loadProject(activeProject.id);
       } catch {}
-      setTimeout(() => generateSection('overview', activeProject.id), 300);
+      setTimeout(() => generateSection('build', activeProject.id), 300);
     }
   };
 
@@ -613,7 +616,7 @@ export default function BuilderView({ onSwitchToChat }) {
               <Sparkles className="w-3.5 h-3.5 flex-shrink-0 text-violet-500" />
               <div className="flex-1 min-w-0">
                 <span className="block truncate font-medium text-xs">{p.title}</span>
-                <span className="block text-[10px] text-gray-400">{p.app_type} · {Object.values(p.section_status || {}).filter(s => s === 'done').length}/10</span>
+                <span className="block text-[10px] text-gray-400">{p.app_type} · {Object.values(p.section_status || {}).filter(s => s === 'done').length}/{TABS.length}</span>
               </div>
               <button onClick={e => { e.stopPropagation(); handleDelete(p.id); }} className="hidden group-hover:flex p-1 rounded text-gray-400 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
             </div>
@@ -726,9 +729,9 @@ export default function BuilderView({ onSwitchToChat }) {
               </div>
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <div className="w-24 h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-500" style={{ width: `${(completedCount / 10) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-500" style={{ width: `${(completedCount / TABS.length) * 100}%` }} />
                 </div>
-                {completedCount}/10
+                {completedCount}/{TABS.length}
               </div>
             </div>
 
@@ -833,7 +836,7 @@ export default function BuilderView({ onSwitchToChat }) {
       <NewProjectDialog open={newProjectOpen} onClose={() => setNewProjectOpen(false)} onCreate={handleCreate} templates={templates} />
       <SearchPanel open={searchOpen} onClose={() => setSearchOpen(false)} projectId={activeProject?.id} token={token} onNavigate={(s) => { setActiveTab(s); setEditMode(false); }} />
       <ShareDialog open={shareOpen} onClose={() => setShareOpen(false)} shareToken={activeProject?.share_token} onCreateLink={handleShare} onRevoke={handleRevokeShare} projectTitle={activeProject?.title} />
-      <ClarifyDialog open={clarifyOpen} onClose={() => { setClarifyOpen(false); if (activeProject?.id) generateSection('overview', activeProject.id); }} questions={clarifyQuestions} onSubmit={handleClarifySubmit} />
+      <ClarifyDialog open={clarifyOpen} onClose={() => { setClarifyOpen(false); if (activeProject?.id) generateSection('build', activeProject.id); }} questions={clarifyQuestions} onSubmit={handleClarifySubmit} />
     </div>
   );
 }
