@@ -1,11 +1,10 @@
 import React, { useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Menu, Search, Settings, X, Loader2 } from 'lucide-react';
+import { useLocation, Link } from 'react-router-dom';
+import { Menu, Search, Settings, X, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import { Link } from 'react-router-dom';
 import NotificationBell from '@/components/NotificationBell';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import SearchResultsDropdown from '@/components/search/SearchResultsDropdown';
@@ -110,6 +109,12 @@ const UserHeader = ({ onMenuClick }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link to="/ai-chat" data-testid="ai-builder-btn">
+            <Button variant="ghost" size="sm" className="gap-1.5 text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 font-medium">
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm">AI Builder</span>
+            </Button>
+          </Link>
           <ThemeSwitcher />
           <NotificationBell />
           <Link to="/settings">

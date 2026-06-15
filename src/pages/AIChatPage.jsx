@@ -1116,6 +1116,10 @@ export default function AIChatPage() {
               <p className="text-[10px] text-gray-400">GPT-5.2 · Always ready</p>
             </div>
           </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50" data-testid="ai-builder-badge">
+            <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+            <span className="text-sm font-medium text-violet-600 dark:text-violet-400 hidden sm:inline">AI Builder</span>
+          </div>
           {/* Export Button */}
           {activeConvId && messages.length > 0 && (
             <div className="ml-auto relative" ref={exportRef}>
