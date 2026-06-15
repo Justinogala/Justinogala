@@ -12,6 +12,20 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## What's Been Implemented
 
+### AI Builder — AI Product Manager Platform — June 15, 2026
+- **Builder Mode** toggle in AI Chat header — switches between Chat and Builder modes
+- **Project CRUD**: Create projects with title, description, and app type (10 types: SaaS, Mobile, Enterprise, CRM, ERP, Healthcare, AI, Internal Tool, E-Commerce, Workflow Automation)
+- **10 Section Tabs**: Overview, Requirements, Architecture, Database, Security, APIs, Documentation, Roadmap, Code, Deployment
+- **SSE Streaming Generation**: Each section generates via GPT-5.2 with rich, detailed prompts (4000 token max per section)
+- **Generate All**: One-click generation of all 10 sections sequentially with live streaming
+- **Per-Section Generation**: Generate individual sections on-demand, regenerate as needed
+- **Project Persistence**: Projects saved to MongoDB, revisitable
+- **Progress Tracking**: Visual progress bar showing completed sections (X/10)
+- **Endpoints**: Full CRUD + SSE streaming at `/api/ai-builder/projects/*`
+- Backend: `/app/backend/routes/ai_builder.py`
+- Frontend: `/app/src/components/ai-builder/BuilderView.jsx`, integrated into `AIChatPage.jsx`
+- Testing: 100% backend (16/16 pytest) — Iteration 142
+
 ### Universal Trash System (Recycle Bin) — June 14, 2026
 - **Soft-delete across all entities**: Users, Workspaces, Organizations, Approvals, Approval Templates, IR/SOR Reports, IR/SOR Templates, Shifts, Meetings, Documents, Presentations, Sheets, Form Templates
 - **Admin Recycle Bin page** (`/admin/trash`): Category tabs with badge counts, item list with name/extra/deletion date, Restore and Delete Forever actions, search filter, Empty Trash per category
@@ -100,6 +114,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 ### Earlier features (GEO, Profile Pictures, Welcome Email, AI Hub, Transcripts, Smart Templates, AI Spreadsheets) — All tested and complete
 
 ## Key API Endpoints
+- AI Builder: `POST /api/ai-builder/projects`, `GET /api/ai-builder/projects`, `POST /api/ai-builder/projects/{id}/generate/{section}` (SSE), `POST /api/ai-builder/projects/{id}/generate-all` (SSE)
 - AI Chat: `POST /api/ai-chat/conversations/{id}/messages` (streaming), `GET /api/ai-chat/files/{file_id}`
 - Admin Trash: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`
 - Storage: `GET /api/storage/my-quota`, `GET /api/storage/files`
@@ -128,6 +143,8 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Analytics User: analytics@munal.ai / Test@12345
 
 ## Upcoming Tasks
+- AI Builder: Export to PDF/DOCX
+- AI Builder: Edit sections manually and save
 - P3: Custom Template option for Sheets
 - P3: Real-time collaborative editing
 
