@@ -43,6 +43,7 @@ class CreateProjectRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=10)
     app_type: str = Field(default="saas")
+    template_id: Optional[str] = None
 
 
 class UpdateProjectRequest(BaseModel):
@@ -702,6 +703,9 @@ async def create_project(req: CreateProjectRequest, user: dict = Depends(get_cur
         "description": req.description,
         "app_type": req.app_type,
         "sections": sections,
+        "share_token": None,
+        "clarify_answers": [],
+        "version": 1,
         "created_at": now,
         "updated_at": now,
     }
@@ -837,16 +841,29 @@ async def generate_section(project_id: str, section: str, user: dict = Depends(g
                 # Keepalive
                 await asyncio.sleep(0)
 
-            # Save generated content
+            # Save generated content (with version history)
             now = datetime.now(timezone.utc).isoformat()
+            existing_content = project.get("sections", {}).get(section, {}).get("content", "")
+            history_entry = None
+            if existing_content:
+                history_entry = {
+                    "content": existing_content,
+                    "generated_at": project.get("sections", {}).get(section, {}).get("generated_at"),
+                    "replaced_at": now,
+                }
+
+            update_set = {
+                f"sections.{section}.content": full_content,
+                f"sections.{section}.status": "done",
+                f"sections.{section}.generated_at": now,
+                "updated_at": now,
+            }
+            update_ops = {"$set": update_set}
+            if history_entry:
+                update_ops["$push"] = {f"sections.{section}.history": history_entry}
+
             await db.ai_builder_projects.update_one(
-                {"id": project_id},
-                {"$set": {
-                    f"sections.{section}.content": full_content,
-                    f"sections.{section}.status": "done",
-                    f"sections.{section}.generated_at": now,
-                    "updated_at": now,
-                }}
+                {"id": project_id}, update_ops
             )
 
             yield f"data: {json.dumps({'type': 'done', 'section': section})}\n\n"
@@ -968,3 +985,316 @@ async def generate_all_sections(project_id: str, user: dict = Depends(get_curren
         yield f"data: {json.dumps({'type': 'all_done'})}\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+
+# ─── Duplicate Project ───
+
+@router.post("/projects/{project_id}/duplicate")
+async def duplicate_project(project_id: str, user: dict = Depends(get_current_user)):
+    """Duplicate an existing project."""
+    project = await db.ai_builder_projects.find_one(
+        {"id": project_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    new_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    new_project = {
+        **project,
+        "id": new_id,
+        "title": f"{project['title']} (Copy)",
+        "created_at": now,
+        "updated_at": now,
+        "share_token": None,
+    }
+    new_project.pop("_id", None)
+    await db.ai_builder_projects.insert_one(new_project)
+    new_project.pop("_id", None)
+    return new_project
+
+
+# ─── Share Project ───
+
+@router.post("/projects/{project_id}/share")
+async def create_share_link(project_id: str, user: dict = Depends(get_current_user)):
+    """Generate a public share token for read-only access."""
+    project = await db.ai_builder_projects.find_one(
+        {"id": project_id, "user_id": user["id"]}
+    )
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    share_token = project.get("share_token")
+    if not share_token:
+        share_token = str(uuid.uuid4())[:12]
+        await db.ai_builder_projects.update_one(
+            {"id": project_id},
+            {"$set": {"share_token": share_token}}
+        )
+
+    return {"share_token": share_token}
+
+
+@router.delete("/projects/{project_id}/share")
+async def revoke_share_link(project_id: str, user: dict = Depends(get_current_user)):
+    """Revoke the public share link."""
+    result = await db.ai_builder_projects.update_one(
+        {"id": project_id, "user_id": user["id"]},
+        {"$set": {"share_token": None}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Project not found")
+    return {"success": True}
+
+
+@router.get("/shared/{share_token}")
+async def get_shared_project(share_token: str):
+    """Public endpoint — get project by share token (read-only, no auth)."""
+    project = await db.ai_builder_projects.find_one(
+        {"share_token": share_token}, {"_id": 0, "user_id": 0}
+    )
+    if not project:
+        raise HTTPException(404, "Shared project not found or link expired")
+    return project
+
+
+# ─── Export Project ───
+
+@router.get("/projects/{project_id}/export/{format}")
+async def export_project(project_id: str, format: str, user: dict = Depends(get_current_user)):
+    """Export project as Markdown or JSON."""
+    if format not in ("md", "json"):
+        raise HTTPException(400, "Supported formats: md, json")
+
+    project = await db.ai_builder_projects.find_one(
+        {"id": project_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    if format == "json":
+        from fastapi.responses import JSONResponse
+        return JSONResponse(content=project, headers={
+            "Content-Disposition": f'attachment; filename="{project["title"]}.json"'
+        })
+
+    # Markdown export
+    md = f"# {project['title']}\n\n"
+    md += f"**Type:** {project.get('app_type', 'N/A')}  \n"
+    md += f"**Created:** {project.get('created_at', 'N/A')}  \n\n"
+    md += f"## Description\n{project.get('description', '')}\n\n"
+    md += "---\n\n"
+
+    for section_key in SECTIONS:
+        sec = project.get("sections", {}).get(section_key, {})
+        label = SECTION_LABELS.get(section_key, section_key)
+        content = sec.get("content", "")
+        if content:
+            md += f"# {label}\n\n{content}\n\n---\n\n"
+
+    from fastapi.responses import Response
+    return Response(
+        content=md,
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="{project["title"]}.md"'}
+    )
+
+
+# ─── AI Clarifying Questions ───
+
+@router.post("/projects/{project_id}/clarify")
+async def get_clarifying_questions(project_id: str, user: dict = Depends(get_current_user)):
+    """AI generates clarifying questions about the project idea before generation."""
+    project = await db.ai_builder_projects.find_one(
+        {"id": project_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    from llm_client import chat_completion
+
+    prompt = f"""You are an expert Product Manager conducting a discovery session. Based on the following product idea, generate 5-8 clarifying questions that would help you create better documentation.
+
+Project: {project['title']}
+Type: {project.get('app_type', 'saas')}
+Description: {project['description']}
+
+Return ONLY a JSON array of question objects like:
+[{{"question": "...", "options": ["Option A", "Option B", "Option C"], "category": "audience|features|tech|monetization|scale"}}]
+
+Focus on questions about:
+- Target audience specifics
+- Core vs nice-to-have features
+- Technology preferences
+- Monetization model
+- Scale expectations
+- Integration needs
+- Compliance requirements"""
+
+    try:
+        response = await asyncio.to_thread(
+            chat_completion,
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": "Generate the clarifying questions as a JSON array."}
+            ],
+            model="gpt-5.2",
+            api_key=EMERGENT_KEY,
+            stream=False,
+            max_tokens=1500,
+        )
+        content = response.choices[0].message.content.strip()
+        # Try to extract JSON from response
+        if "```" in content:
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+        questions = json.loads(content)
+        return {"questions": questions}
+    except Exception as e:
+        logger.error(f"Clarify questions error: {e}")
+        return {"questions": [
+            {"question": "Who is the primary target audience?", "options": ["Consumers", "Small Business", "Enterprise"], "category": "audience"},
+            {"question": "What is the monetization model?", "options": ["Freemium", "Subscription", "One-time Purchase", "Usage-based"], "category": "monetization"},
+            {"question": "What scale do you expect at launch?", "options": ["< 100 users", "100-1000 users", "1000-10000 users", "10000+ users"], "category": "scale"},
+            {"question": "Any specific compliance requirements?", "options": ["GDPR", "HIPAA", "SOC2", "None specific"], "category": "tech"},
+        ]}
+
+
+@router.put("/projects/{project_id}/clarify-answers")
+async def save_clarify_answers(project_id: str, request: Request, user: dict = Depends(get_current_user)):
+    """Save clarifying question answers and append to project description."""
+    body = await request.json()
+    answers = body.get("answers", [])
+
+    project = await db.ai_builder_projects.find_one(
+        {"id": project_id, "user_id": user["id"]}
+    )
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    # Append answers to description for richer context
+    extra_context = "\n\nAdditional Requirements (from clarifying questions):\n"
+    for a in answers:
+        extra_context += f"- {a.get('question', '')}: {a.get('answer', '')}\n"
+
+    new_desc = project.get("description", "") + extra_context
+
+    await db.ai_builder_projects.update_one(
+        {"id": project_id},
+        {"$set": {
+            "description": new_desc,
+            "clarify_answers": answers,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+    return {"success": True}
+
+
+# ─── Search Within Project ───
+
+@router.get("/projects/{project_id}/search")
+async def search_project(project_id: str, q: str = "", user: dict = Depends(get_current_user)):
+    """Search across all sections of a project."""
+    if not q.strip():
+        return {"results": []}
+
+    project = await db.ai_builder_projects.find_one(
+        {"id": project_id, "user_id": user["id"]}, {"_id": 0}
+    )
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    query = q.lower()
+    results = []
+    for section_key in SECTIONS:
+        sec = project.get("sections", {}).get(section_key, {})
+        content = sec.get("content", "")
+        if not content:
+            continue
+
+        lines = content.split("\n")
+        for i, line in enumerate(lines):
+            if query in line.lower():
+                # Get surrounding context
+                start = max(0, i - 1)
+                end = min(len(lines), i + 2)
+                snippet = "\n".join(lines[start:end])
+                results.append({
+                    "section": section_key,
+                    "section_label": SECTION_LABELS.get(section_key, section_key),
+                    "line": i + 1,
+                    "snippet": snippet[:300],
+                })
+
+    return {"results": results, "total": len(results)}
+
+
+# ─── Project Templates ───
+
+PROJECT_TEMPLATES = [
+    {
+        "id": "saas-starter",
+        "title": "SaaS Starter",
+        "description": "A subscription-based SaaS application with user authentication, team management, billing (Stripe), dashboard analytics, and a REST API. Target audience is small-to-medium businesses. Includes freemium pricing model with free, pro, and enterprise tiers.",
+        "app_type": "saas",
+        "icon": "rocket",
+    },
+    {
+        "id": "ecommerce",
+        "title": "E-Commerce Platform",
+        "description": "A full-featured online store with product catalog, shopping cart, checkout flow, payment processing (Stripe/PayPal), order management, inventory tracking, customer reviews, and admin dashboard. Supports multiple product categories, search, and filtering.",
+        "app_type": "ecommerce",
+        "icon": "shopping-cart",
+    },
+    {
+        "id": "marketplace",
+        "title": "Two-Sided Marketplace",
+        "description": "A platform connecting service providers with customers. Features include provider profiles, service listings, booking/scheduling, messaging, reviews/ratings, payment escrow, commission management, and dispute resolution. Think Fiverr/Upwork model.",
+        "app_type": "saas",
+        "icon": "users",
+    },
+    {
+        "id": "crm",
+        "title": "CRM System",
+        "description": "Customer relationship management system with contact management, deal pipeline, email integration, activity tracking, reporting dashboards, task management, and team collaboration. Includes import/export, custom fields, and automation workflows.",
+        "app_type": "crm",
+        "icon": "contacts",
+    },
+    {
+        "id": "ai-chatbot",
+        "title": "AI-Powered Chatbot",
+        "description": "An AI chatbot platform with custom knowledge base training, multi-channel deployment (web widget, Slack, Discord, API), conversation analytics, human handoff, intent detection, and admin dashboard. Supports RAG with document upload and vector search.",
+        "app_type": "ai",
+        "icon": "bot",
+    },
+    {
+        "id": "project-management",
+        "title": "Project Management Tool",
+        "description": "A project management application with Kanban boards, Gantt charts, sprint planning, time tracking, team workload management, file sharing, commenting, notifications, and reporting. Supports multiple project views and integrations with GitHub/Slack.",
+        "app_type": "saas",
+        "icon": "layout",
+    },
+    {
+        "id": "healthcare",
+        "title": "Healthcare Management",
+        "description": "HIPAA-compliant healthcare management system with patient records (EHR), appointment scheduling, telemedicine video calls, prescription management, lab results tracking, insurance billing, and provider portal. Includes audit logging and data encryption.",
+        "app_type": "healthcare",
+        "icon": "heart",
+    },
+    {
+        "id": "internal-tool",
+        "title": "Internal Business Tool",
+        "description": "An internal company tool for employee management, leave/time-off requests, expense reporting, asset tracking, IT helpdesk ticketing, company announcements, and document management. Includes RBAC, SSO integration, and audit trails.",
+        "app_type": "internal",
+        "icon": "building",
+    },
+]
+
+
+@router.get("/templates")
+async def get_templates():
+    """Get available project templates."""
+    return {"templates": PROJECT_TEMPLATES}
