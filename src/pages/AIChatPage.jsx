@@ -43,6 +43,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
 import BuilderView from '@/components/ai-builder/BuilderView';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 
 const API = getApiUrl();
 
@@ -1128,6 +1129,7 @@ export default function AIChatPage() {
             <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400" />
             <span className="text-sm font-medium text-violet-600 dark:text-violet-400 hidden sm:inline">AI Builder</span>
           </button>
+          <ThemeSwitcher />
           {/* Export Button */}
           {activeConvId && messages.length > 0 && (
             <div className="ml-auto relative" ref={exportRef}>

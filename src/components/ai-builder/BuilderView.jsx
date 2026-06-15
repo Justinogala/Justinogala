@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 
 const API = getApiUrl();
 
@@ -692,6 +693,7 @@ export default function BuilderView({ onSwitchToChat }) {
               data-testid="switch-to-chat-btn">
               <MessageSquare className="w-4 h-4" /> <span className="hidden sm:inline">Chat</span>
             </button>
+            <ThemeSwitcher />
           </div>
         </div>
 
