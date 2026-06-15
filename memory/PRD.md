@@ -19,12 +19,19 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **SSE Streaming Generation**: Each section generates via GPT-5.2 with rich, detailed prompts (4000 token max per section)
 - **Generate All**: One-click generation of all 10 sections sequentially with live streaming
 - **Per-Section Generation**: Generate individual sections on-demand, regenerate as needed
-- **Project Persistence**: Projects saved to MongoDB, revisitable
+- **8 Project Templates**: SaaS Starter, E-Commerce, Marketplace, CRM, AI Chatbot, PM Tool, Healthcare, Internal Tool
+- **AI Clarifying Questions**: AI generates 5-8 questions before generation to improve output quality
+- **Export**: Markdown and JSON export with download
+- **Share**: Public read-only links with share token (create/revoke)
+- **Duplicate**: Clone projects with all content
+- **Edit Sections**: Manual editing with save (textarea editor)
+- **Search**: Full-text search across all sections (⌘K shortcut)
+- **Version History**: Previous versions tracked on regeneration
 - **Progress Tracking**: Visual progress bar showing completed sections (X/10)
-- **Endpoints**: Full CRUD + SSE streaming at `/api/ai-builder/projects/*`
+- **Endpoints**: Full CRUD + SSE streaming + share/duplicate/export/clarify/search/templates
 - Backend: `/app/backend/routes/ai_builder.py`
 - Frontend: `/app/src/components/ai-builder/BuilderView.jsx`, integrated into `AIChatPage.jsx`
-- Testing: 100% backend (16/16 pytest) — Iteration 142
+- Testing: 100% backend (16 base + 18 enhancement = 34 pytest) — Iterations 142, 143
 
 ### Universal Trash System (Recycle Bin) — June 14, 2026
 - **Soft-delete across all entities**: Users, Workspaces, Organizations, Approvals, Approval Templates, IR/SOR Reports, IR/SOR Templates, Shifts, Meetings, Documents, Presentations, Sheets, Form Templates
@@ -143,8 +150,7 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Analytics User: analytics@munal.ai / Test@12345
 
 ## Upcoming Tasks
-- AI Builder: Export to PDF/DOCX
-- AI Builder: Edit sections manually and save
+- AI Builder: Mermaid diagram rendering in generated content
 - P3: Custom Template option for Sheets
 - P3: Real-time collaborative editing
 
