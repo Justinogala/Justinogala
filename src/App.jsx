@@ -77,6 +77,7 @@ const FeatureESignaturePage = lazy(() => import('@/pages/features/FeatureESignat
 const FeatureShiftsPage = lazy(() => import('@/pages/features/FeatureShiftsPage'));
 const FeatureIRSORPage = lazy(() => import('@/pages/features/FeatureIRSORPage'));
 const FeatureNotificationsPage = lazy(() => import('@/pages/features/FeatureNotificationsPage'));
+const FeatureAIChatPage = lazy(() => import('@/pages/features/FeatureAIChatPage'));
 
 // Solution Pages (GEO)
 const HealthcareSolutionPage = lazy(() => import('@/pages/solutions/HealthcareSolutionPage'));
@@ -390,6 +391,7 @@ function App() {
                               <Route path="/features/shifts" element={<FeatureShiftsPage />} />
                               <Route path="/features/ir-sor" element={<FeatureIRSORPage />} />
                               <Route path="/features/notifications" element={<FeatureNotificationsPage />} />
+                              <Route path="/features/ai-chat" element={<FeatureAIChatPage />} />
                               
                               {/* Industry Solution Pages (GEO) */}
                               <Route path="/solutions/healthcare" element={<HealthcareSolutionPage />} />

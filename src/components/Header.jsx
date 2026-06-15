@@ -88,7 +88,7 @@ const Header = () => {
     'Features': [
       // Column 1: AI & Media
       { label: 'Overview', href: '/features', icon: LayoutGrid, col: 0 },
-      { label: 'AI Chat', href: '/ai-chat', icon: Sparkles, col: 0, badge: 'NEW' },
+      { label: 'AI Chat', href: '/features/ai-chat', icon: Sparkles, col: 0, badge: 'NEW' },
       { label: 'Text to Audio', href: '/features/text-to-audio', icon: AudioLines, col: 0, badge: 'NEW' },
       { label: 'Text to Video', href: '/features/text-to-video', icon: Clapperboard, col: 0, badge: 'NEW' },
       { label: 'AI Transcriptions', href: '/features/transcriptions', icon: FileText, col: 0 },
