@@ -1,9 +1,8 @@
 """
-Admin Monitoring Routes — dashboard stats, system health.
-Split from admin.py for maintainability.
+Admin Monitoring Routes — real-time dashboard stats, system health, audit logs.
 """
 from fastapi import APIRouter, HTTPException
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from config import db, logger
 
 router = APIRouter(prefix="/admin", tags=["Admin Monitoring"])
@@ -11,34 +10,161 @@ router = APIRouter(prefix="/admin", tags=["Admin Monitoring"])
 
 @router.get("/monitoring/dashboard")
 async def get_monitoring_dashboard():
+    """Comprehensive real-time monitoring data."""
     try:
-        total_users = await db.users.count_documents({})
-        active_users = await db.users.count_documents({"status": "Active"})
-        total_meetings = await db.calendar_events.count_documents({})
-        total_recordings = await db.recordings.count_documents({})
-        recent_logins = await db.user_activity.find(
-            {"action": "login"}, {"_id": 0}
-        ).sort("timestamp", -1).limit(10).to_list(10)
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_iso = today_start.isoformat()
+        recent_threshold = (now - timedelta(minutes=15)).isoformat()
+
+        # ─── User Statistics ───
+        total_users = await db.users.count_documents({"deleted": {"$ne": True}})
+        active_users = await db.users.count_documents({"status": "Active", "deleted": {"$ne": True}})
+        suspended_users = await db.users.count_documents({"status": "Suspended", "deleted": {"$ne": True}})
+        disabled_users = total_users - active_users
+
+        # ─── Today's Activity (from audit_logs) ───
+        logins_today = await db.audit_logs.count_documents({
+            "action": {"$in": ["login", "login_success"]},
+            "success": True,
+            "timestamp": {"$gte": today_iso}
+        })
+
+        failed_logins_today = await db.audit_logs.count_documents({
+            "action": "login_failed",
+            "timestamp": {"$gte": today_iso}
+        })
+
+        # New registrations today
+        registrations_today = await db.audit_logs.count_documents({
+            "action": "register",
+            "success": True,
+            "timestamp": {"$gte": today_iso}
+        })
+
+        # Meetings created today
+        meetings_today = await db.calendar_events.count_documents({
+            "created_at": {"$gte": today_iso}
+        })
+        # Fallback: try date string comparison
+        if meetings_today == 0:
+            meetings_today = await db.calendar_events.count_documents({
+                "date": {"$gte": today_start.strftime("%Y-%m-%d")}
+            })
+
+        # ─── Real-Time Metrics ───
+        # "Online" = users who logged in within the last 15 minutes
+        online_users = await db.audit_logs.count_documents({
+            "action": {"$in": ["login", "login_success"]},
+            "success": True,
+            "timestamp": {"$gte": recent_threshold}
+        })
+
+        # Active meetings (happening right now — check meetings with today's date)
+        active_meetings = await db.calendar_events.count_documents({
+            "date": today_start.strftime("%Y-%m-%d"),
+        })
+
+        # ─── Documents & Content Stats ───
+        total_documents = await db.documents.count_documents({"deleted": {"$ne": True}})
+        total_sheets = await db.sheets.count_documents({"deleted": {"$ne": True}})
+        total_workspaces = await db.workspaces.count_documents({"deleted": {"$ne": True}})
+        total_organizations = await db.organizations.count_documents({"deleted": {"$ne": True}})
+
+        # AI Chat conversations today
+        ai_chats_today = 0
+        try:
+            ai_chats_today = await db.ai_conversations.count_documents({
+                "created_at": {"$gte": today_iso}
+            })
+        except Exception:
+            pass
+
+        # ─── Recent Audit Logs ───
+        audit_cursor = db.audit_logs.find(
+            {}, {"_id": 0, "action": 1, "user_email": 1, "timestamp": 1, "success": 1, "ip_address": 1}
+        ).sort("timestamp", -1).limit(20)
+        recent_audit_logs = await audit_cursor.to_list(20)
+
+        # ─── Recent User Registrations ───
+        recent_users_cursor = db.users.find(
+            {"deleted": {"$ne": True}},
+            {"_id": 0, "id": 1, "name": 1, "email": 1, "created_at": 1, "status": 1}
+        ).sort("created_at", -1).limit(5)
+        recent_users = await recent_users_cursor.to_list(5)
+        # Convert datetime objects to strings
+        for u in recent_users:
+            if hasattr(u.get("created_at"), "isoformat"):
+                u["created_at"] = u["created_at"].isoformat()
+
         return {
-            "users": {"total": total_users, "active": active_users},
-            "meetings": {"total": total_meetings},
-            "recordings": {"total": total_recordings},
-            "recent_logins": recent_logins,
+            "users": {
+                "total": total_users,
+                "active": active_users,
+                "disabled": disabled_users,
+                "suspended": suspended_users,
+            },
+            "real_time": {
+                "online_users": online_users,
+                "active_meetings": active_meetings,
+            },
+            "today": {
+                "logins": logins_today,
+                "failed_logins": failed_logins_today,
+                "meetings": meetings_today,
+                "registrations": registrations_today,
+                "ai_chats": ai_chats_today,
+            },
+            "content": {
+                "documents": total_documents,
+                "sheets": total_sheets,
+                "workspaces": total_workspaces,
+                "organizations": total_organizations,
+            },
+            "recent_audit_logs": recent_audit_logs,
+            "recent_users": recent_users,
         }
     except Exception as e:
-        logger.error(f"Error fetching dashboard: {e}")
+        logger.error(f"Error fetching monitoring dashboard: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/monitoring/system-health")
 async def get_system_health():
+    """Database connection status and collection count."""
     try:
         await db.command("ping")
-        db_status = "healthy"
+        db_connected = True
     except Exception:
-        db_status = "unhealthy"
+        db_connected = False
+
+    collections_count = 0
+    db_name = ""
+    try:
+        collections = await db.list_collection_names()
+        collections_count = len(collections)
+        db_name = db.name
+    except Exception:
+        pass
+
+    # Memory/uptime info
+    import os
+    uptime_seconds = 0
+    try:
+        with open("/proc/uptime", "r") as f:
+            uptime_seconds = int(float(f.read().split()[0]))
+    except Exception:
+        pass
+
+    status = "healthy" if db_connected else "degraded"
+
     return {
-        "status": "healthy" if db_status == "healthy" else "degraded",
-        "database": db_status,
+        "status": status,
+        "database": {
+            "connected": db_connected,
+            "collections": collections_count,
+            "name": db_name,
+        },
+        "uptime_seconds": uptime_seconds,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
