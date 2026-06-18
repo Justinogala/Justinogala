@@ -6,9 +6,12 @@ import { Input } from '@/components/ui/input';
 import {
   ScrollText, Search, RefreshCw, Shield, AlertTriangle, Info,
   ChevronLeft, ChevronRight, Loader2, Filter, ShieldAlert,
-  LogIn, UserCog, KeyRound, Database, Server
+  LogIn, UserCog, KeyRound, Database, Server, Wifi, WifiOff
 } from 'lucide-react';
 import { API_URL } from '@/lib/api';
+import { cn } from '@/lib/utils';
+
+const REFRESH_INTERVAL = 15;
 
 const SEVERITY_CONFIG = {
   info:     { color: 'bg-blue-500/10 text-blue-600 border-blue-200', icon: Info },
@@ -56,9 +59,12 @@ const AdminAuditLogsPage = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
+  const loadLogs = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams({ page: page.toString(), limit: '30', days: '30' });
       if (search) params.set('search', search);
@@ -75,7 +81,9 @@ const AdminAuditLogsPage = () => {
     } catch (e) {
       console.error('Failed to load audit logs:', e);
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
+    setLastUpdated(new Date());
+    setCountdown(REFRESH_INTERVAL);
   }, [page, search, categoryFilter, severityFilter]);
 
   const loadStats = useCallback(async () => {
@@ -87,8 +95,24 @@ const AdminAuditLogsPage = () => {
     }
   }, []);
 
+  const refreshAll = useCallback((silent = false) => {
+    loadLogs(silent);
+    loadStats();
+  }, [loadLogs, loadStats]);
+
   useEffect(() => { loadLogs(); }, [loadLogs]);
   useEffect(() => { loadStats(); }, [loadStats]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { refreshAll(true); return REFRESH_INTERVAL; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, refreshAll]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -98,14 +122,31 @@ const AdminAuditLogsPage = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500" data-testid="admin-audit-logs">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Audit Logs</h1>
           <p className="text-muted-foreground mt-1">Track admin actions, login attempts, and security events</p>
         </div>
-        <Button variant="outline" onClick={() => { loadLogs(); loadStats(); }} disabled={loading} data-testid="audit-refresh">
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">LIVE</span>
+          </div>
+          {lastUpdated && <span className="text-xs text-slate-400">{lastUpdated.toLocaleTimeString()}</span>}
+          <button onClick={() => setAutoRefresh(!autoRefresh)}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+              autoRefresh ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500"
+            )} data-testid="audit-auto-refresh">
+            {autoRefresh ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {autoRefresh ? `${countdown}s` : 'Paused'}
+          </button>
+          <Button variant="outline" size="sm" onClick={() => refreshAll(false)} disabled={loading} data-testid="audit-refresh">
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
