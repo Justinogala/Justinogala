@@ -1,42 +1,58 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart3, Video, Users, TrendingUp, Clock, 
-  Calendar, RefreshCw, Download
+  Calendar, RefreshCw, Download, Wifi, WifiOff
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 import { getApiUrl, API_URL } from '@/lib/api';
+
+const REFRESH_INTERVAL = 20;
 
 const AdminMeetingAnalytics = () => {
   const { toast } = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/admin/analytics/meetings?days=${days}`);
       if (response.ok) {
-        const analyticsData = await response.json();
-        setData(analyticsData);
+        setData(await response.json());
+        setLastUpdated(new Date());
+        setCountdown(REFRESH_INTERVAL);
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      toast({ variant: 'destructive', title: 'Failed to load analytics' });
+      if (!silent) toast({ variant: 'destructive', title: 'Failed to load analytics' });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [days, toast]);
 
+  useEffect(() => { fetchData(); }, [fetchData]);
+
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { fetchData(true); return REFRESH_INTERVAL; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, fetchData]);
 
   if (loading) {
     return (
@@ -51,14 +67,29 @@ const AdminMeetingAnalytics = () => {
   return (
     <div className="space-y-6 p-6" data-testid="admin-meeting-analytics">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Meeting Analytics</h1>
           <p className="text-slate-500 dark:text-slate-400">
             Insights and statistics about meeting usage
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">LIVE</span>
+          </div>
+          {lastUpdated && <span className="text-xs text-slate-400">{format(lastUpdated, 'HH:mm:ss')}</span>}
+          <button onClick={() => setAutoRefresh(!autoRefresh)}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+              autoRefresh ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500"
+            )} data-testid="meeting-auto-refresh">
+            {autoRefresh ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {autoRefresh ? `${countdown}s` : 'Paused'}
+          </button>
           <Select value={days.toString()} onValueChange={(v) => setDays(parseInt(v))}>
             <SelectTrigger className="w-40">
               <SelectValue />
@@ -70,8 +101,8 @@ const AdminMeetingAnalytics = () => {
               <SelectItem value="90">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={fetchData} variant="outline" size="sm">
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button onClick={() => fetchData(false)} variant="outline" size="sm">
+            <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
             Refresh
           </Button>
         </div>
