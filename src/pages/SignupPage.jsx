@@ -25,7 +25,7 @@ const SignupPage = () => {
   const [authError, setAuthError] = useState('');
   const [accountType, setAccountType] = useState('personal');
   const [inviteData, setInviteData] = useState(null);
-  const [countryCode, setCountryCode] = useState('+1');
+  const [countryCode, setCountryCode] = useState('+254');
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const countryRef = useRef(null);
 
@@ -53,42 +53,44 @@ const SignupPage = () => {
   }, []);
 
   const COUNTRY_CODES = [
-    { code: '+1', country: 'US', flag: '🇺🇸' },
-    { code: '+1', country: 'CA', flag: '🇨🇦' },
-    { code: '+44', country: 'GB', flag: '🇬🇧' },
-    { code: '+254', country: 'KE', flag: '🇰🇪' },
-    { code: '+256', country: 'UG', flag: '🇺🇬' },
-    { code: '+255', country: 'TZ', flag: '🇹🇿' },
-    { code: '+234', country: 'NG', flag: '🇳🇬' },
-    { code: '+27', country: 'ZA', flag: '🇿🇦' },
-    { code: '+91', country: 'IN', flag: '🇮🇳' },
-    { code: '+61', country: 'AU', flag: '🇦🇺' },
-    { code: '+49', country: 'DE', flag: '🇩🇪' },
-    { code: '+33', country: 'FR', flag: '🇫🇷' },
-    { code: '+81', country: 'JP', flag: '🇯🇵' },
-    { code: '+86', country: 'CN', flag: '🇨🇳' },
-    { code: '+55', country: 'BR', flag: '🇧🇷' },
-    { code: '+52', country: 'MX', flag: '🇲🇽' },
-    { code: '+971', country: 'AE', flag: '🇦🇪' },
-    { code: '+966', country: 'SA', flag: '🇸🇦' },
-    { code: '+65', country: 'SG', flag: '🇸🇬' },
-    { code: '+82', country: 'KR', flag: '🇰🇷' },
-    { code: '+31', country: 'NL', flag: '🇳🇱' },
-    { code: '+34', country: 'ES', flag: '🇪🇸' },
-    { code: '+39', country: 'IT', flag: '🇮🇹' },
-    { code: '+46', country: 'SE', flag: '🇸🇪' },
-    { code: '+47', country: 'NO', flag: '🇳🇴' },
-    { code: '+353', country: 'IE', flag: '🇮🇪' },
-    { code: '+41', country: 'CH', flag: '🇨🇭' },
-    { code: '+48', country: 'PL', flag: '🇵🇱' },
-    { code: '+63', country: 'PH', flag: '🇵🇭' },
-    { code: '+62', country: 'ID', flag: '🇮🇩' },
-    { code: '+60', country: 'MY', flag: '🇲🇾' },
-    { code: '+20', country: 'EG', flag: '🇪🇬' },
-    { code: '+233', country: 'GH', flag: '🇬🇭' },
-    { code: '+251', country: 'ET', flag: '🇪🇹' },
-    { code: '+250', country: 'RW', flag: '🇷🇼' },
+    { code: '+254', country: 'KE', iso: 'ke' },
+    { code: '+256', country: 'UG', iso: 'ug' },
+    { code: '+255', country: 'TZ', iso: 'tz' },
+    { code: '+250', country: 'RW', iso: 'rw' },
+    { code: '+251', country: 'ET', iso: 'et' },
+    { code: '+233', country: 'GH', iso: 'gh' },
+    { code: '+234', country: 'NG', iso: 'ng' },
+    { code: '+27', country: 'ZA', iso: 'za' },
+    { code: '+20', country: 'EG', iso: 'eg' },
+    { code: '+1', country: 'US', iso: 'us' },
+    { code: '+1', country: 'CA', iso: 'ca' },
+    { code: '+44', country: 'GB', iso: 'gb' },
+    { code: '+91', country: 'IN', iso: 'in' },
+    { code: '+61', country: 'AU', iso: 'au' },
+    { code: '+49', country: 'DE', iso: 'de' },
+    { code: '+33', country: 'FR', iso: 'fr' },
+    { code: '+81', country: 'JP', iso: 'jp' },
+    { code: '+86', country: 'CN', iso: 'cn' },
+    { code: '+55', country: 'BR', iso: 'br' },
+    { code: '+52', country: 'MX', iso: 'mx' },
+    { code: '+971', country: 'AE', iso: 'ae' },
+    { code: '+966', country: 'SA', iso: 'sa' },
+    { code: '+65', country: 'SG', iso: 'sg' },
+    { code: '+82', country: 'KR', iso: 'kr' },
+    { code: '+31', country: 'NL', iso: 'nl' },
+    { code: '+34', country: 'ES', iso: 'es' },
+    { code: '+39', country: 'IT', iso: 'it' },
+    { code: '+46', country: 'SE', iso: 'se' },
+    { code: '+47', country: 'NO', iso: 'no' },
+    { code: '+353', country: 'IE', iso: 'ie' },
+    { code: '+41', country: 'CH', iso: 'ch' },
+    { code: '+48', country: 'PL', iso: 'pl' },
+    { code: '+63', country: 'PH', iso: 'ph' },
+    { code: '+62', country: 'ID', iso: 'id' },
+    { code: '+60', country: 'MY', iso: 'my' },
   ];
+
+  const flagUrl = (iso) => `https://flagcdn.com/w40/${iso}.png`;
 
   const selectedCountry = COUNTRY_CODES.find(c => c.code === countryCode) || COUNTRY_CODES[0];
 
@@ -342,7 +344,7 @@ const SignupPage = () => {
                   className="flex items-center gap-1.5 h-12 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 hover:border-[#7C3AED] transition-colors whitespace-nowrap"
                   data-testid="country-code-btn"
                 >
-                  <span className="text-base">{selectedCountry.flag}</span>
+                  <img src={flagUrl(selectedCountry.iso)} alt={selectedCountry.country} className="w-5 h-auto rounded-sm" />
                   <span className="font-medium">{countryCode}</span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
@@ -358,7 +360,7 @@ const SignupPage = () => {
                           countryCode === c.code && selectedCountry.country === c.country ? "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300" : "text-slate-700 dark:text-slate-300"
                         )}
                       >
-                        <span className="text-base">{c.flag}</span>
+                        <img src={flagUrl(c.iso)} alt={c.country} className="w-5 h-auto rounded-sm" />
                         <span className="font-medium">{c.country}</span>
                         <span className="text-slate-400 ml-auto">{c.code}</span>
                       </button>
