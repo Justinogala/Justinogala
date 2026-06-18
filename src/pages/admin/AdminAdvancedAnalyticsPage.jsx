@@ -4,13 +4,16 @@ import {
   Users, Video, FileText, Brain, TrendingUp, TrendingDown,
   BarChart3, Clock, Loader2, RefreshCw, Calendar, FileSpreadsheet,
   Presentation, MessageSquare, ArrowUpRight, ArrowDownRight, Minus,
-  Image, FileDown, Trophy, Sparkles
+  Image, FileDown, Trophy, Sparkles, Wifi, WifiOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
+import { format } from 'date-fns';
+
+const REFRESH_INTERVAL = 20;
 
 const getToken = () => localStorage.getItem('admin_token') || '';
 
@@ -53,20 +56,38 @@ const AdminAdvancedAnalytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30');
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const apiUrl = getApiUrl();
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`${apiUrl}/api/analytics/admin/overview?days=${period}`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
-      if (res.ok) setData(await res.json());
+      if (res.ok) {
+        setData(await res.json());
+        setLastUpdated(new Date());
+        setCountdown(REFRESH_INTERVAL);
+      }
     } catch (e) { console.error(e); }
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, [apiUrl, period]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { load(true); return REFRESH_INTERVAL; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, load]);
 
   if (loading || !data) {
     return (
@@ -100,7 +121,22 @@ const AdminAdvancedAnalytics = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Advanced Analytics</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Platform performance and engagement insights</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">LIVE</span>
+          </div>
+          {lastUpdated && <span className="text-xs text-slate-400">{format(lastUpdated, 'HH:mm:ss')}</span>}
+          <button onClick={() => setAutoRefresh(!autoRefresh)}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+              autoRefresh ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500"
+            )} data-testid="analytics-auto-refresh">
+            {autoRefresh ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {autoRefresh ? `${countdown}s` : 'Paused'}
+          </button>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[140px]" data-testid="period-select">
               <SelectValue />
@@ -111,8 +147,8 @@ const AdminAdvancedAnalytics = () => {
               <SelectItem value="90">Last 90 days</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={load} data-testid="refresh-analytics-btn">
-            <RefreshCw className="w-4 h-4" />
+          <Button variant="outline" size="sm" onClick={() => load(false)} data-testid="refresh-analytics-btn">
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
           </Button>
         </div>
       </div>
