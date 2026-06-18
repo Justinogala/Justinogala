@@ -233,6 +233,7 @@ export const ActivityGraph = ({ data, isLive, lastUpdated }) => {
             <Bar dataKey="approvals" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Approvals" />
             <Bar dataKey="meetings" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Meetings" />
             <Bar dataKey="logins" fill="#10b981" radius={[4, 4, 0, 0]} name="Logins" />
+            <Bar dataKey="documents" fill="#ec4899" radius={[4, 4, 0, 0]} name="Documents" />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -243,6 +244,7 @@ export const ActivityGraph = ({ data, isLive, lastUpdated }) => {
             { key: 'approvals', color: '#f59e0b', label: 'Approvals' },
             { key: 'meetings', color: '#8b5cf6', label: 'Meetings' },
             { key: 'logins', color: '#10b981', label: 'Logins' },
+            { key: 'documents', color: '#ec4899', label: 'Documents' },
           ].map((item) => (
             <div key={item.key} className="flex items-center gap-1.5 text-xs text-gray-500">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />

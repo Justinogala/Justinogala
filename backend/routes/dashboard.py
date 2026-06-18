@@ -31,9 +31,15 @@ async def _fetch_activity_data():
         approvals_count = await db["approvals"].count_documents({
             "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
         })
-        logins_count = await db["user_activity"].count_documents({
-            "action": "login",
+        logins_count = await db["audit_logs"].count_documents({
+            "action": {"$in": ["login", "login_success"]},
+            "success": True,
             "timestamp": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
+        })
+
+        documents_count = await db["documents"].count_documents({
+            "deleted": {"$ne": True},
+            "created_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}
         })
 
         days.append({
@@ -42,7 +48,8 @@ async def _fetch_activity_data():
             "meetings": meetings_count,
             "approvals": approvals_count,
             "logins": logins_count,
-            "total": messages_count + meetings_count + approvals_count + logins_count,
+            "documents": documents_count,
+            "total": messages_count + meetings_count + approvals_count + logins_count + documents_count,
         })
 
     # Recent activity feed from multiple sources
@@ -72,24 +79,30 @@ async def _fetch_activity_data():
             "icon": "approval",
         })
 
-    recent_logins = await db["user_activity"].find(
-        {"action": "login"}, {"_id": 0, "user_id": 1, "action": 1, "timestamp": 1}
+    recent_logins = await db["audit_logs"].find(
+        {"action": {"$in": ["login", "login_success"]}, "success": True},
+        {"_id": 0, "user_email": 1, "action": 1, "timestamp": 1}
     ).sort("timestamp", -1).limit(5).to_list(5)
-    user_ids = list(set(l.get("user_id") for l in recent_logins if l.get("user_id")))
-    user_names = {}
-    if user_ids:
-        users = await db["users"].find(
-            {"id": {"$in": user_ids}}, {"_id": 0, "id": 1, "name": 1}
-        ).to_list(100)
-        user_names = {u["id"]: u.get("name", "User") for u in users}
     for login in recent_logins:
-        name = user_names.get(login.get("user_id"), "A user")
         activities.append({
             "type": "login",
-            "title": f"{name} logged in",
+            "title": f"{login.get('user_email', 'A user')} logged in",
             "description": "",
             "timestamp": login.get("timestamp", ""),
             "icon": "login",
+        })
+
+    recent_docs = await db["documents"].find(
+        {"deleted": {"$ne": True}},
+        {"_id": 0, "title": 1, "created_at": 1, "updated_at": 1}
+    ).sort("updated_at", -1).limit(5).to_list(5)
+    for doc in recent_docs:
+        activities.append({
+            "type": "document",
+            "title": f"Document: {doc.get('title', 'Untitled')[:40]}",
+            "description": "Updated",
+            "timestamp": doc.get("updated_at", doc.get("created_at", "")),
+            "icon": "document",
         })
 
     recent_esigns = await db["esignature_documents"].find(
