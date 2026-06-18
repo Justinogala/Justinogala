@@ -25,7 +25,7 @@ const SignupPage = () => {
   const [authError, setAuthError] = useState('');
   const [accountType, setAccountType] = useState('personal');
   const [inviteData, setInviteData] = useState(null);
-  const [countryCode, setCountryCode] = useState('+254');
+  const [countryCode, setCountryCode] = useState('+1');
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const countryRef = useRef(null);
 
@@ -53,6 +53,8 @@ const SignupPage = () => {
   }, []);
 
   const COUNTRY_CODES = [
+    { code: '+1', country: 'CA', iso: 'ca' },
+    { code: '+1', country: 'US', iso: 'us' },
     { code: '+254', country: 'KE', iso: 'ke' },
     { code: '+256', country: 'UG', iso: 'ug' },
     { code: '+255', country: 'TZ', iso: 'tz' },
@@ -62,8 +64,6 @@ const SignupPage = () => {
     { code: '+234', country: 'NG', iso: 'ng' },
     { code: '+27', country: 'ZA', iso: 'za' },
     { code: '+20', country: 'EG', iso: 'eg' },
-    { code: '+1', country: 'US', iso: 'us' },
-    { code: '+1', country: 'CA', iso: 'ca' },
     { code: '+44', country: 'GB', iso: 'gb' },
     { code: '+91', country: 'IN', iso: 'in' },
     { code: '+61', country: 'AU', iso: 'au' },
