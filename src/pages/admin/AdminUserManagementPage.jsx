@@ -5,7 +5,7 @@ import {
   UserPlus, Download, FileJson, FileSpreadsheet, Loader2, Search, 
   Filter, Users, Shield, Mail, MoreHorizontal, Edit2, Trash2, 
   Eye, UserX, UserCheck, RefreshCw, Crown, Sparkles, MessageSquare,
-  Building2, Link2, Unlink, Undo2, AlertTriangle, Clock
+  Building2, Link2, Unlink, Undo2, AlertTriangle, Clock, Phone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -663,6 +663,11 @@ const AdminUserManagementPage = () => {
                           <span className="flex items-center gap-1 truncate">
                             <Mail className="w-3.5 h-3.5" /> {user.email}
                           </span>
+                          {user.phone && (
+                            <span className="flex items-center gap-1 truncate hidden sm:inline-flex">
+                              <Phone className="w-3.5 h-3.5" /> {user.phone}
+                            </span>
+                          )}
                           <span className="hidden sm:inline">Joined {formatDate(user.created_at || user.joined_date)}</span>
                         </div>
                       </div>

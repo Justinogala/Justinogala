@@ -375,6 +375,7 @@ const SignupPage = () => {
                   placeholder="712 345 678"
                   className="pl-10 h-12 bg-slate-50 border-slate-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20 rounded-xl transition-all"
                   {...register("phone", {
+                    required: "Phone number is required",
                     pattern: {
                       value: /^[0-9\s-]{6,15}$/,
                       message: "Enter a valid phone number"
@@ -387,7 +388,6 @@ const SignupPage = () => {
             {errors.phone && (
               <p className="text-xs text-red-500 font-medium ml-1">{errors.phone.message}</p>
             )}
-            <p className="text-[10px] text-slate-400 ml-1">Optional — used for account recovery and notifications</p>
           </div>
           
           <div className="space-y-2">

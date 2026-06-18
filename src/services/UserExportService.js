@@ -18,7 +18,7 @@ const getTimestamp = () => {
 export const exportToCSV = (users) => {
   if (!users || users.length === 0) return;
 
-  const headers = ['ID', 'Name', 'Email', 'Role', 'Plan', 'Status', 'Created At'];
+  const headers = ['ID', 'Name', 'Email', 'Phone', 'Country Code', 'Role', 'Plan', 'Status', 'Created At'];
   const csvContent = [
     headers.join(','),
     ...users.map(user => {
@@ -26,6 +26,8 @@ export const exportToCSV = (users) => {
         user.id,
         `"${user.name}"`, // Quote strings to handle commas
         user.email,
+        user.phone || '',
+        user.country_code || '',
         user.role,
         user.plan,
         user.status,
