@@ -8,10 +8,13 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import {
   Shield, ShieldCheck, ShieldAlert, Users, Send, Loader2,
-  RefreshCw, CheckCircle2, AlertTriangle, Lock, Mail, Clock, Bell
+  RefreshCw, CheckCircle2, AlertTriangle, Lock, Mail, Clock, Bell, Wifi, WifiOff
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/api';
+
+const REFRESH_INTERVAL = 20;
 
 const ROLE_LABELS = { super_admin: 'Super Admin', admin: 'Admin', manager: 'Manager', user: 'User' };
 const ROLE_COLORS = {
@@ -29,24 +32,40 @@ const Admin2FADashboardPage = () => {
   const [selected, setSelected] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [togglingAuto, setTogglingAuto] = useState(false);
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/2fa-dashboard/stats`);
       if (!res.ok) throw new Error('Failed to load');
       const data = await res.json();
       setStats(data);
-      setSelected([]);
-      setSelectAll(false);
+      if (!silent) { setSelected([]); setSelectAll(false); }
+      setLastUpdated(new Date());
+      setCountdown(REFRESH_INTERVAL);
     } catch {
-      toast({ variant: 'destructive', title: 'Failed to load 2FA stats' });
+      if (!silent) toast({ variant: 'destructive', title: 'Failed to load 2FA stats' });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [toast]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Auto-refresh countdown
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { load(true); return REFRESH_INTERVAL; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, load]);
 
   const toggleSelectAll = (checked) => {
     setSelectAll(checked);
@@ -136,13 +155,30 @@ const Admin2FADashboardPage = () => {
             Monitor two-factor authentication compliance across your organization.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">LIVE</span>
+          </div>
+          {lastUpdated && (
+            <span className="text-xs text-slate-400">{lastUpdated.toLocaleTimeString()}</span>
+          )}
+          <button onClick={() => setAutoRefresh(!autoRefresh)}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+              autoRefresh ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500"
+            )} data-testid="2fa-auto-refresh">
+            {autoRefresh ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {autoRefresh ? `${countdown}s` : 'Paused'}
+          </button>
           {enforced && (
             <Badge className="bg-violet-100 text-violet-700 border-violet-200" variant="outline" data-testid="enforcement-badge">
               <Lock className="w-3 h-3 mr-1" /> Enforced
             </Badge>
           )}
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} data-testid="refresh-btn">
+          <Button variant="outline" size="sm" onClick={() => load(false)} disabled={loading} data-testid="refresh-btn">
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
         </div>

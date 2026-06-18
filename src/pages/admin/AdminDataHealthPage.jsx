@@ -5,10 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   Database, Users, HardDrive, Trash2, RefreshCw, AlertTriangle,
-  CheckCircle2, Clock, Loader2, Activity, Shield, FolderOpen
+  CheckCircle2, Clock, Loader2, Activity, Shield, FolderOpen, Wifi, WifiOff
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/api';
+
+const REFRESH_INTERVAL = 20;
 
 const HealthBadge = ({ value, good, warn }) => {
   const color = value <= good ? 'bg-emerald-500/15 text-emerald-600 border-emerald-200'
@@ -50,20 +53,37 @@ const AdminDataHealthPage = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cleaning, setCleaning] = useState(null);
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
-  const loadStats = useCallback(async () => {
-    setLoading(true);
+  const loadStats = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/data-health/stats`);
       if (res.ok) setStats(await res.json());
       else throw new Error('Failed to load stats');
+      setLastUpdated(new Date());
+      setCountdown(REFRESH_INTERVAL);
     } catch {
-      toast({ variant: 'destructive', title: 'Failed to load data health stats' });
+      if (!silent) toast({ variant: 'destructive', title: 'Failed to load data health stats' });
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, [toast]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
+
+  // Auto-refresh countdown
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { loadStats(true); return REFRESH_INTERVAL; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, loadStats]);
 
   const runCleanup = async (type) => {
     setCleaning(type);
@@ -100,14 +120,35 @@ const AdminDataHealthPage = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500" data-testid="admin-data-health">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Data Health</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Data Health</h1>
           <p className="text-muted-foreground mt-1">Monitor database health, detect orphaned records, and clean up stale data.</p>
         </div>
-        <Button variant="outline" onClick={loadStats} disabled={loading} data-testid="data-health-refresh">
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">LIVE</span>
+          </div>
+          {lastUpdated && (
+            <span className="text-xs text-slate-400">
+              {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          <button onClick={() => setAutoRefresh(!autoRefresh)}
+            className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+              autoRefresh ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500"
+            )} data-testid="data-health-auto-refresh">
+            {autoRefresh ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {autoRefresh ? `${countdown}s` : 'Paused'}
+          </button>
+          <Button variant="outline" size="sm" onClick={() => loadStats(false)} disabled={loading} data-testid="data-health-refresh">
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Overview Cards */}
