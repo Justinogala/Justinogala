@@ -67,7 +67,10 @@ async def _send_2fa_reminder_to_user(email: str, name: str):
 
 async def _send_reminders_to_non_2fa_users():
     """Core logic: send reminders to ALL non-2FA users. Used by both API and scheduler."""
-    query = {"$or": [{"two_factor_enabled": False}, {"two_factor_enabled": {"$exists": False}}]}
+    query = {"$and": [
+        {"deleted": {"$ne": True}},
+        {"$or": [{"two_factor_enabled": False}, {"two_factor_enabled": {"$exists": False}}]},
+    ]}
     cursor = db.users.find(query, {"_id": 0, "id": 1, "email": 1, "name": 1})
     users = [doc async for doc in cursor]
 
@@ -124,6 +127,7 @@ async def run_2fa_auto_reminders():
 async def get_2fa_stats():
     """Aggregate 2FA adoption stats grouped by role."""
     pipeline = [
+        {"$match": {"deleted": {"$ne": True}}},
         {"$group": {
             "_id": {
                 "role": {"$toLower": {"$ifNull": ["$role", "user"]}},
@@ -165,7 +169,10 @@ async def get_2fa_stats():
 
     # Get list of users without 2FA (for the table)
     non_2fa_cursor = db.users.find(
-        {"$or": [{"two_factor_enabled": False}, {"two_factor_enabled": {"$exists": False}}]},
+        {"$and": [
+            {"deleted": {"$ne": True}},
+            {"$or": [{"two_factor_enabled": False}, {"two_factor_enabled": {"$exists": False}}]},
+        ]},
         {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1, "created_at": 1, "last_login": 1}
     ).sort("created_at", -1).limit(100)
     non_2fa_users = [doc async for doc in non_2fa_cursor]
@@ -189,7 +196,10 @@ async def get_2fa_stats():
 @router.post("/send-reminders")
 async def send_2fa_reminders(req: ReminderRequest):
     """Send reminder emails to users who haven't enabled 2FA."""
-    query = {"$or": [{"two_factor_enabled": False}, {"two_factor_enabled": {"$exists": False}}]}
+    query = {"$and": [
+        {"deleted": {"$ne": True}},
+        {"$or": [{"two_factor_enabled": False}, {"two_factor_enabled": {"$exists": False}}]},
+    ]}
 
     if req.user_ids:
         query["id"] = {"$in": req.user_ids}
