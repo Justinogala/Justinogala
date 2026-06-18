@@ -168,3 +168,123 @@ async def get_system_health():
         "uptime_seconds": uptime_seconds,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+
+@router.get("/dashboard/realtime")
+async def get_admin_dashboard_realtime():
+    """Real-time data for the main admin dashboard — called on auto-refresh."""
+    try:
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_iso = today_start.isoformat()
+        recent_15m = (now - timedelta(minutes=15)).isoformat()
+
+        # ── Core counts ──
+        total_users = await db.users.count_documents({"deleted": {"$ne": True}})
+        active_users = await db.users.count_documents({"status": "Active", "deleted": {"$ne": True}})
+        total_workspaces = await db.workspaces.count_documents({"deleted": {"$ne": True}})
+        total_orgs = await db.organizations.count_documents({"deleted": {"$ne": True}})
+        total_documents = await db.documents.count_documents({"deleted": {"$ne": True}})
+        total_sheets = await db.sheets.count_documents({"deleted": {"$ne": True}})
+
+        # ── Today's activity ──
+        logins_today = await db.audit_logs.count_documents({
+            "action": {"$in": ["login", "login_success"]},
+            "success": True,
+            "timestamp": {"$gte": today_iso}
+        })
+        failed_logins = await db.audit_logs.count_documents({
+            "action": "login_failed",
+            "timestamp": {"$gte": today_iso}
+        })
+        registrations_today = await db.audit_logs.count_documents({
+            "action": "register", "success": True,
+            "timestamp": {"$gte": today_iso}
+        })
+
+        # ── Online now (logged in within 15 min) ──
+        online_now = await db.audit_logs.count_documents({
+            "action": {"$in": ["login", "login_success"]},
+            "success": True,
+            "timestamp": {"$gte": recent_15m}
+        })
+
+        # ── User growth (last 30 days) ──
+        growth = []
+        for i in range(29, -1, -1):
+            day = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+            count = await db.users.count_documents({
+                "deleted": {"$ne": True},
+                "created_at": {"$lte": day.isoformat()}
+            })
+            # Fallback for datetime objects
+            if count == 0:
+                count = await db.users.count_documents({
+                    "deleted": {"$ne": True},
+                    "created_at": {"$lte": day}
+                })
+            growth.append({
+                "date": day.strftime("%b %d"),
+                "users": count
+            })
+
+        # ── Weekly activity chart (last 7 days) ──
+        weekly = []
+        for i in range(6, -1, -1):
+            day_s = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+            day_e = day_s + timedelta(days=1)
+            logins = await db.audit_logs.count_documents({
+                "action": {"$in": ["login", "login_success"]}, "success": True,
+                "timestamp": {"$gte": day_s.isoformat(), "$lt": day_e.isoformat()}
+            })
+            signups = await db.audit_logs.count_documents({
+                "action": "register", "success": True,
+                "timestamp": {"$gte": day_s.isoformat(), "$lt": day_e.isoformat()}
+            })
+            weekly.append({
+                "day": day_s.strftime("%a"),
+                "logins": logins,
+                "signups": signups,
+            })
+
+        # ── Recent audit ──
+        audit_cursor = db.audit_logs.find(
+            {}, {"_id": 0, "action": 1, "user_email": 1, "timestamp": 1, "success": 1}
+        ).sort("timestamp", -1).limit(10)
+        recent_audit = await audit_cursor.to_list(10)
+
+        # ── Recent users ──
+        recent_users_cursor = db.users.find(
+            {"deleted": {"$ne": True}},
+            {"_id": 0, "id": 1, "name": 1, "email": 1, "created_at": 1, "status": 1, "plan": 1}
+        ).sort("created_at", -1).limit(5)
+        recent_users = await recent_users_cursor.to_list(5)
+        for u in recent_users:
+            if hasattr(u.get("created_at"), "isoformat"):
+                u["created_at"] = u["created_at"].isoformat()
+
+        return {
+            "counts": {
+                "total_users": total_users,
+                "active_users": active_users,
+                "workspaces": total_workspaces,
+                "organizations": total_orgs,
+                "documents": total_documents,
+                "sheets": total_sheets,
+            },
+            "today": {
+                "logins": logins_today,
+                "failed_logins": failed_logins,
+                "registrations": registrations_today,
+                "online_now": online_now,
+            },
+            "user_growth": growth,
+            "weekly_activity": weekly,
+            "recent_audit": recent_audit,
+            "recent_users": recent_users,
+            "timestamp": now.isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Admin dashboard realtime error: {e}")
+        raise HTTPException(500, str(e))
