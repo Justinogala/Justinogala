@@ -15,16 +15,16 @@ async def _compute_score():
     now = datetime.now(timezone.utc)
     thirty_days_ago = (now - timedelta(days=30)).isoformat()
 
-    total_users = await db.users.count_documents({})
-    tfa_enabled = await db.users.count_documents({"two_factor_enabled": True})
+    total_users = await db.users.count_documents({"deleted": {"$ne": True}})
+    tfa_enabled = await db.users.count_documents({"two_factor_enabled": True, "deleted": {"$ne": True}})
     tfa_pct = round((tfa_enabled / total_users * 100), 1) if total_users > 0 else 0
 
-    strong_pw = await db.users.count_documents({"password": {"$regex": r"^\$2[ab]\$"}})
+    strong_pw = await db.users.count_documents({"password": {"$regex": r"^\$2[ab]\$"}, "deleted": {"$ne": True}})
     weak_pw = total_users - strong_pw
     pw_pct = round((strong_pw / total_users * 100), 1) if total_users > 0 else 0
 
-    locked_accounts = await db.users.count_documents({"locked_until": {"$exists": True, "$ne": None}})
-    high_fail_users = await db.users.count_documents({"failed_login_attempts": {"$gte": 3}})
+    locked_accounts = await db.users.count_documents({"locked_until": {"$exists": True, "$ne": None}, "deleted": {"$ne": True}})
+    high_fail_users = await db.users.count_documents({"failed_login_attempts": {"$gte": 3}, "deleted": {"$ne": True}})
     suspicious_events = await db.audit_logs.count_documents({
         "severity": {"$in": ["warning", "critical"]},
         "category": {"$in": ["auth", "security", "2fa"]},
