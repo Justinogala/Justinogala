@@ -149,7 +149,7 @@ const Footer = () => {
               <Link to="/legal/terms" className="text-[11px] text-[#767676] dark:text-gray-500 hover:underline transition-colors" data-testid="footer-terms-link">Terms of use</Link>
               <Link to="/legal/trademarks" className="text-[11px] text-[#767676] dark:text-gray-500 hover:underline transition-colors" data-testid="footer-trademarks-link">Trademarks</Link>
               <span className="text-[11px] text-[#767676] dark:text-gray-500" data-testid="footer-copyright">
-                &copy; Munal AI {new Date().getFullYear()}
+                &copy; Munal AI&trade; {new Date().getFullYear()} | Powered by Jiffix Inc.
               </span>
             </div>
           </div>
