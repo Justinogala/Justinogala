@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Building2, Users, MessageSquare, Clock, Search, 
   MoreHorizontal, Eye, Ban, Trash2, RefreshCw, 
   TrendingUp, AlertTriangle, CheckCircle, Archive,
-  ChevronLeft, ChevronRight, Filter
+  ChevronLeft, ChevronRight, Filter, Wifi, WifiOff
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,9 +35,12 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 import PageTransition from '@/components/PageTransition';
 
 import { getApiUrl, API_URL } from '@/lib/api';
+
+const REFRESH_INTERVAL = 20;
 
 const AdminWorkspacesPage = () => {
   const navigate = useNavigate();
@@ -56,9 +59,22 @@ const AdminWorkspacesPage = () => {
   const [actionReason, setActionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Auto-refresh
+  const [countdown, setCountdown] = useState(REFRESH_INTERVAL);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const refreshAll = useCallback(() => {
+    fetchStats();
+    fetchWorkspaces();
+    setLastUpdated(new Date());
+    setCountdown(REFRESH_INTERVAL);
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchWorkspaces();
+    setLastUpdated(new Date());
   }, [page, statusFilter]);
 
   useEffect(() => {
@@ -71,6 +87,18 @@ const AdminWorkspacesPage = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Auto-refresh timer
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) { refreshAll(); return REFRESH_INTERVAL; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, refreshAll]);
 
   const fetchStats = async () => {
     try {
@@ -171,10 +199,27 @@ const AdminWorkspacesPage = () => {
             </h1>
             <p className="text-gray-500 mt-1">Oversee and manage all workspaces across the platform</p>
           </div>
-          <Button onClick={fetchWorkspaces} variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+              </span>
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">LIVE</span>
+            </div>
+            {lastUpdated && <span className="text-xs text-slate-400">{lastUpdated.toLocaleTimeString()}</span>}
+            <button onClick={() => setAutoRefresh(!autoRefresh)}
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+                autoRefresh ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600" : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-500"
+              )} data-testid="workspace-auto-refresh">
+              {autoRefresh ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              {autoRefresh ? `${countdown}s` : 'Paused'}
+            </button>
+            <Button onClick={refreshAll} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
