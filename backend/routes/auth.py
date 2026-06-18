@@ -341,6 +341,8 @@ async def register_user(request: Request, user: UserCreate, invite_token: Option
         "organization_id": organization_id,
         "org_role": org_role,
         "avatar": None,
+        "phone": user.phone or None,
+        "country_code": user.country_code or None,
         "email_verified": True,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc)

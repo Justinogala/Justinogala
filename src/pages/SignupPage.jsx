@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Loader2, Eye, EyeOff, AlertCircle, ArrowRight, Check, Mail, Building2, User } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle, ArrowRight, Check, Mail, Building2, User, Phone, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +25,9 @@ const SignupPage = () => {
   const [authError, setAuthError] = useState('');
   const [accountType, setAccountType] = useState('personal');
   const [inviteData, setInviteData] = useState(null);
+  const [countryCode, setCountryCode] = useState('+1');
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const countryRef = useRef(null);
 
   // Validate invite token if present
   useEffect(() => {
@@ -42,6 +45,53 @@ const SignupPage = () => {
     validate();
   }, [inviteToken]); // 'personal' or 'organization'
 
+  // Close country dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (countryRef.current && !countryRef.current.contains(e.target)) setCountryDropdownOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const COUNTRY_CODES = [
+    { code: '+1', country: 'US', flag: '🇺🇸' },
+    { code: '+1', country: 'CA', flag: '🇨🇦' },
+    { code: '+44', country: 'GB', flag: '🇬🇧' },
+    { code: '+254', country: 'KE', flag: '🇰🇪' },
+    { code: '+256', country: 'UG', flag: '🇺🇬' },
+    { code: '+255', country: 'TZ', flag: '🇹🇿' },
+    { code: '+234', country: 'NG', flag: '🇳🇬' },
+    { code: '+27', country: 'ZA', flag: '🇿🇦' },
+    { code: '+91', country: 'IN', flag: '🇮🇳' },
+    { code: '+61', country: 'AU', flag: '🇦🇺' },
+    { code: '+49', country: 'DE', flag: '🇩🇪' },
+    { code: '+33', country: 'FR', flag: '🇫🇷' },
+    { code: '+81', country: 'JP', flag: '🇯🇵' },
+    { code: '+86', country: 'CN', flag: '🇨🇳' },
+    { code: '+55', country: 'BR', flag: '🇧🇷' },
+    { code: '+52', country: 'MX', flag: '🇲🇽' },
+    { code: '+971', country: 'AE', flag: '🇦🇪' },
+    { code: '+966', country: 'SA', flag: '🇸🇦' },
+    { code: '+65', country: 'SG', flag: '🇸🇬' },
+    { code: '+82', country: 'KR', flag: '🇰🇷' },
+    { code: '+31', country: 'NL', flag: '🇳🇱' },
+    { code: '+34', country: 'ES', flag: '🇪🇸' },
+    { code: '+39', country: 'IT', flag: '🇮🇹' },
+    { code: '+46', country: 'SE', flag: '🇸🇪' },
+    { code: '+47', country: 'NO', flag: '🇳🇴' },
+    { code: '+353', country: 'IE', flag: '🇮🇪' },
+    { code: '+41', country: 'CH', flag: '🇨🇭' },
+    { code: '+48', country: 'PL', flag: '🇵🇱' },
+    { code: '+63', country: 'PH', flag: '🇵🇭' },
+    { code: '+62', country: 'ID', flag: '🇮🇩' },
+    { code: '+60', country: 'MY', flag: '🇲🇾' },
+    { code: '+20', country: 'EG', flag: '🇪🇬' },
+    { code: '+233', country: 'GH', flag: '🇬🇭' },
+    { code: '+251', country: 'ET', flag: '🇪🇹' },
+    { code: '+250', country: 'RW', flag: '🇷🇼' },
+  ];
+
+  const selectedCountry = COUNTRY_CODES.find(c => c.code === countryCode) || COUNTRY_CODES[0];
+
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
   
   const password = watch("password", "");
@@ -58,6 +108,7 @@ const SignupPage = () => {
           setIsLoading(false);
           return;
         }
+        const phone = data.phone?.trim() || null;
         const res = await fetch(`${API_URL}/api/organizations/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -68,6 +119,8 @@ const SignupPage = () => {
             admin_name: `${data.firstName} ${data.lastName}`.trim(),
             admin_email: data.email,
             admin_password: data.password,
+            admin_phone: phone ? `${countryCode}${phone}` : null,
+            admin_country_code: phone ? countryCode : null,
           })
         });
         const result = await res.json();
@@ -89,7 +142,8 @@ const SignupPage = () => {
       } else {
         // Standard personal signup (or invite-based signup)
         const fullName = `${data.firstName} ${data.lastName}`.trim();
-        const result = await signup(data.email, data.password, fullName, inviteToken || null);
+        const phone = data.phone?.trim() || null;
+        const result = await signup(data.email, data.password, fullName, inviteToken || null, phone ? `${countryCode}${phone}` : null, phone ? countryCode : null);
         
         if (result.requires_verification) {
           toast({ title: "Verification required", description: "Check your email for the verification code." });
@@ -274,6 +328,66 @@ const SignupPage = () => {
             {errors.email && (
               <p className="text-xs text-red-500 font-medium ml-1">{errors.email.message}</p>
             )}
+          </div>
+
+          {/* Phone Number */}
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <div className="flex gap-2">
+              {/* Country Code Selector */}
+              <div className="relative" ref={countryRef}>
+                <button
+                  type="button"
+                  onClick={() => setCountryDropdownOpen(!countryDropdownOpen)}
+                  className="flex items-center gap-1.5 h-12 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 hover:border-[#7C3AED] transition-colors whitespace-nowrap"
+                  data-testid="country-code-btn"
+                >
+                  <span className="text-base">{selectedCountry.flag}</span>
+                  <span className="font-medium">{countryCode}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+                {countryDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 w-56 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 py-1" data-testid="country-code-dropdown">
+                    {COUNTRY_CODES.map((c, i) => (
+                      <button
+                        key={`${c.code}-${c.country}-${i}`}
+                        type="button"
+                        onClick={() => { setCountryCode(c.code); setCountryDropdownOpen(false); }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors",
+                          countryCode === c.code && selectedCountry.country === c.country ? "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300" : "text-slate-700 dark:text-slate-300"
+                        )}
+                      >
+                        <span className="text-base">{c.flag}</span>
+                        <span className="font-medium">{c.country}</span>
+                        <span className="text-slate-400 ml-auto">{c.code}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Phone Input */}
+              <div className="relative flex-1">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="712 345 678"
+                  className="pl-10 h-12 bg-slate-50 border-slate-200 focus:border-[#7C3AED] focus:ring-[#7C3AED]/20 rounded-xl transition-all"
+                  {...register("phone", {
+                    pattern: {
+                      value: /^[0-9\s-]{6,15}$/,
+                      message: "Enter a valid phone number"
+                    }
+                  })}
+                  data-testid="phone-input"
+                />
+              </div>
+            </div>
+            {errors.phone && (
+              <p className="text-xs text-red-500 font-medium ml-1">{errors.phone.message}</p>
+            )}
+            <p className="text-[10px] text-slate-400 ml-1">Optional — used for account recovery and notifications</p>
           </div>
           
           <div className="space-y-2">

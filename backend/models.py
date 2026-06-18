@@ -124,6 +124,8 @@ class UserCreate(BaseModel):
     account_type: str = "personal"  # "personal" or "business"
     organization_id: Optional[str] = None
     permissions: Optional[Dict] = None  # If not provided, defaults based on role
+    phone: Optional[str] = None
+    country_code: Optional[str] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None

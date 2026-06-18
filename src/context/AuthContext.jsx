@@ -266,7 +266,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (email, password, name, inviteToken = null) => {
+  const signup = async (email, password, name, inviteToken = null, phone = null, countryCode = null) => {
     try {
       setLoading(true);
       setError(null);
@@ -274,10 +274,14 @@ export const AuthProvider = ({ children }) => {
         ? `${API_URL}/api/auth/register?invite_token=${encodeURIComponent(inviteToken)}`
         : `${API_URL}/api/auth/register`;
 
+      const body = { email, password, name };
+      if (phone) body.phone = phone;
+      if (countryCode) body.country_code = countryCode;
+
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name })
+        body: JSON.stringify(body)
       });
       const data = await safeParseJSON(response);
       if (!response.ok) throw new Error(data.detail || "Registration failed");
