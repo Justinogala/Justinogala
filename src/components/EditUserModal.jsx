@@ -21,8 +21,27 @@ import { useToast } from '@/components/ui/use-toast';
 import { 
   Loader2, Eye, EyeOff, KeyRound, ChevronDown, ChevronRight,
   LayoutDashboard, Users, Building2, MessageSquare, 
-  Clock, CreditCard, Settings, LifeBuoy, Mail, Shield
+  Clock, CreditCard, Settings, LifeBuoy, Mail, Shield, Phone
 } from 'lucide-react';
+
+const COUNTRY_CODES = [
+  { code: '+1', country: 'CA', iso: 'ca' },
+  { code: '+1', country: 'US', iso: 'us' },
+  { code: '+254', country: 'KE', iso: 'ke' },
+  { code: '+256', country: 'UG', iso: 'ug' },
+  { code: '+255', country: 'TZ', iso: 'tz' },
+  { code: '+250', country: 'RW', iso: 'rw' },
+  { code: '+44', country: 'GB', iso: 'gb' },
+  { code: '+91', country: 'IN', iso: 'in' },
+  { code: '+61', country: 'AU', iso: 'au' },
+  { code: '+49', country: 'DE', iso: 'de' },
+  { code: '+33', country: 'FR', iso: 'fr' },
+  { code: '+234', country: 'NG', iso: 'ng' },
+  { code: '+27', country: 'ZA', iso: 'za' },
+  { code: '+971', country: 'AE', iso: 'ae' },
+  { code: '+65', country: 'SG', iso: 'sg' },
+];
+const flagUrl = (iso) => `https://flagcdn.com/w40/${iso}.png`;
 
 // Permission categories with their labels and icons
 const PERMISSION_CATEGORIES = {
@@ -100,7 +119,9 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
     email: '',
     role: 'User',
     plan: 'Free',
-    status: 'Active'
+    status: 'Active',
+    phone: '',
+    country_code: '+1',
   });
   const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS.User);
   const [newPassword, setNewPassword] = useState('');
@@ -114,12 +135,23 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
   useEffect(() => {
     if (user) {
       const role = user.role || 'User';
+      // Parse phone - if stored as +254712345678, extract country code
+      let phoneNum = user.phone || '';
+      let cc = user.country_code || '+1';
+      if (phoneNum && !user.country_code) {
+        const match = COUNTRY_CODES.find(c => phoneNum.startsWith(c.code));
+        if (match) { cc = match.code; phoneNum = phoneNum.slice(match.code.length); }
+      } else if (phoneNum && user.country_code) {
+        phoneNum = phoneNum.startsWith(user.country_code) ? phoneNum.slice(user.country_code.length) : phoneNum;
+      }
       setFormData({
         name: user.name || user.full_name || '',
         email: user.email || '',
         role: role,
         plan: user.plan || 'Free',
-        status: user.status || 'Active'
+        status: user.status || 'Active',
+        phone: phoneNum,
+        country_code: cc,
       });
       // Set permissions from user or defaults
       setPermissions(user.permissions || DEFAULT_PERMISSIONS[role] || DEFAULT_PERMISSIONS.User);
@@ -224,6 +256,7 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
     try {
       const updateData = { 
         ...formData,
+        phone: formData.phone ? `${formData.country_code}${formData.phone}` : null,
         permissions: formData.role !== 'User' ? permissions : null
       };
       
@@ -273,6 +306,45 @@ const EditUserModal = ({ isOpen, onClose, user, onUpdate }) => {
               className="bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
               data-testid="edit-user-name-input"
             />
+          </div>
+
+          {/* Phone Number */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700 dark:text-gray-200">Phone Number</Label>
+            <div className="flex gap-2">
+              <Select value={formData.country_code} onValueChange={(val) => handleSelectChange('country_code', val)}>
+                <SelectTrigger className="w-[120px] bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10" data-testid="edit-user-country-code">
+                  <SelectValue>
+                    <span className="flex items-center gap-1.5">
+                      <img src={flagUrl((COUNTRY_CODES.find(c => c.code === formData.country_code) || COUNTRY_CODES[0]).iso)} alt="" className="w-4 h-auto rounded-sm" />
+                      {formData.country_code}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRY_CODES.map((c, i) => (
+                    <SelectItem key={`${c.code}-${c.country}-${i}`} value={c.code}>
+                      <span className="flex items-center gap-2">
+                        <img src={flagUrl(c.iso)} alt={c.country} className="w-4 h-auto rounded-sm" />
+                        {c.country} {c.code}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative flex-1">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  name="phone"
+                  type="tel"
+                  placeholder="712 345 678"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="pl-10 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+                  data-testid="edit-user-phone-input"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Password Reset Section */}

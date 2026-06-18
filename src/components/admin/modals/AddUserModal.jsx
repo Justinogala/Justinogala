@@ -30,8 +30,27 @@ import { getApiUrl, API_URL } from '@/lib/api';
 import { 
   Loader2, Eye, EyeOff, ChevronDown, ChevronRight,
   LayoutDashboard, Users, Building2, MessageSquare, 
-  Clock, CreditCard, Settings, LifeBuoy, Mail, Shield
+  Clock, CreditCard, Settings, LifeBuoy, Mail, Shield, Phone
 } from 'lucide-react';
+
+const COUNTRY_CODES = [
+  { code: '+1', country: 'CA', iso: 'ca' },
+  { code: '+1', country: 'US', iso: 'us' },
+  { code: '+254', country: 'KE', iso: 'ke' },
+  { code: '+256', country: 'UG', iso: 'ug' },
+  { code: '+255', country: 'TZ', iso: 'tz' },
+  { code: '+250', country: 'RW', iso: 'rw' },
+  { code: '+44', country: 'GB', iso: 'gb' },
+  { code: '+91', country: 'IN', iso: 'in' },
+  { code: '+61', country: 'AU', iso: 'au' },
+  { code: '+49', country: 'DE', iso: 'de' },
+  { code: '+33', country: 'FR', iso: 'fr' },
+  { code: '+234', country: 'NG', iso: 'ng' },
+  { code: '+27', country: 'ZA', iso: 'za' },
+  { code: '+971', country: 'AE', iso: 'ae' },
+  { code: '+65', country: 'SG', iso: 'sg' },
+];
+const flagUrl = (iso) => `https://flagcdn.com/w40/${iso}.png`;
 
 // Permission categories with their labels and icons
 const PERMISSION_CATEGORIES = {
@@ -113,6 +132,8 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
     password: '',
     account_type: 'personal',
     organization_id: null,
+    phone: '',
+    country_code: '+1',
   });
   
   const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS.User);
@@ -237,6 +258,7 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
       // Include permissions in the submission
       const submitData = {
         ...formData,
+        phone: formData.phone ? `${formData.country_code}${formData.phone}` : null,
         permissions: formData.role !== 'User' ? permissions : null,
         organization_id: formData.account_type === 'business' ? formData.organization_id : null,
       };
@@ -252,6 +274,8 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
           password: '',
           account_type: 'personal',
           organization_id: null,
+          phone: '',
+          country_code: '+1',
         });
         setPermissions(DEFAULT_PERMISSIONS.User);
         setErrors({});
@@ -315,6 +339,45 @@ const AddUserModal = ({ isOpen, onClose, onAddUser }) => {
                 {errors.email && (
                   <p className="text-xs text-red-500 animate-in slide-in-from-top-1">{errors.email}</p>
                 )}
+              </div>
+
+              {/* Phone Number Field */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</Label>
+                <div className="flex gap-2">
+                  <Select value={formData.country_code} onValueChange={(val) => handleSelectChange('country_code', val)}>
+                    <SelectTrigger className="w-[120px] bg-white dark:bg-slate-950" data-testid="add-user-country-code">
+                      <SelectValue>
+                        <span className="flex items-center gap-1.5">
+                          <img src={flagUrl((COUNTRY_CODES.find(c => c.code === formData.country_code) || COUNTRY_CODES[0]).iso)} alt="" className="w-4 h-auto rounded-sm" />
+                          {formData.country_code}
+                        </span>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COUNTRY_CODES.map((c, i) => (
+                        <SelectItem key={`${c.code}-${c.country}-${i}`} value={c.code}>
+                          <span className="flex items-center gap-2">
+                            <img src={flagUrl(c.iso)} alt={c.country} className="w-4 h-auto rounded-sm" />
+                            {c.country} {c.code}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="relative flex-1">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      name="phone"
+                      type="tel"
+                      placeholder="712 345 678"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="pl-10 bg-white dark:bg-slate-950"
+                      data-testid="add-user-phone-input"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Password Field */}

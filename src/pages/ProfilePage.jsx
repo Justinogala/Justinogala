@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -7,9 +7,29 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, CreditCard, AlertTriangle, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, CreditCard, AlertTriangle, ArrowRight, Phone } from 'lucide-react';
 import Header from '@/components/Header';
+
+const COUNTRY_CODES = [
+  { code: '+1', country: 'CA', iso: 'ca' },
+  { code: '+1', country: 'US', iso: 'us' },
+  { code: '+254', country: 'KE', iso: 'ke' },
+  { code: '+256', country: 'UG', iso: 'ug' },
+  { code: '+255', country: 'TZ', iso: 'tz' },
+  { code: '+250', country: 'RW', iso: 'rw' },
+  { code: '+44', country: 'GB', iso: 'gb' },
+  { code: '+91', country: 'IN', iso: 'in' },
+  { code: '+61', country: 'AU', iso: 'au' },
+  { code: '+49', country: 'DE', iso: 'de' },
+  { code: '+33', country: 'FR', iso: 'fr' },
+  { code: '+234', country: 'NG', iso: 'ng' },
+  { code: '+27', country: 'ZA', iso: 'za' },
+  { code: '+971', country: 'AE', iso: 'ae' },
+  { code: '+65', country: 'SG', iso: 'sg' },
+];
+const flagUrl = (iso) => `https://flagcdn.com/w40/${iso}.png`;
 
 const ProfilePage = () => {
   const { user, updateProfile, logout } = useAuth();
@@ -17,9 +37,27 @@ const ProfilePage = () => {
   const { toast } = useToast();
 
   const [editMode, setEditMode] = useState(false);
+
+  // Parse phone from user
+  const parsePhone = () => {
+    let phoneNum = user?.phone || '';
+    let cc = user?.country_code || '+1';
+    if (phoneNum && !user?.country_code) {
+      const match = COUNTRY_CODES.find(c => phoneNum.startsWith(c.code));
+      if (match) { cc = match.code; phoneNum = phoneNum.slice(match.code.length); }
+    } else if (phoneNum && user?.country_code) {
+      phoneNum = phoneNum.startsWith(user.country_code) ? phoneNum.slice(user.country_code.length) : phoneNum;
+    }
+    return { phoneNum, cc };
+  };
+
+  const { phoneNum: initPhone, cc: initCC } = parsePhone();
+
   const [formData, setFormData] = useState({
     name: user?.name || '',
-    email: user?.email || ''
+    email: user?.email || '',
+    phone: initPhone,
+    country_code: initCC,
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -64,7 +102,11 @@ const ProfilePage = () => {
     if (!validateForm()) return;
 
     setLoading(true);
-    const result = await updateProfile(formData);
+    const submitData = {
+      ...formData,
+      phone: formData.phone ? `${formData.country_code}${formData.phone}` : null,
+    };
+    const result = await updateProfile(submitData);
     setLoading(false);
 
     if (result.success) {
@@ -174,15 +216,55 @@ const ProfilePage = () => {
                         error={errors.email}
                         required
                       />
+                      <div>
+                        <label className="text-sm font-medium text-gray-300 mb-1.5 block">Phone Number</label>
+                        <div className="flex gap-2">
+                          <Select value={formData.country_code} onValueChange={(val) => setFormData(prev => ({ ...prev, country_code: val }))}>
+                            <SelectTrigger className="w-[120px] bg-white/5 border-white/10" data-testid="profile-country-code">
+                              <SelectValue>
+                                <span className="flex items-center gap-1.5">
+                                  <img src={flagUrl((COUNTRY_CODES.find(c => c.code === formData.country_code) || COUNTRY_CODES[0]).iso)} alt="" className="w-4 h-auto rounded-sm" />
+                                  {formData.country_code}
+                                </span>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {COUNTRY_CODES.map((c, i) => (
+                                <SelectItem key={`${c.code}-${c.country}-${i}`} value={c.code}>
+                                  <span className="flex items-center gap-2">
+                                    <img src={flagUrl(c.iso)} alt={c.country} className="w-4 h-auto rounded-sm" />
+                                    {c.country} {c.code}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="relative flex-1">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input
+                              name="phone"
+                              type="tel"
+                              placeholder="712 345 678"
+                              value={formData.phone}
+                              onChange={handleChange}
+                              className="pl-10"
+                              data-testid="profile-phone-input"
+                            />
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex gap-3 pt-4">
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => {
                             setEditMode(false);
+                            const { phoneNum: rp, cc: rc } = parsePhone();
                             setFormData({
                               name: user?.name || '',
-                              email: user?.email || ''
+                              email: user?.email || '',
+                              phone: rp,
+                              country_code: rc,
                             });
                             setErrors({});
                           }}
@@ -208,6 +290,13 @@ const ProfilePage = () => {
                         <div>
                           <p className="text-sm text-gray-400">Email</p>
                           <p className="text-white font-medium">{user?.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10">
+                        <Phone className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-400">Phone Number</p>
+                          <p className="text-white font-medium">{user?.phone || 'Not set'}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10">
