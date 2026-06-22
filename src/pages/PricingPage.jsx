@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Check, X, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
@@ -473,6 +474,7 @@ const PricingPage = () => {
           </div>
         </section>
       </div>
+      <Footer />
     </>
   );
 };
