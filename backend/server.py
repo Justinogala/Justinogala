@@ -275,6 +275,7 @@ from routes.admin_compliance import router as admin_compliance_router, take_comp
 from routes.sms_notifications import router as sms_notifications_router
 from routes.admin_trash import router as admin_trash_router
 from routes.ai_builder import router as ai_builder_router
+from routes.admin_newsletter import router as admin_newsletter_router
 from routes.updates import router as updates_router
 from scheduled.data_health_digest import run_data_health_digest
 
@@ -363,6 +364,8 @@ api_router.include_router(sms_notifications_router)
 api_router.include_router(updates_router)
 api_router.include_router(admin_trash_router)
 api_router.include_router(ai_builder_router)
+api_router.include_router(admin_newsletter_router)
+api_router.include_router(admin_newsletter_router)
 
 from routes.sheets import router as sheets_router
 api_router.include_router(sheets_router)
