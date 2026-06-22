@@ -328,7 +328,7 @@ async def _send_campaign_background(campaign_id: str):
 
     sent = 0
     failed = 0
-    from_email = f"{campaign.get('sender_name', 'Munal AI')} <newsletter@munal.ai>"
+    from_email = f"{campaign.get('sender_name', 'Munal AI')} <admin@munal.ai>"
 
     for i, contact in enumerate(contacts):
         try:
