@@ -22,7 +22,7 @@ const NavItem = ({ link, index, collapsed, onClose, hoveredItem, setHoveredItem 
     onMouseEnter={() => setHoveredItem(index)}
     onMouseLeave={() => setHoveredItem(null)}
     className={({ isActive }) => cn(
-      "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+      "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-100 group relative",
       isActive 
         ? "bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20" 
         : "hover:bg-white/50 dark:hover:bg-slate-800/50",

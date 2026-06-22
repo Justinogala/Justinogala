@@ -173,14 +173,14 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
                 onMouseEnter={() => setHoveredItem(index)}
                 onMouseLeave={() => setHoveredItem(null)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-100 group relative",
                   "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white",
                   collapsed && "justify-center px-2"
                 )}
                 title={collapsed ? item.label : undefined}
               >
                 <div className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
+                  "p-2 rounded-lg transition-colors duration-100",
                   hoveredItem === index ? `bg-gradient-to-br ${item.gradient} shadow-lg` : "bg-gray-100 dark:bg-slate-800 group-hover:bg-gray-200 dark:group-hover:bg-slate-700"
                 )}>
                   <item.icon className={cn("w-4 h-4", hoveredItem === index ? "text-white" : "text-gray-500 dark:text-gray-400")} />
@@ -200,7 +200,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
                 onMouseEnter={() => setHoveredItem(index)}
                 onMouseLeave={() => setHoveredItem(null)}
                 className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-100 group relative",
                   isActive 
                     ? "bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20" 
                     : "hover:bg-gray-100/80 dark:hover:bg-slate-800/80",
@@ -211,7 +211,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
                 {({ isActive }) => (
                   <>
                     <div className={cn(
-                      "p-2 rounded-lg transition-all duration-200",
+                      "p-2 rounded-lg transition-colors duration-100",
                       isActive || hoveredItem === index 
                         ? `bg-gradient-to-br ${item.gradient} shadow-lg ${isActive ? 'shadow-violet-500/30' : ''}` 
                         : "bg-gray-100 dark:bg-slate-800"
@@ -259,7 +259,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
           <button
             onClick={() => !collapsed && setPaymentsOpen(!paymentsOpen)}
             className={cn(
-              "flex items-center justify-between w-full px-3 py-2.5 rounded-xl transition-all duration-200 group",
+              "flex items-center justify-between w-full px-3 py-2.5 rounded-xl transition-colors duration-100 group",
               paymentsOpen 
                 ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20" 
                 : "hover:bg-gray-100/80 dark:hover:bg-slate-800/80",
@@ -269,7 +269,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
           >
             <div className="flex items-center gap-3">
               <div className={cn(
-                "p-2 rounded-lg transition-all duration-200",
+                "p-2 rounded-lg transition-colors duration-100",
                 paymentsOpen 
                   ? "bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/30" 
                   : "bg-gray-100 dark:bg-slate-800 group-hover:bg-gray-200 dark:group-hover:bg-slate-700"
@@ -301,7 +301,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
                       to={item.path}
                       onClick={isMobile ? onClose : undefined}
                       className={({ isActive }) => cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
+                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-100",
                         isActive 
                           ? "bg-amber-100/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium" 
                           : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-700 dark:hover:text-gray-200"
@@ -333,7 +333,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
               to={item.path}
               onClick={isMobile ? onClose : undefined}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-100 group",
                 isActive 
                   ? "bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20" 
                   : "hover:bg-gray-100/80 dark:hover:bg-slate-800/80",
@@ -344,7 +344,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
               {({ isActive }) => (
                 <>
                   <div className={cn(
-                    "p-2 rounded-lg transition-all duration-200",
+                    "p-2 rounded-lg transition-colors duration-100",
                     isActive 
                       ? `bg-gradient-to-br ${item.gradient} shadow-lg` 
                       : "bg-gray-100 dark:bg-slate-800 group-hover:bg-gray-200 dark:group-hover:bg-slate-700"

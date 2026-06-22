@@ -341,6 +341,17 @@ function App() {
     };
   }, []);
 
+  // Prefetch critical routes after initial paint
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Preload most visited pages in background
+      import('@/pages/user/UserDashboard').catch(() => {});
+      import('@/pages/AdminDashboard').catch(() => {});
+      import('@/pages/AIChatPage').catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <ErrorBoundary>
       <ToastContextProvider>
@@ -363,8 +374,8 @@ function App() {
                               <OfflineIndicator />
                               
                               <Suspense fallback={
-                                <div className="min-h-screen flex items-center justify-center bg-violet-50 dark:bg-slate-950">
-                                <LoadingSpinner size="large" />
+                                <div className="min-h-screen flex items-center justify-center">
+                                <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
                               </div>
                             }>
                             <Routes>

@@ -76,8 +76,8 @@ const ModernAdminDashboard = () => {
     return () => clearInterval(timer);
   }, [autoRefresh, fetchData]);
 
-  const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
-  const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+  const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.03 } } };
+  const item = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.15 } } };
 
   const metrics = data ? [
     { title: 'Total Users', value: data.counts.total_users, icon: Users, color: 'blue', border: 'border-l-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600' },
