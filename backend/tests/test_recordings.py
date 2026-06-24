@@ -178,3 +178,173 @@ def test_delete_recording_not_found(session):
         timeout=10,
     )
     assert resp.status_code == 404
+
+
+# ============== Pin (NEW) ==============
+def test_pin_toggle_and_expires_at(session, created_recording):
+    """Pin should set expires_at=null; Unpin should restore ~7d expiry."""
+    rid = created_recording["id"]
+
+    # Get current state
+    get0 = session.get(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}", timeout=10)
+    assert get0.status_code == 200
+    initial_pinned = bool(get0.json().get("pinned", False))
+
+    # Toggle 1
+    r1 = session.put(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/pin", timeout=10)
+    assert r1.status_code == 200
+    d1 = r1.json()
+    assert d1["success"] is True
+    assert d1["pinned"] == (not initial_pinned)
+    if d1["pinned"]:
+        assert d1["recording"]["expires_at"] is None
+    else:
+        assert d1["recording"]["expires_at"] is not None
+
+    # Toggle 2 (back)
+    r2 = session.put(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/pin", timeout=10)
+    assert r2.status_code == 200
+    d2 = r2.json()
+    assert d2["pinned"] == initial_pinned
+
+    # Toggle 3 (forward again) — true→false→true verification per request
+    r3 = session.put(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/pin", timeout=10)
+    assert r3.status_code == 200
+    d3 = r3.json()
+    assert d3["pinned"] == (not initial_pinned)
+    if d3["pinned"]:
+        assert d3["recording"]["expires_at"] is None
+
+    # Restore original
+    session.put(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/pin", timeout=10)
+
+
+def test_pin_not_found(session):
+    r = session.put(f"{BASE_URL}/api/recordings/{USER_ID}/does-not-exist-pin/pin", timeout=10)
+    assert r.status_code == 404
+
+
+# ============== Pagination (NEW) ==============
+def test_list_recordings_default_pagination_fields(session, created_recording):
+    resp = session.get(f"{BASE_URL}/api/recordings/{USER_ID}", timeout=15)
+    assert resp.status_code == 200
+    data = resp.json()
+    for key in ("recordings", "count", "total", "limit", "offset"):
+        assert key in data, f"missing pagination field: {key}"
+    assert data["limit"] == 50
+    assert data["offset"] == 0
+    assert isinstance(data["total"], int)
+    assert data["count"] == len(data["recordings"])
+    assert data["total"] >= data["count"]
+
+
+def test_list_recordings_limit_one(session, created_recording):
+    resp = session.get(f"{BASE_URL}/api/recordings/{USER_ID}?limit=1&offset=0", timeout=15)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["limit"] == 1
+    assert data["offset"] == 0
+    assert len(data["recordings"]) == 1
+    assert data["count"] == 1
+    # total reflects DB total, not paginated count
+    assert data["total"] >= 1
+
+
+def test_pinned_sorts_first(session, created_recording):
+    """Ensure pinned recordings come before unpinned in the list."""
+    rid = created_recording["id"]
+    # Pin our test recording
+    pin_resp = session.put(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/pin", timeout=10)
+    assert pin_resp.status_code == 200
+    if not pin_resp.json()["pinned"]:
+        # already was pinned, toggle again to make it pinned
+        pin_resp = session.put(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/pin", timeout=10)
+        assert pin_resp.json()["pinned"] is True
+
+    resp = session.get(f"{BASE_URL}/api/recordings/{USER_ID}?limit=50&offset=0", timeout=15)
+    assert resp.status_code == 200
+    recs = resp.json()["recordings"]
+    # Find first unpinned index, all pinned should appear before it
+    seen_unpinned = False
+    for r in recs:
+        if r.get("pinned"):
+            assert not seen_unpinned, "Pinned recording found AFTER an unpinned one — sort broken"
+        else:
+            seen_unpinned = True
+
+    # Unpin our test recording to restore
+    session.put(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/pin", timeout=10)
+
+
+# ============== Auth refactor smoke tests (NEW) ==============
+def test_auth_login_still_works(session):
+    """auth.py refactor: login endpoint still resolves and works."""
+    resp = session.post(
+        f"{BASE_URL}/api/auth/login",
+        json={"email": "recordtest@munal.ai", "password": "Record@12345"},
+        timeout=15,
+    )
+    assert resp.status_code == 200, f"login failed: {resp.status_code} {resp.text[:200]}"
+    data = resp.json()
+    # Either direct token (no 2FA) or 2FA challenge
+    if data.get("requires_2fa"):
+        assert "user_id" in data
+    else:
+        assert "token" in data
+        assert "user" in data
+        assert data["user"]["email"] == "recordtest@munal.ai"
+
+
+def test_auth_verify_token_endpoint(session):
+    """get_current_user dependency from auth_helpers still resolves on /verify-token."""
+    login = session.post(
+        f"{BASE_URL}/api/auth/login",
+        json={"email": "recordtest@munal.ai", "password": "Record@12345"},
+        timeout=15,
+    )
+    assert login.status_code == 200
+    data = login.json()
+    if data.get("requires_2fa"):
+        pytest.skip("2FA enabled — cannot test verify-token without OTP")
+    token = data["token"]
+    vt = requests.get(
+        f"{BASE_URL}/api/auth/verify-token",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=10,
+    )
+    assert vt.status_code == 200
+    assert vt.json()["valid"] is True
+
+
+def test_auth_register_validation_error_path(session):
+    """Register endpoint reachable post-refactor; weak password triggers 400 (not 500)."""
+    resp = session.post(
+        f"{BASE_URL}/api/auth/register",
+        json={
+            "email": f"TEST_register_{uuid_lite()}@example.com",
+            "name": "Test User",
+            "password": "weak",
+            "role": "User",
+            "status": "Active",
+            "plan": "Free",
+        },
+        timeout=15,
+    )
+    # We expect a 400 validation failure (password policy) — proves routing & module imports work
+    assert resp.status_code in (400, 422), f"Unexpected status: {resp.status_code} {resp.text[:200]}"
+
+
+def uuid_lite():
+    import uuid as _u
+    return _u.uuid4().hex[:8]
+
+
+def test_auth_forgot_password_404_for_unknown(session):
+    resp = session.post(
+        f"{BASE_URL}/api/auth/forgot-password",
+        json={"email": f"nobody_{uuid_lite()}@example.com"},
+        timeout=10,
+    )
+    # Either 404 (user not found) or 400 (validation) — both prove endpoint routing works post-refactor
+    assert resp.status_code in (400, 404), f"Unexpected: {resp.status_code} {resp.text[:200]}"
+

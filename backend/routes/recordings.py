@@ -65,6 +65,7 @@ async def create_recording(recording: RecordingCreate):
             "file_size": len(file_bytes),
             "mime_type": recording.mime_type,
             "category": recording.category,
+            "pinned": False,
             "is_shared": False,
             "share_token": None,
             "shared_with": [],
@@ -85,18 +86,20 @@ async def create_recording(recording: RecordingCreate):
 
 
 @router.get("/{user_id}")
-async def get_user_recordings(user_id: str, category: Optional[str] = None):
-    """Get all recordings for a user"""
+async def get_user_recordings(user_id: str, category: Optional[str] = None, limit: int = 50, offset: int = 0):
+    """Get recordings for a user with pagination. Pinned recordings sort first."""
     query = {"user_id": user_id}
     if category:
         query["category"] = category
     
+    total = await db.recordings.count_documents(query)
+    
     recordings = await db.recordings.find(
         query,
         {"_id": 0, "grid_id": 0, "file_data": 0}
-    ).sort("created_at", -1).to_list(100)
+    ).sort([("pinned", -1), ("created_at", -1)]).skip(offset).limit(limit).to_list(limit)
     
-    return {"recordings": recordings, "count": len(recordings)}
+    return {"recordings": recordings, "count": len(recordings), "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/user/{user_id}/categories")
@@ -210,6 +213,31 @@ async def update_recording(user_id: str, recording_id: str, update: RecordingUpd
     
     updated = await db.recordings.find_one({"id": recording_id}, {"_id": 0, "grid_id": 0})
     return {"success": True, "recording": updated}
+
+
+@router.put("/{user_id}/{recording_id}/pin")
+async def toggle_pin_recording(user_id: str, recording_id: str):
+    """Toggle pin status. Pinned recordings are exempt from 7-day auto-deletion."""
+    recording = await db.recordings.find_one({"id": recording_id, "user_id": user_id})
+    
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    new_pinned = not recording.get("pinned", False)
+    update_data = {"pinned": new_pinned}
+    
+    if new_pinned:
+        # Remove expiry for pinned recordings
+        update_data["expires_at"] = None
+    else:
+        # Restore 7-day expiry from now when unpinning
+        update_data["expires_at"] = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+    
+    await db.recordings.update_one({"id": recording_id}, {"$set": update_data})
+    
+    updated = await db.recordings.find_one({"id": recording_id}, {"_id": 0, "grid_id": 0})
+    logger.info(f"Recording {recording_id} {'pinned' if new_pinned else 'unpinned'} by {user_id}")
+    return {"success": True, "recording": updated, "pinned": new_pinned}
 
 
 @router.post("/{user_id}/{recording_id}/share")

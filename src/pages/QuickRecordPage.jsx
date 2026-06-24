@@ -1,42 +1,18 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
-import { 
-  Monitor, Camera, Mic, Square, Download, Trash2, Play, Pause, RotateCcw, Video, 
-  Clock, HardDrive, Loader2, FolderOpen, Share2, Link, Copy, Check, X, Edit2, 
-  ChevronDown, Users, Globe, UserPlus, Mail, Search
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { Video } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { teamService } from '@/services/teamService';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 
-const MAX_RECORDING_TIME = 30 * 60; // 30 minutes in seconds
+import { RecordingControls } from '@/components/recordings/RecordingControls';
+import { SavedRecordingsList } from '@/components/recordings/SavedRecordingsList';
+import { ShareRecordingDialog } from '@/components/recordings/ShareRecordingDialog';
+import { EditRecordingDialog } from '@/components/recordings/EditRecordingDialog';
+
+const MAX_RECORDING_TIME = 30 * 60;
 const API_BASE = window.location.origin;
-
-const DEFAULT_CATEGORIES = ['Uncategorized', 'Meetings', 'Tutorials', 'Presentations', 'Bug Reports', 'Personal'];
+const PAGE_SIZE = 50;
 
 const QuickRecordPage = () => {
   const { toast } = useToast();
@@ -55,6 +31,8 @@ const QuickRecordPage = () => {
   
   // Saved recordings state
   const [savedRecordings, setSavedRecordings] = useState([]);
+  const [totalRecordings, setTotalRecordings] = useState(0);
+  const [currentOffset, setCurrentOffset] = useState(0);
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(true);
   const [selectedRecording, setSelectedRecording] = useState(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
@@ -76,9 +54,9 @@ const QuickRecordPage = () => {
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editRecording, setEditRecording] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editCategory, setEditCategory] = useState('');
+  const [editRecordingId, setEditRecordingId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   
   // Refs
@@ -90,186 +68,91 @@ const QuickRecordPage = () => {
 
   const userId = user?.id || 'anonymous';
 
-  // Format helpers
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getDaysRemaining = (expiresAt) => {
-    const now = new Date();
-    const expires = new Date(expiresAt);
-    const diff = expires - now;
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
-
-  // Fetch recordings and categories
-  const fetchRecordings = useCallback(async () => {
-    if (!userId || userId === 'anonymous') {
-      setIsLoadingRecordings(false);
-      return;
-    }
+  // ============== Fetch ==============
+  const fetchRecordings = useCallback(async (offset = 0, append = false) => {
+    if (!userId || userId === 'anonymous') { setIsLoadingRecordings(false); return; }
     
     try {
+      const catParam = filterCategory !== 'All' ? `&category=${encodeURIComponent(filterCategory)}` : '';
       const [recResponse, catResponse, sharedResponse] = await Promise.all([
-        fetch(`${API_BASE}/api/recordings/${userId}`),
+        fetch(`${API_BASE}/api/recordings/${userId}?limit=${PAGE_SIZE}&offset=${offset}${catParam}`),
         fetch(`${API_BASE}/api/recordings/user/${userId}/categories`),
         fetch(`${API_BASE}/api/recordings/user/${userId}/shared-with-me`)
       ]);
       
       if (recResponse.ok) {
         const data = await recResponse.json();
-        setSavedRecordings(data.recordings || []);
+        if (append) {
+          setSavedRecordings(prev => [...prev, ...(data.recordings || [])]);
+        } else {
+          setSavedRecordings(data.recordings || []);
+        }
+        setTotalRecordings(data.total || 0);
+        setCurrentOffset(offset + (data.recordings?.length || 0));
       }
-      
-      if (catResponse.ok) {
-        const data = await catResponse.json();
-        setCategories(data.categories || []);
-      }
-
+      if (catResponse.ok) { setCategories((await catResponse.json()).categories || []); }
       if (sharedResponse.ok) {
         const data = await sharedResponse.json();
-        // Enrich with owner info
-        const enrichedShared = (data.recordings || []).map(rec => ({
-          ...rec,
-          ownerInfo: teamService.getUserById(rec.user_id)
-        }));
-        setSharedWithMe(enrichedShared);
+        setSharedWithMe((data.recordings || []).map(rec => ({
+          ...rec, ownerInfo: teamService.getUserById(rec.user_id)
+        })));
       }
     } catch (err) {
       console.error('Error fetching recordings:', err);
     } finally {
       setIsLoadingRecordings(false);
     }
-  }, [userId]);
+  }, [userId, filterCategory]);
 
-  useEffect(() => {
-    fetchRecordings();
-  }, [fetchRecordings]);
+  useEffect(() => { fetchRecordings(); }, [fetchRecordings]);
 
-  // Cleanup
+  const loadMore = () => fetchRecordings(currentOffset, true);
+
+  // ============== Recording Logic ==============
   const cleanup = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current = null;
-    }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(track => track.stop()); streamRef.current = null; }
+    if (mediaRecorderRef.current) { mediaRecorderRef.current = null; }
     chunksRef.current = [];
   }, []);
 
   useEffect(() => {
-    return () => {
-      cleanup();
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
+    return () => { cleanup(); if (previewUrl) URL.revokeObjectURL(previewUrl); };
   }, [cleanup, previewUrl]);
 
-  // Recording functions
   const startRecording = async () => {
-    if (!recordingType) {
-      toast({ variant: "destructive", title: "Select recording type", description: "Please choose Screen or Camera." });
-      return;
-    }
-
+    if (!recordingType) { toast({ variant: "destructive", title: "Select recording type" }); return; }
     try {
-      cleanup();
-      chunksRef.current = [];
-      setSelectedRecording(null);
-      
+      cleanup(); chunksRef.current = []; setSelectedRecording(null);
       let stream;
-      
       if (recordingType === 'screen') {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { cursor: 'always', displaySurface: 'monitor' },
-          audio: false
-        });
-        
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: 'always', displaySurface: 'monitor' }, audio: false });
         if (includeMicrophone) {
           try {
-            const audioStream = await navigator.mediaDevices.getUserMedia({
-              audio: { echoCancellation: true, noiseSuppression: true }
-            });
+            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
             stream = new MediaStream([...screenStream.getVideoTracks(), ...audioStream.getAudioTracks()]);
-            screenStream.getVideoTracks()[0].onended = () => {
-              audioStream.getTracks().forEach(track => track.stop());
-              stopRecording();
-            };
-          } catch {
-            stream = screenStream;
-          }
-        } else {
-          stream = screenStream;
-        }
+            screenStream.getVideoTracks()[0].onended = () => { audioStream.getTracks().forEach(t => t.stop()); stopRecording(); };
+          } catch { stream = screenStream; }
+        } else { stream = screenStream; }
         screenStream.getVideoTracks()[0].onended = () => stopRecording();
       } else {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-          audio: includeMicrophone ? { echoCancellation: true, noiseSuppression: true } : false
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: includeMicrophone ? { echoCancellation: true, noiseSuppression: true } : false });
       }
-      
       streamRef.current = stream;
-      
-      // Set recording state FIRST so the video element renders
-      setIsRecording(true);
-      setIsPaused(false);
-      setRecordingTime(0);
-      setRecordedBlob(null);
-      setPreviewUrl(null);
-      
-      // Use setTimeout to ensure the video element is rendered before attaching stream
-      setTimeout(() => {
-        if (livePreviewRef.current) {
-          livePreviewRef.current.srcObject = stream;
-          livePreviewRef.current.play().catch(e => console.log('Auto-play prevented:', e));
-        }
-      }, 100);
-      
+      setIsRecording(true); setIsPaused(false); setRecordingTime(0); setRecordedBlob(null); setPreviewUrl(null);
+      setTimeout(() => { if (livePreviewRef.current) { livePreviewRef.current.srcObject = stream; livePreviewRef.current.play().catch(() => {}); } }, 100);
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
       const mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 2500000 });
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data?.size > 0) chunksRef.current.push(event.data);
-      };
-      
+      mediaRecorder.ondataavailable = (e) => { if (e.data?.size > 0) chunksRef.current.push(e.data); };
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mimeType });
-        setRecordedBlob(blob);
-        setPreviewUrl(URL.createObjectURL(blob));
-        streamRef.current?.getTracks().forEach(track => track.stop());
+        setRecordedBlob(blob); setPreviewUrl(URL.createObjectURL(blob));
+        streamRef.current?.getTracks().forEach(t => t.stop());
       };
-      
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000);
-      
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => {
-          if (prev >= MAX_RECORDING_TIME - 1) { stopRecording(); return prev; }
-          return prev + 1;
-        });
-      }, 1000);
-      
+      mediaRecorderRef.current = mediaRecorder; mediaRecorder.start(1000);
+      timerRef.current = setInterval(() => { setRecordingTime(prev => { if (prev >= MAX_RECORDING_TIME - 1) { stopRecording(); return prev; } return prev + 1; }); }, 1000);
       toast({ title: "Recording started" });
     } catch (err) {
-      console.error('Recording error:', err);
       cleanup();
       toast({ variant: "destructive", title: "Recording failed", description: err.name === 'NotAllowedError' ? "Permission denied." : "Could not start recording." });
     }
@@ -278,8 +161,7 @@ const QuickRecordPage = () => {
   const stopRecording = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-    setIsPaused(false);
+    setIsRecording(false); setIsPaused(false);
     if (livePreviewRef.current) livePreviewRef.current.srcObject = null;
   }, []);
 
@@ -287,9 +169,7 @@ const QuickRecordPage = () => {
     if (!mediaRecorderRef.current) return;
     if (isPaused) {
       mediaRecorderRef.current.resume();
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => { if (prev >= MAX_RECORDING_TIME - 1) { stopRecording(); return prev; } return prev + 1; });
-      }, 1000);
+      timerRef.current = setInterval(() => { setRecordingTime(prev => { if (prev >= MAX_RECORDING_TIME - 1) { stopRecording(); return prev; } return prev + 1; }); }, 1000);
       setIsPaused(false);
     } else {
       mediaRecorderRef.current.pause();
@@ -299,278 +179,153 @@ const QuickRecordPage = () => {
   };
 
   const saveRecording = async () => {
-    if (!recordedBlob || userId === 'anonymous') {
-      toast({ variant: "destructive", title: "Please log in to save recordings." });
-      return;
-    }
-    
+    if (!recordedBlob || userId === 'anonymous') { toast({ variant: "destructive", title: "Please log in to save." }); return; }
     setIsSaving(true);
     try {
       const reader = new FileReader();
-      const base64Data = await new Promise((resolve, reject) => {
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(recordedBlob);
-      });
-      
+      const base64Data = await new Promise((resolve, reject) => { reader.onloadend = () => resolve(reader.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(recordedBlob); });
       const response = await fetch(`${API_BASE}/api/recordings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          title: `Recording ${new Date().toLocaleString()}`,
-          recording_type: recordingType,
-          duration: recordingTime,
-          file_data: base64Data,
-          mime_type: recordedBlob.type || 'video/webm',
-          category: selectedCategory
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, title: `Recording ${new Date().toLocaleString()}`, recording_type: recordingType, duration: recordingTime, file_data: base64Data, mime_type: recordedBlob.type || 'video/webm', category: selectedCategory })
       });
-      
       if (response.ok) {
-        toast({ title: "Recording saved", description: "Available for 7 days." });
-        await fetchRecordings();
+        toast({ title: "Recording saved" }); await fetchRecordings();
         if (previewUrl) URL.revokeObjectURL(previewUrl);
-        setRecordedBlob(null);
-        setPreviewUrl(null);
-        setRecordingTime(0);
-        setRecordingType(null);
+        setRecordedBlob(null); setPreviewUrl(null); setRecordingTime(0); setRecordingType(null);
       } else throw new Error('Failed to save');
-    } catch (err) {
-      console.error('Error saving:', err);
-      toast({ variant: "destructive", title: "Save failed" });
-    } finally {
-      setIsSaving(false);
-    }
+    } catch { toast({ variant: "destructive", title: "Save failed" }); }
+    finally { setIsSaving(false); }
   };
 
   const downloadRecording = () => {
     if (!recordedBlob) return;
     const url = URL.createObjectURL(recordedBlob);
-    const a = document.createElement('a');
-    a.href = url;
+    const a = document.createElement('a'); a.href = url;
     a.download = `munal-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     toast({ title: "Download started" });
   };
 
-  const discardRecording = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setRecordedBlob(null);
-    setPreviewUrl(null);
-    setRecordingTime(0);
-    setRecordingType(null);
-  };
+  const discardRecording = () => { if (previewUrl) URL.revokeObjectURL(previewUrl); setRecordedBlob(null); setPreviewUrl(null); setRecordingTime(0); setRecordingType(null); };
+  const recordAgain = () => { if (previewUrl) URL.revokeObjectURL(previewUrl); setRecordedBlob(null); setPreviewUrl(null); setRecordingTime(0); };
 
-  const recordAgain = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setRecordedBlob(null);
-    setPreviewUrl(null);
-    setRecordingTime(0);
-  };
-
-  // Play saved recording via streaming endpoint
+  // ============== Saved Recording Actions ==============
   const playSavedRecording = async (recording) => {
     if (selectedRecording?.id === recording.id) { setSelectedRecording(null); return; }
-    
-    setIsLoadingVideo(true);
-    setSelectedRecording(recording);
-    
+    setIsLoadingVideo(true); setSelectedRecording(recording);
     try {
-      const streamUrl = `${API_BASE}/api/recordings/${userId}/${recording.id}/stream`;
-      const response = await fetch(streamUrl);
+      const ownerId = recording.user_id || userId;
+      const response = await fetch(`${API_BASE}/api/recordings/${ownerId}/${recording.id}/stream`);
+      if (response.ok) { const blob = await response.blob(); setSelectedRecording({ ...recording, videoUrl: URL.createObjectURL(blob) }); }
+      else throw new Error('Stream unavailable');
+    } catch { toast({ variant: "destructive", title: "Could not load recording." }); setSelectedRecording(null); }
+    finally { setIsLoadingVideo(false); }
+  };
+
+  const downloadSavedRecording = async (recording) => {
+    toast({ title: "Preparing download..." });
+    try {
+      const ownerId = recording.user_id || userId;
+      const response = await fetch(`${API_BASE}/api/recordings/${ownerId}/${recording.id}/stream`);
       if (response.ok) {
-        const blob = await response.blob();
-        setSelectedRecording({ ...recording, videoUrl: URL.createObjectURL(blob) });
-      } else {
-        throw new Error('Stream unavailable');
-      }
-    } catch (err) {
-      console.error('Play error:', err);
-      toast({ variant: "destructive", title: "Could not load recording." });
-      setSelectedRecording(null);
-    } finally {
-      setIsLoadingVideo(false);
-    }
+        const blob = await response.blob(); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `${recording.title.replace(/[^a-z0-9]/gi, '_')}.webm`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        toast({ title: "Download started" });
+      } else throw new Error();
+    } catch { toast({ variant: "destructive", title: "Download failed" }); }
   };
 
   const deleteSavedRecording = async (recording) => {
     try {
       const response = await fetch(`${API_BASE}/api/recordings/${userId}/${recording.id}`, { method: 'DELETE' });
       if (response.ok) {
-        toast({ title: "Recording deleted" });
-        setSavedRecordings(prev => prev.filter(r => r.id !== recording.id));
+        toast({ title: "Recording deleted" }); setSavedRecordings(prev => prev.filter(r => r.id !== recording.id));
+        setTotalRecordings(prev => prev - 1);
         if (selectedRecording?.id === recording.id) setSelectedRecording(null);
       }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Could not delete recording." });
-    }
+    } catch { toast({ variant: "destructive", title: "Could not delete recording." }); }
   };
 
-  // Download saved recording via streaming endpoint
-  const downloadSavedRecording = async (recording) => {
-    toast({ title: "Preparing download...", description: "Please wait while we fetch your recording." });
-    
+  const togglePinRecording = async (recording) => {
     try {
-      const streamUrl = `${API_BASE}/api/recordings/${userId}/${recording.id}/stream`;
-      const response = await fetch(streamUrl);
+      const response = await fetch(`${API_BASE}/api/recordings/${userId}/${recording.id}/pin`, { method: 'PUT' });
       if (response.ok) {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${recording.title.replace(/[^a-z0-9]/gi, '_')}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast({ title: "Download started", description: "Your recording is being downloaded." });
-      } else {
-        throw new Error('Failed to fetch recording');
+        const data = await response.json();
+        toast({ title: data.pinned ? "Recording pinned" : "Recording unpinned", description: data.pinned ? "This recording won't auto-delete." : "Will expire in 7 days." });
+        setSavedRecordings(prev => prev.map(r => r.id === recording.id ? { ...r, pinned: data.pinned, expires_at: data.recording.expires_at } : r)
+          .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at)));
       }
-    } catch (err) {
-      console.error('Download error:', err);
-      toast({ variant: "destructive", title: "Download failed", description: "Could not download recording." });
-    }
+    } catch { toast({ variant: "destructive", title: "Failed to pin recording" }); }
   };
 
-  // Share functions
+  // ============== Edit ==============
+  const openEditDialog = (recording) => { setEditRecordingId(recording.id); setEditTitle(recording.title); setEditCategory(recording.category || 'Uncategorized'); setEditDialogOpen(true); };
+  const saveEdit = async () => {
+    if (!editRecordingId) return;
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/recordings/${userId}/${editRecordingId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: editTitle, category: editCategory })
+      });
+      if (response.ok) { await fetchRecordings(); setEditDialogOpen(false); toast({ title: "Recording updated" }); }
+    } catch { toast({ variant: "destructive", title: "Failed to update" }); }
+    finally { setIsUpdating(false); }
+  };
+
+  // ============== Share ==============
   const openShareDialog = async (recording) => {
     setShareRecording(recording);
     setShareLink(recording.share_token ? `${window.location.origin}/shared/recording/${recording.share_token}` : '');
-    setSelectedMembers(recording.shared_with || []);
-    setShareTab('link');
-    setMemberSearch('');
-    
-    // Load team members from API
+    setSelectedMembers(recording.shared_with || []); setShareTab('link'); setMemberSearch('');
     const members = await teamService.fetchAllUsers(userId);
-    setTeamMembers(members);
-    
-    setShareDialogOpen(true);
+    setTeamMembers(members); setShareDialogOpen(true);
   };
 
   const generateShareLink = async () => {
-    if (!shareRecording) return;
-    setIsSharing(true);
+    if (!shareRecording) return; setIsSharing(true);
     try {
       const response = await fetch(`${API_BASE}/api/recordings/${userId}/${shareRecording.id}/share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: true, share_with_users: selectedMembers })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_public: true, share_with_users: selectedMembers })
       });
       if (response.ok) {
         const data = await response.json();
         const shareUrl = data.share_url || `/shared/recording/${data.recording?.share_token}`;
-        const newLink = `${window.location.origin}${shareUrl}`;
-        setShareLink(newLink);
-        await fetchRecordings();
-        toast({ title: "Share link generated!" });
+        setShareLink(`${window.location.origin}${shareUrl}`); await fetchRecordings(); toast({ title: "Share link generated!" });
       }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Failed to generate link" });
-    } finally {
-      setIsSharing(false);
-    }
+    } catch { toast({ variant: "destructive", title: "Failed to generate link" }); }
+    finally { setIsSharing(false); }
   };
 
   const shareWithMembers = async () => {
-    if (!shareRecording || selectedMembers.length === 0) return;
-    setIsSharing(true);
+    if (!shareRecording || selectedMembers.length === 0) return; setIsSharing(true);
     try {
       const response = await fetch(`${API_BASE}/api/recordings/${userId}/${shareRecording.id}/share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_public: false, share_with_users: selectedMembers })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_public: false, share_with_users: selectedMembers })
       });
-      if (response.ok) {
-        await fetchRecordings();
-        toast({ 
-          title: "Recording shared!", 
-          description: `Shared with ${selectedMembers.length} team member${selectedMembers.length > 1 ? 's' : ''}.`
-        });
-        setShareDialogOpen(false);
-      }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Failed to share" });
-    } finally {
-      setIsSharing(false);
-    }
+      if (response.ok) { await fetchRecordings(); toast({ title: "Recording shared!" }); setShareDialogOpen(false); }
+    } catch { toast({ variant: "destructive", title: "Failed to share" }); }
+    finally { setIsSharing(false); }
   };
 
-  const toggleMemberSelection = (memberId) => {
-    setSelectedMembers(prev => 
-      prev.includes(memberId) 
-        ? prev.filter(id => id !== memberId)
-        : [...prev, memberId]
-    );
-  };
-
-  const filteredTeamMembers = teamMembers.filter(member => 
-    member.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-    member.email.toLowerCase().includes(memberSearch.toLowerCase())
-  );
-
-  const copyShareLink = () => {
-    navigator.clipboard.writeText(shareLink);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
-    toast({ title: "Link copied!" });
-  };
+  const copyShareLink = () => { navigator.clipboard.writeText(shareLink); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); toast({ title: "Link copied!" }); };
 
   const removeSharing = async () => {
     if (!shareRecording) return;
-    try {
-      await fetch(`${API_BASE}/api/recordings/${userId}/${shareRecording.id}/share`, { method: 'DELETE' });
-      setShareLink('');
-      await fetchRecordings();
-      toast({ title: "Sharing removed" });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Failed to remove sharing" });
-    }
+    try { await fetch(`${API_BASE}/api/recordings/${userId}/${shareRecording.id}/share`, { method: 'DELETE' }); setShareLink(''); await fetchRecordings(); toast({ title: "Sharing removed" }); }
+    catch { toast({ variant: "destructive", title: "Failed to remove sharing" }); }
   };
 
-  // Edit functions
-  const openEditDialog = (recording) => {
-    setEditRecording(recording);
-    setEditTitle(recording.title);
-    setEditCategory(recording.category || 'Uncategorized');
-    setEditDialogOpen(true);
-  };
+  const toggleMemberSelection = (id) => setSelectedMembers(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]);
+  const filteredTeamMembers = teamMembers.filter(m => m.name.toLowerCase().includes(memberSearch.toLowerCase()) || m.email.toLowerCase().includes(memberSearch.toLowerCase()));
 
-  const saveEdit = async () => {
-    if (!editRecording) return;
-    setIsUpdating(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/recordings/${userId}/${editRecording.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editTitle, category: editCategory })
-      });
-      if (response.ok) {
-        await fetchRecordings();
-        setEditDialogOpen(false);
-        toast({ title: "Recording updated" });
-      }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Failed to update" });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Filter recordings
-  const filteredRecordings = filterCategory === 'All' 
-    ? savedRecordings 
-    : savedRecordings.filter(r => (r.category || 'Uncategorized') === filterCategory);
+  // Filter recordings by category
+  const filteredRecordings = filterCategory === 'All' ? savedRecordings : savedRecordings.filter(r => (r.category || 'Uncategorized') === filterCategory);
 
   return (
     <div className="min-h-[calc(100vh-120px)] bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8">
       <Helmet><title>Quick Record | Munal</title></Helmet>
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
@@ -581,509 +336,52 @@ const QuickRecordPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recording Section */}
         <div className="lg:col-span-2">
-          <motion.div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 overflow-hidden" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            
-            {/* Preview Area */}
-            <AnimatePresence mode="wait">
-              {(isRecording || previewUrl || selectedRecording?.videoUrl) && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }} 
-                  animate={{ opacity: 1, height: 'auto' }} 
-                  exit={{ opacity: 0, height: 0 }} 
-                  className="bg-gray-900 relative"
-                >
-                  {isRecording && (
-                    <video 
-                      ref={livePreviewRef} 
-                      autoPlay 
-                      muted 
-                      playsInline 
-                      className="w-full aspect-video object-contain bg-black"
-                    />
-                  )}
-                  {previewUrl && !isRecording && (
-                    <video 
-                      src={previewUrl} 
-                      controls 
-                      className="w-full aspect-video object-contain" 
-                    />
-                  )}
-                  {selectedRecording?.videoUrl && !isRecording && !previewUrl && (
-                    <video 
-                      src={selectedRecording.videoUrl} 
-                      controls 
-                      autoPlay 
-                      className="w-full aspect-video object-contain" 
-                    />
-                  )}
-                  
-                  {/* Live Recording Indicator */}
-                  {isRecording && (
-                    <div className="absolute top-4 left-4 flex items-center gap-3">
-                      <div className="flex items-center gap-2 bg-red-600 px-3 py-1.5 rounded-full shadow-lg">
-                        <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
-                        <span className="text-white text-sm font-semibold">LIVE</span>
-                      </div>
-                      <div className="flex items-center gap-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                        <Clock className="w-4 h-4 text-white" />
-                        <span className="text-white text-sm font-medium tabular-nums">{formatTime(recordingTime)}</span>
-                      </div>
-                      {isPaused && (
-                        <div className="flex items-center gap-2 bg-yellow-500 px-3 py-1.5 rounded-full">
-                          <Pause className="w-4 h-4 text-black" />
-                          <span className="text-black text-sm font-semibold">PAUSED</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Recording Type Badge */}
-                  {isRecording && (
-                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                      {recordingType === 'screen' ? (
-                        <><Monitor className="w-4 h-4 text-blue-400" /><span className="text-white text-sm">Screen</span></>
-                      ) : (
-                        <><Camera className="w-4 h-4 text-purple-400" /><span className="text-white text-sm">Camera</span></>
-                      )}
-                    </div>
-                  )}
-                  
-                  {isLoadingVideo && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <Loader2 className="w-8 h-8 text-white animate-spin" />
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="p-8">
-              {/* Recording Setup */}
-              {!isRecording && !previewUrl && !selectedRecording?.videoUrl && (
-                <>
-                  <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Record Your Video</h2>
-                    <p className="text-gray-500 dark:text-gray-400">Choose how you&apos;d like to record</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <button onClick={() => setRecordingType('screen')} data-testid="record-screen-btn" className={cn("flex flex-col items-center justify-center p-8 rounded-xl border-2 transition-all", recordingType === 'screen' ? "border-rose-500 bg-rose-50 dark:bg-rose-950/20" : "border-gray-200 dark:border-gray-700 hover:border-gray-300")}>
-                      <Monitor className={cn("w-10 h-10 mb-4", recordingType === 'screen' ? "text-rose-600" : "text-gray-400")} />
-                      <span className={cn("font-semibold mb-1", recordingType === 'screen' ? "text-rose-600" : "text-gray-700 dark:text-gray-300")}>Screen</span>
-                      <span className="text-sm text-gray-500">Share your screen</span>
-                    </button>
-                    <button onClick={() => setRecordingType('camera')} data-testid="record-camera-btn" className={cn("flex flex-col items-center justify-center p-8 rounded-xl border-2 transition-all", recordingType === 'camera' ? "border-rose-500 bg-rose-50 dark:bg-rose-950/20" : "border-gray-200 dark:border-gray-700 hover:border-gray-300")}>
-                      <Camera className={cn("w-10 h-10 mb-4", recordingType === 'camera' ? "text-rose-600" : "text-gray-400")} />
-                      <span className={cn("font-semibold mb-1", recordingType === 'camera' ? "text-rose-600" : "text-gray-700 dark:text-gray-300")}>Camera</span>
-                      <span className="text-sm text-gray-500">Use your webcam</span>
-                    </button>
-                  </div>
-
-                  {/* Category Selection */}
-                  <div className="mb-6">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Category</label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                          <span className="flex items-center gap-2">
-                            <FolderOpen className="w-4 h-4" />
-                            {selectedCategory}
-                          </span>
-                          <ChevronDown className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56">
-                        {DEFAULT_CATEGORIES.map(cat => (
-                          <DropdownMenuItem key={cat} onClick={() => setSelectedCategory(cat)}>
-                            {cat}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* Microphone */}
-                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-8 border border-gray-100 dark:border-gray-700">
-                    <div className="flex items-start gap-3">
-                      <Checkbox id="microphone" checked={includeMicrophone} onCheckedChange={setIncludeMicrophone} className="mt-0.5 data-[state=checked]:bg-rose-500 data-[state=checked]:border-rose-500" />
-                      <div>
-                        <label htmlFor="microphone" className="font-medium text-gray-900 dark:text-white cursor-pointer flex items-center gap-2">
-                          <Mic className="w-4 h-4" /> Include microphone audio
-                        </label>
-                        <p className="text-sm text-gray-500 mt-1">Recommended for explanations and narration.</p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Recording Controls */}
-              {isRecording && (
-                <div className="flex items-center justify-center gap-4 py-4">
-                  <Button onClick={togglePause} variant="outline" size="lg" className="gap-2">
-                    {isPaused ? <><Play className="w-4 h-4" /> Resume</> : <><Pause className="w-4 h-4" /> Pause</>}
-                  </Button>
-                  <Button onClick={stopRecording} variant="destructive" size="lg" className="gap-2 bg-rose-500 hover:bg-rose-600">
-                    <Square className="w-4 h-4" /> Stop Recording
-                  </Button>
-                </div>
-              )}
-
-              {/* Post-Recording */}
-              {previewUrl && !isRecording && (
-                <div className="space-y-4 py-4">
-                  <div className="flex items-center justify-center gap-3 flex-wrap">
-                    <Button onClick={saveRecording} disabled={isSaving} className="gap-2 bg-rose-500 hover:bg-rose-600" size="lg">
-                      {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDrive className="w-4 h-4" />}
-                      {isSaving ? 'Saving...' : 'Save Recording'}
-                    </Button>
-                    <Button onClick={downloadRecording} variant="outline" size="lg" className="gap-2"><Download className="w-4 h-4" /> Download</Button>
-                    <Button onClick={recordAgain} variant="outline" size="lg" className="gap-2"><RotateCcw className="w-4 h-4" /> Record Again</Button>
-                    <Button onClick={discardRecording} variant="ghost" size="lg" className="gap-2 text-gray-500 hover:text-red-500"><Trash2 className="w-4 h-4" /> Discard</Button>
-                  </div>
-                  <p className="text-center text-sm text-gray-500">Duration: {formatTime(recordingTime)} • Expires in 7 days</p>
-                </div>
-              )}
-
-              {selectedRecording?.videoUrl && !isRecording && !previewUrl && (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500">Playing: {selectedRecording.title}</p>
-                  <Button onClick={() => setSelectedRecording(null)} variant="outline" size="sm" className="mt-2">Close Player</Button>
-                </div>
-              )}
-
-              {!isRecording && !previewUrl && !selectedRecording?.videoUrl && (
-                <>
-                  <Button onClick={startRecording} disabled={!recordingType} className={cn("w-full h-12 text-base font-medium gap-2 transition-all", recordingType ? "bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 shadow-lg shadow-rose-500/25" : "bg-rose-300 cursor-not-allowed")}>
-                    <div className="w-3 h-3 rounded-full bg-white/80" /> Start Recording
-                  </Button>
-                  <p className="text-center text-sm text-gray-400 mt-4">Maximum recording time: 30 minutes</p>
-                </>
-              )}
-            </div>
-          </motion.div>
+          <RecordingControls
+            recordingType={recordingType} setRecordingType={setRecordingType}
+            includeMicrophone={includeMicrophone} setIncludeMicrophone={setIncludeMicrophone}
+            selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
+            isRecording={isRecording} isPaused={isPaused} recordedBlob={recordedBlob}
+            previewUrl={previewUrl} recordingTime={recordingTime} isSaving={isSaving}
+            selectedRecording={selectedRecording} isLoadingVideo={isLoadingVideo} livePreviewRef={livePreviewRef}
+            onStart={startRecording} onStop={stopRecording} onTogglePause={togglePause}
+            onSave={saveRecording} onDownload={downloadRecording} onRecordAgain={recordAgain}
+            onDiscard={discardRecording} onClosePlayer={() => setSelectedRecording(null)}
+          />
         </div>
 
-        {/* Saved Recordings Sidebar */}
         <div className="lg:col-span-1">
-          <motion.div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 overflow-hidden" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-            <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-              {/* Toggle between My Recordings and Shared With Me */}
-              <div className="flex items-center gap-2 mb-3">
-                <Button 
-                  variant={!showSharedWithMe ? "default" : "outline"} 
-                  size="sm" 
-                  className={cn("flex-1 text-xs", !showSharedWithMe && "bg-rose-500 hover:bg-rose-600")}
-                  onClick={() => setShowSharedWithMe(false)}
-                >
-                  <HardDrive className="w-3 h-3 mr-1.5" /> My Recordings
-                </Button>
-                <Button 
-                  variant={showSharedWithMe ? "default" : "outline"} 
-                  size="sm" 
-                  className={cn("flex-1 text-xs", showSharedWithMe && "bg-rose-500 hover:bg-rose-600")}
-                  onClick={() => setShowSharedWithMe(true)}
-                >
-                  <Users className="w-3 h-3 mr-1.5" /> Shared ({sharedWithMe.length})
-                </Button>
-              </div>
-              
-              {!showSharedWithMe && (
-                <>
-                  {/* Category Filter */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="w-full justify-between text-xs">
-                        <span className="flex items-center gap-1.5"><FolderOpen className="w-3 h-3" /> {filterCategory}</span>
-                        <ChevronDown className="w-3 h-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-48">
-                      <DropdownMenuItem onClick={() => setFilterCategory('All')}>All Categories</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {categories.map(cat => (
-                        <DropdownMenuItem key={cat.name} onClick={() => setFilterCategory(cat.name)}>
-                          {cat.name} ({cat.count})
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <p className="text-xs text-gray-500 mt-2">Auto-deleted after 7 days</p>
-                </>
-              )}
-            </div>
-
-            <div className="max-h-[450px] overflow-y-auto">
-              {isLoadingRecordings ? (
-                <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 text-gray-400 animate-spin" /></div>
-              ) : showSharedWithMe ? (
-                /* Shared With Me Section */
-                sharedWithMe.length === 0 ? (
-                  <div className="text-center py-12 px-4">
-                    <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">No recordings shared with you</p>
-                    <p className="text-xs text-gray-400 mt-1">When someone shares a recording with you, it will appear here</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {sharedWithMe.map((recording) => (
-                      <div key={recording.id} className={cn("p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors", selectedRecording?.id === recording.id && "bg-rose-50 dark:bg-rose-950/20")}>
-                        <div className="flex items-start gap-3">
-                          <button onClick={() => playSavedRecording(recording)} className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", recording.recording_type === 'screen' ? "bg-blue-100 dark:bg-blue-900/30" : "bg-purple-100 dark:bg-purple-900/30")}>
-                            {recording.recording_type === 'screen' ? <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Camera className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
-                          </button>
-                          
-                          <div className="flex-1 min-w-0" onClick={() => playSavedRecording(recording)}>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate cursor-pointer">{recording.title}</p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(recording.duration)}</span>
-                              <span>{formatFileSize(recording.file_size)}</span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
-                                <Mail className="w-3 h-3" /> 
-                                {recording.ownerInfo?.name || 'Unknown'}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><ChevronDown className="w-4 h-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              ) : (
-                /* My Recordings Section */
-                filteredRecordings.length === 0 ? (
-                  <div className="text-center py-12 px-4">
-                    <Video className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">No recordings yet</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {filteredRecordings.map((recording) => (
-                      <div key={recording.id} className={cn("p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors", selectedRecording?.id === recording.id && "bg-rose-50 dark:bg-rose-950/20")}>
-                        <div className="flex items-start gap-3">
-                          <button onClick={() => playSavedRecording(recording)} className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", recording.recording_type === 'screen' ? "bg-blue-100 dark:bg-blue-900/30" : "bg-purple-100 dark:bg-purple-900/30")}>
-                            {recording.recording_type === 'screen' ? <Monitor className="w-5 h-5 text-blue-600 dark:text-blue-400" /> : <Camera className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
-                          </button>
-                          
-                          <div className="flex-1 min-w-0" onClick={() => playSavedRecording(recording)}>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate cursor-pointer">{recording.title}</p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(recording.duration)}</span>
-                              <span>{formatFileSize(recording.file_size)}</span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              <span className="text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">{recording.category || 'Uncategorized'}</span>
-                              {recording.is_shared && (
-                                <span className="text-xs bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-green-600 dark:text-green-400 flex items-center gap-1">
-                                  {recording.shared_with?.length > 0 ? <Users className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
-                                  {recording.shared_with?.length > 0 ? `${recording.shared_with.length} member${recording.shared_with.length > 1 ? 's' : ''}` : 'Public'}
-                                </span>
-                              )}
-                              <span className={cn("text-xs px-1.5 py-0.5 rounded", getDaysRemaining(recording.expires_at) <= 2 ? "bg-red-100 text-red-600 dark:bg-red-900/30" : "bg-gray-100 text-gray-500 dark:bg-gray-800")}>{getDaysRemaining(recording.expires_at)}d left</span>
-                            </div>
-                          </div>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" data-testid={`recording-menu-${recording.id}`}><ChevronDown className="w-4 h-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem data-testid={`recording-play-${recording.id}`} onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
-                              <DropdownMenuItem data-testid={`recording-download-${recording.id}`} onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem data-testid={`recording-edit-${recording.id}`} onClick={() => openEditDialog(recording)}><Edit2 className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
-                              <DropdownMenuItem data-testid={`recording-share-${recording.id}`} onClick={() => openShareDialog(recording)}><Share2 className="w-4 h-4 mr-2" />Share</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem data-testid={`recording-delete-${recording.id}`} onClick={() => deleteSavedRecording(recording)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
-            </div>
-          </motion.div>
+          <SavedRecordingsList
+            isLoading={isLoadingRecordings} recordings={filteredRecordings}
+            sharedRecordings={sharedWithMe} categories={categories}
+            showSharedWithMe={showSharedWithMe} setShowSharedWithMe={setShowSharedWithMe}
+            filterCategory={filterCategory} setFilterCategory={setFilterCategory}
+            selectedRecording={selectedRecording}
+            onPlay={playSavedRecording} onDownload={downloadSavedRecording}
+            onEdit={openEditDialog} onShare={openShareDialog}
+            onDelete={deleteSavedRecording} onPin={togglePinRecording}
+            hasMore={currentOffset < totalRecordings} onLoadMore={loadMore} total={totalRecordings}
+          />
         </div>
       </div>
 
-      {/* Share Dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Share2 className="w-5 h-5" />Share Recording</DialogTitle>
-            <DialogDescription>Share with a public link or specific team members.</DialogDescription>
-          </DialogHeader>
-          
-          <Tabs value={shareTab} onValueChange={setShareTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="link" className="gap-2"><Link className="w-4 h-4" />Public Link</TabsTrigger>
-              <TabsTrigger value="team" className="gap-2"><Users className="w-4 h-4" />Team Members</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="link" className="space-y-4 pt-4">
-              {shareLink ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Input value={shareLink} readOnly className="flex-1 text-sm" />
-                    <Button onClick={copyShareLink} variant="outline" size="icon">
-                      {linkCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 text-center">Anyone with this link can view the recording</p>
-                  <Button onClick={removeSharing} variant="ghost" size="sm" className="text-red-500 w-full">
-                    <X className="w-4 h-4 mr-2" /> Remove Public Link
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="text-center py-4">
-                    <Globe className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">Generate a public link that anyone can use to view this recording</p>
-                  </div>
-                  <Button onClick={generateShareLink} disabled={isSharing} className="w-full gap-2">
-                    {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link className="w-4 h-4" />}
-                    Generate Public Link
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="team" className="space-y-4 pt-4">
-              {teamMembers.length === 0 ? (
-                <div className="text-center py-6">
-                  <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">No team members available</p>
-                  <p className="text-xs text-gray-400 mt-1">Invite others to join your workspace first</p>
-                </div>
-              ) : (
-                <>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input 
-                      placeholder="Search team members..." 
-                      value={memberSearch}
-                      onChange={(e) => setMemberSearch(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  
-                  <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
-                    {filteredTeamMembers.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">No members found</p>
-                    ) : (
-                      filteredTeamMembers.map(member => (
-                        <div 
-                          key={member.id}
-                          onClick={() => toggleMemberSelection(member.id)}
-                          className={cn(
-                            "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors",
-                            selectedMembers.includes(member.id) 
-                              ? "bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800" 
-                              : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                          )}
-                        >
-                          <Checkbox 
-                            checked={selectedMembers.includes(member.id)}
-                            onCheckedChange={() => toggleMemberSelection(member.id)}
-                            className="data-[state=checked]:bg-rose-500 data-[state=checked]:border-rose-500"
-                          />
-                          <Avatar className="w-8 h-8">
-                            <AvatarImage src={member.avatar} />
-                            <AvatarFallback className="bg-gradient-to-br from-rose-400 to-pink-500 text-white text-xs">
-                              {member.name?.charAt(0)?.toUpperCase() || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{member.name}</p>
-                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
-                          </div>
-                          {selectedMembers.includes(member.id) && (
-                            <Check className="w-4 h-4 text-rose-500 shrink-0" />
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  
-                  {selectedMembers.length > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">{selectedMembers.length} member{selectedMembers.length > 1 ? 's' : ''} selected</span>
-                      <Button onClick={() => setSelectedMembers([])} variant="ghost" size="sm" className="text-gray-400 h-auto p-0">
-                        Clear all
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <Button 
-                    onClick={shareWithMembers} 
-                    disabled={isSharing || selectedMembers.length === 0} 
-                    className="w-full gap-2"
-                  >
-                    {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                    Share with {selectedMembers.length > 0 ? `${selectedMembers.length} Member${selectedMembers.length > 1 ? 's' : ''}` : 'Selected'}
-                  </Button>
-                </>
-              )}
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
+      <ShareRecordingDialog
+        open={shareDialogOpen} onOpenChange={setShareDialogOpen}
+        shareLink={shareLink} linkCopied={linkCopied} isSharing={isSharing}
+        shareTab={shareTab} setShareTab={setShareTab}
+        teamMembers={teamMembers} filteredTeamMembers={filteredTeamMembers}
+        selectedMembers={selectedMembers} memberSearch={memberSearch} setMemberSearch={setMemberSearch}
+        onCopyLink={copyShareLink} onGenerateLink={generateShareLink}
+        onShareWithMembers={shareWithMembers} onRemoveSharing={removeSharing}
+        onToggleMember={toggleMemberSelection} onClearMembers={() => setSelectedMembers([])}
+      />
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Edit2 className="w-5 h-5" />Edit Recording</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Title</label>
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Recording title" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Category</label>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    <span className="flex items-center gap-2"><FolderOpen className="w-4 h-4" />{editCategory}</span>
-                    <ChevronDown className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
-                  {DEFAULT_CATEGORIES.map(cat => (
-                    <DropdownMenuItem key={cat} onClick={() => setEditCategory(cat)}>{cat}</DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-            <Button onClick={saveEdit} disabled={isUpdating}>
-              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditRecordingDialog
+        open={editDialogOpen} onOpenChange={setEditDialogOpen}
+        editTitle={editTitle} setEditTitle={setEditTitle}
+        editCategory={editCategory} setEditCategory={setEditCategory}
+        isUpdating={isUpdating} onSave={saveEdit}
+      />
     </div>
   );
 };
