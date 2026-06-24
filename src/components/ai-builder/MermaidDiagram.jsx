@@ -73,28 +73,36 @@ const sanitizeMermaidCode = (code) => {
   );
 
   // Fix sequence diagram participant labels
-  // Handle: participant X as "Label (with parens)" -> strip inner parens
-  // Handle: participant X as Label (with stuff) -> strip parenthetical
   cleaned = cleaned.replace(
     /^(\s*participant\s+\w+\s+as\s+)(.+)$/gm,
     (match, prefix, label) => {
       label = label.trim();
-      // Remove wrapping quotes and inner parenthetical content
-      const unquoted = label.replace(/^"|"$/g, '');
-      const stripped = unquoted.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/"/g, "'").replace(/\s+/g, ' ').trim();
+      if (label.startsWith('"') && label.endsWith('"')) {
+        // Quoted: strip inner parens only
+        const inner = label.slice(1, -1).replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+        return `${prefix}${inner}`;
+      }
+      // Unquoted: strip parens, replace slashes with hyphens
+      const stripped = label
+        .replace(/\s*\([^)]*\)\s*/g, ' ')
+        .replace(/\//g, ' - ')
+        .replace(/"/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
       return `${prefix}${stripped}`;
     }
   );
 
-  // Fix sequence diagram messages: replace inner double quotes with single quotes
-  // e.g.: U->>FE: GET "/api/products" -> U->>FE: GET '/api/products'
+  // Fix sequence diagram messages: replace special chars that break parser
   cleaned = cleaned.replace(
     /^(\s*\w+[-]+>>?\w+:\s*)(.+)$/gm,
     (match, prefix, msg) => {
-      if (msg.includes('"')) {
-        return `${prefix}${msg.replace(/"/g, "'")}`;
+      let fixed = msg.replace(/"/g, "'");
+      // Strip curly brace content {id} and parenthetical hints (param1, param2)
+      if (/[{}()]/.test(fixed)) {
+        fixed = fixed.replace(/\{([^}]*)\}/g, '$1').replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
       }
-      return match;
+      return `${prefix}${fixed}`;
     }
   );
 
@@ -129,7 +137,7 @@ const aggressiveSanitize = (code) => {
   // Remove ALL double quotes from sequence messages
   cleaned = cleaned.replace(
     /^(\s*\w+[-]+>>?\w+:\s*)(.+)$/gm,
-    (match, prefix, msg) => `${prefix}${msg.replace(/"/g, "'")}`
+    (match, prefix, msg) => `${prefix}${msg.replace(/"/g, "'").replace(/\{[^}]*\}/g, '').replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()}`
   );
 
   return cleaned;

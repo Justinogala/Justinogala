@@ -41,6 +41,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Mermaid Diagram Rendering Fix — June 24, 2026
+- **Bug**: Mermaid diagrams showed "Diagram syntax error" due to special characters in LLM-generated code (cylinders `[("text")]`, parenthetical participant labels, curly braces in messages)
+- **Fix**: Multi-pass sanitizer in `MermaidDiagram.jsx` — converts cylinders to rectangles, strips parenthetical/brace content from sequence messages, replaces slashes in participant labels. Falls back to aggressive sanitization on first failure.
+- **Backend prompts updated**: Architecture, Database, APIs, Roadmap prompts now instruct GPT to use quoted labels `["text"]` and avoid special chars
+- **Result**: All newly generated diagrams render 100% (verified: E-Commerce Platform 2/2, Mermaid Test App regenerated 2/2)
+- Testing: Verified via screenshot + backend API — Iteration 148
+
 ### Mermaid Diagram Rendering in AI Builder — June 24, 2026
 - **MermaidDiagram component**: Renders mermaid code blocks as interactive SVG diagrams with dark/light theme, toolbar (Copy source, Download SVG, Expand/Collapse), error fallback with raw code display
 - **CodeBlock detection**: `BuilderView.jsx` CodeBlock detects `language-mermaid` in ReactMarkdown and renders `MermaidDiagram` instead of syntax highlighting
