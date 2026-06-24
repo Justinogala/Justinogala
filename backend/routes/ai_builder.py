@@ -124,6 +124,20 @@ Generate the following in well-structured Markdown:
 ## High-Level Architecture
 Describe the overall system architecture pattern (microservices, monolith, serverless, etc.) and justify the choice.
 
+Include a Mermaid flowchart showing the high-level system components and their connections:
+
+```mermaid
+graph TD
+    A[Client / Browser] --> B[Load Balancer]
+    B --> C[API Gateway]
+    C --> D[Auth Service]
+    C --> E[Core Service]
+    E --> F[(Primary DB)]
+    E --> G[(Cache)]
+```
+
+(Customize the diagram above to match THIS specific project's architecture.)
+
 ## Component Diagram
 List all major components and their responsibilities:
 - Frontend Application(s)
@@ -158,10 +172,23 @@ List all major components and their responsibilities:
 - CI/CD tools
 
 ## Data Flow
-Describe the main data flows through the system:
-1. User authentication flow
-2. Core business operation flow
-3. Data processing pipeline (if applicable)
+Describe the main data flows through the system. Include a Mermaid sequence diagram for the primary user flow:
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant A as API
+    participant D as Database
+    U->>F: Action
+    F->>A: API Request
+    A->>D: Query
+    D-->>A: Result
+    A-->>F: Response
+    F-->>U: Update UI
+```
+
+(Customize to match THIS project's core user flow.)
 
 ## Service Interactions
 Define how services communicate (REST, gRPC, message queues, events).
@@ -178,7 +205,7 @@ Define how services communicate (REST, gRPC, message queues, events).
 - Caching strategy
 - Rate limiting
 
-Provide specific technology recommendations with justifications.""",
+Provide specific technology recommendations with justifications. IMPORTANT: Include the Mermaid diagrams using triple-backtick mermaid code blocks. Customize them for this specific project.""",
 
         "database": f"""You are an expert Database Architect. Generate a comprehensive database design.
 
@@ -191,6 +218,26 @@ Recommend primary database(s) with justification (PostgreSQL, MongoDB, DynamoDB,
 
 ## Entity Relationship Diagram
 Describe all entities, their attributes, and relationships in detail.
+
+Include a Mermaid ER diagram showing the core entities and their relationships:
+
+```mermaid
+erDiagram
+    USERS ||--o{{ ORDERS : places
+    USERS {{
+        string id PK
+        string email
+        string name
+    }}
+    ORDERS ||--|{{ ORDER_ITEMS : contains
+    ORDERS {{
+        string id PK
+        string user_id FK
+        date created_at
+    }}
+```
+
+(Customize the ER diagram above to match THIS project's actual data model with all core entities.)
 
 ## Database Schema
 For each major entity, provide:
@@ -235,7 +282,7 @@ Define indexes for performance:
 - Data migration plan
 - Rollback procedures
 
-Be specific with field types, constraints, and index definitions.""",
+Be specific with field types, constraints, and index definitions. IMPORTANT: Include the Mermaid erDiagram using triple-backtick mermaid code blocks. Customize it for this specific project.""",
 
         "security": f"""You are an expert Security Architect. Generate a comprehensive security design.
 
@@ -345,6 +392,27 @@ Define at least 15-20 core endpoints covering CRUD operations for all major enti
 - Integration patterns (sync, async, event-driven)
 - API gateway configuration
 
+Include a Mermaid sequence diagram showing a key API integration flow:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as API Gateway
+    participant Auth as Auth Service
+    participant API as Core API
+    participant DB as Database
+    C->>GW: POST /api/v1/resource
+    GW->>Auth: Validate Token
+    Auth-->>GW: Valid
+    GW->>API: Forward Request
+    API->>DB: Create Record
+    DB-->>API: Created
+    API-->>GW: 201 Created
+    GW-->>C: Response
+```
+
+(Customize this sequence diagram for THIS project's primary API flow.)
+
 ## Rate Limiting
 - Rate limit tiers
 - Rate limit headers
@@ -361,7 +429,7 @@ Define at least 15-20 core endpoints covering CRUD operations for all major enti
 - Error codes catalog
 - Retry recommendations
 
-Be specific with request/response formats and status codes.""",
+Be specific with request/response formats and status codes. IMPORTANT: Include the Mermaid sequence diagram using triple-backtick mermaid code blocks. Customize it for this specific project.""",
 
         "documentation": f"""You are an expert Technical Writer. Generate a comprehensive documentation plan.
 
@@ -451,6 +519,25 @@ Plan 6 sprints (2 weeks each) with:
 - Dependencies between milestones
 - Critical path
 
+Include a Mermaid Gantt chart visualizing the roadmap timeline:
+
+```mermaid
+gantt
+    title Product Roadmap
+    dateFormat  YYYY-MM-DD
+    section Phase 1 - MVP
+    Core Features           :a1, 2026-01-01, 6w
+    Auth & Security         :a2, after a1, 2w
+    section Phase 2 - Growth
+    Feature Expansion       :b1, after a2, 4w
+    Integrations            :b2, after b1, 3w
+    section Phase 3 - Scale
+    Enterprise Features     :c1, after b2, 5w
+    Performance Optimization:c2, after c1, 3w
+```
+
+(Customize the Gantt chart above with THIS project's actual phases, features, and realistic timelines.)
+
 ## Risk Analysis
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|------------|
@@ -477,7 +564,7 @@ List 8-10 project risks.
 - Technical improvements for scalability
 - Security enhancements to prioritize
 
-Be realistic and specific with timelines and estimates.""",
+Be realistic and specific with timelines and estimates. IMPORTANT: Include the Mermaid gantt chart using triple-backtick mermaid code blocks. Customize it for this specific project.""",
 
         "code": f"""You are an expert Full-Stack Developer. Generate starter code and architecture for the project.
 

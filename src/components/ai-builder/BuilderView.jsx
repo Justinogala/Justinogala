@@ -18,6 +18,7 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import { MermaidDiagram } from '@/components/ai-builder/MermaidDiagram';
 
 const API = getApiUrl();
 
@@ -55,6 +56,12 @@ function CodeBlock({ inline, className, children, ...props }) {
   const match = /language-(\w+)/.exec(className || '');
   const codeStr = String(children).replace(/\n$/, '');
   const [copied, setCopied] = useState(false);
+
+  // Render Mermaid diagrams visually
+  if (!inline && match && match[1] === 'mermaid') {
+    return <MermaidDiagram code={codeStr} />;
+  }
+
   if (!inline && match) {
     return (
       <div className="relative group my-3">
