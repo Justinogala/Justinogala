@@ -41,6 +41,18 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Auto-Transcription + Pagination Cap + Recording Index — June 24, 2026
+- **Auto-Transcription**: When a recording is saved, a background task sends audio to Whisper (via Emergent LLM Key) and stores the transcript text. Status flow: `pending` → `processing` → `completed`/`failed`.
+  - `GET /api/recordings/{uid}/{rid}/transcript` — Fetch transcript text + status
+  - `POST /api/recordings/{uid}/{rid}/retranscribe` — Re-queue failed/old transcription
+  - Frontend: "Transcript" violet badge on completed, "Transcribing..." animated badge on pending, "View Transcript" dropdown item opens `TranscriptDialog` with copy/download/retry
+  - Old recordings without transcripts show "Generate Transcript" button
+- **Pagination Cap**: `limit` clamped to `[1, 200]` to prevent DoS
+- **Compound Index**: `(user_id, pinned, created_at)` index on `recordings` collection created at startup for optimized sort+paginate
+- Backend: `/app/backend/routes/recordings.py` (auto-transcription task + endpoints), `/app/backend/server.py` (index)
+- Frontend: `/app/src/components/recordings/TranscriptDialog.jsx` (NEW), `/app/src/components/recordings/SavedRecordingsList.jsx` (transcript badges + menu)
+- Testing: 100% backend (27/27 pytest) + 100% frontend (9/9 flows) — Iteration 146
+
 ### Pin Recording + Pagination + Component Split + Auth Refactor — June 24, 2026
 - **Pin Recording**: `PUT /api/recordings/{uid}/{rid}/pin` toggles pin status. Pinned recordings have `expires_at: null` (exempt from 7-day auto-deletion), show "Pinned" badge and "No expiry" in UI. Unpinning restores 7-day expiry.
 - **Pagination**: `GET /api/recordings/{uid}` now accepts `limit` (default 50) and `offset` (default 0) query params. Returns `total`, `count`, `limit`, `offset`. Pinned recordings sort first.
