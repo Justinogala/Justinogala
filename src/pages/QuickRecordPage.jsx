@@ -372,7 +372,7 @@ const QuickRecordPage = () => {
     setRecordingTime(0);
   };
 
-  // Play saved recording
+  // Play saved recording via streaming endpoint
   const playSavedRecording = async (recording) => {
     if (selectedRecording?.id === recording.id) { setSelectedRecording(null); return; }
     
@@ -380,17 +380,18 @@ const QuickRecordPage = () => {
     setSelectedRecording(recording);
     
     try {
-      const response = await fetch(`${API_BASE}/api/recordings/${userId}/${recording.id}`);
+      const streamUrl = `${API_BASE}/api/recordings/${userId}/${recording.id}/stream`;
+      const response = await fetch(streamUrl);
       if (response.ok) {
-        const data = await response.json();
-        const byteCharacters = atob(data.file_data);
-        const byteArray = new Uint8Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) byteArray[i] = byteCharacters.charCodeAt(i);
-        const blob = new Blob([byteArray], { type: data.mime_type });
+        const blob = await response.blob();
         setSelectedRecording({ ...recording, videoUrl: URL.createObjectURL(blob) });
+      } else {
+        throw new Error('Stream unavailable');
       }
     } catch (err) {
+      console.error('Play error:', err);
       toast({ variant: "destructive", title: "Could not load recording." });
+      setSelectedRecording(null);
     } finally {
       setIsLoadingVideo(false);
     }
@@ -409,24 +410,15 @@ const QuickRecordPage = () => {
     }
   };
 
-  // Download saved recording
+  // Download saved recording via streaming endpoint
   const downloadSavedRecording = async (recording) => {
     toast({ title: "Preparing download...", description: "Please wait while we fetch your recording." });
     
     try {
-      const response = await fetch(`${API_BASE}/api/recordings/${userId}/${recording.id}`);
+      const streamUrl = `${API_BASE}/api/recordings/${userId}/${recording.id}/stream`;
+      const response = await fetch(streamUrl);
       if (response.ok) {
-        const data = await response.json();
-        
-        // Convert base64 to blob
-        const byteCharacters = atob(data.file_data);
-        const byteArray = new Uint8Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteArray[i] = byteCharacters.charCodeAt(i);
-        }
-        const blob = new Blob([byteArray], { type: data.mime_type || 'video/webm' });
-        
-        // Create download link
+        const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -435,7 +427,6 @@ const QuickRecordPage = () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
         toast({ title: "Download started", description: "Your recording is being downloaded." });
       } else {
         throw new Error('Failed to fetch recording');
@@ -472,7 +463,8 @@ const QuickRecordPage = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        const newLink = `${window.location.origin}${data.share_url}`;
+        const shareUrl = data.share_url || `/shared/recording/${data.recording?.share_token}`;
+        const newLink = `${window.location.origin}${shareUrl}`;
         setShareLink(newLink);
         await fetchRecordings();
         toast({ title: "Share link generated!" });
@@ -907,16 +899,16 @@ const QuickRecordPage = () => {
                           
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8"><ChevronDown className="w-4 h-4" /></Button>
+                              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" data-testid={`recording-menu-${recording.id}`}><ChevronDown className="w-4 h-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+                              <DropdownMenuItem data-testid={`recording-play-${recording.id}`} onClick={() => playSavedRecording(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
+                              <DropdownMenuItem data-testid={`recording-download-${recording.id}`} onClick={() => downloadSavedRecording(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => openEditDialog(recording)}><Edit2 className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openShareDialog(recording)}><Share2 className="w-4 h-4 mr-2" />Share</DropdownMenuItem>
+                              <DropdownMenuItem data-testid={`recording-edit-${recording.id}`} onClick={() => openEditDialog(recording)}><Edit2 className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
+                              <DropdownMenuItem data-testid={`recording-share-${recording.id}`} onClick={() => openShareDialog(recording)}><Share2 className="w-4 h-4 mr-2" />Share</DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => deleteSavedRecording(recording)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
+                              <DropdownMenuItem data-testid={`recording-delete-${recording.id}`} onClick={() => deleteSavedRecording(recording)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

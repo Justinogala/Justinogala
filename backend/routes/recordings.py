@@ -232,7 +232,12 @@ async def share_recording(user_id: str, recording_id: str, share: RecordingShare
     await db.recordings.update_one({"id": recording_id}, {"$set": update_data})
     
     updated = await db.recordings.find_one({"id": recording_id}, {"_id": 0, "grid_id": 0})
-    return {"success": True, "recording": updated}
+    
+    result = {"success": True, "recording": updated}
+    if share.is_public and "share_token" in update_data:
+        result["share_url"] = f"/shared/recording/{update_data['share_token']}"
+    
+    return result
 
 
 @router.delete("/{user_id}/{recording_id}/share")
