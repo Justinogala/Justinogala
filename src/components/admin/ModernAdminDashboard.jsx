@@ -93,6 +93,7 @@ const ModernAdminDashboard = () => {
     { title: 'Sheets', value: data.counts.sheets, icon: BarChart3, text: 'text-emerald-500' },
     { title: 'New Registrations', value: data.today.registrations, icon: UserPlus, text: 'text-pink-500' },
     { title: 'Failed Logins', value: data.today.failed_logins, icon: AlertTriangle, text: data.today.failed_logins > 0 ? 'text-red-500' : 'text-gray-400' },
+    { title: 'Breached Passwords', value: data.counts.breached_passwords || 0, icon: Shield, text: (data.counts.breached_passwords || 0) > 0 ? 'text-red-500' : 'text-emerald-500' },
   ] : [];
 
   return (

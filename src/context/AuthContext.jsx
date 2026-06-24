@@ -230,7 +230,7 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       // Register native device for push notifications
       registerDeviceWithBackend(foundUser.id, API_URL);
-      return { success: true, user: foundUser };
+      return { success: true, user: foundUser, password_breached: data.password_breached || false };
     } catch (err) {
       const msg = err.message || 'Login failed. Please try again.';
       setError(msg);

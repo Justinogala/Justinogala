@@ -65,10 +65,19 @@ const LoginPage = () => {
           return;
         }
         
-        toast({
-          title: "Welcome back!",
-          description: "You have successfully logged in to Munal AI.",
-        });
+        if (result.password_breached) {
+          toast({
+            variant: "destructive",
+            title: "Security Warning",
+            description: "Your password has been found in a known data breach. Please change it immediately in Settings.",
+            duration: 10000,
+          });
+        } else {
+          toast({
+            title: "Welcome back!",
+            description: "You have successfully logged in to Munal AI.",
+          });
+        }
         navigate(from, { replace: true });
       } else {
         setAuthError(result.error || 'Invalid credentials');

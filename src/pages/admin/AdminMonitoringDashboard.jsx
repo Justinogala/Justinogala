@@ -202,6 +202,7 @@ const AdminMonitoringDashboard = () => {
               { label: 'Active', value: data?.users?.active || 0, cls: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-600' },
               { label: 'Suspended', value: data?.users?.suspended || 0, cls: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-600' },
               { label: 'Disabled', value: data?.users?.disabled || 0, cls: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-600' },
+              { label: 'Breached Passwords', value: data?.users?.breached_passwords || 0, cls: (data?.users?.breached_passwords || 0) > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20', text: (data?.users?.breached_passwords || 0) > 0 ? 'text-red-600' : 'text-emerald-600' },
             ].map((row, i) => (
               <div key={i} className={cn("flex justify-between items-center p-3 rounded-lg", row.cls)}>
                 <span className="text-sm text-slate-600 dark:text-slate-300">{row.label}</span>

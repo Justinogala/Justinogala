@@ -294,6 +294,18 @@ async def register_user(request: Request, user: UserCreate, invite_token: Option
                         ip=_get_client_ip(request), success=False)
         raise HTTPException(status_code=400, detail=pw_error)
 
+    # Check if password appears in known data breaches
+    from utils.breach_check import check_password_breached
+    is_breached, breach_count = await check_password_breached(user.password)
+    if is_breached:
+        await log_audit("register_failed", user_email=email,
+                        details=f"Breached password (found {breach_count} times)",
+                        ip=_get_client_ip(request), success=False)
+        raise HTTPException(
+            status_code=400,
+            detail=f"This password has appeared in {breach_count:,} known data breaches. Please choose a different password."
+        )
+
     # Check if email already exists
     existing = await db.users.find_one({"email": email})
     if existing:
@@ -497,6 +509,21 @@ async def login_user(request: Request, credentials: UserLogin, skip_2fa: bool = 
             {"id": user["id"]},
             {"$set": {"password": hash_password(credentials.password)}}
         )
+
+    # Silent breach check — flag user but don't block login
+    try:
+        from utils.breach_check import check_password_breached
+        is_breached, breach_count = await check_password_breached(credentials.password)
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "password_breached": is_breached,
+                "password_breach_count": breach_count if is_breached else 0,
+                "breach_checked_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+    except Exception:
+        pass  # Never block login due to breach check failure
     
     # Check if account is suspended
     if user.get("status") == "Suspended":
@@ -601,7 +628,8 @@ async def login_user(request: Request, credentials: UserLogin, skip_2fa: bool = 
         "user": user,
         "token": token,
         "refresh_token": refresh_token,
-        "requires_password_change": requires_password_change
+        "requires_password_change": requires_password_change,
+        "password_breached": is_breached if 'is_breached' in dir() else user.get("password_breached", False),
     }
 
 

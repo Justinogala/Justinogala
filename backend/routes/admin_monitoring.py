@@ -97,12 +97,19 @@ async def get_monitoring_dashboard():
             if hasattr(u.get("created_at"), "isoformat"):
                 u["created_at"] = u["created_at"].isoformat()
 
+        # ─── Breached passwords ───
+        breached_count = await db.users.count_documents({
+            "deleted": {"$ne": True},
+            "password_breached": True
+        })
+
         return {
             "users": {
                 "total": total_users,
                 "active": active_users,
                 "disabled": disabled_users,
                 "suspended": suspended_users,
+                "breached_passwords": breached_count,
             },
             "real_time": {
                 "online_users": online_users,
@@ -264,6 +271,9 @@ async def get_admin_dashboard_realtime():
             if hasattr(u.get("created_at"), "isoformat"):
                 u["created_at"] = u["created_at"].isoformat()
 
+        # Breached passwords count
+        breached_pw = await db.users.count_documents({"deleted": {"$ne": True}, "password_breached": True})
+
         return {
             "counts": {
                 "total_users": total_users,
@@ -272,6 +282,7 @@ async def get_admin_dashboard_realtime():
                 "organizations": total_orgs,
                 "documents": total_documents,
                 "sheets": total_sheets,
+                "breached_passwords": breached_pw,
             },
             "today": {
                 "logins": logins_today,
