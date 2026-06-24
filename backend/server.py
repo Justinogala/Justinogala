@@ -435,6 +435,16 @@ async def startup_event():
             # Index might already exist
             logger.info(f"TTL index status: {idx_err}")
         
+        # Compound index for recordings: optimizes paginated queries sorted by pinned+created_at
+        try:
+            await db.recordings.create_index(
+                [("user_id", 1), ("pinned", -1), ("created_at", -1)],
+                name="recordings_user_pinned_created"
+            )
+            logger.info("Recordings compound index created")
+        except Exception as idx_err:
+            logger.info(f"Recordings index status: {idx_err}")
+        
         # Start escalation scheduler (checks every hour for unreviewed reports)
         try:
             from apscheduler.schedulers.asyncio import AsyncIOScheduler

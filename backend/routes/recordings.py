@@ -1,7 +1,7 @@
 """
-Recording routes - CRUD, sharing, streaming.
+Recording routes - CRUD, sharing, streaming, auto-transcription.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
@@ -9,6 +9,9 @@ from pydantic import BaseModel
 import uuid
 import base64
 import secrets
+import asyncio
+import io
+import os
 
 from config import db, fs_recordings, logger
 
@@ -35,11 +38,63 @@ class RecordingShare(BaseModel):
     is_public: bool = False
 
 
+# ============== Auto-Transcription ==============
+
+async def _transcribe_recording(recording_id: str, grid_id_str: str):
+    """Background task: fetch audio from GridFS, send to Whisper, store transcript."""
+    try:
+        from bson import ObjectId
+        from llm_client import speech_to_text
+        
+        logger.info(f"Starting transcription for recording {recording_id}")
+        
+        await db.recordings.update_one(
+            {"id": recording_id},
+            {"$set": {"transcript_status": "processing", "transcript_updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # Read file from GridFS
+        grid_out = await fs_recordings.open_download_stream(ObjectId(grid_id_str))
+        file_bytes = await grid_out.read()
+        
+        # Whisper expects a file-like object with a name attribute
+        audio_file = io.BytesIO(file_bytes)
+        audio_file.name = "recording.webm"
+        
+        # Call Whisper via Emergent LLM proxy (run in thread to avoid blocking)
+        api_key = os.environ.get("EMERGENT_LLM_KEY") or os.environ.get("EMERGENT_API_KEY", "")
+        result = await asyncio.to_thread(speech_to_text, audio_file, api_key=api_key)
+        
+        transcript_text = result.text if hasattr(result, 'text') else str(result)
+        
+        await db.recordings.update_one(
+            {"id": recording_id},
+            {"$set": {
+                "transcript": transcript_text,
+                "transcript_status": "completed",
+                "transcript_updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        logger.info(f"Transcription completed for recording {recording_id} ({len(transcript_text)} chars)")
+        
+    except Exception as e:
+        logger.error(f"Transcription failed for recording {recording_id}: {e}")
+        await db.recordings.update_one(
+            {"id": recording_id},
+            {"$set": {
+                "transcript_status": "failed",
+                "transcript_error": str(e)[:500],
+                "transcript_updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+
+
 # ============== Routes ==============
 
 @router.post("")
-async def create_recording(recording: RecordingCreate):
-    """Create a new recording"""
+async def create_recording(recording: RecordingCreate, background_tasks: BackgroundTasks):
+    """Create a new recording and kick off auto-transcription"""
     try:
         file_bytes = base64.b64decode(recording.file_data)
         recording_id = str(uuid.uuid4())
@@ -69,16 +124,23 @@ async def create_recording(recording: RecordingCreate):
             "is_shared": False,
             "share_token": None,
             "shared_with": [],
+            "transcript": None,
+            "transcript_status": "pending",
+            "transcript_error": None,
+            "transcript_updated_at": None,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
         }
         
         await db.recordings.insert_one(recording_doc)
         
+        # Kick off auto-transcription in background
+        background_tasks.add_task(_transcribe_recording, recording_id, str(grid_id))
+        
         # Return without grid_id and _id
         result = {k: v for k, v in recording_doc.items() if k not in ["grid_id", "_id"]}
         
-        logger.info(f"Recording {recording_id} created for user {recording.user_id}")
+        logger.info(f"Recording {recording_id} created for user {recording.user_id}, transcription queued")
         return {"success": True, "recording": result}
     except Exception as e:
         logger.error(f"Error creating recording: {e}")
@@ -88,6 +150,7 @@ async def create_recording(recording: RecordingCreate):
 @router.get("/{user_id}")
 async def get_user_recordings(user_id: str, category: Optional[str] = None, limit: int = 50, offset: int = 0):
     """Get recordings for a user with pagination. Pinned recordings sort first."""
+    limit = min(max(limit, 1), 200)
     query = {"user_id": user_id}
     if category:
         query["category"] = category
@@ -172,6 +235,45 @@ async def stream_recording(user_id: str, recording_id: str):
     except Exception as e:
         logger.error(f"Error streaming recording: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{user_id}/{recording_id}/transcript")
+async def get_transcript(user_id: str, recording_id: str):
+    """Get the transcript for a recording"""
+    recording = await db.recordings.find_one(
+        {"id": recording_id, "$or": [{"user_id": user_id}, {"shared_with": user_id}]},
+        {"_id": 0, "transcript": 1, "transcript_status": 1, "transcript_error": 1, "transcript_updated_at": 1, "title": 1, "id": 1}
+    )
+    
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    return {
+        "id": recording.get("id"),
+        "title": recording.get("title"),
+        "transcript": recording.get("transcript"),
+        "transcript_status": recording.get("transcript_status", "none"),
+        "transcript_error": recording.get("transcript_error"),
+        "transcript_updated_at": recording.get("transcript_updated_at"),
+    }
+
+
+@router.post("/{user_id}/{recording_id}/retranscribe")
+async def retranscribe_recording(user_id: str, recording_id: str, background_tasks: BackgroundTasks):
+    """Re-trigger transcription for a recording (e.g., after failure)"""
+    recording = await db.recordings.find_one({"id": recording_id, "user_id": user_id})
+    
+    if not recording:
+        raise HTTPException(status_code=404, detail="Recording not found")
+    
+    await db.recordings.update_one(
+        {"id": recording_id},
+        {"$set": {"transcript_status": "pending", "transcript_error": None, "transcript": None}}
+    )
+    
+    background_tasks.add_task(_transcribe_recording, recording_id, recording["grid_id"])
+    
+    return {"success": True, "message": "Transcription re-queued"}
 
 
 @router.delete("/{user_id}/{recording_id}")

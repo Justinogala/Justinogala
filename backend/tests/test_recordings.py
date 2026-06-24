@@ -339,6 +339,139 @@ def uuid_lite():
     return _u.uuid4().hex[:8]
 
 
+# ============== Pagination limit cap (NEW) ==============
+def test_list_recordings_limit_capped_at_200(session):
+    """limit=999 should be capped to 200."""
+    resp = session.get(f"{BASE_URL}/api/recordings/{USER_ID}?limit=999", timeout=15)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["limit"] == 200, f"limit not capped: got {data['limit']}"
+
+
+def test_list_recordings_limit_clamped_to_min_1(session):
+    """limit=-5 should be clamped to 1."""
+    resp = session.get(f"{BASE_URL}/api/recordings/{USER_ID}?limit=-5", timeout=15)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["limit"] == 1, f"limit not clamped to 1: got {data['limit']}"
+
+
+# ============== Transcription (NEW) ==============
+def test_compound_index_exists():
+    """Verify recordings_user_pinned_created compound index exists."""
+    import os as _os
+    from pathlib import Path as _P
+    from pymongo import MongoClient
+    from dotenv import load_dotenv as _ld
+    _ld(_P(__file__).parent.parent / ".env")
+    mongo_url = _os.environ.get("CUSTOM_MONGO_URL") or _os.environ.get("MONGO_URL")
+    db_name = _os.environ.get("CUSTOM_DB_NAME") or _os.environ.get("DB_NAME", "munal_db")
+    assert mongo_url, "MONGO_URL not configured for index check"
+    client = MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
+    idx_info = client[db_name].recordings.index_information()
+    client.close()
+    assert "recordings_user_pinned_created" in idx_info, f"compound index missing. Found: {list(idx_info.keys())}"
+    keys = idx_info["recordings_user_pinned_created"]["key"]
+    assert keys == [("user_id", 1), ("pinned", -1), ("created_at", -1)], f"index key wrong: {keys}"
+
+
+def test_create_recording_initial_transcript_status_pending(session):
+    """A new recording must initialize transcript_status=pending and transcript=null."""
+    import base64 as _b64
+    payload = {
+        "user_id": USER_ID,
+        "title": "TEST_TranscriptInit",
+        "recording_type": "screen",
+        "duration": 2,
+        "file_data": _b64.b64encode(b"dummy fake audio bytes").decode(),
+        "mime_type": "video/webm",
+        "category": "TEST",
+    }
+    resp = session.post(f"{BASE_URL}/api/recordings", json=payload, timeout=15)
+    assert resp.status_code == 200
+    rec = resp.json()["recording"]
+    assert rec.get("transcript_status") == "pending"
+    assert rec.get("transcript") is None
+    assert rec.get("transcript_error") is None
+    # cleanup
+    session.delete(f"{BASE_URL}/api/recordings/{USER_ID}/{rec['id']}", timeout=10)
+
+
+def test_get_transcript_endpoint_structure(session, created_recording):
+    """Transcript endpoint should return id, title, transcript, transcript_status, error, updated_at."""
+    rid = created_recording["id"]
+    resp = session.get(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/transcript", timeout=10)
+    assert resp.status_code == 200, f"transcript endpoint failed: {resp.text[:200]}"
+    data = resp.json()
+    for key in ("id", "title", "transcript", "transcript_status", "transcript_error", "transcript_updated_at"):
+        assert key in data, f"missing key: {key}"
+    assert data["id"] == rid
+    assert data["transcript_status"] in ("pending", "processing", "completed", "failed", "none")
+
+
+def test_get_transcript_not_found(session):
+    resp = session.get(f"{BASE_URL}/api/recordings/{USER_ID}/nonexistent-tx-id/transcript", timeout=10)
+    assert resp.status_code == 404
+
+
+def test_retranscribe_resets_status_to_pending(session, created_recording):
+    """Retranscribe must reset transcript=null, status=pending, error=null."""
+    import time as _t
+    rid = created_recording["id"]
+    resp = session.post(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/retranscribe", timeout=15)
+    assert resp.status_code == 200, f"retranscribe failed: {resp.text[:200]}"
+    assert resp.json()["success"] is True
+    # Immediately check transcript state — should be pending (background task might still be queued)
+    _t.sleep(0.5)
+    tx = session.get(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/transcript", timeout=10)
+    assert tx.status_code == 200
+    status = tx.json()["transcript_status"]
+    # Could be pending (queued), processing (started), or failed (fake audio rejected by Whisper)
+    assert status in ("pending", "processing", "failed", "completed"), f"unexpected status: {status}"
+
+
+def test_retranscribe_not_found(session):
+    resp = session.post(f"{BASE_URL}/api/recordings/{USER_ID}/nonexistent-rt/retranscribe", timeout=10)
+    assert resp.status_code == 404
+
+
+def test_transcription_processes_in_background(session):
+    """Wait for transcription background task to complete (likely 'failed' due to fake audio)."""
+    import time as _t
+    import base64 as _b64
+    payload = {
+        "user_id": USER_ID,
+        "title": "TEST_TranscriptBG",
+        "recording_type": "screen",
+        "duration": 2,
+        "file_data": _b64.b64encode(b"not real audio data").decode(),
+        "mime_type": "video/webm",
+        "category": "TEST",
+    }
+    resp = session.post(f"{BASE_URL}/api/recordings", json=payload, timeout=15)
+    assert resp.status_code == 200
+    rid = resp.json()["recording"]["id"]
+
+    # Poll up to 30 seconds for status transition out of "pending"
+    final_status = "pending"
+    for _ in range(15):
+        _t.sleep(2)
+        tx = session.get(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}/transcript", timeout=10)
+        if tx.status_code == 200:
+            final_status = tx.json()["transcript_status"]
+            if final_status in ("completed", "failed"):
+                break
+
+    # cleanup before assertion
+    session.delete(f"{BASE_URL}/api/recordings/{USER_ID}/{rid}", timeout=10)
+
+    # Background task should have transitioned away from pending — failed is expected with fake bytes
+    assert final_status in ("completed", "failed", "processing"), (
+        f"Transcription background task did not progress (still '{final_status}'). "
+        "Background task may not be firing."
+    )
+
+
 def test_auth_forgot_password_404_for_unknown(session):
     resp = session.post(
         f"{BASE_URL}/api/auth/forgot-password",

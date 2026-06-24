@@ -9,6 +9,7 @@ import { RecordingControls } from '@/components/recordings/RecordingControls';
 import { SavedRecordingsList } from '@/components/recordings/SavedRecordingsList';
 import { ShareRecordingDialog } from '@/components/recordings/ShareRecordingDialog';
 import { EditRecordingDialog } from '@/components/recordings/EditRecordingDialog';
+import { TranscriptDialog } from '@/components/recordings/TranscriptDialog';
 
 const MAX_RECORDING_TIME = 30 * 60;
 const API_BASE = window.location.origin;
@@ -58,6 +59,10 @@ const QuickRecordPage = () => {
   const [editCategory, setEditCategory] = useState('');
   const [editRecordingId, setEditRecordingId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Transcript dialog state
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
+  const [transcriptRecording, setTranscriptRecording] = useState(null);
   
   // Refs
   const mediaRecorderRef = useRef(null);
@@ -273,6 +278,9 @@ const QuickRecordPage = () => {
     finally { setIsUpdating(false); }
   };
 
+  // ============== Transcript ==============
+  const openTranscriptDialog = (recording) => { setTranscriptRecording(recording); setTranscriptDialogOpen(true); };
+
   // ============== Share ==============
   const openShareDialog = async (recording) => {
     setShareRecording(recording);
@@ -360,6 +368,7 @@ const QuickRecordPage = () => {
             onPlay={playSavedRecording} onDownload={downloadSavedRecording}
             onEdit={openEditDialog} onShare={openShareDialog}
             onDelete={deleteSavedRecording} onPin={togglePinRecording}
+            onViewTranscript={openTranscriptDialog}
             hasMore={currentOffset < totalRecordings} onLoadMore={loadMore} total={totalRecordings}
           />
         </div>
@@ -381,6 +390,12 @@ const QuickRecordPage = () => {
         editTitle={editTitle} setEditTitle={setEditTitle}
         editCategory={editCategory} setEditCategory={setEditCategory}
         isUpdating={isUpdating} onSave={saveEdit}
+      />
+
+      <TranscriptDialog
+        open={transcriptDialogOpen} onOpenChange={setTranscriptDialogOpen}
+        recording={transcriptRecording} userId={userId}
+        onRetranscribe={() => fetchRecordings()}
       />
     </div>
   );

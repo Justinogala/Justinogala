@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Monitor, Camera, Play, Download, Edit2, Share2, Trash2, Pin, PinOff,
+  Monitor, Camera, Play, Download, Edit2, Share2, Trash2, Pin, PinOff, FileText,
   Clock, HardDrive, Loader2, FolderOpen, ChevronDown, Users, Globe, Mail, Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,9 +31,10 @@ const getDaysRemaining = (expiresAt) => {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
-const RecordingItem = ({ recording, isSelected, onPlay, onDownload, onEdit, onShare, onDelete, onPin, isOwned }) => {
+const RecordingItem = ({ recording, isSelected, onPlay, onDownload, onEdit, onShare, onDelete, onPin, onViewTranscript, isOwned }) => {
   const daysLeft = getDaysRemaining(recording.expires_at);
   const isPinned = recording.pinned;
+  const transcriptStatus = recording.transcript_status;
 
   return (
     <div className={cn("p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors", isSelected && "bg-rose-50 dark:bg-rose-950/20")}>
@@ -65,6 +66,16 @@ const RecordingItem = ({ recording, isSelected, onPlay, onDownload, onEdit, onSh
                     <Pin className="w-3 h-3" /> Pinned
                   </span>
                 )}
+                {transcriptStatus === 'completed' && (
+                  <span className="text-xs bg-violet-100 dark:bg-violet-900/30 px-1.5 py-0.5 rounded text-violet-600 dark:text-violet-400 flex items-center gap-1" data-testid={`transcript-ready-${recording.id}`}>
+                    <FileText className="w-3 h-3" /> Transcript
+                  </span>
+                )}
+                {(transcriptStatus === 'pending' || transcriptStatus === 'processing') && (
+                  <span className="text-xs bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded text-blue-500 dark:text-blue-400 flex items-center gap-1 animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Transcribing
+                  </span>
+                )}
                 {recording.is_shared && (
                   <span className="text-xs bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded text-green-600 dark:text-green-400 flex items-center gap-1">
                     {recording.shared_with?.length > 0 ? <Users className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
@@ -90,6 +101,9 @@ const RecordingItem = ({ recording, isSelected, onPlay, onDownload, onEdit, onSh
           <DropdownMenuContent align="end">
             <DropdownMenuItem data-testid={`recording-play-${recording.id}`} onClick={() => onPlay(recording)}><Play className="w-4 h-4 mr-2" />Play</DropdownMenuItem>
             <DropdownMenuItem data-testid={`recording-download-${recording.id}`} onClick={() => onDownload(recording)}><Download className="w-4 h-4 mr-2" />Download</DropdownMenuItem>
+            <DropdownMenuItem data-testid={`recording-transcript-${recording.id}`} onClick={() => onViewTranscript(recording)}>
+              <FileText className="w-4 h-4 mr-2" />View Transcript
+            </DropdownMenuItem>
             {isOwned && (
               <>
                 <DropdownMenuSeparator />
@@ -115,7 +129,7 @@ export const SavedRecordingsList = ({
   showSharedWithMe, setShowSharedWithMe,
   filterCategory, setFilterCategory,
   selectedRecording,
-  onPlay, onDownload, onEdit, onShare, onDelete, onPin,
+  onPlay, onDownload, onEdit, onShare, onDelete, onPin, onViewTranscript,
   hasMore, onLoadMore, total,
 }) => (
   <motion.div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-800 overflow-hidden" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
@@ -171,7 +185,7 @@ export const SavedRecordingsList = ({
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {sharedRecordings.map(rec => (
               <RecordingItem key={rec.id} recording={rec} isSelected={selectedRecording?.id === rec.id}
-                onPlay={onPlay} onDownload={onDownload} onEdit={onEdit} onShare={onShare} onDelete={onDelete} onPin={onPin} isOwned={false} />
+                onPlay={onPlay} onDownload={onDownload} onEdit={onEdit} onShare={onShare} onDelete={onDelete} onPin={onPin} onViewTranscript={onViewTranscript} isOwned={false} />
             ))}
           </div>
         )
@@ -186,7 +200,7 @@ export const SavedRecordingsList = ({
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {recordings.map(rec => (
                 <RecordingItem key={rec.id} recording={rec} isSelected={selectedRecording?.id === rec.id}
-                  onPlay={onPlay} onDownload={onDownload} onEdit={onEdit} onShare={onShare} onDelete={onDelete} onPin={onPin} isOwned={true} />
+                  onPlay={onPlay} onDownload={onDownload} onEdit={onEdit} onShare={onShare} onDelete={onDelete} onPin={onPin} onViewTranscript={onViewTranscript} isOwned={true} />
               ))}
             </div>
             {hasMore && (
