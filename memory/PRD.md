@@ -41,6 +41,19 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Quick Record Dropdown Menu Actions — June 24, 2026
+- **Play**: Stream recordings from GridFS via `/api/recordings/{uid}/{rid}/stream` endpoint — video playback in inline player
+- **Download**: Fetch stream and trigger browser file download as `.webm`
+- **Edit**: Dialog to update recording title and category via `PUT /api/recordings/{uid}/{rid}`
+- **Share**: Dialog with Public Link (generates share token) and Team Members tabs via `POST /api/recordings/{uid}/{rid}/share`
+- **Delete**: Permanent deletion via `DELETE /api/recordings/{uid}/{rid}` — removes both GridFS file and metadata
+- **Bug Fixes**: Frontend `playSavedRecording` and `downloadSavedRecording` were using metadata endpoint (no file data) — switched to streaming endpoint. Share response parsing fixed to read `share_url` from backend.
+- **Backend fix**: Share endpoint now returns `share_url` field in addition to `recording` object
+- **data-testid**: Added `recording-menu-{id}`, `recording-play-{id}`, `recording-download-{id}`, `recording-edit-{id}`, `recording-share-{id}`, `recording-delete-{id}`
+- Backend: `/app/backend/routes/recordings.py`
+- Frontend: `/app/src/pages/QuickRecordPage.jsx`
+- Testing: 100% backend (9/9 pytest) + 100% frontend — Iteration 144
+
 ### AI Chat Chart Performance Fix + Image Generation Enhancement + Web Search — June 12, 2026
 - **Chart Fix**: Sync I/O blocking async event loop → `asyncio.to_thread()`, matplotlib pre-import, SSE keepalives
 - **Image Gen Fix**: Same sync blocking → async, `AuthenticatedImage` component with blob URLs
