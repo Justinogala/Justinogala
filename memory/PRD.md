@@ -41,6 +41,15 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Mermaid Diagram Rendering in AI Builder — June 24, 2026
+- **MermaidDiagram component**: Renders mermaid code blocks as interactive SVG diagrams with dark/light theme, toolbar (Copy source, Download SVG, Expand/Collapse), error fallback with raw code display
+- **CodeBlock detection**: `BuilderView.jsx` CodeBlock detects `language-mermaid` in ReactMarkdown and renders `MermaidDiagram` instead of syntax highlighting
+- **Backend prompts updated**: Architecture (flowchart + sequence diagram), Database (ER diagram), APIs (sequence diagram), Roadmap (Gantt chart) — all with customizable Mermaid templates
+- **Lazy loading**: Mermaid library (~1.2MB) loaded via dynamic `import('mermaid')` only when a diagram is encountered
+- Backend: `/app/backend/routes/ai_builder.py` (prompts for architecture, database, apis, roadmap)
+- Frontend: `/app/src/components/ai-builder/MermaidDiagram.jsx` (NEW), `/app/src/components/ai-builder/BuilderView.jsx` (CodeBlock update)
+- Testing: 100% backend (code review + API smoke) + frontend verified loading — Iteration 147
+
 ### Auto-Transcription + Pagination Cap + Recording Index — June 24, 2026
 - **Auto-Transcription**: When a recording is saved, a background task sends audio to Whisper (via Emergent LLM Key) and stores the transcript text. Status flow: `pending` → `processing` → `completed`/`failed`.
   - `GET /api/recordings/{uid}/{rid}/transcript` — Fetch transcript text + status
