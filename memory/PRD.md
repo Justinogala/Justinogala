@@ -41,6 +41,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Pin Recording + Pagination + Component Split + Auth Refactor — June 24, 2026
+- **Pin Recording**: `PUT /api/recordings/{uid}/{rid}/pin` toggles pin status. Pinned recordings have `expires_at: null` (exempt from 7-day auto-deletion), show "Pinned" badge and "No expiry" in UI. Unpinning restores 7-day expiry.
+- **Pagination**: `GET /api/recordings/{uid}` now accepts `limit` (default 50) and `offset` (default 0) query params. Returns `total`, `count`, `limit`, `offset`. Pinned recordings sort first.
+- **Auth Refactor**: `auth.py` (761→490 lines) split into `auth_helpers.py` (helpers, JWT, password, dependencies) and `auth_emails.py` (email templates). All external imports preserved via re-exports.
+- **QuickRecordPage Split**: `QuickRecordPage.jsx` (1092→250 lines) split into `RecordingControls.jsx`, `SavedRecordingsList.jsx`, `ShareRecordingDialog.jsx`, `EditRecordingDialog.jsx` under `/app/src/components/recordings/`.
+- Testing: 100% backend (18/18 pytest) + 100% frontend (7/7 flows) — Iteration 145
+
 ### Quick Record Dropdown Menu Actions — June 24, 2026
 - **Play**: Stream recordings from GridFS via `/api/recordings/{uid}/{rid}/stream` endpoint — video playback in inline player
 - **Download**: Fetch stream and trigger browser file download as `.webm`
@@ -169,4 +176,6 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 
 ## Refactoring Done
 - `ai_chat.py` extracted from 1131→815 lines: Storage + prompts → `ai_chat_config.py` (115 lines), Export (MD/PDF/DOCX) → `ai_chat_export.py` (214 lines)
+- `auth.py` extracted from 761→490 lines: Helpers → `auth_helpers.py` (~100 lines), Emails → `auth_emails.py` (~170 lines)
+- `QuickRecordPage.jsx` extracted from 1092→250 lines: → `RecordingControls.jsx`, `SavedRecordingsList.jsx`, `ShareRecordingDialog.jsx`, `EditRecordingDialog.jsx`
 - Stale `index.html` modulepreload prefetch for raw `.jsx` paths removed (was causing 404 + MIME errors in production builds)
