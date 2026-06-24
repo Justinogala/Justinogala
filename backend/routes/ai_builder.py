@@ -128,15 +128,15 @@ Include a Mermaid flowchart showing the high-level system components and their c
 
 ```mermaid
 graph TD
-    A[Client / Browser] --> B[Load Balancer]
-    B --> C[API Gateway]
-    C --> D[Auth Service]
-    C --> E[Core Service]
-    E --> F[(Primary DB)]
-    E --> G[(Cache)]
+    A["Client / Browser"] --> B["Load Balancer"]
+    B --> C["API Gateway"]
+    C --> D["Auth Service"]
+    C --> E["Core Service"]
+    E --> F[("Primary DB")]
+    E --> G[("Cache")]
 ```
 
-(Customize the diagram above to match THIS specific project's architecture.)
+(Customize the diagram above to match THIS specific project's architecture. IMPORTANT: Always wrap node labels that contain special characters like / : ( ) + in double quotes, e.g. A["My Label (with parens)"])
 
 ## Component Diagram
 List all major components and their responsibilities:
@@ -188,7 +188,7 @@ sequenceDiagram
     F-->>U: Update UI
 ```
 
-(Customize to match THIS project's core user flow.)
+(Customize to match THIS project's core user flow. IMPORTANT: Always wrap node labels in double quotes if they contain special characters.)
 
 ## Service Interactions
 Define how services communicate (REST, gRPC, message queues, events).
@@ -205,7 +205,7 @@ Define how services communicate (REST, gRPC, message queues, events).
 - Caching strategy
 - Rate limiting
 
-Provide specific technology recommendations with justifications. IMPORTANT: Include the Mermaid diagrams using triple-backtick mermaid code blocks. Customize them for this specific project.""",
+Provide specific technology recommendations with justifications. IMPORTANT: Include Mermaid diagrams using triple-backtick mermaid code blocks. Always use double-quoted labels for any text containing special characters like / : ( ) + e.g. A["My Service (v2)"] or DB[("PostgreSQL / Primary")].""",
 
         "database": f"""You are an expert Database Architect. Generate a comprehensive database design.
 
@@ -282,7 +282,7 @@ Define indexes for performance:
 - Data migration plan
 - Rollback procedures
 
-Be specific with field types, constraints, and index definitions. IMPORTANT: Include the Mermaid erDiagram using triple-backtick mermaid code blocks. Customize it for this specific project.""",
+Be specific with field types, constraints, and index definitions. IMPORTANT: Include Mermaid erDiagram using triple-backtick mermaid code blocks. Always use double-quoted labels for text with special characters.""",
 
         "security": f"""You are an expert Security Architect. Generate a comprehensive security design.
 
@@ -411,7 +411,7 @@ sequenceDiagram
     GW-->>C: Response
 ```
 
-(Customize this sequence diagram for THIS project's primary API flow.)
+(Customize this sequence diagram for THIS project's primary API flow. IMPORTANT: Always use double-quoted labels for text with special characters.)
 
 ## Rate Limiting
 - Rate limit tiers
@@ -429,7 +429,7 @@ sequenceDiagram
 - Error codes catalog
 - Retry recommendations
 
-Be specific with request/response formats and status codes. IMPORTANT: Include the Mermaid sequence diagram using triple-backtick mermaid code blocks. Customize it for this specific project.""",
+Be specific with request/response formats and status codes. IMPORTANT: Include Mermaid sequence diagrams using triple-backtick mermaid code blocks. Always use double-quoted labels for text with special characters.""",
 
         "documentation": f"""You are an expert Technical Writer. Generate a comprehensive documentation plan.
 
@@ -564,7 +564,7 @@ List 8-10 project risks.
 - Technical improvements for scalability
 - Security enhancements to prioritize
 
-Be realistic and specific with timelines and estimates. IMPORTANT: Include the Mermaid gantt chart using triple-backtick mermaid code blocks. Customize it for this specific project.""",
+Be realistic and specific with timelines and estimates. IMPORTANT: Include Mermaid gantt chart using triple-backtick mermaid code blocks. Always use double-quoted labels for text with special characters.""",
 
         "code": f"""You are an expert Full-Stack Developer. Generate starter code and architecture for the project.
 
