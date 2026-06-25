@@ -95,7 +95,7 @@ const ApplicationModal = ({ open, onOpenChange, eventId, eventTitle }) => {
           <div><label className="text-xs font-medium mb-1 block">Industry</label><Input value={form.industry} onChange={e => set('industry', e.target.value)} /></div>
           <div><label className="text-xs font-medium mb-1 block">Why do you want to attend?</label><Textarea value={form.why_attend} onChange={e => set('why_attend', e.target.value)} rows={3} /></div>
           <div className="flex items-start gap-2 pt-2">
-            <Checkbox id="terms" checked={form.accept_terms} onCheckedChange={v => set('accept_terms', v)} className="mt-0.5 data-[state=checked]:bg-violet-600" />
+            <Checkbox id="terms" checked={form.accept_terms} onCheckedChange={v => set('accept_terms', v)} className="mt-0.5 data-[state=checked]:bg-violet-600" data-testid="apply-accept-terms" />
             <label htmlFor="terms" className="text-xs text-gray-500 cursor-pointer">I accept the Terms of Service and Privacy Policy and agree to receive event communications.</label>
           </div>
           <Button type="submit" disabled={submitting} className="w-full bg-violet-600 hover:bg-violet-700" data-testid="apply-submit">

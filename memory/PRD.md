@@ -41,6 +41,18 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Premium Events Platform (Phase 1) — June 25, 2026
+- **Events Page** (`/events`): Hero with animated gradient, tabs (Upcoming/Ongoing/Past), category chips (AI, Cloud, Cybersecurity, DevOps, etc.), event type chips (Virtual/Hybrid/In Person), search box
+- **Event Cards**: Premium design with banner images, date/time, type badges, category badges, price badges (Free/$49/$199), speaker avatars, location, registration count, seats left, Apply to Attend CTA
+- **Event Detail Page** (`/events/:id`): Full-width banner, key info cards (date, time, location, capacity with progress bar), description, agenda, speakers, FAQs, registration sidebar, Share, Add to Calendar
+- **Application Modal**: Full form (first/last name, email, phone, company, position, country, LinkedIn, industry, years experience, why attend, terms acceptance), success state with confirmation
+- **Backend**: `GET /api/events` (filters: tab, category, event_type, search, pagination), `GET /api/events/{id}`, `POST /api/events/{id}/apply` with duplicate check
+- **Seed Data**: 12 upcoming events (relative dates, always future), 6 past events from 2025
+- **Footer**: "Events" link added under Company section
+- Backend: `/app/backend/routes/events.py`, `/app/backend/seeds/events_seed.py`
+- Frontend: `/app/src/pages/EventsPage.jsx`, `/app/src/pages/EventDetailPage.jsx`
+- Testing: 100% backend (11/11 pytest) + 95% frontend — Iteration 149
+
 ### Mermaid Diagram Rendering Fix — June 24, 2026
 - **Bug**: Mermaid diagrams showed "Diagram syntax error" due to special characters in LLM-generated code (cylinders `[("text")]`, parenthetical participant labels, curly braces in messages)
 - **Fix**: Multi-pass sanitizer in `MermaidDiagram.jsx` — converts cylinders to rectangles, strips parenthetical/brace content from sequence messages, replaces slashes in participant labels. Falls back to aggressive sanitization on first failure.

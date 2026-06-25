@@ -2,17 +2,30 @@
 Seed sample events data for Munal AI Events platform.
 """
 import uuid
+from datetime import datetime, timezone, timedelta
+
+def _future(months):
+    """Generate a future date N months from now."""
+    now = datetime.now(timezone.utc)
+    target = now.replace(day=15) + timedelta(days=months * 30)
+    return target.isoformat()
+
+def _future_end(months, hours=8):
+    """Generate end date."""
+    now = datetime.now(timezone.utc)
+    target = now.replace(day=15) + timedelta(days=months * 30, hours=hours)
+    return target.isoformat()
 
 SAMPLE_EVENTS = [
-    # ============ UPCOMING EVENTS (2026) ============
+    # ============ UPCOMING EVENTS ============
     {
         "id": str(uuid.uuid4()),
         "title": "AI Product Builder Bootcamp",
         "description": "A 2-day intensive bootcamp on building AI-first products. Learn from industry experts about LLM integration, prompt engineering, and shipping AI features at scale.",
         "category": "AI",
         "event_type": "Hybrid",
-        "date": "2026-01-20T09:00:00Z",
-        "end_date": "2026-01-21T17:00:00Z",
+        "date": _future(1),
+        "end_date": _future_end(1),
         "time": "9:00 AM EST",
         "duration": "2 Days",
         "location": "Toronto Convention Centre, Toronto, ON",
@@ -20,7 +33,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 200,
         "registered": 142,
-        "deadline": "2026-01-15T23:59:00Z",
+        "deadline": _future(1),
         "banner": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80",
         "speakers": [
             {"name": "Dr. Sarah Chen", "title": "Head of AI, Shopify", "avatar": "https://i.pravatar.cc/150?img=1"},
@@ -37,8 +50,8 @@ SAMPLE_EVENTS = [
         "description": "Deep dive into building autonomous AI agents for enterprise workflows. Cover agent frameworks, tool use, RAG architectures, and production deployment patterns.",
         "category": "AI",
         "event_type": "Virtual",
-        "date": "2026-02-18T13:00:00Z",
-        "end_date": "2026-02-18T17:00:00Z",
+        "date": _future(2),
+        "end_date": _future_end(2),
         "time": "1:00 PM EST",
         "duration": "4 Hours",
         "location": "Online (Zoom)",
@@ -46,7 +59,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 500,
         "registered": 287,
-        "deadline": "2026-02-15T23:59:00Z",
+        "deadline": _future(2),
         "banner": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
         "speakers": [
             {"name": "Aisha Patel", "title": "AI Research Lead, Google DeepMind", "avatar": "https://i.pravatar.cc/150?img=5"},
@@ -63,8 +76,8 @@ SAMPLE_EVENTS = [
         "description": "Everything cloud-native: Kubernetes, service mesh, GitOps, platform engineering, and the future of infrastructure. Featuring live demos and hands-on workshops.",
         "category": "Cloud",
         "event_type": "Hybrid",
-        "date": "2026-03-22T09:00:00Z",
-        "end_date": "2026-03-22T18:00:00Z",
+        "date": _future(3),
+        "end_date": _future_end(3),
         "time": "9:00 AM EST",
         "duration": "Full Day",
         "location": "Mississauga Convention Centre, ON",
@@ -72,7 +85,7 @@ SAMPLE_EVENTS = [
         "price": "$49",
         "seats": 300,
         "registered": 156,
-        "deadline": "2026-03-18T23:59:00Z",
+        "deadline": _future(3),
         "banner": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80",
         "speakers": [
             {"name": "Kelsey Hightower", "title": "Cloud Advocate", "avatar": "https://i.pravatar.cc/150?img=11"},
@@ -89,8 +102,8 @@ SAMPLE_EVENTS = [
         "description": "From idea to revenue: learn to build, launch, and scale AI-powered SaaS products. Covering architecture, pricing, GTM strategy, and fundraising.",
         "category": "AI",
         "event_type": "Virtual",
-        "date": "2026-04-16T14:00:00Z",
-        "end_date": "2026-04-16T18:00:00Z",
+        "date": _future(4),
+        "end_date": _future_end(4),
         "time": "2:00 PM EST",
         "duration": "4 Hours",
         "location": "Online (Microsoft Teams)",
@@ -98,7 +111,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 400,
         "registered": 203,
-        "deadline": "2026-04-12T23:59:00Z",
+        "deadline": _future(4),
         "banner": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80",
         "speakers": [
             {"name": "Emily Zhang", "title": "Founder & CEO, NovaTech AI", "avatar": "https://i.pravatar.cc/150?img=20"},
@@ -115,8 +128,8 @@ SAMPLE_EVENTS = [
         "description": "The premier DevOps conference in Canada. CI/CD, IaC, observability, developer experience, and building internal developer platforms.",
         "category": "DevOps",
         "event_type": "In Person",
-        "date": "2026-05-28T09:00:00Z",
-        "end_date": "2026-05-29T17:00:00Z",
+        "date": _future(5),
+        "end_date": _future_end(5),
         "time": "9:00 AM EST",
         "duration": "2 Days",
         "location": "Metro Toronto Convention Centre",
@@ -124,7 +137,7 @@ SAMPLE_EVENTS = [
         "price": "$99",
         "seats": 500,
         "registered": 312,
-        "deadline": "2026-05-20T23:59:00Z",
+        "deadline": _future(5),
         "banner": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80",
         "speakers": [
             {"name": "Alex Turner", "title": "VP DevOps, Stripe", "avatar": "https://i.pravatar.cc/150?img=15"},
@@ -141,8 +154,8 @@ SAMPLE_EVENTS = [
         "description": "Expert-led sessions on threat intelligence, zero-trust architecture, incident response, and AI-powered security tools.",
         "category": "Cybersecurity",
         "event_type": "Virtual",
-        "date": "2026-06-19T10:00:00Z",
-        "end_date": "2026-06-19T16:00:00Z",
+        "date": _future(6),
+        "end_date": _future_end(6),
         "time": "10:00 AM EST",
         "duration": "6 Hours",
         "location": "Online (Zoom)",
@@ -150,7 +163,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 600,
         "registered": 445,
-        "deadline": "2026-06-15T23:59:00Z",
+        "deadline": _future(6),
         "banner": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80",
         "speakers": [
             {"name": "Rachel Moore", "title": "CISO, RBC", "avatar": "https://i.pravatar.cc/150?img=25"},
@@ -167,8 +180,8 @@ SAMPLE_EVENTS = [
         "description": "Master the art of prompt engineering. Hands-on sessions covering system prompts, chain-of-thought, few-shot learning, and advanced techniques for GPT, Claude, and Gemini.",
         "category": "AI",
         "event_type": "Hybrid",
-        "date": "2026-07-24T10:00:00Z",
-        "end_date": "2026-07-24T16:00:00Z",
+        "date": _future(7),
+        "end_date": _future_end(7),
         "time": "10:00 AM EST",
         "duration": "6 Hours",
         "location": "MaRS Discovery District, Toronto",
@@ -176,7 +189,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 150,
         "registered": 98,
-        "deadline": "2026-07-20T23:59:00Z",
+        "deadline": _future(7),
         "banner": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80",
         "speakers": [
             {"name": "Lena Wei", "title": "AI Researcher, Anthropic", "avatar": "https://i.pravatar.cc/150?img=29"},
@@ -192,8 +205,8 @@ SAMPLE_EVENTS = [
         "description": "Connect with 200+ AI founders, investors, and operators. Pitch competition, fireside chats, and exclusive networking with top VCs.",
         "category": "AI",
         "event_type": "Hybrid",
-        "date": "2026-08-21T09:00:00Z",
-        "end_date": "2026-08-21T20:00:00Z",
+        "date": _future(8),
+        "end_date": _future_end(8),
         "time": "9:00 AM EST",
         "duration": "Full Day",
         "location": "Evergreen Brick Works, Toronto",
@@ -201,7 +214,7 @@ SAMPLE_EVENTS = [
         "price": "$149",
         "seats": 250,
         "registered": 178,
-        "deadline": "2026-08-15T23:59:00Z",
+        "deadline": _future(8),
         "banner": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
         "speakers": [
             {"name": "Justin Ogala", "title": "CEO, Munal AI", "avatar": "https://i.pravatar.cc/150?img=33"},
@@ -218,8 +231,8 @@ SAMPLE_EVENTS = [
         "description": "Production-grade LLM engineering: fine-tuning, evaluation, guardrails, cost optimization, and building reliable AI systems at scale.",
         "category": "AI",
         "event_type": "Virtual",
-        "date": "2026-09-18T10:00:00Z",
-        "end_date": "2026-09-18T18:00:00Z",
+        "date": _future(9),
+        "end_date": _future_end(9),
         "time": "10:00 AM EST",
         "duration": "Full Day",
         "location": "Online (Zoom + Slack)",
@@ -227,7 +240,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 1000,
         "registered": 623,
-        "deadline": "2026-09-14T23:59:00Z",
+        "deadline": _future(9),
         "banner": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80",
         "speakers": [
             {"name": "Dr. Andrej Volkov", "title": "ML Engineering Lead, OpenAI", "avatar": "https://i.pravatar.cc/150?img=35"},
@@ -244,8 +257,8 @@ SAMPLE_EVENTS = [
         "description": "The flagship Munal AI event. Product announcements, customer stories, workshops, and an exclusive look at the future of AI-powered workforce management.",
         "category": "AI",
         "event_type": "Hybrid",
-        "date": "2026-10-23T08:00:00Z",
-        "end_date": "2026-10-24T18:00:00Z",
+        "date": _future(10),
+        "end_date": _future_end(10),
         "time": "8:00 AM EST",
         "duration": "2 Days",
         "location": "Toronto Convention Centre, Hall A",
@@ -253,7 +266,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 1500,
         "registered": 876,
-        "deadline": "2026-10-15T23:59:00Z",
+        "deadline": _future(10),
         "banner": "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800&q=80",
         "speakers": [
             {"name": "Justin Ogala", "title": "CEO, Munal AI", "avatar": "https://i.pravatar.cc/150?img=33"},
@@ -271,8 +284,8 @@ SAMPLE_EVENTS = [
         "description": "Automate everything: RPA, intelligent document processing, workflow orchestration, and no-code/low-code platforms for the enterprise.",
         "category": "Software Engineering",
         "event_type": "Virtual",
-        "date": "2026-11-20T10:00:00Z",
-        "end_date": "2026-11-20T17:00:00Z",
+        "date": _future(11),
+        "end_date": _future_end(11),
         "time": "10:00 AM EST",
         "duration": "Full Day",
         "location": "Online (Microsoft Teams)",
@@ -280,7 +293,7 @@ SAMPLE_EVENTS = [
         "price": "Free",
         "seats": 800,
         "registered": 412,
-        "deadline": "2026-11-16T23:59:00Z",
+        "deadline": _future(11),
         "banner": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80",
         "speakers": [
             {"name": "Chris Anderson", "title": "CTO, UiPath", "avatar": "https://i.pravatar.cc/150?img=45"},
@@ -296,8 +309,8 @@ SAMPLE_EVENTS = [
         "description": "Year-end mega conference exploring AGI, multimodal AI, AI regulation, ethical AI, and predictions for the year ahead.",
         "category": "AI",
         "event_type": "Hybrid",
-        "date": "2026-12-11T09:00:00Z",
-        "end_date": "2026-12-12T17:00:00Z",
+        "date": _future(12),
+        "end_date": _future_end(12),
         "time": "9:00 AM EST",
         "duration": "2 Days",
         "location": "Fairmont Royal York, Toronto",
@@ -305,7 +318,7 @@ SAMPLE_EVENTS = [
         "price": "$199",
         "seats": 600,
         "registered": 389,
-        "deadline": "2026-12-05T23:59:00Z",
+        "deadline": _future(12),
         "banner": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80",
         "speakers": [
             {"name": "Dr. Yoshua Bengio", "title": "Scientific Director, Mila", "avatar": "https://i.pravatar.cc/150?img=50"},
