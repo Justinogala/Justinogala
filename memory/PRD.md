@@ -58,6 +58,20 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Testing: Screenshot verified — Edit dialog opens, events load with correct admin token.
 
 
+### Events Platform Enhancement — Sponsors, Livestream, Content Population — June 25, 2026
+- **2 New Events**: "Generative AI Agents: Building Autonomous Systems" (Workshop, Mar 2027) and "MLOps & LLMOps: From Prototype to Production" (Bootcamp, Apr 2027) with full agenda, speakers, FAQs, tags.
+- **Sponsor Showcase**: Full CRUD for event sponsors (Platinum/Gold/Silver/Bronze/Community tiers). Sponsors displayed on event detail page grouped by tier with logos, descriptions, and links. Admin manages sponsors via Sponsors tab in Events Management.
+  - Backend: `/app/backend/routes/event_sponsors.py` (new), `/app/backend/routes/events.py` (public endpoint)
+  - Role-gated (Super_Admin/Admin only), tier validation enforced
+- **Livestream Integration**: Events can have `stream_url`, `stream_platform`, and `is_live` fields. Event detail page embeds YouTube/Vimeo streams with auto-parsed embed URLs and a red LIVE badge indicator.
+- **Events Page Sections**: 
+  - "Featured Programs & Courses" — shows Workshops/Bootcamps/Courses/Certifications
+  - "Past Event Highlights" — shows completed events with attendance stats
+  - "Category Stats" — 8 clickable category icons for quick filtering
+- **Admin Event Form**: Added Event Format selector, Stream URL, Platform, and "Currently Live" toggle
+- Testing: 100% backend (17/17 pytest), 100% frontend verified — Iteration 156
+
+
 ### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
 - **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
 - **Hero Image**: Replaced plain gradient with a conference photo background (`pexels-photo-9275222.jpeg`) with overlay gradient
