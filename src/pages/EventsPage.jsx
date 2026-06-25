@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
 
 const API_BASE = window.location.origin;
 
@@ -159,6 +160,9 @@ const EventsPage = () => {
         <title>Events | Munal AI</title>
         <meta name="description" content="Join AI experts, developers, and innovators at Munal AI events every month." />
       </Helmet>
+
+      {/* Site Header */}
+      <Header />
 
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-violet-950 to-slate-950 text-white">

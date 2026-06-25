@@ -5,7 +5,7 @@ import {
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
   Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList,
-  HeartPulse, Package, TrendingUp, HardDrive, BookOpen, Trash2, Mail
+  HeartPulse, Package, TrendingUp, HardDrive, BookOpen, Trash2, Mail, Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -501,6 +501,14 @@ const AdminSidebar = ({ onClose, isMobile }) => {
           <NavItem
             link={{ icon: Mail, label: 'Newsletter', path: '/admin/newsletter', gradient: 'from-violet-500 to-indigo-500' }}
             index={primaryLinks.length + managementLinks.length + configLinks.length + 2}
+            collapsed={collapsed}
+            onClose={onClose}
+            hoveredItem={hoveredItem}
+            setHoveredItem={setHoveredItem}
+          />
+          <NavItem
+            link={{ icon: Calendar, label: 'Events', path: '/admin/events', gradient: 'from-pink-500 to-rose-500' }}
+            index={primaryLinks.length + managementLinks.length + configLinks.length + 3}
             collapsed={collapsed}
             onClose={onClose}
             hoveredItem={hoveredItem}

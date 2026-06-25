@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
 
 const API_BASE = window.location.origin;
 
@@ -137,6 +138,8 @@ const EventDetailPage = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Helmet><title>{event.title} | Munal AI Events</title></Helmet>
+
+      <Header />
 
       {/* Banner */}
       <div className="relative h-64 sm:h-80 lg:h-96">

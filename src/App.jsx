@@ -273,6 +273,7 @@ const AdminPDFTemplatesPage = lazy(() => import('@/pages/admin/AdminPDFTemplates
 const AdminSystemUpdatesPage = lazy(() => import('@/pages/admin/AdminSystemUpdatesPage'));
 const AdminTrashPage = lazy(() => import('@/pages/admin/AdminTrashPage'));
 const AdminNewsletterPage = lazy(() => import('@/pages/admin/AdminNewsletterPage'));
+const AdminEventsPage = lazy(() => import('@/pages/admin/AdminEventsPage'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
@@ -624,6 +625,7 @@ function App() {
                                 <Route path="system-updates" element={<AdminSystemUpdatesPage />} />
                                 <Route path="trash" element={<AdminTrashPage />} />
                                 <Route path="newsletter" element={<AdminNewsletterPage />} />
+                                <Route path="events" element={<AdminEventsPage />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>
