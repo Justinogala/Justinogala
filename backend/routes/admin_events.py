@@ -118,7 +118,7 @@ async def delete_event(event_id: str, user=Depends(get_current_user)):
 @router.post("/{event_id}/duplicate")
 async def duplicate_event(event_id: str, user=Depends(get_current_user)):
     """Duplicate an event"""
-    event = await db.events.find_one({"id": event_id}, {"_id": 0})
+    event = await db.events.find_one({"id": event_id, "deleted": {"$ne": True}}, {"_id": 0})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -345,10 +345,8 @@ async def generate_certificates(event_id: str, user=Depends(get_current_user)):
         certificates.append(cert)
     
     if certificates:
-        await db.event_certificates.insert_many([{**c, "_id": None} for c in certificates])
-        # Clean up _id
-        for c in certificates:
-            c.pop("_id", None)
+        # Insert without _id field — let MongoDB auto-generate ObjectId
+        await db.event_certificates.insert_many([{k: v for k, v in c.items() if k != '_id'} for c in certificates])
         
         # Update applications with certificate IDs
         for cert in certificates:

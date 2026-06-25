@@ -41,6 +41,20 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Events Platform Phase 2 — Admin Management — June 25, 2026
+- **Admin Event CRUD**: Create/Edit/Delete/Duplicate events from `/admin/events` dashboard
+- **Application Management**: View all applications per event, Approve/Reject/Waitlist with status badges
+- **CSV Export**: Download applications as CSV from any event
+- **Analytics Dashboard**: Total events, applications, registrations, fill rate, top events, categories
+- **QR Check-in**: Generate QR data per event, check in attendees by email
+- **Certificate Generation**: Auto-generate attendance certificates for checked-in attendees, public verification endpoint
+- **Location Fix**: All 18 events updated to "Online (Jizira, Munal AI)" with event_type="Virtual"
+- **Site Header**: Added Header component to both EventsPage and EventDetailPage
+- **Admin Sidebar**: Added "Events" link with Calendar icon
+- Backend: `/app/backend/routes/admin_events.py` (15 endpoints)
+- Frontend: `/app/src/pages/admin/AdminEventsPage.jsx`
+- Testing: 100% backend (18/18 pytest) — Iteration 150
+
 ### Premium Events Platform (Phase 1) — June 25, 2026
 - **Events Page** (`/events`): Hero with animated gradient, tabs (Upcoming/Ongoing/Past), category chips (AI, Cloud, Cybersecurity, DevOps, etc.), event type chips (Virtual/Hybrid/In Person), search box
 - **Event Cards**: Premium design with banner images, date/time, type badges, category badges, price badges (Free/$49/$199), speaker avatars, location, registration count, seats left, Apply to Attend CTA
