@@ -14,9 +14,10 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/context/AuthContext';
+import { useAdminAuth } from '@/context/AdminAuthContext';
 
 const API_BASE = window.location.origin;
+const getAdminToken = () => localStorage.getItem('admin_token') || '';
 
 const statusColors = {
   submitted: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
@@ -114,7 +115,7 @@ const EventFormDialog = ({ open, onOpenChange, event, onSave }) => {
 
 const AdminEventsPage = () => {
   const { toast } = useToast();
-  const { token } = useAuth();
+  const { adminUser } = useAdminAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('events');
@@ -126,20 +127,20 @@ const AdminEventsPage = () => {
   const [analytics, setAnalytics] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const getHeaders = () => ({ 'Authorization': `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' });
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/events?limit=200`, { headers });
+      const res = await fetch(`${API_BASE}/api/events?limit=200`, { headers: getHeaders() });
       if (res.ok) { const d = await res.json(); setEvents(d.events || []); }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  }, [token]);
+  }, []);
 
   const fetchAnalytics = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/events/analytics/overview`, { headers });
+      const res = await fetch(`${API_BASE}/api/admin/events/analytics/overview`, { headers: getHeaders() });
       if (res.ok) setAnalytics(await res.json());
     } catch (e) { console.error(e); }
   };
@@ -147,7 +148,7 @@ const AdminEventsPage = () => {
   const fetchApplications = async (eventId) => {
     setAppsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}/applications`, { headers });
+      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}/applications`, { headers: getHeaders() });
       if (res.ok) {
         const d = await res.json();
         setApplications(d.applications || []);
@@ -162,7 +163,7 @@ const AdminEventsPage = () => {
     const url = editEvent ? `${API_BASE}/api/admin/events/${editEvent.id}` : `${API_BASE}/api/admin/events`;
     const method = editEvent ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+      const res = await fetch(url, { method, headers: getHeaders(), body: JSON.stringify(payload) });
       if (res.ok) { toast({ title: editEvent ? 'Event updated' : 'Event created' }); setFormOpen(false); setEditEvent(null); fetchEvents(); fetchAnalytics(); }
       else { const d = await res.json(); toast({ variant: 'destructive', title: d.detail || 'Failed' }); }
     } catch { toast({ variant: 'destructive', title: 'Network error' }); }
@@ -171,28 +172,28 @@ const AdminEventsPage = () => {
   const handleDelete = async (id) => {
     if (!confirm('Delete this event?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/admin/events/${id}`, { method: 'DELETE', headers });
+      const res = await fetch(`${API_BASE}/api/admin/events/${id}`, { method: 'DELETE', headers: getHeaders() });
       if (res.ok) { toast({ title: 'Event deleted' }); fetchEvents(); fetchAnalytics(); }
     } catch { toast({ variant: 'destructive', title: 'Failed' }); }
   };
 
   const handleDuplicate = async (id) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/events/${id}/duplicate`, { method: 'POST', headers });
+      const res = await fetch(`${API_BASE}/api/admin/events/${id}/duplicate`, { method: 'POST', headers: getHeaders() });
       if (res.ok) { toast({ title: 'Event duplicated' }); fetchEvents(); }
     } catch { toast({ variant: 'destructive', title: 'Failed' }); }
   };
 
   const handleAppAction = async (appId, status) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/events/applications/${appId}`, { method: 'PUT', headers, body: JSON.stringify({ status }) });
+      const res = await fetch(`${API_BASE}/api/admin/events/applications/${appId}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify({ status }) });
       if (res.ok) { toast({ title: `Application ${status}` }); if (selectedEvent) fetchApplications(selectedEvent.id); }
     } catch { toast({ variant: 'destructive', title: 'Failed' }); }
   };
 
   const handleExportCSV = async (eventId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}/applications/export`, { headers });
+      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}/applications/export`, { headers: getHeaders() });
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -205,7 +206,7 @@ const AdminEventsPage = () => {
 
   const handleGenerateCerts = async (eventId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}/certificates/generate`, { method: 'POST', headers });
+      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}/certificates/generate`, { method: 'POST', headers: getHeaders() });
       if (res.ok) { const d = await res.json(); toast({ title: `${d.certificates_generated} certificates generated` }); }
     } catch { toast({ variant: 'destructive', title: 'Failed' }); }
   };

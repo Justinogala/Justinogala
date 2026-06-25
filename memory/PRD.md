@@ -50,6 +50,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Backend: `/app/backend/routes/auth.py` (sensitive field stripping), `/app/backend/routes/two_factor.py` (force-reset endpoint), `/app/backend/routes/user_two_factor.py` (last_2fa_verified fix)
 - Testing: 7/7 backend tests passed — Iteration 156
 
+### Admin Events Page Action Buttons Fix — June 25, 2026
+- **Bug**: All action buttons (Edit, Duplicate, Export CSV, Generate Certs, Delete, View Applications) on the admin Events Management page were non-functional.
+- **Root Cause**: `AdminEventsPage.jsx` used `useAuth()` (user context) to get `token`, but the user context doesn't expose `token` — it was always `undefined`. All API calls sent `Authorization: Bearer undefined`, causing auth failures on admin endpoints.
+- **Fix**: Replaced `useAuth()` with `useAdminAuth()` and `localStorage.getItem('admin_token')` — matching the pattern used by all other admin pages.
+- Frontend: `/app/src/pages/admin/AdminEventsPage.jsx`
+- Testing: Screenshot verified — Edit dialog opens, events load with correct admin token.
+
 
 ### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
 - **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
