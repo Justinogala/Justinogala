@@ -129,6 +129,7 @@ const Header = () => {
       { label: 'Finance', href: '/solutions/finance', icon: Wallet, col: 1, badge: 'NEW' },
     ],
     'Product': [
+      { label: 'Academy & Events', href: '/events', icon: Calendar },
       { label: 'Pricing', href: '/pricing', icon: Zap },
       { label: 'Documentation', href: '/resources/docs', icon: BookOpen },
       { label: 'Security', href: '/product/security', icon: Shield },
