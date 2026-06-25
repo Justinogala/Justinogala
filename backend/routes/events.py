@@ -110,8 +110,8 @@ async def get_event(event_id: str):
     return event
 
 
-@router.post("/{event_id}/apply")
 @limiter.limit("10/minute")
+@router.post("/{event_id}/apply")
 async def apply_to_event(request: Request, event_id: str, application: EventApplication):
     """Submit application for an event"""
     event = await db.events.find_one({"id": event_id})
@@ -154,8 +154,8 @@ async def get_event_gallery(event_id: str):
     return {"items": items, "count": len(items)}
 
 
-@router.post("/{event_id}/gallery")
 @limiter.limit("20/minute")
+@router.post("/{event_id}/gallery")
 async def add_gallery_item(request: Request, event_id: str, item: GalleryItem):
     """Add a gallery item (photo/video URL)"""
     event = await db.events.find_one({"id": event_id})
@@ -188,8 +188,8 @@ async def get_event_reviews(event_id: str):
     return {"reviews": reviews, "count": len(reviews), "average_rating": avg_rating}
 
 
-@router.post("/{event_id}/reviews")
 @limiter.limit("10/minute")
+@router.post("/{event_id}/reviews")
 async def add_event_review(request: Request, event_id: str, review: ReviewCreate):
     """Submit a review for an event"""
     event = await db.events.find_one({"id": event_id})
@@ -224,8 +224,8 @@ async def get_event_discussions(event_id: str):
     return {"posts": posts, "count": len(posts)}
 
 
-@router.post("/{event_id}/discussions")
 @limiter.limit("20/minute")
+@router.post("/{event_id}/discussions")
 async def add_discussion_post(request: Request, event_id: str, post: DiscussionPost):
     """Add a discussion post"""
     event = await db.events.find_one({"id": event_id})
@@ -247,8 +247,8 @@ async def add_discussion_post(request: Request, event_id: str, post: DiscussionP
     return {"success": True, "post": {k: v for k, v in post_doc.items() if k != "_id"}}
 
 
-@router.post("/{event_id}/discussions/{post_id}/reply")
 @limiter.limit("20/minute")
+@router.post("/{event_id}/discussions/{post_id}/reply")
 async def reply_to_discussion(request: Request, event_id: str, post_id: str, reply: DiscussionReply):
     """Reply to a discussion post"""
     reply_doc = {

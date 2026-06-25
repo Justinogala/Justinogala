@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
-import { useAuth } from '@/context/AuthContext';
 
 const API_BASE = window.location.origin;
 
@@ -160,8 +159,9 @@ const EventsPage = () => {
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
   // Fetch AI recommendations for logged-in users
-  const { token } = useAuth() || {};
   useEffect(() => {
+    let token = null;
+    try { token = JSON.parse(localStorage.getItem('munal_sessions') || '{}').token || null; } catch { /* not logged in */ }
     if (!token) return;
     setRecLoading(true);
     fetch(`${API_BASE}/api/events/ai/recommendations`, {
@@ -171,7 +171,7 @@ const EventsPage = () => {
     }).then(r => r.ok ? r.json() : null).then(d => {
       if (d?.recommendations) setRecommendations(d.recommendations);
     }).catch(() => {}).finally(() => setRecLoading(false));
-  }, [token]);
+  }, []);
 
   const isPast = tab === 'past';
 

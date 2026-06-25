@@ -41,6 +41,16 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Rate Limiting + Calendar + Networking + AI Matchmaker — June 25, 2026
+- **Rate Limiting**: Added slowapi limits to all public write endpoints (apply 10/min, gallery/discussions 20/min, reviews 10/min, AI 10/min, matchmaker 5/min)
+- **Pydantic Models**: Added `GalleryItem`, `ReviewCreate`, `DiscussionPost`, `DiscussionReply` with field validation (rating 1-5, content min_length=1)
+- **Calendar Integrations**: ICS download for Outlook (`GET /events/{id}/calendar.ics`), Google Calendar link, "My Calendar" endpoint for user's registered events
+- **Networking Lounge**: Attendee directory, connect requests between attendees, connection accept/decline
+- **AI Event Matchmaker**: Personalized event recommendations via GPT-5.2 based on user interests/industry/experience, with popularity-based fallback. "Recommended for You" section on events page for logged-in users
+- Backend: `/app/backend/routes/events_extended.py` (calendar, networking, matchmaker), updated `/app/backend/routes/events.py` (pydantic + rate limits)
+- Frontend: AI recommendations section on EventsPage, Outlook/Google/Share buttons on detail page
+- Testing: 100% backend (20/20) + 100% frontend — Iteration 152
+
 ### Academy & Events Phase 3 — AI + Payments + Community — June 25, 2026
 - **Rebranded**: "Events" → "Munal AI Academy & Events" with 15 event formats (Live Events, Workshops, Webinars, Conferences, Bootcamps, Courses, Certifications, Networking, Hackathons, Startup Pitch Days, AI Competitions, Job Fair, Mentor Sessions, Office Hours, Community Meetups)
 - **AI Features** (4 endpoints via GPT-5.2):
