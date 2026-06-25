@@ -41,6 +41,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
+- **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
+- **Hero Image**: Replaced plain gradient with a conference photo background (`pexels-photo-9275222.jpeg`) with overlay gradient
+- **Rate Limits FIXED**: Root cause was slowapi using K8s proxy IP as rate-limit key (varying per request). Fixed with custom `_get_real_client_ip` reading `X-Forwarded-For` header. Now: reviews 10/min, host-proposal 5/min, discussions 20/min, AI 10/min — all enforced correctly with 429 responses.
+- Backend: `/app/backend/security.py` (rate limit key fix), `/app/backend/routes/event_notifications.py` (NEW), `/app/backend/routes/events.py` (email triggers)
+- Testing: 100% backend + 100% frontend — Iteration 155
+
 ### Rate Limiting + Calendar + Networking + AI Matchmaker — June 25, 2026
 - **Rate Limiting**: Added slowapi limits to all public write endpoints (apply 10/min, gallery/discussions 20/min, reviews 10/min, AI 10/min, matchmaker 5/min)
 - **Pydantic Models**: Added `GalleryItem`, `ReviewCreate`, `DiscussionPost`, `DiscussionReply` with field validation (rating 1-5, content min_length=1)
