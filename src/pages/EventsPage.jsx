@@ -5,8 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, MapPin, Users, Search, Ticket, ArrowRight, Sparkles, Globe, Building, Monitor, ChevronDown, Loader2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 
@@ -56,8 +59,14 @@ const EventCard = ({ event, isPast }) => {
       data-testid={`event-card-${event.id}`}
     >
       {/* Banner */}
-      <div className="relative h-44 overflow-hidden">
-        <img src={event.banner} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-violet-100 to-indigo-200 dark:from-violet-900/40 dark:to-indigo-900/40">
+        {event.banner ? (
+          <img src={event.banner} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Calendar className="w-12 h-12 text-violet-300 dark:text-violet-600" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute top-3 left-3 flex gap-1.5">
           <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1", typeColor(event.event_type))}>
@@ -138,6 +147,11 @@ const EventsPage = () => {
   const [total, setTotal] = useState(0);
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
+  const [hostOpen, setHostOpen] = useState(false);
+  const [hostForm, setHostForm] = useState({ name: '', email: '', event_title: '', description: '', preferred_date: '', event_format: '', expected_attendees: '' });
+  const [hostSubmitting, setHostSubmitting] = useState(false);
+  const [hostSubmitted, setHostSubmitted] = useState(false);
+  const { toast } = useToast();
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -213,7 +227,7 @@ const EventsPage = () => {
               <Button size="lg" className="bg-violet-600 hover:bg-violet-700 text-white px-8 gap-2" onClick={() => document.getElementById('events-grid')?.scrollIntoView({ behavior: 'smooth' })}>
                 <Ticket className="w-4 h-4" /> Explore All
               </Button>
-              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 gap-2">
+              <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 gap-2" onClick={() => setHostOpen(true)} data-testid="host-event-btn">
                 <Sparkles className="w-4 h-4" /> Host an Event
               </Button>
             </div>
@@ -303,6 +317,54 @@ const EventsPage = () => {
           </div>
         )}
       </section>
+
+      {/* Host an Event Dialog */}
+      <Dialog open={hostOpen} onOpenChange={(v) => { setHostOpen(v); if (!v) setHostSubmitted(false); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-violet-500" /> Host an Event</DialogTitle>
+            <DialogDescription>Submit your event proposal for Munal AI Academy & Events.</DialogDescription>
+          </DialogHeader>
+          {hostSubmitted ? (
+            <div className="text-center py-8">
+              <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-7 h-7 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Proposal Submitted!</h3>
+              <p className="text-sm text-gray-500 mb-4">Our team will review your event proposal and get back to you within 48 hours.</p>
+              <Button onClick={() => { setHostOpen(false); setHostSubmitted(false); }} className="bg-violet-600 hover:bg-violet-700">Done</Button>
+            </div>
+          ) : (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!hostForm.name || !hostForm.email || !hostForm.event_title) { toast({ variant: 'destructive', title: 'Please fill required fields.' }); return; }
+              setHostSubmitting(true);
+              try {
+                const res = await fetch(`${API_BASE}/api/events/host-proposal`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(hostForm) });
+                if (res.ok) { setHostSubmitted(true); toast({ title: 'Proposal submitted!' }); }
+                else { const d = await res.json(); toast({ variant: 'destructive', title: d.detail || 'Failed' }); }
+              } catch { toast({ variant: 'destructive', title: 'Network error' }); }
+              finally { setHostSubmitting(false); }
+            }} className="space-y-3 pt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs font-medium mb-1 block">Your Name *</label><Input value={hostForm.name} onChange={e => setHostForm(p => ({...p, name: e.target.value}))} required data-testid="host-name" /></div>
+                <div><label className="text-xs font-medium mb-1 block">Email *</label><Input type="email" value={hostForm.email} onChange={e => setHostForm(p => ({...p, email: e.target.value}))} required data-testid="host-email" /></div>
+              </div>
+              <div><label className="text-xs font-medium mb-1 block">Event Title *</label><Input value={hostForm.event_title} onChange={e => setHostForm(p => ({...p, event_title: e.target.value}))} required data-testid="host-event-title" /></div>
+              <div><label className="text-xs font-medium mb-1 block">Description</label><Textarea value={hostForm.description} onChange={e => setHostForm(p => ({...p, description: e.target.value}))} rows={3} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs font-medium mb-1 block">Preferred Date</label><Input type="date" value={hostForm.preferred_date} onChange={e => setHostForm(p => ({...p, preferred_date: e.target.value}))} /></div>
+                <div><label className="text-xs font-medium mb-1 block">Event Format</label><Input value={hostForm.event_format} onChange={e => setHostForm(p => ({...p, event_format: e.target.value}))} placeholder="Workshop, Webinar..." /></div>
+              </div>
+              <div><label className="text-xs font-medium mb-1 block">Expected Attendees</label><Input value={hostForm.expected_attendees} onChange={e => setHostForm(p => ({...p, expected_attendees: e.target.value}))} placeholder="50-100" /></div>
+              <Button type="submit" disabled={hostSubmitting} className="w-full bg-violet-600 hover:bg-violet-700" data-testid="host-submit">
+                {hostSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Submit Proposal
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

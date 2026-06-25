@@ -57,6 +57,16 @@ class DiscussionReply(BaseModel):
     content: str = Field(min_length=1)
 
 
+class HostProposal(BaseModel):
+    name: str
+    email: str
+    event_title: str
+    description: str = ""
+    preferred_date: str = ""
+    event_format: str = ""
+    expected_attendees: str = ""
+
+
 # ============== Public Routes ==============
 
 @router.get("")
@@ -99,6 +109,21 @@ async def list_events(
     events = await db.events.find(query, {"_id": 0}).sort("date", 1 if tab == "upcoming" else -1).skip(offset).limit(limit).to_list(limit)
 
     return {"events": events, "total": total, "count": len(events)}
+
+
+@router.post("/host-proposal")
+@limiter.limit("5/minute")
+async def submit_host_proposal(request: Request, proposal: HostProposal):
+    """Submit a proposal to host an event"""
+    doc = {
+        "id": str(uuid.uuid4()),
+        **proposal.dict(),
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.event_host_proposals.insert_one(doc)
+    logger.info(f"Host proposal submitted: {proposal.event_title} by {proposal.email}")
+    return {"success": True, "proposal_id": doc["id"]}
 
 
 @router.get("/{event_id}")
