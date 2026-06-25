@@ -13,7 +13,17 @@ from datetime import datetime, timezone
 
 # ============== Rate Limiter ==============
 
-limiter = Limiter(key_func=get_remote_address)
+def _get_real_client_ip(request: Request) -> str:
+    """Get real client IP behind reverse proxy/K8s ingress."""
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("x-real-ip", "")
+    if real_ip:
+        return real_ip
+    return request.client.host if request.client else "unknown"
+
+limiter = Limiter(key_func=_get_real_client_ip)
 
 
 # ============== Password Policy ==============

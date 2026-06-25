@@ -9,6 +9,7 @@ import uuid
 
 from config import db, logger
 from security import limiter
+from routes.event_notifications import send_host_proposal_confirmation, send_host_proposal_admin_notification
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -125,7 +126,6 @@ async def submit_host_proposal(request: Request, proposal: HostProposal):
     logger.info(f"Host proposal submitted: {proposal.event_title} by {proposal.email}")
 
     # Send email notifications (non-blocking)
-    from routes.event_notifications import send_host_proposal_confirmation, send_host_proposal_admin_notification
     import asyncio
     asyncio.create_task(send_host_proposal_confirmation(proposal.email, proposal.name, proposal.event_title))
     asyncio.create_task(send_host_proposal_admin_notification(
