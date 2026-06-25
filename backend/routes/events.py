@@ -123,6 +123,16 @@ async def submit_host_proposal(request: Request, proposal: HostProposal):
     }
     await db.event_host_proposals.insert_one(doc)
     logger.info(f"Host proposal submitted: {proposal.event_title} by {proposal.email}")
+
+    # Send email notifications (non-blocking)
+    from routes.event_notifications import send_host_proposal_confirmation, send_host_proposal_admin_notification
+    import asyncio
+    asyncio.create_task(send_host_proposal_confirmation(proposal.email, proposal.name, proposal.event_title))
+    asyncio.create_task(send_host_proposal_admin_notification(
+        proposal.name, proposal.email, proposal.event_title,
+        proposal.description, proposal.event_format, proposal.expected_attendees
+    ))
+
     return {"success": True, "proposal_id": doc["id"]}
 
 
@@ -135,8 +145,8 @@ async def get_event(event_id: str):
     return event
 
 
-@limiter.limit("10/minute")
 @router.post("/{event_id}/apply")
+@limiter.limit("10/minute")
 async def apply_to_event(request: Request, event_id: str, application: EventApplication):
     """Submit application for an event"""
     event = await db.events.find_one({"id": event_id})
@@ -179,8 +189,8 @@ async def get_event_gallery(event_id: str):
     return {"items": items, "count": len(items)}
 
 
-@limiter.limit("20/minute")
 @router.post("/{event_id}/gallery")
+@limiter.limit("20/minute")
 async def add_gallery_item(request: Request, event_id: str, item: GalleryItem):
     """Add a gallery item (photo/video URL)"""
     event = await db.events.find_one({"id": event_id})
@@ -213,8 +223,8 @@ async def get_event_reviews(event_id: str):
     return {"reviews": reviews, "count": len(reviews), "average_rating": avg_rating}
 
 
-@limiter.limit("10/minute")
 @router.post("/{event_id}/reviews")
+@limiter.limit("10/minute")
 async def add_event_review(request: Request, event_id: str, review: ReviewCreate):
     """Submit a review for an event"""
     event = await db.events.find_one({"id": event_id})
@@ -249,8 +259,8 @@ async def get_event_discussions(event_id: str):
     return {"posts": posts, "count": len(posts)}
 
 
-@limiter.limit("20/minute")
 @router.post("/{event_id}/discussions")
+@limiter.limit("20/minute")
 async def add_discussion_post(request: Request, event_id: str, post: DiscussionPost):
     """Add a discussion post"""
     event = await db.events.find_one({"id": event_id})
@@ -272,8 +282,8 @@ async def add_discussion_post(request: Request, event_id: str, post: DiscussionP
     return {"success": True, "post": {k: v for k, v in post_doc.items() if k != "_id"}}
 
 
-@limiter.limit("20/minute")
 @router.post("/{event_id}/discussions/{post_id}/reply")
+@limiter.limit("20/minute")
 async def reply_to_discussion(request: Request, event_id: str, post_id: str, reply: DiscussionReply):
     """Reply to a discussion post"""
     reply_doc = {

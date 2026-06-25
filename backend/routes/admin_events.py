@@ -365,3 +365,12 @@ async def verify_certificate(cert_id: str):
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")
     return {"valid": True, "certificate": cert}
+
+
+
+@router.post("/send-reminders")
+async def trigger_event_reminders(user=Depends(get_current_user)):
+    """Manually trigger event reminder emails for events happening in ~24h"""
+    from routes.event_notifications import check_and_send_event_reminders
+    count = await check_and_send_event_reminders()
+    return {"success": True, "reminders_sent": count}

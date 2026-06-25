@@ -200,11 +200,12 @@ const EventsPage = () => {
       <Header />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-violet-950 to-slate-950 text-white">
-        <div className="absolute inset-0 opacity-20">
+      <section className="relative overflow-hidden text-white min-h-[520px] flex items-center">
+        <img src="https://images.pexels.com/photos/9275222/pexels-photo-9275222.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940" alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/90 via-violet-950/85 to-slate-950/90" />
+        <div className="absolute inset-0 opacity-15">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500 rounded-full blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-indigo-500 rounded-full blur-[100px]" />
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-500 rounded-full blur-[80px]" />
         </div>
         <div className="relative max-w-7xl mx-auto px-6 py-24 md:py-32 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>

@@ -488,6 +488,10 @@ async def startup_event():
             from scheduled.auto_delete_files import run_auto_deletion
             scheduler.add_job(run_auto_deletion, 'cron', hour=3, minute=0, id='auto_delete_files')
 
+            # Event reminders - check every hour for events happening in 24h
+            from routes.event_notifications import check_and_send_event_reminders
+            scheduler.add_job(check_and_send_event_reminders, 'interval', hours=1, id='event_reminders')
+
             scheduler.start()
             logger.info("Escalation scheduler started (runs every 1 hour)")
             logger.info("Weekly digest scheduler started (runs every Monday 9 AM UTC)")
