@@ -41,6 +41,19 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Academy & Events Phase 3 — AI + Payments + Community — June 25, 2026
+- **Rebranded**: "Events" → "Munal AI Academy & Events" with 15 event formats (Live Events, Workshops, Webinars, Conferences, Bootcamps, Courses, Certifications, Networking, Hackathons, Startup Pitch Days, AI Competitions, Job Fair, Mentor Sessions, Office Hours, Community Meetups)
+- **AI Features** (4 endpoints via GPT-5.2):
+  - AI Event Summary Generator, Speaker Bio Generator, Agenda Generator, Marketing Copy Generator (Twitter/LinkedIn/Email/Instagram)
+- **Stripe Payments**: Checkout session creation for paid events, payment verification, per-event revenue endpoint
+- **Gallery**: Photo/video gallery per event (add/list)
+- **Reviews & Ratings**: 5-star rating system, duplicate email check, average rating calculation
+- **Community Discussion**: Post/reply threading per event
+- **Bug Fix**: event_type filter caused MongoDB $or empty array error → fixed
+- Backend: `/app/backend/routes/ai_events.py`, `/app/backend/routes/event_payments.py`, `/app/backend/routes/events.py` (gallery/reviews/discussions)
+- Frontend: Updated EventsPage hero + format chips, EventDetailPage with Reviews + Discussion sections
+- Testing: 100% backend (20/20 pytest) + 100% frontend — Iteration 151
+
 ### Events Platform Phase 2 — Admin Management — June 25, 2026
 - **Admin Event CRUD**: Create/Edit/Delete/Duplicate events from `/admin/events` dashboard
 - **Application Management**: View all applications per event, Approve/Reject/Waitlist with status badges
