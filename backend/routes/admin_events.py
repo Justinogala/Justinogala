@@ -39,6 +39,10 @@ class EventCreate(BaseModel):
     faqs: list = []
     tags: list = []
     deadline: str = ""
+    event_format: str = ""
+    stream_url: str = ""
+    stream_platform: str = ""
+    is_live: bool = False
 
 
 class EventUpdate(BaseModel):
@@ -60,6 +64,10 @@ class EventUpdate(BaseModel):
     faqs: Optional[list] = None
     tags: Optional[list] = None
     deadline: Optional[str] = None
+    event_format: Optional[str] = None
+    stream_url: Optional[str] = None
+    stream_platform: Optional[str] = None
+    is_live: Optional[bool] = None
 
 
 class ApplicationAction(BaseModel):

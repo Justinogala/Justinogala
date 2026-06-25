@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Users, ArrowLeft, Ticket, Share2, Globe, Building, Monitor, Check, Loader2, ChevronDown, ChevronUp, ExternalLink, Mail, Star, MessageSquare, Image, Send } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowLeft, Ticket, Share2, Globe, Building, Monitor, Check, Loader2, ChevronDown, ChevronUp, ExternalLink, Mail, Star, MessageSquare, Image, Send, Play, Radio, Award, ExternalLink as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -118,6 +118,7 @@ const EventDetailPage = () => {
   const [faqOpen, setFaqOpen] = useState({});
   const [reviews, setReviews] = useState([]);
   const [discussions, setDiscussions] = useState([]);
+  const [sponsors, setSponsors] = useState([]);
   const [newReview, setNewReview] = useState({ name: '', email: '', rating: 5, comment: '' });
   const [newPost, setNewPost] = useState({ author_name: '', author_email: '', content: '' });
   const { toast } = useToast();
@@ -137,6 +138,7 @@ const EventDetailPage = () => {
     if (!eventId) return;
     fetch(`${API_BASE}/api/events/${eventId}/reviews`).then(r => r.ok ? r.json() : null).then(d => d && setReviews(d.reviews || []));
     fetch(`${API_BASE}/api/events/${eventId}/discussions`).then(r => r.ok ? r.json() : null).then(d => d && setDiscussions(d.posts || []));
+    fetch(`${API_BASE}/api/events/${eventId}/sponsors`).then(r => r.ok ? r.json() : null).then(d => d && setSponsors(d.sponsors || []));
   }, [eventId]);
 
   const submitReview = async () => {
@@ -262,6 +264,93 @@ const EventDetailPage = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Livestream Embed */}
+            {event.stream_url && (
+              <div data-testid="event-livestream">
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Play className="w-5 h-5 text-violet-500" /> Livestream
+                  </h2>
+                  {event.is_live && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white animate-pulse">
+                      <Radio className="w-3 h-3" /> LIVE
+                    </span>
+                  )}
+                </div>
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black">
+                  {(() => {
+                    const url = event.stream_url;
+                    let embedUrl = url;
+                    // YouTube
+                    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/)|youtu\.be\/)([\w-]+)/);
+                    if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`;
+                    // Vimeo
+                    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+                    if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+                    return (
+                      <iframe
+                        src={embedUrl}
+                        className="absolute inset-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title="Event Livestream"
+                      />
+                    );
+                  })()}
+                </div>
+                {!event.is_live && event.stream_url && (
+                  <p className="text-xs text-gray-400 mt-2 text-center">Stream will go live when the event starts</p>
+                )}
+              </div>
+            )}
+
+            {/* Sponsor Showcase */}
+            {sponsors.length > 0 && (
+              <div data-testid="event-sponsors">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-500" /> Sponsors & Partners
+                </h2>
+                {/* Group by tier */}
+                {['platinum', 'gold', 'silver', 'bronze', 'community'].map(tier => {
+                  const tierSponsors = sponsors.filter(s => s.tier === tier);
+                  if (tierSponsors.length === 0) return null;
+                  const tierConfig = {
+                    platinum: { label: 'Platinum', bg: 'bg-gradient-to-r from-gray-100 to-slate-100 dark:from-slate-800 dark:to-gray-800', border: 'border-slate-300 dark:border-slate-600', size: 'h-16' },
+                    gold: { label: 'Gold', bg: 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20', border: 'border-amber-200 dark:border-amber-800', size: 'h-12' },
+                    silver: { label: 'Silver', bg: 'bg-gray-50 dark:bg-gray-900/50', border: 'border-gray-200 dark:border-gray-700', size: 'h-10' },
+                    bronze: { label: 'Bronze', bg: 'bg-orange-50/50 dark:bg-orange-900/10', border: 'border-orange-200 dark:border-orange-800', size: 'h-9' },
+                    community: { label: 'Community', bg: 'bg-violet-50/50 dark:bg-violet-900/10', border: 'border-violet-200 dark:border-violet-800', size: 'h-8' },
+                  }[tier];
+                  return (
+                    <div key={tier} className="mb-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">{tierConfig.label} Sponsors</p>
+                      <div className="flex flex-wrap gap-3">
+                        {tierSponsors.map(s => (
+                          <a
+                            key={s.id}
+                            href={s.website || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn("flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:shadow-md", tierConfig.bg, tierConfig.border)}
+                            data-testid={`sponsor-${s.id}`}
+                          >
+                            {s.logo_url && (
+                              <img src={s.logo_url} alt={s.name} className={cn("object-contain", tierConfig.size)} onError={(e) => { e.target.style.display = 'none'; }} />
+                            )}
+                            <div>
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">{s.name}</p>
+                              {s.description && <p className="text-[11px] text-gray-500 line-clamp-1">{s.description}</p>}
+                            </div>
+                            <ExternalLink className="w-3 h-3 text-gray-400 shrink-0 ml-1" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

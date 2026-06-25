@@ -145,6 +145,42 @@ async def get_event(event_id: str):
     return event
 
 
+@router.get("/{event_id}/sponsors")
+async def get_event_sponsors(event_id: str):
+    """Get sponsors for an event (public)"""
+    sponsors = []
+    async for s in db.event_sponsors.find(
+        {"event_id": event_id, "deleted": {"$ne": True}},
+        {"_id": 0}
+    ).sort("tier_order", 1):
+        sponsors.append(s)
+    return {"sponsors": sponsors}
+
+
+@router.get("/programs/featured")
+async def get_featured_programs():
+    """Get featured programs/courses from events marked as featured or recurring"""
+    now = datetime.now(timezone.utc).isoformat()
+    programs = await db.events.find(
+        {
+            "deleted": {"$ne": True},
+            "event_format": {"$in": ["Courses", "Bootcamps", "Certifications", "Workshops"]},
+            "date": {"$gte": now},
+        },
+        {"_id": 0}
+    ).sort("date", 1).limit(6).to_list(6)
+
+    # If not enough programs, get any upcoming events
+    if len(programs) < 4:
+        extra = await db.events.find(
+            {"deleted": {"$ne": True}, "date": {"$gte": now}, "id": {"$nin": [p["id"] for p in programs]}},
+            {"_id": 0}
+        ).sort("registered", -1).limit(6 - len(programs)).to_list(6 - len(programs))
+        programs.extend(extra)
+
+    return {"programs": programs}
+
+
 @router.post("/{event_id}/apply")
 @limiter.limit("10/minute")
 async def apply_to_event(request: Request, event_id: str, application: EventApplication):

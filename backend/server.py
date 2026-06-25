@@ -397,6 +397,9 @@ api_router.include_router(ai_events_router)
 api_router.include_router(event_payments_router)
 api_router.include_router(events_extended_router)
 
+from routes.event_sponsors import router as event_sponsors_router
+api_router.include_router(event_sponsors_router)
+
 
 # ============== Include Main Router ==============
 

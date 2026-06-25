@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import { motion } from 'framer-motion';
 import {
   Calendar, Plus, Edit2, Trash2, Copy, Users, Download, BarChart3, QrCode, Award, Search,
-  ChevronDown, Loader2, Check, X, Clock, Eye, Mail, FileDown, RefreshCw, AlertCircle
+  ChevronDown, Loader2, Check, X, Clock, Eye, Mail, FileDown, RefreshCw, AlertCircle, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,8 @@ const EventFormDialog = ({ open, onOpenChange, event, onSave }) => {
   const [form, setForm] = useState({
     title: '', description: '', category: 'AI', event_type: 'Virtual', date: '', end_date: '',
     time: '', duration: '', location: 'Online (Jizira, Munal AI)', status: 'registration_open',
-    price: 'Free', seats: 100, banner: '', tags: '', deadline: ''
+    price: 'Free', seats: 100, banner: '', tags: '', deadline: '', event_format: '',
+    stream_url: '', stream_platform: '', is_live: false
   });
   const [saving, setSaving] = useState(false);
 
@@ -42,9 +43,13 @@ const EventFormDialog = ({ open, onOpenChange, event, onSave }) => {
         date: event.date?.slice(0, 16) || '',
         end_date: event.end_date?.slice(0, 16) || '',
         deadline: event.deadline?.slice(0, 16) || '',
+        event_format: event.event_format || '',
+        stream_url: event.stream_url || '',
+        stream_platform: event.stream_platform || '',
+        is_live: event.is_live || false,
       });
     } else {
-      setForm({ title: '', description: '', category: 'AI', event_type: 'Virtual', date: '', end_date: '', time: '', duration: '', location: 'Online (Jizira, Munal AI)', status: 'registration_open', price: 'Free', seats: 100, banner: '', tags: '', deadline: '' });
+      setForm({ title: '', description: '', category: 'AI', event_type: 'Virtual', date: '', end_date: '', time: '', duration: '', location: 'Online (Jizira, Munal AI)', status: 'registration_open', price: 'Free', seats: 100, banner: '', tags: '', deadline: '', event_format: '', stream_url: '', stream_platform: '', is_live: false });
     }
   }, [event, open]);
 
@@ -95,11 +100,36 @@ const EventFormDialog = ({ open, onOpenChange, event, onSave }) => {
           </div>
           <div><label className="text-xs font-medium mb-1 block">Banner Image URL</label><Input value={form.banner} onChange={e => set('banner', e.target.value)} placeholder="https://..." /></div>
           <div><label className="text-xs font-medium mb-1 block">Tags (comma-separated)</label><Input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="AI, Workshop" /></div>
-          <div><label className="text-xs font-medium mb-1 block">Status</label>
-            <Select value={form.status} onValueChange={v => set('status', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{['draft', 'registration_open', 'sold_out', 'cancelled', 'completed'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs font-medium mb-1 block">Event Format</label>
+              <Select value={form.event_format || 'none'} onValueChange={v => set('event_format', v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{['none', 'Live Events', 'Workshops', 'Webinars', 'Conferences', 'Bootcamps', 'Courses', 'Certifications', 'Networking', 'Hackathons'].map(f => <SelectItem key={f} value={f}>{f === 'none' ? 'None' : f}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs font-medium mb-1 block">Status</label>
+              <Select value={form.status} onValueChange={v => set('status', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{['draft', 'registration_open', 'sold_out', 'cancelled', 'completed'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+          {/* Livestream Section */}
+          <div className="border-t pt-3 mt-2">
+            <label className="text-xs font-semibold text-violet-600 uppercase tracking-wider mb-2 block">Livestream</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs font-medium mb-1 block">Stream URL</label><Input value={form.stream_url} onChange={e => set('stream_url', e.target.value)} placeholder="https://youtube.com/watch?v=..." /></div>
+              <div><label className="text-xs font-medium mb-1 block">Platform</label>
+                <Select value={form.stream_platform || 'none'} onValueChange={v => set('stream_platform', v === 'none' ? '' : v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{['none', 'YouTube', 'Vimeo', 'Zoom', 'Custom'].map(p => <SelectItem key={p} value={p}>{p === 'none' ? 'Select' : p}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <input type="checkbox" id="is_live" checked={form.is_live} onChange={e => set('is_live', e.target.checked)} className="rounded border-gray-300" />
+              <label htmlFor="is_live" className="text-xs font-medium text-gray-700">Currently Live</label>
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -126,6 +156,10 @@ const AdminEventsPage = () => {
   const [appsLoading, setAppsLoading] = useState(false);
   const [analytics, setAnalytics] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sponsors, setSponsors] = useState([]);
+  const [sponsorsLoading, setSponsorsLoading] = useState(false);
+  const [sponsorForm, setSponsorForm] = useState({ name: '', logo_url: '', website: '', tier: 'silver', description: '' });
+  const [editingSponsor, setEditingSponsor] = useState(null);
 
   const getHeaders = () => ({ 'Authorization': `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' });
 
@@ -211,6 +245,54 @@ const AdminEventsPage = () => {
     } catch { toast({ variant: 'destructive', title: 'Failed' }); }
   };
 
+  const fetchSponsors = async (eventId) => {
+    setSponsorsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/events/${eventId}/sponsors`, { headers: getHeaders() });
+      if (res.ok) { const d = await res.json(); setSponsors(d.sponsors || []); }
+    } catch { console.error('Failed to fetch sponsors'); }
+    finally { setSponsorsLoading(false); }
+  };
+
+  const handleAddSponsor = async () => {
+    if (!sponsorForm.name || !selectedEvent) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/events/${selectedEvent.id}/sponsors`, {
+        method: 'POST', headers: getHeaders(), body: JSON.stringify(sponsorForm)
+      });
+      if (res.ok) {
+        toast({ title: 'Sponsor added' });
+        setSponsorForm({ name: '', logo_url: '', website: '', tier: 'silver', description: '' });
+        fetchSponsors(selectedEvent.id);
+      } else { const d = await res.json(); toast({ variant: 'destructive', title: d.detail || 'Failed' }); }
+    } catch { toast({ variant: 'destructive', title: 'Failed' }); }
+  };
+
+  const handleUpdateSponsor = async () => {
+    if (!editingSponsor || !selectedEvent) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/events/${selectedEvent.id}/sponsors/${editingSponsor.id}`, {
+        method: 'PUT', headers: getHeaders(), body: JSON.stringify(sponsorForm)
+      });
+      if (res.ok) {
+        toast({ title: 'Sponsor updated' });
+        setEditingSponsor(null);
+        setSponsorForm({ name: '', logo_url: '', website: '', tier: 'silver', description: '' });
+        fetchSponsors(selectedEvent.id);
+      }
+    } catch { toast({ variant: 'destructive', title: 'Failed' }); }
+  };
+
+  const handleDeleteSponsor = async (sponsorId) => {
+    if (!confirm('Remove this sponsor?') || !selectedEvent) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/events/${selectedEvent.id}/sponsors/${sponsorId}`, {
+        method: 'DELETE', headers: getHeaders()
+      });
+      if (res.ok) { toast({ title: 'Sponsor removed' }); fetchSponsors(selectedEvent.id); }
+    } catch { toast({ variant: 'destructive', title: 'Failed' }); }
+  };
+
   const filteredEvents = searchQuery ? events.filter(e => e.title?.toLowerCase().includes(searchQuery.toLowerCase())) : events;
 
   return (
@@ -251,6 +333,7 @@ const AdminEventsPage = () => {
         <TabsList>
           <TabsTrigger value="events" className="gap-1.5"><Calendar className="w-3.5 h-3.5" /> Events</TabsTrigger>
           <TabsTrigger value="applications" className="gap-1.5"><Users className="w-3.5 h-3.5" /> Applications</TabsTrigger>
+          <TabsTrigger value="sponsors" className="gap-1.5"><Award className="w-3.5 h-3.5" /> Sponsors</TabsTrigger>
         </TabsList>
 
         {/* Events Tab */}
@@ -296,6 +379,7 @@ const AdminEventsPage = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedEvent(event); fetchApplications(event.id); setActiveTab('applications'); }} title="View Applications"><Users className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setSelectedEvent(event); fetchSponsors(event.id); setActiveTab('sponsors'); }} title="Manage Sponsors"><Award className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditEvent(event); setFormOpen(true); }} title="Edit"><Edit2 className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDuplicate(event.id)} title="Duplicate"><Copy className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleExportCSV(event.id)} title="Export CSV"><Download className="w-3.5 h-3.5" /></Button>
@@ -373,6 +457,109 @@ const AdminEventsPage = () => {
               <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
               <p className="text-gray-500 text-lg font-medium">Select an event to view applications</p>
               <p className="text-gray-400 text-sm mt-1">Click the <Users className="w-3.5 h-3.5 inline" /> icon on any event in the Events tab.</p>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Sponsors Tab */}
+        <TabsContent value="sponsors" className="mt-4">
+          {selectedEvent ? (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{selectedEvent.title}</h3>
+                  <p className="text-xs text-gray-500">{sponsors.length} sponsors</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => { setSelectedEvent(null); setSponsors([]); }} className="gap-1.5"><X className="w-3.5 h-3.5" /> Close</Button>
+              </div>
+
+              {/* Add/Edit Sponsor Form */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 mb-4">
+                <h4 className="text-sm font-semibold mb-3">{editingSponsor ? 'Edit Sponsor' : 'Add Sponsor'}</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <Input placeholder="Sponsor Name *" value={sponsorForm.name} onChange={e => setSponsorForm(p => ({...p, name: e.target.value}))} className="text-sm" data-testid="sponsor-name" />
+                  <Input placeholder="Logo URL" value={sponsorForm.logo_url} onChange={e => setSponsorForm(p => ({...p, logo_url: e.target.value}))} className="text-sm" />
+                  <Input placeholder="Website URL" value={sponsorForm.website} onChange={e => setSponsorForm(p => ({...p, website: e.target.value}))} className="text-sm" />
+                  <Select value={sponsorForm.tier} onValueChange={v => setSponsorForm(p => ({...p, tier: v}))}>
+                    <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>{['platinum', 'gold', 'silver', 'bronze', 'community'].map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-3 mt-3">
+                  <Input placeholder="Description" value={sponsorForm.description} onChange={e => setSponsorForm(p => ({...p, description: e.target.value}))} className="text-sm flex-1" />
+                  <Button size="sm" onClick={editingSponsor ? handleUpdateSponsor : handleAddSponsor} className="bg-violet-600 hover:bg-violet-700" data-testid="sponsor-save">
+                    {editingSponsor ? 'Update' : 'Add'}
+                  </Button>
+                  {editingSponsor && (
+                    <Button size="sm" variant="outline" onClick={() => { setEditingSponsor(null); setSponsorForm({ name: '', logo_url: '', website: '', tier: 'silver', description: '' }); }}>Cancel</Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Sponsors List */}
+              {sponsorsLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-violet-500 animate-spin" /></div>
+              ) : (
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-900/50 border-b">
+                      <tr>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Sponsor</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Tier</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Website</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {sponsors.map(s => (
+                        <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              {s.logo_url && <img src={s.logo_url} alt="" className="w-8 h-8 object-contain rounded" onError={(e) => { e.target.style.display = 'none'; }} />}
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-white">{s.name}</p>
+                                {s.description && <p className="text-xs text-gray-400 truncate max-w-[200px]">{s.description}</p>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge className={cn("text-[10px] capitalize", {
+                              'bg-gray-200 text-gray-800': s.tier === 'platinum',
+                              'bg-amber-100 text-amber-700': s.tier === 'gold',
+                              'bg-gray-100 text-gray-600': s.tier === 'silver',
+                              'bg-orange-100 text-orange-700': s.tier === 'bronze',
+                              'bg-violet-100 text-violet-700': s.tier === 'community',
+                            })}>{s.tier}</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            {s.website && <a href={s.website} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-500 hover:underline flex items-center gap-1"><Globe className="w-3 h-3" /> {s.website.replace(/^https?:\/\//, '').slice(0, 30)}</a>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingSponsor(s); setSponsorForm({ name: s.name, logo_url: s.logo_url || '', website: s.website || '', tier: s.tier, description: s.description || '' }); }} title="Edit"><Edit2 className="w-3.5 h-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDeleteSponsor(s.id)} title="Delete"><Trash2 className="w-3.5 h-3.5" /></Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {sponsors.length === 0 && <div className="text-center py-10 text-gray-400">No sponsors yet. Add one above.</div>}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <Award className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg font-medium">Select an event to manage sponsors</p>
+              <p className="text-gray-400 text-sm mt-1">Click the <Award className="w-3.5 h-3.5 inline" /> icon on any event in the Events tab, or select an event below:</p>
+              <div className="flex flex-wrap gap-2 justify-center mt-4">
+                {events.slice(0, 6).map(ev => (
+                  <Button key={ev.id} variant="outline" size="sm" className="text-xs" onClick={() => { setSelectedEvent(ev); fetchSponsors(ev.id); }}>
+                    {ev.title?.slice(0, 30)}...
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
         </TabsContent>

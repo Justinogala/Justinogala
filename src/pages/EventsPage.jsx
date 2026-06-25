@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, MapPin, Users, Search, Ticket, ArrowRight, Sparkles, Globe, Building, Monitor, ChevronDown, Loader2, Filter } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Search, Ticket, ArrowRight, Sparkles, Globe, Building, Monitor, ChevronDown, Loader2, Filter, GraduationCap, Trophy, BookOpen, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -147,6 +147,8 @@ const EventsPage = () => {
   const [total, setTotal] = useState(0);
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
+  const [featuredPrograms, setFeaturedPrograms] = useState([]);
+  const [pastHighlights, setPastHighlights] = useState([]);
   const [hostOpen, setHostOpen] = useState(false);
   const [hostForm, setHostForm] = useState({ name: '', email: '', event_title: '', description: '', preferred_date: '', event_format: '', expected_attendees: '' });
   const [hostSubmitting, setHostSubmitting] = useState(false);
@@ -171,6 +173,19 @@ const EventsPage = () => {
   }, [tab, category, eventType, search]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+  // Fetch featured programs & past highlights
+  useEffect(() => {
+    fetch(`${API_BASE}/api/events?tab=past&limit=4`).then(r => r.ok ? r.json() : null).then(d => d && setPastHighlights(d.events || []));
+    fetch(`${API_BASE}/api/events?tab=upcoming&limit=50`).then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.events) {
+        const programs = d.events.filter(e =>
+          ['Workshops', 'Bootcamps', 'Courses', 'Certifications'].includes(e.event_format)
+        ).slice(0, 4);
+        setFeaturedPrograms(programs.length > 0 ? programs : d.events.slice(0, 4));
+      }
+    });
+  }, []);
 
   // Fetch AI recommendations for logged-in users
   useEffect(() => {
@@ -233,6 +248,113 @@ const EventsPage = () => {
               </Button>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Featured Programs & Courses */}
+      {featuredPrograms.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 py-10" data-testid="featured-programs">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-5 h-5 text-violet-500" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Featured Programs & Courses</h2>
+            </div>
+            <Button variant="ghost" size="sm" className="text-violet-600 gap-1" onClick={() => { setEventType('Courses'); setTab('upcoming'); document.getElementById('events-grid')?.scrollIntoView({ behavior: 'smooth' }); }}>
+              View All <ArrowRight className="w-3 h-3" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {featuredPrograms.map((prog, i) => (
+              <Link
+                key={prog.id}
+                to={`/events/${prog.id}`}
+                className="group bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-lg hover:shadow-violet-500/5 transition-all"
+                data-testid={`featured-program-${i}`}
+              >
+                <div className="relative h-32 bg-gradient-to-br from-violet-100 to-indigo-200 dark:from-violet-900/40 dark:to-indigo-900/40 overflow-hidden">
+                  {prog.banner ? <img src={prog.banner} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" onError={(e) => { e.target.style.display = 'none'; }} /> : <div className="w-full h-full flex items-center justify-center"><BookOpen className="w-8 h-8 text-violet-300" /></div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500 text-white">{prog.event_format || prog.event_type}</span>
+                  {prog.price === 'Free' && <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-400 text-black">Free</span>}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-2 group-hover:text-violet-600 transition-colors mb-1.5">{prog.title}</h3>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(prog.date)}</span>
+                    <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {prog.registered || 0}/{prog.seats}</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Past Event Highlights */}
+      {pastHighlights.length > 0 && (
+        <section className="bg-gray-50 dark:bg-slate-900/50 py-10" data-testid="past-highlights">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-500" />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Past Event Highlights</h2>
+              </div>
+              <Button variant="ghost" size="sm" className="text-violet-600 gap-1" onClick={() => { setTab('past'); document.getElementById('events-grid')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                View All Past <ArrowRight className="w-3 h-3" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {pastHighlights.map((ev, i) => (
+                <Link key={ev.id} to={`/events/${ev.id}`} className="group bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all" data-testid={`past-highlight-${i}`}>
+                  <div className="flex items-start gap-3">
+                    {ev.banner ? (
+                      <img src={ev.banner} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" loading="lazy" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
+                        <Calendar className="w-6 h-6 text-violet-400" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-2 group-hover:text-violet-600 transition-colors">{ev.title}</h3>
+                      <p className="text-[11px] text-gray-400 mt-1">{formatDate(ev.date)}</p>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <Badge variant="secondary" className="text-[9px] h-4">{ev.category}</Badge>
+                        <span className="text-[10px] text-gray-400">{ev.registered || 0} attended</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Category Stats */}
+      <section className="max-w-7xl mx-auto px-6 py-8" data-testid="category-stats">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {[
+            { label: 'AI', icon: Sparkles, color: 'from-violet-500 to-purple-500' },
+            { label: 'Cloud', icon: Globe, color: 'from-blue-500 to-cyan-500' },
+            { label: 'Cybersecurity', icon: Monitor, color: 'from-red-500 to-orange-500' },
+            { label: 'DevOps', icon: Building, color: 'from-green-500 to-emerald-500' },
+            { label: 'Data Science', icon: Star, color: 'from-amber-500 to-yellow-500' },
+            { label: 'Software Engineering', icon: Monitor, color: 'from-indigo-500 to-blue-500' },
+            { label: 'Product Management', icon: Users, color: 'from-pink-500 to-rose-500' },
+            { label: 'Workshops', icon: GraduationCap, color: 'from-teal-500 to-cyan-500' },
+          ].map(({ label, icon: Icon, color }) => (
+            <button
+              key={label}
+              onClick={() => { setCategory(label === 'Workshops' ? 'All' : label); if (label === 'Workshops') setEventType('Workshops'); else setEventType('All'); document.getElementById('events-grid')?.scrollIntoView({ behavior: 'smooth' }); }}
+              className="group flex flex-col items-center gap-2 p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all"
+              data-testid={`category-${label.toLowerCase().replace(/\s/g, '-')}`}
+            >
+              <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center", color)}>
+                <Icon className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 text-center leading-tight">{label}</span>
+            </button>
+          ))}
         </div>
       </section>
 
