@@ -171,16 +171,16 @@ const SignupPage = () => {
     <div className="bg-white dark:bg-slate-950 lg:min-h-screen lg:flex lg:flex-row lg:items-stretch">
       <Helmet>
         <title>Sign Up - Munal AI</title>
-        <meta name="description" content="Create your Munal AI account to start automating your meeting notes." />
+        <meta name="description" content="Create your Munal AI account — your all-in-one AI workspace for documents, meetings, and team collaboration." />
       </Helmet>
       
       {/* Left Sidebar - Purple Gradient */}
       <AuthSidebar 
         title="Create your Munal AI account"
-        subtitle="Join forward-thinking teams using AI to reclaim hours of their week from manual meeting notes."
+        subtitle="Join teams using AI to streamline documents, automate workflows, and collaborate in real time."
         features={[
-          { title: "Team Knowledge Base", description: "Turn disparate meetings into a searchable, intelligent team library." },
-          { title: "Advanced Privacy", description: "SOC2 compliant security ensures your meeting data stays private." }
+          { title: "Smart AI Workspace", description: "Documents, spreadsheets, recordings, and e-signatures — powered by AI." },
+          { title: "Enterprise-Ready Security", description: "Role-based access, audit logs, 2FA, and workspace isolation to keep your data safe." }
         ]}
       />
 

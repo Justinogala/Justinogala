@@ -145,11 +145,11 @@ const LoginPage = () => {
       {/* Left Sidebar - Purple Gradient */}
       <AuthSidebar 
         title="Sign in to Munal AI"
-        subtitle="Access your intelligent meeting hub. Capture insights, track action items, and sync your team's knowledge."
+        subtitle="Access your all-in-one AI workspace. Manage documents, collaborate with your team, and build smarter with AI."
         features={[
-          { title: "Intelligent Transcription", description: "High-accuracy AI transcription for all your video and audio meetings." },
-          { title: "Smart Insights", description: "AI-generated summaries that capture key decisions and context." },
-          { title: "Automated Action Items", description: "Automatically extract and assign tasks from your conversations." }
+          { title: "AI-Powered Workspace", description: "Smart documents, spreadsheets, meetings, and recordings — all in one place." },
+          { title: "AI Chat & Builder", description: "Generate product architectures, get instant answers, and automate workflows with AI." },
+          { title: "Team Collaboration", description: "Real-time dashboards, shared workspaces, and seamless team communication." }
         ]}
       />
 
