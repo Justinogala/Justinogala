@@ -222,6 +222,13 @@ async def verify_user_2fa_login(req: Verify2FALoginRequest):
         raise HTTPException(status_code=400, detail="Invalid verification code")
 
     logger.info(f"2FA verified for user {req.user_id} via {method_used}")
+
+    # Store 2FA session timestamp (for 24h grace period on token refresh)
+    await db.users.update_one(
+        {"id": req.user_id},
+        {"$set": {"last_2fa_verified": datetime.now(timezone.utc).isoformat()}}
+    )
+
     return {"success": True, "method_used": method_used}
 
 

@@ -1,18 +1,10 @@
 # Test Credentials
 
-## Admin
-- Email: admin@munal.ai
-- Password: Admin@123456
+## Super Admin Accounts
+- **Email:** admin@munal.com | **Password:** Munal@AI#2026!X7qP9 | **Role:** Super_Admin | **2FA:** Enabled (TOTP + Email)
+- **Email:** admin@munal.ai | **Password:** Munal@AI#2026!X7qP9 | **Role:** Super_Admin | **2FA:** Enabled (TOTP + Email)
 
-## Standard User
-- Email: previewtest@munal.ai
-- Password: Test@12345
-
-## Recording Test User
-- Email: recordtest@munal.ai
-- Password: Record@12345
-- User ID: 036cbc05-34cd-40d5-8ab1-d0629ff07f36
-
-## Standard User (production)
-- Email: justinogala@outlook.com
-- Password: 4edfdukD@1
+## Notes
+- Both accounts share the same MongoDB Atlas database between preview and production
+- TOTP codes can be generated programmatically from DB `totp_secret` field using `pyotp.TOTP(secret).now()`
+- If Google Authenticator codes don't work, use the force-reset endpoint `POST /api/admin/2fa/force-reset` to clear 2FA and re-enroll

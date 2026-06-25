@@ -361,10 +361,17 @@ async def login_user(request: Request, credentials: UserLogin, skip_2fa: bool = 
         ip_address=get_client_ip(request),
     )
     
-    # Return user without password
+    # Return user without password and sensitive 2FA fields
     user.pop("password", None)
     user.pop("verification_code", None)
     user.pop("verification_expires", None)
+    user.pop("totp_secret", None)
+    user.pop("totp_secret_pending", None)
+    user.pop("recovery_codes", None)
+    user.pop("email_otp_login", None)
+    user.pop("email_otp_login_expires", None)
+    user.pop("email_otp_pending", None)
+    user.pop("email_otp_expires", None)
     if "created_at" in user and hasattr(user["created_at"], 'isoformat'):
         user["created_at"] = user["created_at"].isoformat()
     if "updated_at" in user and hasattr(user["updated_at"], 'isoformat'):

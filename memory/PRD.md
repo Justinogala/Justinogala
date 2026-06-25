@@ -41,6 +41,16 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Endpoints**: `GET /api/admin/trash/summary`, `GET /api/admin/trash/{type}`, `POST /api/admin/trash/{type}/{id}/restore`, `DELETE /api/admin/trash/{type}/{id}`, `DELETE /api/admin/trash/{type}/empty/all`
 - Testing: 100% backend + 100% frontend — Iteration 141
 
+### Super Admin 2FA Login Fix — June 25, 2026
+- **Bug 1 (P0)**: `admin@munal.com` had empty `role: ""` in DB — fixed to `Super_Admin`. This caused frontend `adminLogin` to reject with "Access denied" after 2FA verification.
+- **Bug 2 (P0)**: `admin@munal.ai` had wrong bcrypt password hash — re-hashed with correct password `Munal@AI#2026!X7qP9`.
+- **Bug 3 (Security)**: Login response with `skip_2fa=true` leaked sensitive fields (`totp_secret`, `recovery_codes`, `email_otp_login`) — now stripped from response.
+- **Bug 4**: `user_two_factor.py` verify endpoint did not set `last_2fa_verified` — fixed, now sets timestamp for 24h grace period.
+- **New Endpoint**: `POST /api/admin/2fa/force-reset` — Super Admin can force-reset another user's 2FA (for lost authenticator device).
+- Backend: `/app/backend/routes/auth.py` (sensitive field stripping), `/app/backend/routes/two_factor.py` (force-reset endpoint), `/app/backend/routes/user_two_factor.py` (last_2fa_verified fix)
+- Testing: 7/7 backend tests passed — Iteration 156
+
+
 ### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
 - **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
 - **Hero Image**: Replaced plain gradient with a conference photo background (`pexels-photo-9275222.jpeg`) with overlay gradient

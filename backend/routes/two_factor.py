@@ -387,3 +387,51 @@ async def disable_2fa(req: Disable2FARequest):
         actor_id=req.user_id, details={"action": "disabled_by_user"},
     )
     return {"success": True}
+
+
+
+class ForceReset2FARequest(BaseModel):
+    user_id: str
+    admin_user_id: str  # The super admin performing the reset
+
+
+@router.post("/force-reset")
+async def force_reset_2fa(req: ForceReset2FARequest):
+    """Force-reset 2FA for a user (Super Admin only, no code required).
+    This is for cases where the user lost their authenticator device."""
+    # Verify the requester is a Super Admin
+    admin = await db.users.find_one(
+        {"id": req.admin_user_id},
+        {"_id": 0, "id": 1, "role": 1}
+    )
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin user not found")
+
+    admin_role = (admin.get("role") or "").lower().replace(" ", "_")
+    if admin_role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only Super Admins can force-reset 2FA")
+
+    target = await db.users.find_one({"id": req.user_id}, {"_id": 0, "id": 1, "email": 1})
+    if not target:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    await db.users.update_one(
+        {"id": req.user_id},
+        {
+            "$set": {"two_factor_enabled": False},
+            "$unset": {
+                "totp_secret": "", "totp_secret_pending": "",
+                "two_factor_method": "", "recovery_codes": "",
+                "email_otp_login": "", "email_otp_login_expires": "",
+                "two_factor_setup_at": "", "last_2fa_verified": "",
+            }
+        }
+    )
+
+    logger.info(f"2FA force-reset for user {req.user_id} by admin {req.admin_user_id}")
+    await log_audit_event(
+        action="2fa_force_reset", category="2fa", severity="warning",
+        actor_id=req.admin_user_id,
+        details={"target_user_id": req.user_id, "target_email": target.get("email")},
+    )
+    return {"success": True, "message": f"2FA has been reset for {target.get('email')}"}
