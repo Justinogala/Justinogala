@@ -277,6 +277,7 @@ from routes.admin_trash import router as admin_trash_router
 from routes.ai_builder import router as ai_builder_router
 from routes.admin_newsletter import router as admin_newsletter_router
 from routes.updates import router as updates_router
+from routes.events import router as events_router
 from scheduled.data_health_digest import run_data_health_digest
 
 
@@ -385,10 +386,14 @@ api_router.include_router(advanced_analytics_router)
 from routes.storage_quotas import router as storage_quotas_router
 api_router.include_router(storage_quotas_router)
 
+# Events
+api_router.include_router(events_router)
+
 
 # ============== Include Main Router ==============
 
 app.include_router(api_router)
+
 
 
 # ============== CORS Middleware ==============
@@ -444,6 +449,17 @@ async def startup_event():
             logger.info("Recordings compound index created")
         except Exception as idx_err:
             logger.info(f"Recordings index status: {idx_err}")
+        
+        # Seed events data
+        try:
+            from seeds.events_seed import seed_events
+            seeded = await seed_events(db)
+            if seeded:
+                logger.info("Sample events seeded successfully")
+            else:
+                logger.info("Events already exist, skipping seed")
+        except Exception as seed_err:
+            logger.info(f"Events seed status: {seed_err}")
         
         # Start escalation scheduler (checks every hour for unreviewed reports)
         try:

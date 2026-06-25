@@ -88,6 +88,10 @@ const FinanceSolutionPage = lazy(() => import('@/pages/solutions/FinanceSolution
 // Payment Pages
 const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
 
+// Events Pages
+const EventsPage = lazy(() => import('@/pages/EventsPage'));
+const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
+
 // User Pages
 const UserDashboard = lazy(() => import('@/pages/user/UserDashboard')); 
 const NotFound = lazy(() => import('@/pages/NotFound'));
@@ -404,6 +408,10 @@ function App() {
                               <Route path="/features/ir-sor" element={<FeatureIRSORPage />} />
                               <Route path="/features/notifications" element={<FeatureNotificationsPage />} />
                               <Route path="/features/ai-chat" element={<FeatureAIChatPage />} />
+                              
+                              {/* Events */}
+                              <Route path="/events" element={<EventsPage />} />
+                              <Route path="/events/:eventId" element={<EventDetailPage />} />
                               
                               {/* Industry Solution Pages (GEO) */}
                               <Route path="/solutions/healthcare" element={<HealthcareSolutionPage />} />

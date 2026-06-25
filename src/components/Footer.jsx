@@ -68,6 +68,7 @@ const Footer = () => {
             <h4 className="text-[13px] font-semibold text-[#333] dark:text-white mb-4" data-testid="footer-company-heading">Company</h4>
             <div className="flex flex-col">
               <FooterLink to="/company/about">About Us</FooterLink>
+              <FooterLink to="/events">Events</FooterLink>
               <FooterLink to="/company/careers">Careers</FooterLink>
               <FooterLink to="/company/press">Press</FooterLink>
               <FooterLink to="/contact">Contact</FooterLink>
