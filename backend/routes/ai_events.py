@@ -1,7 +1,7 @@
 """
 AI-powered event features - summary, bio, agenda, marketing copy generation.
 """
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Optional
 import os
@@ -9,6 +9,7 @@ import os
 from config import logger
 from routes.auth_helpers import get_current_user
 from llm_client import chat_completion
+from security import limiter
 
 router = APIRouter(prefix="/admin/events/ai", tags=["AI Events"])
 
@@ -63,7 +64,8 @@ def _generate(system: str, user_prompt: str) -> str:
 
 
 @router.post("/summary")
-async def generate_event_summary(req: AISummaryRequest, user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def generate_event_summary(request: Request, req: AISummaryRequest, user=Depends(get_current_user)):
     """Generate AI event summary/recap"""
     speakers_text = ", ".join([f"{s.get('name','')} ({s.get('title','')})" for s in req.speakers]) if req.speakers else "N/A"
     agenda_text = "\n".join([f"- {item}" for item in req.agenda]) if req.agenda else "N/A"
@@ -85,7 +87,8 @@ Write a 3-4 paragraph engaging summary that covers: what the event is about, key
 
 
 @router.post("/speaker-bio")
-async def generate_speaker_bio(req: AIBioRequest, user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def generate_speaker_bio(request: Request, req: AIBioRequest, user=Depends(get_current_user)):
     """Generate AI speaker bio"""
     result = _generate(
         "You are a professional bio writer. Write polished, third-person speaker bios for tech events.",
@@ -102,7 +105,8 @@ Write a 2-3 paragraph professional bio in third person. Include their expertise,
 
 
 @router.post("/agenda")
-async def generate_event_agenda(req: AIAgendaRequest, user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def generate_event_agenda(request: Request, req: AIAgendaRequest, user=Depends(get_current_user)):
     """Generate AI event agenda"""
     result = _generate(
         "You are an expert event planner for Munal AI Academy & Events. Create detailed, well-structured agendas.",
@@ -130,7 +134,8 @@ Include realistic time slots and session descriptions. Format as a clear schedul
 
 
 @router.post("/marketing")
-async def generate_marketing_copy(req: AIMarketingRequest, user=Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def generate_marketing_copy(request: Request, req: AIMarketingRequest, user=Depends(get_current_user)):
     """Generate AI marketing copy (social media, email)"""
     platform_instructions = {
         "twitter": "Write a compelling tweet (under 280 characters) with relevant hashtags and emojis.",

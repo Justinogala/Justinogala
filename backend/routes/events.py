@@ -1,13 +1,14 @@
 """
-Events routes - CRUD for events, applications, and public listing.
+Events routes - CRUD for events, applications, gallery, reviews, discussions.
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel, Field
 import uuid
 
 from config import db, logger
+from security import limiter
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -28,6 +29,32 @@ class EventApplication(BaseModel):
     industry: str = ""
     why_attend: str = ""
     accept_terms: bool = True
+
+
+class GalleryItem(BaseModel):
+    type: str = "photo"
+    url: str
+    caption: str = ""
+    uploaded_by: str = ""
+
+
+class ReviewCreate(BaseModel):
+    name: str = "Anonymous"
+    email: str
+    rating: int = Field(ge=1, le=5, default=5)
+    comment: str = ""
+
+
+class DiscussionPost(BaseModel):
+    author_name: str = "Anonymous"
+    author_email: str = ""
+    content: str = Field(min_length=1)
+
+
+class DiscussionReply(BaseModel):
+    author_name: str = "Anonymous"
+    author_email: str = ""
+    content: str = Field(min_length=1)
 
 
 # ============== Public Routes ==============
@@ -84,7 +111,8 @@ async def get_event(event_id: str):
 
 
 @router.post("/{event_id}/apply")
-async def apply_to_event(event_id: str, application: EventApplication):
+@limiter.limit("10/minute")
+async def apply_to_event(request: Request, event_id: str, application: EventApplication):
     """Submit application for an event"""
     event = await db.events.find_one({"id": event_id})
     if not event:
@@ -127,7 +155,8 @@ async def get_event_gallery(event_id: str):
 
 
 @router.post("/{event_id}/gallery")
-async def add_gallery_item(event_id: str, item: dict):
+@limiter.limit("20/minute")
+async def add_gallery_item(request: Request, event_id: str, item: GalleryItem):
     """Add a gallery item (photo/video URL)"""
     event = await db.events.find_one({"id": event_id})
     if not event:
@@ -136,10 +165,10 @@ async def add_gallery_item(event_id: str, item: dict):
     gallery_item = {
         "id": str(uuid.uuid4()),
         "event_id": event_id,
-        "type": item.get("type", "photo"),
-        "url": item.get("url", ""),
-        "caption": item.get("caption", ""),
-        "uploaded_by": item.get("uploaded_by", ""),
+        "type": item.type,
+        "url": item.url,
+        "caption": item.caption,
+        "uploaded_by": item.uploaded_by,
         "deleted": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -160,13 +189,14 @@ async def get_event_reviews(event_id: str):
 
 
 @router.post("/{event_id}/reviews")
-async def add_event_review(event_id: str, review: dict):
+@limiter.limit("10/minute")
+async def add_event_review(request: Request, event_id: str, review: ReviewCreate):
     """Submit a review for an event"""
     event = await db.events.find_one({"id": event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    email = review.get("email", "")
+    email = review.email.lower().strip()
     existing = await db.event_reviews.find_one({"event_id": event_id, "email": email})
     if existing:
         raise HTTPException(status_code=400, detail="You have already reviewed this event")
@@ -174,10 +204,10 @@ async def add_event_review(event_id: str, review: dict):
     review_doc = {
         "id": str(uuid.uuid4()),
         "event_id": event_id,
-        "name": review.get("name", "Anonymous"),
+        "name": review.name,
         "email": email,
-        "rating": min(max(int(review.get("rating", 5)), 1), 5),
-        "comment": review.get("comment", ""),
+        "rating": review.rating,
+        "comment": review.comment,
         "deleted": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -195,7 +225,8 @@ async def get_event_discussions(event_id: str):
 
 
 @router.post("/{event_id}/discussions")
-async def add_discussion_post(event_id: str, post: dict):
+@limiter.limit("20/minute")
+async def add_discussion_post(request: Request, event_id: str, post: DiscussionPost):
     """Add a discussion post"""
     event = await db.events.find_one({"id": event_id})
     if not event:
@@ -204,9 +235,9 @@ async def add_discussion_post(event_id: str, post: dict):
     post_doc = {
         "id": str(uuid.uuid4()),
         "event_id": event_id,
-        "author_name": post.get("author_name", "Anonymous"),
-        "author_email": post.get("author_email", ""),
-        "content": post.get("content", ""),
+        "author_name": post.author_name,
+        "author_email": post.author_email,
+        "content": post.content,
         "replies": [],
         "likes": 0,
         "deleted": False,
@@ -217,13 +248,14 @@ async def add_discussion_post(event_id: str, post: dict):
 
 
 @router.post("/{event_id}/discussions/{post_id}/reply")
-async def reply_to_discussion(event_id: str, post_id: str, reply: dict):
+@limiter.limit("20/minute")
+async def reply_to_discussion(request: Request, event_id: str, post_id: str, reply: DiscussionReply):
     """Reply to a discussion post"""
     reply_doc = {
         "id": str(uuid.uuid4()),
-        "author_name": reply.get("author_name", "Anonymous"),
-        "author_email": reply.get("author_email", ""),
-        "content": reply.get("content", ""),
+        "author_name": reply.author_name,
+        "author_email": reply.author_email,
+        "content": reply.content,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     result = await db.event_discussions.update_one(

@@ -360,12 +360,17 @@ const EventDetailPage = () => {
                   <Badge className="w-full justify-center py-2 bg-gray-100 text-gray-500 dark:bg-gray-800">Event Completed</Badge>
                 )}
                 <div className="flex items-center gap-2 mt-4">
-                  <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={() => { navigator.clipboard.writeText(window.location.href); }}>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" onClick={() => { navigator.clipboard.writeText(window.location.href); toast({ title: 'Link copied!' }); }}>
                     <Share2 className="w-3 h-3" /> Share
                   </Button>
                   <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" asChild>
-                    <a href={`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(event.title)}&dates=${event.date?.replace(/[-:]/g, '').replace('.000', '')}/${event.end_date?.replace(/[-:]/g, '').replace('.000', '')}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer">
-                      <Calendar className="w-3 h-3" /> Add to Calendar
+                    <a href={`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(event.title)}&dates=${event.date?.replace(/[-:]/g, '').replace('.000', '')}/${(event.end_date || event.date)?.replace(/[-:]/g, '').replace('.000', '')}&details=${encodeURIComponent(event.description)}&location=${encodeURIComponent(event.location)}`} target="_blank" rel="noopener noreferrer">
+                      <Calendar className="w-3 h-3" /> Google
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 text-xs gap-1" asChild>
+                    <a href={`${API_BASE}/api/events/${eventId}/calendar.ics`} download>
+                      <Calendar className="w-3 h-3" /> Outlook
                     </a>
                   </Button>
                 </div>

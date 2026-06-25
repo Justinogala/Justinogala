@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
 
 const API_BASE = window.location.origin;
 
@@ -136,6 +137,8 @@ const EventsPage = () => {
   const [eventType, setEventType] = useState('All');
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
+  const [recommendations, setRecommendations] = useState([]);
+  const [recLoading, setRecLoading] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -155,6 +158,20 @@ const EventsPage = () => {
   }, [tab, category, eventType, search]);
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
+
+  // Fetch AI recommendations for logged-in users
+  const { token } = useAuth() || {};
+  useEffect(() => {
+    if (!token) return;
+    setRecLoading(true);
+    fetch(`${API_BASE}/api/events/ai/recommendations`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interests: [], industry: '', experience_level: '', preferred_formats: [] })
+    }).then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.recommendations) setRecommendations(d.recommendations);
+    }).catch(() => {}).finally(() => setRecLoading(false));
+  }, [token]);
 
   const isPast = tab === 'past';
 
@@ -242,6 +259,22 @@ const EventsPage = () => {
           </div>
         </div>
       </section>
+
+      {/* AI Recommendations */}
+      {recommendations.length > 0 && tab === 'upcoming' && (
+        <section className="max-w-7xl mx-auto px-6 pt-10 pb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-violet-500" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recommended for You</h2>
+            <Badge variant="secondary" className="text-[10px] bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300">AI-Powered</Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {recommendations.slice(0, 5).map(event => (
+              <EventCard key={`rec-${event.id}`} event={event} isPast={false} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Events Grid */}
       <section id="events-grid" className="max-w-7xl mx-auto px-6 py-10">
