@@ -150,7 +150,7 @@ async def duplicate_event(event_id: str, user=Depends(get_current_user)):
 
 @router.get("/{event_id}/applications")
 async def list_applications(event_id: str, status: Optional[str] = None, user=Depends(get_current_user)):
-    """List all applications for an event"""
+    """List all applications for an event with payment info"""
     query = {"event_id": event_id}
     if status:
         query["status"] = status
@@ -162,7 +162,50 @@ async def list_applications(event_id: str, status: Optional[str] = None, user=De
         s = app.get("status", "submitted")
         stats[s] = stats.get(s, 0) + 1
 
-    return {"applications": applications, "total": total, "stats": stats}
+    # Attach payment info per applicant (by email match)
+    emails = [a.get("email") for a in applications if a.get("email")]
+    if emails:
+        payments_cursor = db.event_payments.find(
+            {"event_id": event_id, "email": {"$in": emails}},
+            {"_id": 0, "email": 1, "status": 1, "amount": 1, "paid_at": 1, "id": 1}
+        )
+        payments_by_email = {}
+        async for p in payments_cursor:
+            payments_by_email[p["email"]] = p
+
+        for app in applications:
+            payment = payments_by_email.get(app.get("email"))
+            app["payment_status"] = payment.get("status", "none") if payment else "none"
+            app["payment_amount"] = payment.get("amount", 0) if payment else 0
+            app["paid_at"] = payment.get("paid_at") if payment else None
+
+    # Revenue summary
+    paid_payments = await db.event_payments.find(
+        {"event_id": event_id, "status": "paid"}, {"_id": 0, "amount": 1}
+    ).to_list(10000)
+    total_revenue = sum(p.get("amount", 0) for p in paid_payments) / 100
+    pending_payments = await db.event_payments.count_documents({"event_id": event_id, "status": "pending"})
+
+    return {
+        "applications": applications, "total": total, "stats": stats,
+        "revenue": {"total": total_revenue, "currency": "usd", "paid_count": len(paid_payments), "pending_count": pending_payments}
+    }
+
+
+@router.get("/{event_id}/payments")
+async def list_event_payments(event_id: str, user=Depends(get_current_user)):
+    """List all payments for an event"""
+    payments = await db.event_payments.find(
+        {"event_id": event_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(10000)
+
+    total_revenue = sum(p.get("amount", 0) for p in payments if p.get("status") == "paid") / 100
+    return {
+        "payments": payments,
+        "total": len(payments),
+        "total_revenue": total_revenue,
+        "currency": "usd"
+    }
 
 
 @router.put("/applications/{application_id}")

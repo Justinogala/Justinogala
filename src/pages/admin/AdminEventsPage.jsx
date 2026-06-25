@@ -160,6 +160,7 @@ const AdminEventsPage = () => {
   const [sponsorsLoading, setSponsorsLoading] = useState(false);
   const [sponsorForm, setSponsorForm] = useState({ name: '', logo_url: '', website: '', tier: 'silver', description: '' });
   const [editingSponsor, setEditingSponsor] = useState(null);
+  const [revenue, setRevenue] = useState(null);
 
   const getHeaders = () => ({ 'Authorization': `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' });
 
@@ -186,6 +187,7 @@ const AdminEventsPage = () => {
       if (res.ok) {
         const d = await res.json();
         setApplications(d.applications || []);
+        setRevenue(d.revenue || null);
       }
     } catch (e) { console.error(e); }
     finally { setAppsLoading(false); }
@@ -407,9 +409,31 @@ const AdminEventsPage = () => {
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleExportCSV(selectedEvent.id)} className="gap-1.5"><FileDown className="w-3.5 h-3.5" /> Export CSV</Button>
-                  <Button variant="outline" size="sm" onClick={() => { setSelectedEvent(null); setApplications([]); }} className="gap-1.5"><X className="w-3.5 h-3.5" /> Close</Button>
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedEvent(null); setApplications([]); setRevenue(null); }} className="gap-1.5"><X className="w-3.5 h-3.5" /> Close</Button>
                 </div>
               </div>
+
+              {/* Revenue & Stats Summary */}
+              {revenue && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" data-testid="revenue-summary">
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Total Revenue</p>
+                    <p className="text-lg font-bold text-green-600">${revenue.total.toFixed(2)}</p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Paid</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{revenue.paid_count}</p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Pending Payment</p>
+                    <p className="text-lg font-bold text-amber-500">{revenue.pending_count}</p>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3">
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">Applications</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{applications.length}</p>
+                  </div>
+                </div>
+              )}
 
               {appsLoading ? (
                 <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 text-violet-500 animate-spin" /></div>
@@ -422,6 +446,7 @@ const AdminEventsPage = () => {
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Company</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Experience</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Payment</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Applied</th>
                         <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Actions</th>
                       </tr>
@@ -436,6 +461,15 @@ const AdminEventsPage = () => {
                           <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{app.company || '-'}<br/><span className="text-xs text-gray-400">{app.position}</span></td>
                           <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{app.years_experience || '-'} yrs</td>
                           <td className="px-4 py-3"><span className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize", statusColors[app.status] || statusColors.submitted)}>{app.status}</span></td>
+                          <td className="px-4 py-3">
+                            {app.payment_status === 'paid' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Paid ${(app.payment_amount / 100).toFixed(0)}</span>
+                            ) : app.payment_status === 'pending' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Pending</span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400">Free</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-xs text-gray-400">{app.created_at ? new Date(app.created_at).toLocaleDateString() : '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-1">
@@ -455,7 +489,7 @@ const AdminEventsPage = () => {
           ) : (
             <div className="text-center py-16">
               <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg font-medium">Select an event to view applications</p>
+              <p className="text-gray-500 text-lg font-medium">Select an event to view applications & payments</p>
               <p className="text-gray-400 text-sm mt-1">Click the <Users className="w-3.5 h-3.5 inline" /> icon on any event in the Events tab.</p>
             </div>
           )}
