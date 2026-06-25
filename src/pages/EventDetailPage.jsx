@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Users, ArrowLeft, Ticket, Share2, Globe, Building, Monitor, Check, Loader2, ChevronDown, ChevronUp, ExternalLink, Mail } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ArrowLeft, Ticket, Share2, Globe, Building, Monitor, Check, Loader2, ChevronDown, ChevronUp, ExternalLink, Mail, Star, MessageSquare, Image, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -116,6 +116,11 @@ const EventDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [applyOpen, setApplyOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState({});
+  const [reviews, setReviews] = useState([]);
+  const [discussions, setDiscussions] = useState([]);
+  const [newReview, setNewReview] = useState({ name: '', email: '', rating: 5, comment: '' });
+  const [newPost, setNewPost] = useState({ author_name: '', author_email: '', content: '' });
+  const { toast } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -127,6 +132,29 @@ const EventDetailPage = () => {
       finally { setLoading(false); }
     })();
   }, [eventId, navigate]);
+
+  useEffect(() => {
+    if (!eventId) return;
+    fetch(`${API_BASE}/api/events/${eventId}/reviews`).then(r => r.ok ? r.json() : null).then(d => d && setReviews(d.reviews || []));
+    fetch(`${API_BASE}/api/events/${eventId}/discussions`).then(r => r.ok ? r.json() : null).then(d => d && setDiscussions(d.posts || []));
+  }, [eventId]);
+
+  const submitReview = async () => {
+    if (!newReview.name || !newReview.email) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/events/${eventId}/reviews`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newReview) });
+      if (res.ok) { const d = await res.json(); setReviews(prev => [d.review, ...prev]); setNewReview({ name: '', email: '', rating: 5, comment: '' }); toast({ title: 'Review submitted!' }); }
+      else { const d = await res.json(); toast({ variant: 'destructive', title: d.detail || 'Failed' }); }
+    } catch { toast({ variant: 'destructive', title: 'Failed to submit' }); }
+  };
+
+  const submitPost = async () => {
+    if (!newPost.content) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/events/${eventId}/discussions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newPost) });
+      if (res.ok) { const d = await res.json(); setDiscussions(prev => [d.post, ...prev]); setNewPost({ author_name: '', author_email: '', content: '' }); toast({ title: 'Post added!' }); }
+    } catch { toast({ variant: 'destructive', title: 'Failed' }); }
+  };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-violet-500 animate-spin" /></div>;
   if (!event) return null;
@@ -236,6 +264,76 @@ const EventDetailPage = () => {
                 </div>
               </div>
             )}
+
+            {/* Reviews */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><Star className="w-5 h-5 text-amber-500" /> Reviews ({reviews.length})</h2>
+              {reviews.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {reviews.slice(0, 5).map(r => (
+                    <div key={r.id} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm text-gray-900 dark:text-white">{r.name}</span>
+                        <div className="flex gap-0.5">{[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3 h-3", s <= r.rating ? "text-amber-400 fill-amber-400" : "text-gray-300")} />)}</div>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{r.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Your name" value={newReview.name} onChange={e => setNewReview(p => ({...p, name: e.target.value}))} className="text-sm" />
+                  <Input placeholder="Email" type="email" value={newReview.email} onChange={e => setNewReview(p => ({...p, email: e.target.value}))} className="text-sm" />
+                </div>
+                <div className="flex items-center gap-1">
+                  {[1,2,3,4,5].map(s => (
+                    <button key={s} onClick={() => setNewReview(p => ({...p, rating: s}))} className="p-0.5">
+                      <Star className={cn("w-5 h-5 transition-colors", s <= newReview.rating ? "text-amber-400 fill-amber-400" : "text-gray-300 hover:text-amber-300")} />
+                    </button>
+                  ))}
+                </div>
+                <Textarea placeholder="Write your review..." value={newReview.comment} onChange={e => setNewReview(p => ({...p, comment: e.target.value}))} rows={2} className="text-sm" />
+                <Button onClick={submitReview} size="sm" className="bg-violet-600 hover:bg-violet-700">Submit Review</Button>
+              </div>
+            </div>
+
+            {/* Community Discussion */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><MessageSquare className="w-5 h-5 text-violet-500" /> Discussion ({discussions.length})</h2>
+              <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 space-y-3 mb-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <Input placeholder="Your name" value={newPost.author_name} onChange={e => setNewPost(p => ({...p, author_name: e.target.value}))} className="text-sm" />
+                  <Input placeholder="Email" type="email" value={newPost.author_email} onChange={e => setNewPost(p => ({...p, author_email: e.target.value}))} className="text-sm" />
+                </div>
+                <Textarea placeholder="Join the conversation..." value={newPost.content} onChange={e => setNewPost(p => ({...p, content: e.target.value}))} rows={2} className="text-sm" />
+                <Button onClick={submitPost} size="sm" className="bg-violet-600 hover:bg-violet-700 gap-1"><Send className="w-3 h-3" /> Post</Button>
+              </div>
+              {discussions.length > 0 && (
+                <div className="space-y-3">
+                  {discussions.map(post => (
+                    <div key={post.id} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm text-gray-900 dark:text-white">{post.author_name || 'Anonymous'}</span>
+                        <span className="text-xs text-gray-400">{post.created_at ? new Date(post.created_at).toLocaleDateString() : ''}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{post.content}</p>
+                      {post.replies?.length > 0 && (
+                        <div className="mt-2 pl-4 border-l-2 border-violet-200 dark:border-violet-800 space-y-2">
+                          {post.replies.map(reply => (
+                            <div key={reply.id} className="text-sm">
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{reply.author_name}</span>
+                              <span className="text-gray-400 text-xs ml-2">{reply.created_at ? new Date(reply.created_at).toLocaleDateString() : ''}</span>
+                              <p className="text-gray-500">{reply.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Sidebar */}

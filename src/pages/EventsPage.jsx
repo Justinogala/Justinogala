@@ -19,7 +19,11 @@ const TABS = [
 ];
 
 const CATEGORIES = ['All', 'AI', 'Cloud', 'Cybersecurity', 'DevOps', 'Software Engineering', 'Product Management', 'Data Science'];
-const EVENT_TYPES = ['All', 'Virtual', 'Hybrid', 'In Person'];
+const EVENT_FORMATS = [
+  'All', 'Live Events', 'Workshops', 'Webinars', 'Conferences', 'Bootcamps', 'Courses',
+  'Certifications', 'Networking', 'Hackathons', 'Startup Pitch Days', 'AI Competitions',
+  'Job Fair', 'Mentor Sessions', 'Office Hours', 'Community Meetups'
+];
 
 const typeIcon = (t) => {
   if (t === 'Virtual') return <Monitor className="w-3 h-3" />;
@@ -57,7 +61,7 @@ const EventCard = ({ event, isPast }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute top-3 left-3 flex gap-1.5">
           <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1", typeColor(event.event_type))}>
-            {typeIcon(event.event_type)} {event.event_type}
+            {typeIcon(event.event_type)} {event.event_format || event.event_type}
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/90 text-gray-700 dark:bg-gray-800/90 dark:text-gray-300">{event.category}</span>
         </div>
@@ -157,8 +161,8 @@ const EventsPage = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
       <Helmet>
-        <title>Events | Munal AI</title>
-        <meta name="description" content="Join AI experts, developers, and innovators at Munal AI events every month." />
+        <title>Academy & Events | Munal AI</title>
+        <meta name="description" content="Munal AI Academy & Events — Live events, workshops, bootcamps, hackathons, courses, certifications, and more." />
       </Helmet>
 
       {/* Site Header */}
@@ -175,17 +179,22 @@ const EventsPage = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-1.5 mb-6 border border-white/10">
               <Sparkles className="w-4 h-4 text-violet-300" />
-              <span className="text-sm text-violet-200">Powered by Munal AI</span>
+              <span className="text-sm text-violet-200">One Unified Platform</span>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-              Munal AI <span className="bg-gradient-to-r from-violet-300 to-pink-300 bg-clip-text text-transparent">Events</span>
+              Munal AI <span className="bg-gradient-to-r from-violet-300 to-pink-300 bg-clip-text text-transparent">Academy & Events</span>
             </h1>
-            <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Join AI experts, developers, business leaders, startups, cloud architects, cybersecurity professionals, and innovators every month.
+            <p className="text-base sm:text-lg text-gray-300 max-w-3xl mx-auto mb-6 leading-relaxed">
+              Live events, workshops, bootcamps, hackathons, courses, certifications, networking, and more — all in one place for AI experts, developers, and innovators.
             </p>
+            <div className="flex items-center justify-center gap-2 flex-wrap mb-10 max-w-3xl mx-auto">
+              {['Workshops', 'Bootcamps', 'Hackathons', 'Courses', 'Certifications', 'Networking', 'AI Competitions', 'Mentor Sessions'].map(tag => (
+                <span key={tag} className="px-3 py-1 rounded-full text-xs bg-white/10 text-violet-200 border border-white/10">{tag}</span>
+              ))}
+            </div>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Button size="lg" className="bg-violet-600 hover:bg-violet-700 text-white px-8 gap-2" onClick={() => document.getElementById('events-grid')?.scrollIntoView({ behavior: 'smooth' })}>
-                <Ticket className="w-4 h-4" /> Explore Events
+                <Ticket className="w-4 h-4" /> Explore All
               </Button>
               <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 px-8 gap-2">
                 <Sparkles className="w-4 h-4" /> Host an Event
@@ -214,7 +223,7 @@ const EventsPage = () => {
               </div>
             </div>
           </div>
-          {/* Category + Type chips */}
+          {/* Category + Format chips */}
           <div className="flex items-center gap-2 flex-wrap">
             {CATEGORIES.map(c => (
               <button key={c} onClick={() => setCategory(c)}
@@ -222,11 +231,12 @@ const EventsPage = () => {
                 {c}
               </button>
             ))}
-            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
-            {EVENT_TYPES.map(t => (
+          </div>
+          <div className="flex items-center gap-2 flex-wrap mt-2">
+            {EVENT_FORMATS.map(t => (
               <button key={t} onClick={() => setEventType(t)}
-                className={cn("px-3 py-1 rounded-full text-xs font-medium transition-all border flex items-center gap-1", eventType === t ? "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-700" : "text-gray-500 border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600")}>
-                {t !== 'All' && typeIcon(t)} {t}
+                className={cn("px-3 py-1 rounded-full text-xs font-medium transition-all border", eventType === t ? "bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-700" : "text-gray-500 border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600")}>
+                {t}
               </button>
             ))}
           </div>

@@ -279,6 +279,8 @@ from routes.admin_newsletter import router as admin_newsletter_router
 from routes.updates import router as updates_router
 from routes.events import router as events_router
 from routes.admin_events import router as admin_events_router
+from routes.ai_events import router as ai_events_router
+from routes.event_payments import router as event_payments_router
 from scheduled.data_health_digest import run_data_health_digest
 
 
@@ -390,6 +392,8 @@ api_router.include_router(storage_quotas_router)
 # Events
 api_router.include_router(events_router)
 api_router.include_router(admin_events_router)
+api_router.include_router(ai_events_router)
+api_router.include_router(event_payments_router)
 
 
 # ============== Include Main Router ==============

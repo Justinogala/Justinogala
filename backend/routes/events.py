@@ -58,7 +58,8 @@ async def list_events(
     if category and category != "All":
         query["category"] = category
     if event_type and event_type != "All":
-        query["event_type"] = event_type
+        # Filter by event_format field
+        query["event_format"] = event_type
     if search:
         query["$or"] = [
             {"title": {"$regex": search, "$options": "i"}},
@@ -114,3 +115,121 @@ async def get_application_count(event_id: str):
     """Get number of applications for an event"""
     count = await db.event_applications.count_documents({"event_id": event_id})
     return {"count": count}
+
+
+# ============== Gallery ==============
+
+@router.get("/{event_id}/gallery")
+async def get_event_gallery(event_id: str):
+    """Get gallery items for an event"""
+    items = await db.event_gallery.find({"event_id": event_id, "deleted": {"$ne": True}}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"items": items, "count": len(items)}
+
+
+@router.post("/{event_id}/gallery")
+async def add_gallery_item(event_id: str, item: dict):
+    """Add a gallery item (photo/video URL)"""
+    event = await db.events.find_one({"id": event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    gallery_item = {
+        "id": str(uuid.uuid4()),
+        "event_id": event_id,
+        "type": item.get("type", "photo"),
+        "url": item.get("url", ""),
+        "caption": item.get("caption", ""),
+        "uploaded_by": item.get("uploaded_by", ""),
+        "deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.event_gallery.insert_one(gallery_item)
+    return {"success": True, "item": {k: v for k, v in gallery_item.items() if k != "_id"}}
+
+
+# ============== Ratings & Reviews ==============
+
+@router.get("/{event_id}/reviews")
+async def get_event_reviews(event_id: str):
+    """Get reviews for an event"""
+    reviews = await db.event_reviews.find({"event_id": event_id, "deleted": {"$ne": True}}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    avg_rating = 0
+    if reviews:
+        avg_rating = round(sum(r.get("rating", 0) for r in reviews) / len(reviews), 1)
+    return {"reviews": reviews, "count": len(reviews), "average_rating": avg_rating}
+
+
+@router.post("/{event_id}/reviews")
+async def add_event_review(event_id: str, review: dict):
+    """Submit a review for an event"""
+    event = await db.events.find_one({"id": event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    email = review.get("email", "")
+    existing = await db.event_reviews.find_one({"event_id": event_id, "email": email})
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already reviewed this event")
+
+    review_doc = {
+        "id": str(uuid.uuid4()),
+        "event_id": event_id,
+        "name": review.get("name", "Anonymous"),
+        "email": email,
+        "rating": min(max(int(review.get("rating", 5)), 1), 5),
+        "comment": review.get("comment", ""),
+        "deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.event_reviews.insert_one(review_doc)
+    return {"success": True, "review": {k: v for k, v in review_doc.items() if k != "_id"}}
+
+
+# ============== Community Discussion ==============
+
+@router.get("/{event_id}/discussions")
+async def get_event_discussions(event_id: str):
+    """Get discussion posts for an event"""
+    posts = await db.event_discussions.find({"event_id": event_id, "deleted": {"$ne": True}}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"posts": posts, "count": len(posts)}
+
+
+@router.post("/{event_id}/discussions")
+async def add_discussion_post(event_id: str, post: dict):
+    """Add a discussion post"""
+    event = await db.events.find_one({"id": event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    post_doc = {
+        "id": str(uuid.uuid4()),
+        "event_id": event_id,
+        "author_name": post.get("author_name", "Anonymous"),
+        "author_email": post.get("author_email", ""),
+        "content": post.get("content", ""),
+        "replies": [],
+        "likes": 0,
+        "deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.event_discussions.insert_one(post_doc)
+    return {"success": True, "post": {k: v for k, v in post_doc.items() if k != "_id"}}
+
+
+@router.post("/{event_id}/discussions/{post_id}/reply")
+async def reply_to_discussion(event_id: str, post_id: str, reply: dict):
+    """Reply to a discussion post"""
+    reply_doc = {
+        "id": str(uuid.uuid4()),
+        "author_name": reply.get("author_name", "Anonymous"),
+        "author_email": reply.get("author_email", ""),
+        "content": reply.get("content", ""),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    result = await db.event_discussions.update_one(
+        {"id": post_id, "event_id": event_id},
+        {"$push": {"replies": reply_doc}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return {"success": True, "reply": reply_doc}
