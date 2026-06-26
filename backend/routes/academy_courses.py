@@ -260,6 +260,14 @@ async def get_course(course_id: str, user=Depends(get_optional_user)):
     course["completed_lessons"] = enrollment.get("completed_lessons", []) if enrollment else []
     course["has_access"] = has_access
 
+    # Check if current user has reviewed
+    if user:
+        user_review = await db.course_reviews.find_one(
+            {"user_id": user.get("id"), "course_id": course_id, "deleted": {"$ne": True}},
+            {"_id": 0}
+        )
+        course["user_review"] = user_review
+
     return course
 
 
@@ -709,3 +717,122 @@ Rules:
 
     logger.info(f"AI quiz generated: {req.num_questions} questions for '{req.lesson_title}'")
     return {"success": True, "questions": questions}
+
+
+# ============== Course Reviews & Ratings ==============
+
+class ReviewCreate(BaseModel):
+    rating: int = Field(ge=1, le=5)
+    comment: str = ""
+
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    comment: Optional[str] = None
+
+
+@router.get("/courses/{course_id}/reviews")
+async def list_course_reviews(course_id: str, limit: int = 50, offset: int = 0):
+    """List reviews for a course (public)"""
+    reviews = await db.course_reviews.find(
+        {"course_id": course_id, "deleted": {"$ne": True}},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
+
+    total = await db.course_reviews.count_documents({"course_id": course_id, "deleted": {"$ne": True}})
+
+    # Compute rating breakdown
+    pipeline = [
+        {"$match": {"course_id": course_id, "deleted": {"$ne": True}}},
+        {"$group": {"_id": "$rating", "count": {"$sum": 1}}},
+    ]
+    breakdown = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    async for doc in db.course_reviews.aggregate(pipeline):
+        breakdown[doc["_id"]] = doc["count"]
+
+    avg = 0
+    if total > 0:
+        avg = round(sum(r * c for r, c in breakdown.items()) / total, 1)
+
+    return {
+        "reviews": reviews,
+        "total": total,
+        "average_rating": avg,
+        "breakdown": breakdown,
+    }
+
+
+@router.post("/courses/{course_id}/reviews")
+async def create_review(course_id: str, review: ReviewCreate, user=Depends(get_current_user)):
+    """Create or update a review for a course (one per user)"""
+    user_id = user.get("id")
+
+    # Must be enrolled
+    enrollment = await db.course_enrollments.find_one({"user_id": user_id, "course_id": course_id})
+    if not enrollment:
+        raise HTTPException(status_code=400, detail="You must be enrolled to review this course")
+
+    # Check existing review
+    existing = await db.course_reviews.find_one({"user_id": user_id, "course_id": course_id, "deleted": {"$ne": True}})
+    if existing:
+        # Update existing
+        await db.course_reviews.update_one(
+            {"id": existing["id"]},
+            {"$set": {"rating": review.rating, "comment": review.comment, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        updated = await db.course_reviews.find_one({"id": existing["id"]}, {"_id": 0})
+        await _update_course_rating(course_id)
+        return {"success": True, "review": updated, "updated": True}
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "course_id": course_id,
+        "user_id": user_id,
+        "user_name": user.get("name", ""),
+        "user_email": user.get("email", ""),
+        "user_avatar": user.get("avatar", ""),
+        "rating": review.rating,
+        "comment": review.comment,
+        "deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.course_reviews.insert_one(doc)
+    doc.pop("_id", None)
+    await _update_course_rating(course_id)
+
+    logger.info(f"Review created: user={user_id} course={course_id} rating={review.rating}")
+    return {"success": True, "review": doc}
+
+
+@router.delete("/courses/{course_id}/reviews/{review_id}")
+async def delete_review(course_id: str, review_id: str, user=Depends(get_current_user)):
+    """Delete own review or admin can delete any"""
+    user_id = user.get("id")
+    role = (user.get("role") or "").lower().replace(" ", "_")
+
+    review = await db.course_reviews.find_one({"id": review_id, "course_id": course_id})
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    if review.get("user_id") != user_id and role not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Can only delete your own review")
+
+    await db.course_reviews.update_one({"id": review_id}, {"$set": {"deleted": True}})
+    await _update_course_rating(course_id)
+    return {"success": True}
+
+
+async def _update_course_rating(course_id: str):
+    """Recalculate and update course average rating"""
+    pipeline = [
+        {"$match": {"course_id": course_id, "deleted": {"$ne": True}}},
+        {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}},
+    ]
+    result = await db.course_reviews.aggregate(pipeline).to_list(1)
+    if result:
+        await db.courses.update_one(
+            {"id": course_id},
+            {"$set": {"rating": round(result[0]["avg"], 1), "reviews_count": result[0]["count"]}}
+        )
+    else:
+        await db.courses.update_one({"id": course_id}, {"$set": {"rating": 0, "reviews_count": 0}})

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
@@ -26,6 +27,10 @@ const AcademyCourseDetail = () => {
   const [quizResult, setQuizResult] = useState(null);
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const [earnedCert, setEarnedCert] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState({ total: 0, average_rating: 0, breakdown: {} });
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const token = JSON.parse(localStorage.getItem('munal_sessions') || '{}').token;
 
@@ -111,6 +116,50 @@ const AcademyCourseDetail = () => {
 
   // Reset quiz state when changing lesson
   useEffect(() => { setQuizAnswers({}); setQuizResult(null); }, [activeLesson?.id]);
+
+  // Fetch reviews
+  const fetchReviews = useCallback(() => {
+    if (!courseId) return;
+    fetch(`${API_BASE}/api/academy/courses/${courseId}/reviews`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d) {
+          setReviews(d.reviews || []);
+          setReviewStats({ total: d.total, average_rating: d.average_rating, breakdown: d.breakdown || {} });
+        }
+      });
+  }, [courseId]);
+
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+  const handleSubmitReview = async () => {
+    if (!token) { navigate('/login'); return; }
+    setSubmittingReview(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/academy/courses/${courseId}/reviews`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(reviewForm)
+      });
+      const d = await res.json();
+      if (res.ok) {
+        toast({ title: d.updated ? 'Review updated!' : 'Review submitted!' });
+        setReviewForm({ rating: 5, comment: '' });
+        fetchReviews();
+        fetchCourse(); // Refresh user_review
+      } else { toast({ variant: 'destructive', title: d.detail || 'Failed' }); }
+    } catch { toast({ variant: 'destructive', title: 'Network error' }); }
+    finally { setSubmittingReview(false); }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!confirm('Delete your review?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/academy/courses/${courseId}/reviews/${reviewId}`, {
+        method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) { toast({ title: 'Review deleted' }); fetchReviews(); fetchCourse(); }
+    } catch { toast({ variant: 'destructive', title: 'Failed' }); }
+  };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>;
   if (!course) return null;
@@ -258,6 +307,107 @@ const AcademyCourseDetail = () => {
                 )}
               </div>
             )}
+
+            {/* Reviews & Ratings */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5" data-testid="course-reviews">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-500" /> Reviews & Ratings
+                </h3>
+                <span className="text-sm text-gray-400">{reviewStats.total} reviews</span>
+              </div>
+
+              {/* Rating Summary */}
+              {reviewStats.total > 0 && (
+                <div className="flex items-center gap-6 mb-6 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                  <div className="text-center">
+                    <p className="text-4xl font-bold text-gray-900 dark:text-white">{reviewStats.average_rating}</p>
+                    <div className="flex items-center gap-0.5 mt-1">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} className={cn("w-4 h-4", s <= Math.round(reviewStats.average_rating) ? "text-amber-400 fill-amber-400" : "text-gray-300")} />
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">{reviewStats.total} ratings</p>
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    {[5,4,3,2,1].map(star => {
+                      const count = reviewStats.breakdown[star] || 0;
+                      const pct = reviewStats.total > 0 ? (count / reviewStats.total) * 100 : 0;
+                      return (
+                        <div key={star} className="flex items-center gap-2 text-xs">
+                          <span className="w-3 text-gray-500">{star}</span>
+                          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                          <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="w-6 text-right text-gray-400">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Write Review Form (only for enrolled users) */}
+              {course.enrolled && !course.user_review && (
+                <div className="mb-6 p-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-900/10">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Write a Review</p>
+                  <div className="flex items-center gap-1 mb-3">
+                    {[1,2,3,4,5].map(s => (
+                      <button key={s} onClick={() => setReviewForm(p => ({ ...p, rating: s }))} className="p-0.5" data-testid={`review-star-${s}`}>
+                        <Star className={cn("w-6 h-6 transition-colors", s <= reviewForm.rating ? "text-amber-400 fill-amber-400" : "text-gray-300 hover:text-amber-200")} />
+                      </button>
+                    ))}
+                    <span className="text-sm text-gray-500 ml-2">{reviewForm.rating}/5</span>
+                  </div>
+                  <Textarea value={reviewForm.comment} onChange={e => setReviewForm(p => ({ ...p, comment: e.target.value }))} placeholder="Share your experience with this course..." rows={2} className="mb-2 text-sm" data-testid="review-comment" />
+                  <Button size="sm" onClick={handleSubmitReview} disabled={submittingReview} className="bg-violet-600 hover:bg-violet-700 gap-1.5" data-testid="submit-review-btn">
+                    {submittingReview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Star className="w-3.5 h-3.5" />} Submit Review
+                  </Button>
+                </div>
+              )}
+
+              {/* User's existing review */}
+              {course.user_review && (
+                <div className="mb-4 p-3 rounded-lg border-2 border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/10">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1">
+                      {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3.5 h-3.5", s <= course.user_review.rating ? "text-amber-400 fill-amber-400" : "text-gray-300")} />)}
+                      <span className="text-xs text-violet-600 font-medium ml-1">Your Review</span>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400" onClick={() => handleDeleteReview(course.user_review.id)}><X className="w-3 h-3" /></Button>
+                  </div>
+                  {course.user_review.comment && <p className="text-sm text-gray-600 dark:text-gray-400">{course.user_review.comment}</p>}
+                </div>
+              )}
+
+              {/* Review List */}
+              {reviews.length > 0 ? (
+                <div className="space-y-3">
+                  {reviews.filter(r => r.id !== course.user_review?.id).slice(0, 10).map(r => (
+                    <div key={r.id} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50" data-testid={`review-${r.id}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-[10px] font-bold text-violet-600">
+                            {(r.user_name || r.user_email || '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-900 dark:text-white">{r.user_name || 'Anonymous'}</p>
+                            <div className="flex items-center gap-0.5">
+                              {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-2.5 h-2.5", s <= r.rating ? "text-amber-400 fill-amber-400" : "text-gray-300")} />)}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-gray-400">{r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</span>
+                      </div>
+                      {r.comment && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 pl-9">{r.comment}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">No reviews yet. Be the first to review!</p>
+              )}
+            </div>
           </div>
 
           {/* Sidebar */}
