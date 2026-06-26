@@ -50,8 +50,6 @@
     "@radix-ui/react-toast": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@supabase/supabase-js": "2.30.0",
-    "@tensorflow-models/body-pix": "^2.2.1",
-    "@tensorflow/tfjs": "^4.22.0",
     "@tiptap/extension-color": "^3.22.5",
     "@tiptap/extension-font-family": "^3.22.5",
     "@tiptap/extension-highlight": "^3.22.5",

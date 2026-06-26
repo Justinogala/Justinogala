@@ -88,20 +88,7 @@ android-sdk/
 android/
 ios/
 store-assets/
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
--e 
-# Environment and credential files
-.env
-.env.*
-*.env
+# Environment and credential files (local overrides only)
 credentials.json
 *.pem
 *.key
