@@ -19,7 +19,7 @@ import { useAdminAuth } from '@/context/AdminAuthContext';
 const API_BASE = window.location.origin;
 const getAdminToken = () => localStorage.getItem('admin_token') || '';
 const getHeaders = () => ({ 'Authorization': `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' });
-const CATEGORIES = ['AI', 'Prompt Engineering', 'Cloud', 'DevOps', 'Cybersecurity', 'Data Science', 'Software Engineering', 'Product Management', 'Healthcare'];
+const CATEGORIES = ['AI', 'Prompt Engineering', 'Cloud', 'DevOps', 'Cybersecurity', 'Data Science', 'Software Engineering', 'Product Management', 'Healthcare', 'Digital Marketing', 'Design', 'Media', 'Engineering', 'Construction', 'Logistics', 'Finance', 'Legal'];
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
 
 // ============== Quiz Editor per Lesson ==============
