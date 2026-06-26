@@ -6,7 +6,10 @@ from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel, Field
-import uuid, json, asyncio
+import uuid, json, asyncio, os
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from config import db, logger
 from routes.auth_helpers import get_current_user, get_optional_user
@@ -25,7 +28,6 @@ class TutorMessage(BaseModel):
 
 class NoteCreate(BaseModel):
     content: str
-    lesson_id: str
 
 
 class DiscussionCreate(BaseModel):
@@ -65,9 +67,6 @@ async def ai_tutor_chat(course_id: str, msg: TutorMessage, user=Depends(get_curr
         if lesson:
             lesson_context = f"\nCurrent Lesson: {lesson.get('title', '')}\nLesson Description: {lesson.get('description', '')}"
 
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
     api_key = os.environ.get("EMERGENT_LLM_KEY", "")
     if not api_key:
         raise HTTPException(status_code=500, detail="AI not configured")
@@ -154,9 +153,6 @@ async def generate_lesson_summary(course_id: str, lesson_id: str, user=Depends(g
     if existing:
         return {"summary": existing}
 
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
     api_key = os.environ.get("EMERGENT_LLM_KEY", "")
     if not api_key:
         raise HTTPException(status_code=500, detail="AI not configured")
@@ -254,7 +250,7 @@ async def save_lesson_notes(course_id: str, lesson_id: str, note: NoteCreate, us
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "course_id": course_id,
-        "lesson_id": note.lesson_id,
+        "lesson_id": lesson_id,
         "content": note.content,
         "created_at": now,
         "updated_at": now,
@@ -380,19 +376,21 @@ async def upvote_discussion(course_id: str, discussion_id: str, user=Depends(get
     if not disc:
         raise HTTPException(status_code=404, detail="Discussion not found")
 
-    upvoted_by = disc.get("upvoted_by", [])
-    if user_id in upvoted_by:
-        upvoted_by.remove(user_id)
+    if user_id in disc.get("upvoted_by", []):
+        await db.academy_discussions.update_one(
+            {"id": discussion_id},
+            {"$pull": {"upvoted_by": user_id}, "$inc": {"upvotes": -1}}
+        )
         action = "removed"
     else:
-        upvoted_by.append(user_id)
+        await db.academy_discussions.update_one(
+            {"id": discussion_id},
+            {"$addToSet": {"upvoted_by": user_id}, "$inc": {"upvotes": 1}}
+        )
         action = "added"
 
-    await db.academy_discussions.update_one(
-        {"id": discussion_id},
-        {"$set": {"upvoted_by": upvoted_by, "upvotes": len(upvoted_by)}}
-    )
-    return {"upvotes": len(upvoted_by), "action": action}
+    updated = await db.academy_discussions.find_one({"id": discussion_id}, {"_id": 0, "upvotes": 1})
+    return {"upvotes": updated.get("upvotes", 0), "action": action}
 
 
 # ============== Lesson Resources (Admin) ==============

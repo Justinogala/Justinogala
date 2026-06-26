@@ -345,12 +345,22 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Fix**: Deleted 8 test courses from `courses` collection. Added `onError` fallback to `<img>` tags in `AcademyCourses.jsx` and `AdminCoursesPage.jsx` so broken images gracefully show a GraduationCap icon instead of broken image placeholder.
 - **Verification**: All 91 real courses confirmed rendering with working `images.unsplash.com` CDN thumbnails across all 8 pages.
 
+### Academy Phase A — AI Tutor, Summaries, Discussions, Resources — June 26, 2026
+- **AI Tutor**: Per-lesson GPT-5.2 chat via sliding panel. Stores conversation history in `academy_tutor_messages`. Context-aware with lesson title/description. Suggested quick questions. Markdown-formatted responses.
+- **AI Summaries & Notes**: AI-generated lesson summaries (Key Concepts, Summary, Takeaways, Study Tips) stored in `academy_summaries`. Personal notes per-user per-lesson in `academy_notes` with auto-save timestamps.
+- **Community Discussions**: Q&A forum per course with optional lesson filter. `academy_discussions` + `academy_discussion_replies`. Upvoting with atomic $addToSet/$pull. Reply counts.
+- **Downloadable Resources**: Resources array per lesson (title, url, type: pdf/code/link/video). Seeded for all 91 courses with category-appropriate templates.
+- **Frontend**: Tabbed UI (Overview / AI Summary & Notes / Discussions / Reviews) on course detail page. AI Tutor sliding panel accessible via header button.
+- **Backend**: `/app/backend/routes/academy_features.py` — 12 endpoints
+- **Frontend Components**: `/app/src/components/academy/` — AiTutor.jsx, LessonSummary.jsx, Discussions.jsx, LessonResources.jsx
+- **Testing**: 17/17 backend tests + full e2e verification — Iteration 160
+
 ## Upcoming Tasks
+- Phase B: Learning Playlists (curated multi-course pathways), Completion Badges, Enhanced Progress Dashboard
+- Phase C: Practice Labs, Capstone Projects, Certification Pathways
 - P1: Enterprise Team Seat Management
 - P2: Notification Integrations (email/SMS for course updates)
 - AI Builder: Mermaid diagram rendering in generated content
-- P3: Custom Template option for Sheets
-- P3: Real-time collaborative editing
 
 ## Future/Backlog
 - AI Career Coach / Resume Reviewer

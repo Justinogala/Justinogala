@@ -62,7 +62,7 @@ const LessonSummary = ({ courseId, lessonId, token, enrolled }) => {
       const res = await fetch(`${API_BASE}/api/academy/courses/${courseId}/lessons/${lessonId}/notes`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: note, lesson_id: lessonId })
+        body: JSON.stringify({ content: note })
       });
       if (res.ok) {
         const d = await res.json();
