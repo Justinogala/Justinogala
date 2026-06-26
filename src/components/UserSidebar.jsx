@@ -5,7 +5,7 @@ import {
   ChevronRight, User, HardDrive, CreditCard, DollarSign, MessageSquare,
   CircleDot, ExternalLink, ChevronDown, ChevronUp, Coins, Tag, Receipt, Volume2,
   Sparkles, Crown, Bell, Search, Command, Zap, Shield, Star, Ticket, Calendar, Video,
-  FileWarning, PenLine, FileCheck2, Building2, BotMessageSquare, BarChart3
+  FileWarning, PenLine, FileCheck2, Building2, BotMessageSquare, BarChart3, GraduationCap, BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,9 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: BarChart3, label: 'My Analytics', path: '/my-analytics', gradient: 'from-violet-500 to-indigo-500' },
     { icon: FileCheck2, label: 'Approvals', path: '/approvals', badge: 'NEW', gradient: 'from-violet-500 to-indigo-500' },
     { icon: FileWarning, label: 'IR / SOR Reports', path: '/reports', badge: 'NEW', gradient: 'from-red-500 to-orange-500' },
+    { icon: GraduationCap, label: 'Academy', path: '/academy', badge: 'NEW', gradient: 'from-purple-500 to-violet-600' },
+    { icon: BookOpen, label: 'Courses', path: '/academy/courses', gradient: 'from-indigo-500 to-purple-500' },
+    { icon: Calendar, label: 'Events', path: '/events', gradient: 'from-pink-500 to-rose-500' },
   ];
 
   const paymentSubItems = [

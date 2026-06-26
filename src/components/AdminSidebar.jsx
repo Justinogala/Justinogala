@@ -5,7 +5,7 @@ import {
   Settings, Zap, Key, Mic, ChevronDown, Coins, Tag, Receipt, Percent,
   CreditCard as Gateway, Shield, Search, ChevronLeft, ChevronRight, FileText,
   Activity, BarChart3, Lock, Cloud, Video, Building2, Clock, FileWarning, FileCheck2, ClipboardList,
-  HeartPulse, Package, TrendingUp, HardDrive, BookOpen, Trash2, Mail, Calendar
+  HeartPulse, Package, TrendingUp, HardDrive, BookOpen, Trash2, Mail, Calendar, GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAdminAuth } from '@/context/AdminAuthContext';
@@ -509,6 +509,22 @@ const AdminSidebar = ({ onClose, isMobile }) => {
           <NavItem
             link={{ icon: Calendar, label: 'Events', path: '/admin/events', gradient: 'from-pink-500 to-rose-500' }}
             index={primaryLinks.length + managementLinks.length + configLinks.length + 3}
+            collapsed={collapsed}
+            onClose={onClose}
+            hoveredItem={hoveredItem}
+            setHoveredItem={setHoveredItem}
+          />
+          <NavItem
+            link={{ icon: GraduationCap, label: 'Academy', path: '/academy', gradient: 'from-purple-500 to-violet-600' }}
+            index={primaryLinks.length + managementLinks.length + configLinks.length + 4}
+            collapsed={collapsed}
+            onClose={onClose}
+            hoveredItem={hoveredItem}
+            setHoveredItem={setHoveredItem}
+          />
+          <NavItem
+            link={{ icon: BookOpen, label: 'Courses', path: '/academy/courses', gradient: 'from-indigo-500 to-purple-500' }}
+            index={primaryLinks.length + managementLinks.length + configLinks.length + 5}
             collapsed={collapsed}
             onClose={onClose}
             hoveredItem={hoveredItem}
