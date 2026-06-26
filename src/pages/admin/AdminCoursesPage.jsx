@@ -494,7 +494,8 @@ const AdminCoursesPage = () => {
                   <tr key={course.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" data-testid={`course-row-${course.id}`}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        {course.thumbnail ? <img src={course.thumbnail} alt="" className="w-12 h-8 rounded-lg object-cover shrink-0" /> : <div className="w-12 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0"><GraduationCap className="w-4 h-4 text-violet-400" /></div>}
+                        {course.thumbnail ? <img src={course.thumbnail} alt="" className="w-12 h-8 rounded-lg object-cover shrink-0" onError={e => { e.target.onerror = null; e.target.src = ''; e.target.className = 'hidden'; }} /> : null}
+                        <div className={`w-12 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0 ${course.thumbnail ? 'hidden' : ''}`}><GraduationCap className="w-4 h-4 text-violet-400" /></div>
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 dark:text-white truncate max-w-[220px]">{course.title}</p>
                           {course.instructor_name && <p className="text-[11px] text-gray-400 truncate">By {course.instructor_name}</p>}

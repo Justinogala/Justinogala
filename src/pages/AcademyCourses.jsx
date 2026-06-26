@@ -115,7 +115,13 @@ const AcademyCourses = () => {
               <motion.div key={course.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <Link to={`/academy/courses/${course.id}`} className="group bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-violet-500/5 transition-all block" data-testid={`course-card-${course.id}`}>
                   <div className="relative h-40 bg-gradient-to-br from-violet-100 to-indigo-200 dark:from-violet-900/40 dark:to-indigo-900/40 overflow-hidden">
-                    {course.thumbnail ? <img src={course.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><GraduationCap className="w-10 h-10 text-violet-300" /></div>}
+                    {course.thumbnail ? (
+                      <img src={course.thumbnail} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy"
+                        onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                    ) : null}
+                    <div className="w-full h-full flex items-center justify-center absolute inset-0 -z-0">
+                      <GraduationCap className="w-10 h-10 text-violet-300" />
+                    </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     <div className="absolute top-2.5 left-2.5 flex gap-1.5">
                       <Badge className="text-[10px] bg-white/90 text-gray-700">{course.category}</Badge>

@@ -340,10 +340,22 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Standard User: chattest@munal.ai / Test@12345
 - Analytics User: analytics@munal.ai / Test@12345
 
+### Course Image Fix — June 26, 2026
+- **Root Cause**: 8 test artifact courses (TEST_Academy_Phase1_Course, TEST_Quiz_*) had empty `thumbnail` fields — created by testing agent runs.
+- **Fix**: Deleted 8 test courses from `courses` collection. Added `onError` fallback to `<img>` tags in `AcademyCourses.jsx` and `AdminCoursesPage.jsx` so broken images gracefully show a GraduationCap icon instead of broken image placeholder.
+- **Verification**: All 91 real courses confirmed rendering with working `images.unsplash.com` CDN thumbnails across all 8 pages.
+
 ## Upcoming Tasks
+- P1: Enterprise Team Seat Management
+- P2: Notification Integrations (email/SMS for course updates)
 - AI Builder: Mermaid diagram rendering in generated content
 - P3: Custom Template option for Sheets
 - P3: Real-time collaborative editing
+
+## Future/Backlog
+- AI Career Coach / Resume Reviewer
+- Munal AI Job Board
+- Post-event feedback surveys with analytics
 
 ## Refactoring Done
 - `ai_chat.py` extracted from 1131→815 lines: Storage + prompts → `ai_chat_config.py` (115 lines), Export (MD/PDF/DOCX) → `ai_chat_export.py` (214 lines)
