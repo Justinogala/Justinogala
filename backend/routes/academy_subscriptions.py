@@ -131,9 +131,7 @@ async def check_payment_status(session_id: str, user=Depends(get_current_user)):
 
     from emergentintegrations.payments.stripe.checkout import StripeCheckout
 
-    host_url = "https://munal.ai"
-    webhook_url = f"{host_url}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=api_key, webhook_url=webhook_url)
+    stripe_checkout = StripeCheckout(api_key=api_key, webhook_url="")
 
     status_resp = await stripe_checkout.get_checkout_status(session_id)
 

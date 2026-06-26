@@ -72,6 +72,21 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Testing: 100% backend (17/17 pytest), 100% frontend verified — Iteration 156
 
 
+### Munal AI Academy Phase 1 + Phase 4 — June 26, 2026
+- **Academy Dashboard** (`/academy`): Personalized page for logged-in users with Continue Learning, Recommended Courses, Certificates, Upcoming Events, Learning Streak, Subscription status card.
+- **Course Catalog** (`/academy/courses`): Browse courses with category/level filters, search, Free/Pro badges. 4 initial courses seeded (AI Foundations, Prompt Engineering, Cloud Computing, DevOps Engineering).
+- **Course Detail** (`/academy/courses/:id`): YouTube/Vimeo video player, lesson list with progress tracking, enrollment button, "Mark Complete" for lessons, auto-certificate generation on 100% completion.
+- **Stripe Recurring Subscriptions** (`/academy/subscription`): 3 plans (Free / Pro $29/mo / Enterprise $99/mo), Stripe Checkout flow, payment polling, subscription activation, cancellation.
+- **Premium Content Gating**: Premium courses require Pro/Enterprise subscription. Video URLs and content hidden for non-subscribers.
+- **Livestream Auth Gate**: Paid event livestreams require login + payment verification (JWT-based, not query param). Free event streams accessible to any logged-in user.
+- **Certificates**: Auto-generated on course completion with unique cert numbers (MAI-C-XXXXXXXX).
+- **Admin Course CRUD**: Create/update/delete courses and lessons via /api/academy/admin/courses.
+  - Backend: `/app/backend/routes/academy_courses.py`, `/app/backend/routes/academy_subscriptions.py`
+  - Frontend: `/app/src/pages/AcademyDashboard.jsx`, `AcademyCourses.jsx`, `AcademyCourseDetail.jsx`, `AcademySubscription.jsx`
+- **Security Fix**: Livestream access now uses JWT token instead of spoofable query param.
+- Testing: 100% backend (20/20 pytest), 100% frontend verified — Iteration 157
+
+
 ### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
 - **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
 - **Hero Image**: Replaced plain gradient with a conference photo background (`pexels-photo-9275222.jpeg`) with overlay gradient

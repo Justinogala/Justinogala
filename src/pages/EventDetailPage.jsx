@@ -141,11 +141,10 @@ const EventDetailPage = () => {
     fetch(`${API_BASE}/api/events/${eventId}/discussions`).then(r => r.ok ? r.json() : null).then(d => d && setDiscussions(d.posts || []));
     fetch(`${API_BASE}/api/events/${eventId}/sponsors`).then(r => r.ok ? r.json() : null).then(d => d && setSponsors(d.sponsors || []));
 
-    // Check livestream access
-    let userId = null;
-    try { userId = JSON.parse(localStorage.getItem('munal_auth') || '{}').id; } catch {}
-    const params = userId ? `?user_id=${userId}` : '';
-    fetch(`${API_BASE}/api/events/${eventId}/livestream-access${params}`)
+    // Check livestream access (use JWT auth)
+    const sessionToken = JSON.parse(localStorage.getItem('munal_sessions') || '{}').token;
+    const streamHeaders = sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {};
+    fetch(`${API_BASE}/api/events/${eventId}/livestream-access`, { headers: streamHeaders })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setStreamAccess(d));
   }, [eventId]);

@@ -1,7 +1,7 @@
 """
 Events routes - CRUD for events, applications, gallery, reviews, discussions.
 """
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel, Field
@@ -10,6 +10,7 @@ import uuid
 from config import db, logger
 from security import limiter
 from routes.event_notifications import send_host_proposal_confirmation, send_host_proposal_admin_notification
+from routes.auth_helpers import get_optional_user
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
@@ -146,7 +147,7 @@ async def get_event(event_id: str):
 
 
 @router.get("/{event_id}/livestream-access")
-async def check_livestream_access(event_id: str, user_id: Optional[str] = None):
+async def check_livestream_access(event_id: str, user=Depends(get_optional_user)):
     """Check if user has access to event livestream (login + payment for paid events)"""
     event = await db.events.find_one({"id": event_id, "deleted": {"$ne": True}}, {"_id": 0, "id": 1, "price": 1, "stream_url": 1, "is_live": 1, "stream_platform": 1})
     if not event:
@@ -158,23 +159,17 @@ async def check_livestream_access(event_id: str, user_id: Optional[str] = None):
     price = event.get("price", "Free")
     is_paid = price and price != "Free"
 
-    if not user_id:
+    if not user:
         return {"has_access": False, "reason": "login_required"}
 
-    if is_paid:
-        # Check if user paid for this event
-        payment = await db.event_payments.find_one(
-            {"event_id": event_id, "status": "paid"},
-            {"_id": 0, "email": 1}
-        )
-        user = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1})
-        user_email = user.get("email", "") if user else ""
+    user_id = user.get("id")
 
+    if is_paid:
+        user_email = user.get("email", "")
         paid = await db.event_payments.find_one(
             {"event_id": event_id, "email": user_email, "status": "paid"}
         )
         if not paid:
-            # Also check if user has Pro/Enterprise subscription
             sub = await db.subscriptions.find_one(
                 {"user_id": user_id, "status": "active", "plan": {"$in": ["pro", "enterprise"]}}
             )
