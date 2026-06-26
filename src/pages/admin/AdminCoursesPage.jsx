@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import {
   BookOpen, Plus, Edit2, Trash2, Search, GraduationCap, Lock, Unlock, Eye,
-  Loader2, Check, X, Clock, Play, ChevronUp, ChevronDown, Video, Star, Users
+  Loader2, Check, X, Clock, Play, ChevronUp, ChevronDown, Video, Star, Users,
+  Sparkles, HelpCircle, Wand2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,14 +18,83 @@ import { useAdminAuth } from '@/context/AdminAuthContext';
 
 const API_BASE = window.location.origin;
 const getAdminToken = () => localStorage.getItem('admin_token') || '';
+const getHeaders = () => ({ 'Authorization': `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' });
 const CATEGORIES = ['AI', 'Prompt Engineering', 'Cloud', 'DevOps', 'Cybersecurity', 'Data Science', 'Software Engineering', 'Product Management'];
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
 
+// ============== Quiz Editor per Lesson ==============
+const QuizEditor = ({ quiz = [], onChange, lessonTitle, courseTitle }) => {
+  const { toast } = useToast();
+  const [generating, setGenerating] = useState(false);
+
+  const addQ = () => onChange([...quiz, { question: '', options: ['', '', '', ''], correct_answer: 0, explanation: '' }]);
+  const removeQ = (i) => onChange(quiz.filter((_, idx) => idx !== i));
+  const updateQ = (i, field, value) => { const c = [...quiz]; c[i] = { ...c[i], [field]: value }; onChange(c); };
+  const updateOption = (qi, oi, value) => {
+    const c = [...quiz]; const opts = [...c[qi].options]; opts[oi] = value; c[qi] = { ...c[qi], options: opts }; onChange(c);
+  };
+
+  const generateWithAI = async () => {
+    if (!lessonTitle) { toast({ variant: 'destructive', title: 'Enter a lesson title first' }); return; }
+    setGenerating(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/academy/admin/courses/generate-quiz`, {
+        method: 'POST', headers: getHeaders(),
+        body: JSON.stringify({ lesson_title: lessonTitle, course_title: courseTitle || '', num_questions: 5 })
+      });
+      const d = await res.json();
+      if (res.ok && d.questions) {
+        onChange(d.questions);
+        toast({ title: `${d.questions.length} questions generated!` });
+      } else { toast({ variant: 'destructive', title: d.detail || 'Generation failed' }); }
+    } catch { toast({ variant: 'destructive', title: 'Network error' }); }
+    finally { setGenerating(false); }
+  };
+
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Quiz ({quiz.length}/10 questions)</span>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" onClick={generateWithAI} disabled={generating} className="h-6 text-[10px] gap-1 text-violet-600 border-violet-200" data-testid="ai-quiz-btn">
+            {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} AI Generate
+          </Button>
+          {quiz.length < 10 && <Button variant="outline" size="sm" onClick={addQ} className="h-6 text-[10px] gap-1"><Plus className="w-3 h-3" /> Add</Button>}
+        </div>
+      </div>
+      {quiz.map((q, qi) => (
+        <div key={qi} className="bg-white dark:bg-slate-900 rounded-lg p-2.5 border border-gray-200 dark:border-gray-700 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+            <Input value={q.question} onChange={e => updateQ(qi, 'question', e.target.value)} placeholder={`Question ${qi + 1}`} className="text-xs h-7 flex-1" />
+            <Button variant="ghost" size="icon" className="h-5 w-5 text-red-400" onClick={() => removeQ(qi)}><X className="w-3 h-3" /></Button>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 pl-5">
+            {(q.options || ['', '', '', '']).map((opt, oi) => (
+              <div key={oi} className="flex items-center gap-1">
+                <button onClick={() => updateQ(qi, 'correct_answer', oi)} className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors text-[9px] font-bold", q.correct_answer === oi ? "border-green-500 bg-green-500 text-white" : "border-gray-300 text-gray-400")}>
+                  {String.fromCharCode(65 + oi)}
+                </button>
+                <Input value={opt} onChange={e => updateOption(qi, oi, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + oi)}`} className="text-[11px] h-6 flex-1" />
+              </div>
+            ))}
+          </div>
+          <div className="pl-5">
+            <Input value={q.explanation || ''} onChange={e => updateQ(qi, 'explanation', e.target.value)} placeholder="Explanation (shown after answer)" className="text-[10px] h-6 text-gray-400" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ============== Lesson Editor ==============
-const LessonEditor = ({ lessons, onChange }) => {
-  const add = () => onChange([...lessons, { id: '', title: '', video_url: '', duration: '', content: '', type: 'video', order: lessons.length }]);
+const LessonEditor = ({ lessons, onChange, courseTitle }) => {
+  const [expandedQuiz, setExpandedQuiz] = useState(null);
+
+  const add = () => onChange([...lessons, { id: '', title: '', video_url: '', duration: '', content: '', type: 'video', order: lessons.length, quiz: [] }]);
   const update = (i, field, value) => { const copy = [...lessons]; copy[i] = { ...copy[i], [field]: value }; onChange(copy); };
-  const remove = (i) => onChange(lessons.filter((_, idx) => idx !== i));
+  const remove = (i) => { onChange(lessons.filter((_, idx) => idx !== i)); if (expandedQuiz === i) setExpandedQuiz(null); };
   const move = (i, dir) => {
     if ((dir === -1 && i === 0) || (dir === 1 && i === lessons.length - 1)) return;
     const copy = [...lessons];
@@ -40,6 +110,9 @@ const LessonEditor = ({ lessons, onChange }) => {
           <div className="flex items-center gap-2 mb-2">
             <span className="w-6 h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-[10px] font-bold text-violet-600 shrink-0">{i + 1}</span>
             <Input value={lesson.title} onChange={e => update(i, 'title', e.target.value)} placeholder="Lesson title *" className="flex-1 text-sm h-8" data-testid={`lesson-title-${i}`} />
+            <Button variant="ghost" size="sm" className={cn("h-6 text-[10px] gap-1", lesson.quiz?.length > 0 ? "text-green-600" : "text-gray-400")} onClick={() => setExpandedQuiz(expandedQuiz === i ? null : i)}>
+              <HelpCircle className="w-3 h-3" /> {lesson.quiz?.length || 0} Q
+            </Button>
             <div className="flex gap-0.5">
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(i, -1)} disabled={i === 0}><ChevronUp className="w-3 h-3" /></Button>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => move(i, 1)} disabled={i === lessons.length - 1}><ChevronDown className="w-3 h-3" /></Button>
@@ -50,6 +123,9 @@ const LessonEditor = ({ lessons, onChange }) => {
             <Input value={lesson.video_url} onChange={e => update(i, 'video_url', e.target.value)} placeholder="Video URL (YouTube/Vimeo)" className="text-xs h-7 col-span-2" />
             <Input value={lesson.duration} onChange={e => update(i, 'duration', e.target.value)} placeholder="Duration (e.g. 20 min)" className="text-xs h-7" />
           </div>
+          {expandedQuiz === i && (
+            <QuizEditor quiz={lesson.quiz || []} onChange={q => update(i, 'quiz', q)} lessonTitle={lesson.title} courseTitle={courseTitle} />
+          )}
         </div>
       ))}
       <Button variant="outline" size="sm" onClick={add} className="w-full gap-1.5 text-xs" data-testid="add-lesson-btn">
@@ -64,7 +140,9 @@ const CourseFormDialog = ({ open, onOpenChange, course, onSave }) => {
   const [form, setForm] = useState({});
   const [lessons, setLessons] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
   const [activeFormTab, setActiveFormTab] = useState('details');
+  const { toast } = useToast();
 
   useEffect(() => {
     if (course) {
@@ -79,14 +157,45 @@ const CourseFormDialog = ({ open, onOpenChange, course, onSave }) => {
         prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites.join('\n') : '',
         estimated_hours: course.estimated_hours || 0,
         status: course.status || 'draft',
+        pass_threshold: course.pass_threshold ?? 70,
       });
       setLessons(course.lessons || []);
     } else {
-      setForm({ title: '', description: '', category: 'AI', level: 'beginner', instructor_name: '', instructor_avatar: '', instructor_title: '', thumbnail: '', is_premium: false, price: 0, tags: '', what_you_learn: '', prerequisites: '', estimated_hours: 0, status: 'draft' });
+      setForm({ title: '', description: '', category: 'AI', level: 'beginner', instructor_name: '', instructor_avatar: '', instructor_title: '', thumbnail: '', is_premium: false, price: 0, tags: '', what_you_learn: '', prerequisites: '', estimated_hours: 0, status: 'draft', pass_threshold: 70 });
       setLessons([]);
     }
     setActiveFormTab('details');
   }, [course, open]);
+
+  const handleAIGenerate = async () => {
+    if (!form.title) { toast({ variant: 'destructive', title: 'Enter a topic/title first' }); return; }
+    setAiGenerating(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/academy/admin/courses/generate`, {
+        method: 'POST', headers: getHeaders(),
+        body: JSON.stringify({ topic: form.title, level: form.level, num_lessons: 6 })
+      });
+      const d = await res.json();
+      if (res.ok && d.course) {
+        const c = d.course;
+        setForm(prev => ({
+          ...prev,
+          title: c.title || prev.title,
+          description: c.description || prev.description,
+          category: c.category || prev.category,
+          level: c.level || prev.level,
+          estimated_hours: c.estimated_hours || prev.estimated_hours,
+          tags: Array.isArray(c.tags) ? c.tags.join(', ') : prev.tags,
+          what_you_learn: Array.isArray(c.what_you_learn) ? c.what_you_learn.join('\n') : prev.what_you_learn,
+          prerequisites: Array.isArray(c.prerequisites) ? c.prerequisites.join('\n') : prev.prerequisites,
+        }));
+        if (c.lessons) setLessons(c.lessons.map((l, i) => ({ ...l, id: '', order: i, quiz: [] })));
+        toast({ title: 'Course content generated! Review and edit before saving.' });
+        setActiveFormTab('details');
+      } else { toast({ variant: 'destructive', title: d.detail || 'Generation failed' }); }
+    } catch { toast({ variant: 'destructive', title: 'Network error' }); }
+    finally { setAiGenerating(false); }
+  };
 
   const handleSave = async () => {
     if (!form.title) return;
@@ -98,6 +207,7 @@ const CourseFormDialog = ({ open, onOpenChange, course, onSave }) => {
       prerequisites: form.prerequisites ? form.prerequisites.split('\n').filter(Boolean) : [],
       price: parseFloat(form.price) || 0,
       estimated_hours: parseFloat(form.estimated_hours) || 0,
+      pass_threshold: parseInt(form.pass_threshold) || 70,
       lessons: lessons.map((l, i) => ({ ...l, order: i })),
     };
     await onSave(payload, course?.id);
@@ -117,6 +227,21 @@ const CourseFormDialog = ({ open, onOpenChange, course, onSave }) => {
           </DialogTitle>
         </DialogHeader>
 
+        {/* AI Generate Banner */}
+        {!course && (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200 dark:border-violet-800">
+            <Sparkles className="w-5 h-5 text-violet-500 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Generate with AI</p>
+              <p className="text-[11px] text-gray-500">Enter a topic above, then click generate</p>
+            </div>
+            <Button size="sm" onClick={handleAIGenerate} disabled={aiGenerating || !form.title} className="bg-violet-600 hover:bg-violet-700 gap-1.5" data-testid="ai-generate-course-btn">
+              {aiGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+              {aiGenerating ? 'Generating...' : 'Generate'}
+            </Button>
+          </div>
+        )}
+
         <Tabs value={activeFormTab} onValueChange={setActiveFormTab} className="mt-2">
           <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="details">Details</TabsTrigger>
@@ -125,7 +250,7 @@ const CourseFormDialog = ({ open, onOpenChange, course, onSave }) => {
           </TabsList>
 
           <TabsContent value="details" className="mt-4 space-y-3">
-            <div><label className="text-xs font-medium mb-1 block">Title *</label><Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Course title" data-testid="course-title-input" /></div>
+            <div><label className="text-xs font-medium mb-1 block">Title *</label><Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Course title or topic for AI generation" data-testid="course-title-input" /></div>
             <div><label className="text-xs font-medium mb-1 block">Description</label><Textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="Course description..." rows={3} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs font-medium mb-1 block">Category</label>
@@ -150,13 +275,13 @@ const CourseFormDialog = ({ open, onOpenChange, course, onSave }) => {
                 <Input value={form.instructor_avatar} onChange={e => set('instructor_avatar', e.target.value)} placeholder="Avatar URL" className="text-sm" />
               </div>
             </div>
-            <div><label className="text-xs font-medium mb-1 block">What You'll Learn (one per line)</label><Textarea value={form.what_you_learn} onChange={e => set('what_you_learn', e.target.value)} placeholder="Master AI fundamentals&#10;Build neural networks&#10;Deploy models" rows={3} className="text-sm" /></div>
+            <div><label className="text-xs font-medium mb-1 block">What You'll Learn (one per line)</label><Textarea value={form.what_you_learn} onChange={e => set('what_you_learn', e.target.value)} placeholder={"Master AI fundamentals\nBuild neural networks\nDeploy models"} rows={3} className="text-sm" /></div>
             <div><label className="text-xs font-medium mb-1 block">Prerequisites (one per line)</label><Textarea value={form.prerequisites} onChange={e => set('prerequisites', e.target.value)} placeholder="Basic Python knowledge" rows={2} className="text-sm" /></div>
             <div><label className="text-xs font-medium mb-1 block">Tags (comma-separated)</label><Input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="AI, Machine Learning, Neural Networks" /></div>
           </TabsContent>
 
           <TabsContent value="lessons" className="mt-4">
-            <LessonEditor lessons={lessons} onChange={setLessons} />
+            <LessonEditor lessons={lessons} onChange={setLessons} courseTitle={form.title} />
           </TabsContent>
 
           <TabsContent value="settings" className="mt-4 space-y-3">
@@ -177,12 +302,30 @@ const CourseFormDialog = ({ open, onOpenChange, course, onSave }) => {
               <input type="checkbox" id="is_premium" checked={form.is_premium} onChange={e => set('is_premium', e.target.checked)} className="rounded border-gray-300" />
               <div>
                 <label htmlFor="is_premium" className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-amber-500" /> Premium Course (Pro subscription required)</label>
-                <p className="text-[11px] text-gray-400 mt-0.5">Only users with Pro or Enterprise subscription can access this course</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">Only users with Pro or Enterprise subscription can access</p>
               </div>
             </div>
             {form.is_premium && (
               <div><label className="text-xs font-medium mb-1 block">Price ($)</label><Input type="number" value={form.price} onChange={e => set('price', e.target.value)} placeholder="29.00" /></div>
             )}
+            {/* Pass Threshold */}
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5 mb-2">
+                <HelpCircle className="w-3.5 h-3.5 text-blue-500" /> Quiz Pass Threshold
+              </label>
+              <div className="flex items-center gap-3">
+                <Input type="number" min={0} max={100} value={form.pass_threshold} onChange={e => set('pass_threshold', e.target.value)} className="w-24 text-sm" data-testid="pass-threshold-input" />
+                <span className="text-sm text-gray-500">% required to pass</span>
+                <div className="ml-auto flex gap-1">
+                  {[50, 60, 70, 80, 90].map(v => (
+                    <button key={v} onClick={() => set('pass_threshold', v)} className={cn("px-2 py-0.5 rounded text-[10px] font-medium border transition-colors", form.pass_threshold == v ? "bg-blue-100 text-blue-700 border-blue-300" : "text-gray-400 border-gray-200 hover:border-gray-300")}>
+                      {v}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1.5">Students scoring below this on lesson quizzes will receive a "Fail" certificate</p>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -210,8 +353,6 @@ const AdminCoursesPage = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPremium, setFilterPremium] = useState('all');
 
-  const getHeaders = () => ({ 'Authorization': `Bearer ${getAdminToken()}`, 'Content-Type': 'application/json' });
-
   const fetchCourses = useCallback(async () => {
     setLoading(true);
     try {
@@ -228,10 +369,8 @@ const AdminCoursesPage = () => {
     const method = courseId ? 'PUT' : 'POST';
     try {
       const res = await fetch(url, { method, headers: getHeaders(), body: JSON.stringify(payload) });
-      if (res.ok) {
-        toast({ title: courseId ? 'Course updated' : 'Course created' });
-        fetchCourses();
-      } else { const d = await res.json(); toast({ variant: 'destructive', title: d.detail || 'Failed' }); }
+      if (res.ok) { toast({ title: courseId ? 'Course updated' : 'Course created' }); fetchCourses(); }
+      else { const d = await res.json(); toast({ variant: 'destructive', title: d.detail || 'Failed' }); }
     } catch { toast({ variant: 'destructive', title: 'Network error' }); }
   };
 
@@ -261,25 +400,21 @@ const AdminCoursesPage = () => {
     return true;
   });
 
+  const totalQuizzes = courses.reduce((s, c) => s + (c.lessons || []).filter(l => l.quiz?.length > 0).length, 0);
   const stats = {
-    total: courses.length,
-    published: courses.filter(c => c.status === 'published').length,
-    draft: courses.filter(c => c.status === 'draft').length,
-    premium: courses.filter(c => c.is_premium).length,
-    totalEnrolled: courses.reduce((s, c) => s + (c.enrolled_count || 0), 0),
+    total: courses.length, published: courses.filter(c => c.status === 'published').length,
+    draft: courses.filter(c => c.status === 'draft').length, premium: courses.filter(c => c.is_premium).length,
+    totalEnrolled: courses.reduce((s, c) => s + (c.enrolled_count || 0), 0), quizzes: totalQuizzes,
   };
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto" data-testid="admin-courses-page">
       <Helmet><title>Courses Management | Admin</title></Helmet>
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-violet-500" /> Courses Management
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Create and manage academy courses</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><GraduationCap className="w-6 h-6 text-violet-500" /> Courses Management</h1>
+          <p className="text-sm text-gray-500 mt-1">Create and manage academy courses with quizzes and AI generation</p>
         </div>
         <Button onClick={() => { setEditCourse(null); setFormOpen(true); }} className="bg-violet-600 hover:bg-violet-700 gap-1.5" data-testid="create-course-btn">
           <Plus className="w-4 h-4" /> Create Course
@@ -287,13 +422,14 @@ const AdminCoursesPage = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
         {[
           { label: 'Total', value: stats.total, color: 'text-gray-900 dark:text-white' },
           { label: 'Published', value: stats.published, color: 'text-green-600' },
           { label: 'Draft', value: stats.draft, color: 'text-amber-600' },
           { label: 'Premium', value: stats.premium, color: 'text-violet-600' },
           { label: 'Enrolled', value: stats.totalEnrolled, color: 'text-blue-600' },
+          { label: 'Quizzes', value: stats.quizzes, color: 'text-purple-600' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-3">
             <p className="text-[10px] text-gray-400 uppercase tracking-wider">{label}</p>
@@ -334,7 +470,6 @@ const AdminCoursesPage = () => {
         <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800">
           <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-lg font-medium">No courses found</p>
-          <p className="text-gray-400 text-sm mt-1">Create your first course to get started</p>
           <Button onClick={() => { setEditCourse(null); setFormOpen(true); }} className="mt-4 bg-violet-600 hover:bg-violet-700 gap-1.5"><Plus className="w-4 h-4" /> Create Course</Button>
         </div>
       ) : (
@@ -347,68 +482,56 @@ const AdminCoursesPage = () => {
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Level</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Type</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Lessons</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Content</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Enrolled</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filtered.map(course => (
-                <tr key={course.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" data-testid={`course-row-${course.id}`}>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {course.thumbnail ? (
-                        <img src={course.thumbnail} alt="" className="w-12 h-8 rounded-lg object-cover shrink-0" />
-                      ) : (
-                        <div className="w-12 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0"><GraduationCap className="w-4 h-4 text-violet-400" /></div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 dark:text-white truncate max-w-[250px]">{course.title}</p>
-                        {course.instructor_name && <p className="text-[11px] text-gray-400 truncate">By {course.instructor_name}</p>}
+              {filtered.map(course => {
+                const quizCount = (course.lessons || []).filter(l => l.quiz?.length > 0).length;
+                return (
+                  <tr key={course.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" data-testid={`course-row-${course.id}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {course.thumbnail ? <img src={course.thumbnail} alt="" className="w-12 h-8 rounded-lg object-cover shrink-0" /> : <div className="w-12 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0"><GraduationCap className="w-4 h-4 text-violet-400" /></div>}
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-white truncate max-w-[220px]">{course.title}</p>
+                          {course.instructor_name && <p className="text-[11px] text-gray-400 truncate">By {course.instructor_name}</p>}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3"><Badge variant="secondary" className="text-[10px]">{course.category}</Badge></td>
-                  <td className="px-4 py-3"><span className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize", course.level === 'beginner' ? 'bg-green-100 text-green-700' : course.level === 'intermediate' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')}>{course.level}</span></td>
-                  <td className="px-4 py-3">
-                    {course.is_premium ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 flex items-center gap-1 w-fit"><Lock className="w-2.5 h-2.5" /> Pro ${course.price}</span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Free</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleToggleStatus(course)} className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize cursor-pointer transition-colors", course.status === 'published' ? 'bg-green-100 text-green-700 hover:bg-green-200' : course.status === 'draft' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-red-100 text-red-600 hover:bg-red-200')} title="Click to toggle">
-                      {course.status}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400"><Video className="w-3 h-3" /> {course.lessons?.length || 0}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400"><Users className="w-3 h-3" /> {course.enrolled_count || 0}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(`/academy/courses/${course.id}`, '_blank')} title="Preview"><Eye className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditCourse(course); setFormOpen(true); }} title="Edit" data-testid={`edit-course-${course.id}`}><Edit2 className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDelete(course.id, course.title)} title="Delete"><Trash2 className="w-3.5 h-3.5" /></Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3"><Badge variant="secondary" className="text-[10px]">{course.category}</Badge></td>
+                    <td className="px-4 py-3"><span className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize", course.level === 'beginner' ? 'bg-green-100 text-green-700' : course.level === 'intermediate' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')}>{course.level}</span></td>
+                    <td className="px-4 py-3">
+                      {course.is_premium ? <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 flex items-center gap-1 w-fit"><Lock className="w-2.5 h-2.5" /> Pro</span> : <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">Free</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => handleToggleStatus(course)} className={cn("px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize cursor-pointer transition-colors", course.status === 'published' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')} title="Click to toggle">{course.status}</button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <span className="flex items-center gap-1 text-[11px]"><Video className="w-3 h-3" /> {course.lessons?.length || 0}</span>
+                        {quizCount > 0 && <span className="flex items-center gap-1 text-[11px] text-purple-600"><HelpCircle className="w-3 h-3" /> {quizCount}</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"><span className="flex items-center gap-1 text-gray-600 dark:text-gray-400"><Users className="w-3 h-3" /> {course.enrolled_count || 0}</span></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(`/academy/courses/${course.id}`, '_blank')} title="Preview"><Eye className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditCourse(course); setFormOpen(true); }} title="Edit"><Edit2 className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => handleDelete(course.id, course.title)} title="Delete"><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Form Dialog */}
-      <CourseFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        course={editCourse}
-        onSave={handleSave}
-      />
+      <CourseFormDialog open={formOpen} onOpenChange={setFormOpen} course={editCourse} onSave={handleSave} />
     </div>
   );
 };

@@ -16,6 +16,13 @@ router = APIRouter(prefix="/academy", tags=["Academy"])
 
 # ============== Models ==============
 
+class QuizQuestion(BaseModel):
+    question: str
+    options: List[str] = []  # A, B, C, D
+    correct_answer: int = 0  # index into options (0-3)
+    explanation: str = ""
+
+
 class LessonCreate(BaseModel):
     title: str
     description: str = ""
@@ -24,6 +31,7 @@ class LessonCreate(BaseModel):
     content: str = ""
     order: int = 0
     type: str = "video"  # video, text, quiz
+    quiz: List[QuizQuestion] = []
 
 
 class CourseCreate(BaseModel):
@@ -43,6 +51,7 @@ class CourseCreate(BaseModel):
     estimated_hours: float = 0
     status: str = "draft"  # draft, published, archived
     lessons: List[LessonCreate] = []
+    pass_threshold: int = 70  # configurable pass/fail %
 
 
 class CourseUpdate(BaseModel):
@@ -62,6 +71,7 @@ class CourseUpdate(BaseModel):
     estimated_hours: Optional[float] = None
     status: Optional[str] = None
     lessons: Optional[List[LessonCreate]] = None
+    pass_threshold: Optional[int] = None
 
 
 CATEGORIES = ["AI", "Cloud", "Cybersecurity", "DevOps", "Data Science",
@@ -79,11 +89,14 @@ async def create_course(course: CourseCreate, user=Depends(get_current_user)):
 
     lessons = []
     for i, lesson in enumerate(course.lessons):
-        lessons.append({
-            "id": str(uuid.uuid4()),
-            **lesson.dict(),
-            "order": lesson.order or i,
-        })
+        lesson_dict = lesson.dict()
+        lesson_dict["id"] = str(uuid.uuid4())
+        lesson_dict["order"] = lesson.order or i
+        # Ensure quiz questions have proper structure
+        if lesson_dict.get("quiz"):
+            for q in lesson_dict["quiz"]:
+                q.setdefault("explanation", "")
+        lessons.append(lesson_dict)
 
     doc = {
         "id": str(uuid.uuid4()),
@@ -103,6 +116,7 @@ async def create_course(course: CourseCreate, user=Depends(get_current_user)):
         "estimated_hours": course.estimated_hours,
         "status": course.status,
         "lessons": lessons,
+        "pass_threshold": course.pass_threshold,
         "enrolled_count": 0,
         "rating": 0,
         "reviews_count": 0,
@@ -297,7 +311,7 @@ async def complete_lesson(course_id: str, lesson_id: str, user=Depends(get_curre
     if not enrollment:
         raise HTTPException(status_code=400, detail="Not enrolled in this course")
 
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0, "lessons": 1})
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0, "lessons": 1, "pass_threshold": 1, "title": 1})
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
@@ -315,10 +329,23 @@ async def complete_lesson(course_id: str, lesson_id: str, user=Depends(get_curre
         }}
     )
 
-    # If 100% complete, issue certificate
+    # If 100% complete, issue certificate with quiz pass/fail
     if progress >= 100:
         existing_cert = await db.academy_certificates.find_one({"user_id": user_id, "ref_id": course_id, "type": "course"})
         if not existing_cert:
+            # Calculate overall quiz score
+            quiz_results = enrollment.get("quiz_results", {})
+            total_quiz_score = 0
+            quiz_count = 0
+            for lesson in course.get("lessons", []):
+                if lesson.get("quiz") and lesson.get("id") in quiz_results:
+                    total_quiz_score += quiz_results[lesson["id"]].get("score", 0)
+                    quiz_count += 1
+
+            avg_quiz_score = int(total_quiz_score / quiz_count) if quiz_count > 0 else 100
+            pass_threshold = course.get("pass_threshold", 70)
+            quiz_passed = avg_quiz_score >= pass_threshold
+
             cert = {
                 "id": str(uuid.uuid4()),
                 "user_id": user_id,
@@ -328,10 +355,14 @@ async def complete_lesson(course_id: str, lesson_id: str, user=Depends(get_curre
                 "ref_id": course_id,
                 "title": course.get("title", ""),
                 "cert_number": f"MAI-C-{uuid.uuid4().hex[:8].upper()}",
+                "quiz_score": avg_quiz_score,
+                "quiz_passed": quiz_passed,
+                "pass_threshold": pass_threshold,
+                "status": "pass" if quiz_passed else "fail",
                 "issued_at": datetime.now(timezone.utc).isoformat(),
             }
             await db.academy_certificates.insert_one(cert)
-            logger.info(f"Certificate issued for user {user_id} - course {course_id}")
+            logger.info(f"Certificate issued: user={user_id} course={course_id} score={avg_quiz_score}% {'PASS' if quiz_passed else 'FAIL'}")
 
     return {"success": True, "progress": progress, "completed": progress >= 100}
 
@@ -425,3 +456,225 @@ async def get_academy_dashboard(user=Depends(get_current_user)):
             "learning_streak": streak,
         }
     }
+
+
+# ============== Quiz Submission ==============
+
+class QuizSubmission(BaseModel):
+    answers: List[int]  # indices of selected options, matching quiz question order
+
+
+@router.post("/courses/{course_id}/lessons/{lesson_id}/quiz-submit")
+async def submit_quiz(course_id: str, lesson_id: str, submission: QuizSubmission, user=Depends(get_current_user)):
+    """Submit quiz answers for a lesson and get score"""
+    user_id = user.get("id")
+    enrollment = await db.course_enrollments.find_one({"user_id": user_id, "course_id": course_id})
+    if not enrollment:
+        raise HTTPException(status_code=400, detail="Not enrolled in this course")
+
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0, "lessons": 1, "pass_threshold": 1, "title": 1})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    lesson = next((l for l in course.get("lessons", []) if l.get("id") == lesson_id), None)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    quiz = lesson.get("quiz", [])
+    if not quiz:
+        raise HTTPException(status_code=400, detail="This lesson has no quiz")
+
+    # Score the quiz
+    total = len(quiz)
+    correct = 0
+    results = []
+    for i, q in enumerate(quiz):
+        user_answer = submission.answers[i] if i < len(submission.answers) else -1
+        is_correct = user_answer == q.get("correct_answer", 0)
+        if is_correct:
+            correct += 1
+        results.append({
+            "question": q.get("question"),
+            "user_answer": user_answer,
+            "correct_answer": q.get("correct_answer", 0),
+            "is_correct": is_correct,
+            "explanation": q.get("explanation", ""),
+        })
+
+    score = int((correct / total) * 100) if total > 0 else 0
+    pass_threshold = course.get("pass_threshold", 70)
+    passed = score >= pass_threshold
+
+    # Store quiz result
+    quiz_result = {
+        "lesson_id": lesson_id,
+        "score": score,
+        "correct": correct,
+        "total": total,
+        "passed": passed,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Update enrollment with quiz results
+    quiz_results = enrollment.get("quiz_results", {})
+    quiz_results[lesson_id] = quiz_result
+    await db.course_enrollments.update_one(
+        {"user_id": user_id, "course_id": course_id},
+        {"$set": {
+            f"quiz_results": quiz_results,
+            "last_activity": datetime.now(timezone.utc).isoformat(),
+        }}
+    )
+
+    return {
+        "score": score,
+        "correct": correct,
+        "total": total,
+        "passed": passed,
+        "pass_threshold": pass_threshold,
+        "results": results,
+    }
+
+
+# ============== AI Course Generator ==============
+
+class AIGenerateRequest(BaseModel):
+    topic: str
+    level: str = "beginner"
+    num_lessons: int = 6
+
+
+@router.post("/admin/courses/generate")
+async def ai_generate_course(req: AIGenerateRequest, user=Depends(get_current_user)):
+    """Generate a course outline using AI"""
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.environ.get("EMERGENT_LLM_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="AI not configured")
+
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"course-gen-{uuid.uuid4().hex[:8]}",
+        system_message="You are an expert curriculum designer for an AI education platform. Generate structured course content in valid JSON format only. No markdown, no code blocks, just pure JSON."
+    ).with_model("openai", "gpt-5.2")
+
+    prompt = f"""Generate a comprehensive course outline for the topic: "{req.topic}"
+Level: {req.level}
+Number of lessons: {req.num_lessons}
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "title": "Course Title",
+  "description": "2-3 sentence course description",
+  "category": "one of: AI, Prompt Engineering, Cloud, DevOps, Cybersecurity, Data Science, Software Engineering, Product Management",
+  "level": "{req.level}",
+  "estimated_hours": number,
+  "tags": ["tag1", "tag2", "tag3"],
+  "what_you_learn": ["outcome1", "outcome2", "outcome3", "outcome4"],
+  "prerequisites": ["prereq1"],
+  "lessons": [
+    {{
+      "title": "Lesson Title",
+      "description": "Brief lesson description",
+      "duration": "20 min",
+      "type": "video"
+    }}
+  ]
+}}"""
+
+    msg = UserMessage(text=prompt)
+    response = await chat.send_message(msg)
+    response_text = (response if isinstance(response, str) else getattr(response, "text", str(response))).strip()
+
+    # Parse JSON from response
+    import json
+    try:
+        # Try to extract JSON if wrapped in code blocks
+        if "```" in response_text:
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+        course_data = json.loads(response_text)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI returned invalid JSON. Please try again.")
+
+    logger.info(f"AI course generated for topic: {req.topic}")
+    return {"success": True, "course": course_data}
+
+
+# ============== AI Quiz Generator ==============
+
+class AIQuizRequest(BaseModel):
+    lesson_title: str
+    course_title: str = ""
+    num_questions: int = 5
+
+
+@router.post("/admin/courses/generate-quiz")
+async def ai_generate_quiz(req: AIQuizRequest, user=Depends(get_current_user)):
+    """Generate quiz questions for a lesson using AI"""
+    role = (user.get("role") or "").lower().replace(" ", "_")
+    if role not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.environ.get("EMERGENT_LLM_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="AI not configured")
+
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"quiz-gen-{uuid.uuid4().hex[:8]}",
+        system_message="You are an expert educator creating assessment questions. Return only valid JSON. No markdown, no code blocks."
+    ).with_model("openai", "gpt-5.2")
+
+    prompt = f"""Generate {req.num_questions} multiple-choice quiz questions for:
+Course: "{req.course_title}"
+Lesson: "{req.lesson_title}"
+
+Return ONLY valid JSON array with this exact structure:
+[
+  {{
+    "question": "What is...?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct_answer": 0,
+    "explanation": "Brief explanation of why this is correct"
+  }}
+]
+
+Rules:
+- Each question must have exactly 4 options
+- correct_answer is the 0-based index (0-3)
+- Questions should test understanding, not memorization
+- Mix difficulty levels"""
+
+    msg = UserMessage(text=prompt)
+    response = await chat.send_message(msg)
+    response_text = (response if isinstance(response, str) else getattr(response, "text", str(response))).strip()
+
+    import json
+    try:
+        if "```" in response_text:
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+        questions = json.loads(response_text)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI returned invalid JSON. Please try again.")
+
+    logger.info(f"AI quiz generated: {req.num_questions} questions for '{req.lesson_title}'")
+    return {"success": True, "questions": questions}

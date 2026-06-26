@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Play, Check, Lock, Clock, Users, Award, ArrowLeft, ChevronDown, ChevronUp, Star, GraduationCap, Zap, Radio } from 'lucide-react';
+import { BookOpen, Play, Check, Lock, Clock, Users, Award, ArrowLeft, ChevronDown, ChevronUp, Star, GraduationCap, Zap, Radio, HelpCircle, X, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -21,6 +21,9 @@ const AcademyCourseDetail = () => {
   const [enrolling, setEnrolling] = useState(false);
   const [activeLesson, setActiveLesson] = useState(null);
   const [completing, setCompleting] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizResult, setQuizResult] = useState(null);
+  const [submittingQuiz, setSubmittingQuiz] = useState(false);
 
   const token = JSON.parse(localStorage.getItem('munal_sessions') || '{}').token;
 
@@ -82,6 +85,29 @@ const AcademyCourseDetail = () => {
     } catch { toast({ variant: 'destructive', title: 'Failed' }); }
     finally { setCompleting(false); }
   };
+
+  const handleQuizSubmit = async () => {
+    if (!token || !activeLesson) return;
+    const quiz = activeLesson.quiz || [];
+    const answers = quiz.map((_, i) => quizAnswers[i] ?? -1);
+    setSubmittingQuiz(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/academy/courses/${courseId}/lessons/${activeLesson.id}/quiz-submit`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers })
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setQuizResult(d);
+        if (d.passed) toast({ title: `Quiz passed! Score: ${d.score}%` });
+        else toast({ variant: 'destructive', title: `Quiz not passed. Score: ${d.score}% (need ${d.pass_threshold}%)` });
+      }
+    } catch { toast({ variant: 'destructive', title: 'Failed to submit quiz' }); }
+    finally { setSubmittingQuiz(false); }
+  };
+
+  // Reset quiz state when changing lesson
+  useEffect(() => { setQuizAnswers({}); setQuizResult(null); }, [activeLesson?.id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" /></div>;
   if (!course) return null;
@@ -162,6 +188,71 @@ const AcademyCourseDetail = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Lesson Quiz */}
+            {activeLesson?.quiz?.length > 0 && course.enrolled && course.has_access && (
+              <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5" data-testid="lesson-quiz">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <HelpCircle className="w-5 h-5 text-purple-500" /> Lesson Quiz
+                  <span className="text-xs text-gray-400 font-normal ml-auto">{activeLesson.quiz.length} questions · Pass: {course.pass_threshold || 70}%</span>
+                </h3>
+
+                {quizResult ? (
+                  <div className="space-y-4">
+                    {/* Score Summary */}
+                    <div className={cn("p-4 rounded-xl text-center", quizResult.passed ? "bg-green-50 dark:bg-green-900/20 border border-green-200" : "bg-red-50 dark:bg-red-900/20 border border-red-200")}>
+                      <div className={cn("text-3xl font-bold mb-1", quizResult.passed ? "text-green-600" : "text-red-600")}>{quizResult.score}%</div>
+                      <p className={cn("text-sm font-medium", quizResult.passed ? "text-green-700" : "text-red-700")}>
+                        {quizResult.passed ? 'Passed!' : 'Not Passed'} · {quizResult.correct}/{quizResult.total} correct
+                      </p>
+                      {!quizResult.passed && <p className="text-xs text-gray-500 mt-1">Need {quizResult.pass_threshold}% to pass</p>}
+                    </div>
+                    {/* Results per question */}
+                    <div className="space-y-3">
+                      {quizResult.results?.map((r, i) => (
+                        <div key={i} className={cn("p-3 rounded-lg border", r.is_correct ? "bg-green-50/50 border-green-200 dark:bg-green-900/10" : "bg-red-50/50 border-red-200 dark:bg-red-900/10")}>
+                          <div className="flex items-start gap-2">
+                            {r.is_correct ? <CheckCircle className="w-4 h-4 text-green-500 shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />}
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">{r.question}</p>
+                              {r.explanation && <p className="text-xs text-gray-500 mt-1">{r.explanation}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => { setQuizResult(null); setQuizAnswers({}); }} className="w-full">Retake Quiz</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activeLesson.quiz.map((q, qi) => (
+                      <div key={qi} className="space-y-2">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{qi + 1}. {q.question}</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-4">
+                          {(q.options || []).map((opt, oi) => (
+                            <button key={oi} onClick={() => setQuizAnswers(p => ({ ...p, [qi]: oi }))}
+                              className={cn("flex items-center gap-2 p-2.5 rounded-lg border text-sm text-left transition-all",
+                                quizAnswers[qi] === oi ? "border-violet-400 bg-violet-50 dark:bg-violet-900/20 text-violet-700" : "border-gray-200 dark:border-gray-700 hover:border-gray-300 text-gray-600 dark:text-gray-400"
+                              )} data-testid={`quiz-option-${qi}-${oi}`}
+                            >
+                              <span className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shrink-0",
+                                quizAnswers[qi] === oi ? "border-violet-500 bg-violet-500 text-white" : "border-gray-300"
+                              )}>{String.fromCharCode(65 + oi)}</span>
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <Button onClick={handleQuizSubmit} disabled={submittingQuiz || Object.keys(quizAnswers).length < activeLesson.quiz.length}
+                      className="w-full bg-purple-600 hover:bg-purple-700 gap-2" data-testid="submit-quiz-btn">
+                      {submittingQuiz ? <Loader2 className="w-4 h-4 animate-spin" /> : <HelpCircle className="w-4 h-4" />}
+                      Submit Quiz ({Object.keys(quizAnswers).length}/{activeLesson.quiz.length} answered)
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
