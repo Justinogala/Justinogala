@@ -103,6 +103,19 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Deployment blocker fixes: TensorFlow removed, .gitignore cleaned
 
 
+### Quiz System + AI Course/Quiz Generator — June 26, 2026
+- **Per-Lesson Quiz System**: Admin can add 5-10 multiple-choice questions per lesson. Each question has 4 options, correct answer index, and explanation. Users take quizzes after watching lessons.
+  - Quiz submission scores answers and returns per-question results with explanations
+  - **Configurable Pass Threshold**: Admin sets pass % per course (default 70%, quick presets: 50/60/70/80/90%). Students scoring below threshold receive "Fail" certificate
+  - Certificate includes: `quiz_score`, `quiz_passed`, `pass_threshold`, `status` (pass/fail)
+- **AI Course Generator**: Admin enters a topic → GPT-5.2 generates full course outline (title, description, category, lessons, learning outcomes, prerequisites, tags). One-click populate from the "Generate with AI" banner in Create Course dialog.
+- **AI Quiz Generator**: Per-lesson "AI Generate" button → GPT-5.2 generates 5 multiple-choice questions with options, correct answers, and explanations. Admin reviews and edits before saving.
+- **Stats**: Courses table now shows quiz count per course alongside lesson count
+- Backend: `/app/backend/routes/academy_courses.py` (QuizQuestion model, quiz-submit, AI generate endpoints)
+- Frontend: `/app/src/pages/admin/AdminCoursesPage.jsx` (QuizEditor, AI generate), `/app/src/pages/AcademyCourseDetail.jsx` (quiz UI)
+- Testing: 100% backend (11/11), 95% frontend verified — Iteration 158
+
+
 ### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
 - **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
 - **Hero Image**: Replaced plain gradient with a conference photo background (`pexels-photo-9275222.jpeg`) with overlay gradient
