@@ -523,7 +523,7 @@ const AdminSidebar = ({ onClose, isMobile }) => {
             setHoveredItem={setHoveredItem}
           />
           <NavItem
-            link={{ icon: BookOpen, label: 'Courses', path: '/academy/courses', gradient: 'from-indigo-500 to-purple-500' }}
+            link={{ icon: BookOpen, label: 'Courses', path: '/admin/courses', gradient: 'from-indigo-500 to-purple-500' }}
             index={primaryLinks.length + managementLinks.length + configLinks.length + 5}
             collapsed={collapsed}
             onClose={onClose}

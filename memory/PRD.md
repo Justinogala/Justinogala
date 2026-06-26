@@ -87,6 +87,22 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Testing: 100% backend (20/20 pytest), 100% frontend verified — Iteration 157
 
 
+### Admin Course Management UI — June 26, 2026
+- **Admin Courses Page** (`/admin/courses`): Full CRUD for academy courses within the Control Centre.
+  - Course table: title, thumbnail, category, level, free/premium badge, status, lessons count, enrolled count
+  - Stats bar: Total, Published, Draft, Premium, Enrolled counts
+  - Search + filter by status (All/Published/Draft/Archived) + type (All/Free/Premium)
+  - Create/Edit course dialog with 3 tabs:
+    - **Details**: title, description, category, level, thumbnail, instructor (name/title/avatar), what-you'll-learn, prerequisites, tags
+    - **Lessons**: add/edit/delete/reorder lessons with title, video URL, duration
+    - **Settings**: estimated hours, status (draft/published/archived), premium toggle with price
+  - Clickable status badge to toggle published/draft
+  - Preview, Edit, Delete actions per course
+  - Admin sidebar updated: "Courses" now links to `/admin/courses` (admin panel) instead of `/academy/courses` (public)
+- Frontend: `/app/src/pages/admin/AdminCoursesPage.jsx` (new), App.jsx route added
+- Deployment blocker fixes: TensorFlow removed, .gitignore cleaned
+
+
 ### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
 - **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
 - **Hero Image**: Replaced plain gradient with a conference photo background (`pexels-photo-9275222.jpeg`) with overlay gradient

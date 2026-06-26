@@ -278,6 +278,7 @@ const AdminSystemUpdatesPage = lazy(() => import('@/pages/admin/AdminSystemUpdat
 const AdminTrashPage = lazy(() => import('@/pages/admin/AdminTrashPage'));
 const AdminNewsletterPage = lazy(() => import('@/pages/admin/AdminNewsletterPage'));
 const AdminEventsPage = lazy(() => import('@/pages/admin/AdminEventsPage'));
+const AdminCoursesPage = lazy(() => import('@/pages/admin/AdminCoursesPage'));
 const IntegrationsPage = lazy(() => import('@/pages/IntegrationsPage'));
 const APISettingsPage = lazy(() => import('@/pages/APISettingsPage'));
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
@@ -637,6 +638,7 @@ function App() {
                                 <Route path="trash" element={<AdminTrashPage />} />
                                 <Route path="newsletter" element={<AdminNewsletterPage />} />
                                 <Route path="events" element={<AdminEventsPage />} />
+                                <Route path="courses" element={<AdminCoursesPage />} />
                                 <Route path="debug-settings" element={<AdminSettingsPersistenceTest />} />
                                 <Route path="*" element={<AdminDashboard />} />
                               </Route>
