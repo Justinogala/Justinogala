@@ -400,6 +400,12 @@ api_router.include_router(events_extended_router)
 from routes.event_sponsors import router as event_sponsors_router
 api_router.include_router(event_sponsors_router)
 
+from routes.academy_courses import router as academy_courses_router
+api_router.include_router(academy_courses_router)
+
+from routes.academy_subscriptions import router as academy_subscriptions_router
+api_router.include_router(academy_subscriptions_router)
+
 
 # ============== Include Main Router ==============
 

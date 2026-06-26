@@ -129,11 +129,11 @@ const Header = () => {
       { label: 'Finance', href: '/solutions/finance', icon: Wallet, col: 1, badge: 'NEW' },
     ],
     'Product': [
-      { label: 'Academy & Events', href: '/events', icon: Calendar },
-      { label: 'Pricing', href: '/pricing', icon: Zap },
-      { label: 'Documentation', href: '/resources/docs', icon: BookOpen },
-      { label: 'Security', href: '/product/security', icon: Shield },
-      { label: 'Roadmap', href: '/product/roadmap', icon: LayoutGrid },
+      { label: 'Academy', href: '/academy', icon: GraduationCap },
+      { label: 'Courses', href: '/academy/courses', icon: BookOpen },
+      { label: 'Events', href: '/events', icon: Calendar },
+      { label: 'Pricing', href: '/academy/subscription', icon: Zap },
+      { label: 'Documentation', href: '/resources/docs', icon: Code },
       { label: 'Downloads', href: '/downloads/mobile-app', icon: Download },
     ],
   };

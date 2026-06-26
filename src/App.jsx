@@ -91,6 +91,10 @@ const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
 // Events Pages
 const EventsPage = lazy(() => import('@/pages/EventsPage'));
 const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
+const AcademyDashboard = lazy(() => import('@/pages/AcademyDashboard'));
+const AcademyCourses = lazy(() => import('@/pages/AcademyCourses'));
+const AcademyCourseDetail = lazy(() => import('@/pages/AcademyCourseDetail'));
+const AcademySubscription = lazy(() => import('@/pages/AcademySubscription'));
 
 // User Pages
 const UserDashboard = lazy(() => import('@/pages/user/UserDashboard')); 
@@ -413,6 +417,13 @@ function App() {
                               {/* Events */}
                               <Route path="/events" element={<EventsPage />} />
                               <Route path="/events/:eventId" element={<EventDetailPage />} />
+
+                              {/* Academy */}
+                              <Route path="/academy" element={<AcademyDashboard />} />
+                              <Route path="/academy/courses" element={<AcademyCourses />} />
+                              <Route path="/academy/courses/:courseId" element={<AcademyCourseDetail />} />
+                              <Route path="/academy/subscription" element={<AcademySubscription />} />
+
                               
                               {/* Industry Solution Pages (GEO) */}
                               <Route path="/solutions/healthcare" element={<HealthcareSolutionPage />} />

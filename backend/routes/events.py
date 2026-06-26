@@ -145,6 +145,50 @@ async def get_event(event_id: str):
     return event
 
 
+@router.get("/{event_id}/livestream-access")
+async def check_livestream_access(event_id: str, user_id: Optional[str] = None):
+    """Check if user has access to event livestream (login + payment for paid events)"""
+    event = await db.events.find_one({"id": event_id, "deleted": {"$ne": True}}, {"_id": 0, "id": 1, "price": 1, "stream_url": 1, "is_live": 1, "stream_platform": 1})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if not event.get("stream_url"):
+        return {"has_access": False, "reason": "no_stream"}
+
+    price = event.get("price", "Free")
+    is_paid = price and price != "Free"
+
+    if not user_id:
+        return {"has_access": False, "reason": "login_required"}
+
+    if is_paid:
+        # Check if user paid for this event
+        payment = await db.event_payments.find_one(
+            {"event_id": event_id, "status": "paid"},
+            {"_id": 0, "email": 1}
+        )
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "email": 1})
+        user_email = user.get("email", "") if user else ""
+
+        paid = await db.event_payments.find_one(
+            {"event_id": event_id, "email": user_email, "status": "paid"}
+        )
+        if not paid:
+            # Also check if user has Pro/Enterprise subscription
+            sub = await db.subscriptions.find_one(
+                {"user_id": user_id, "status": "active", "plan": {"$in": ["pro", "enterprise"]}}
+            )
+            if not sub:
+                return {"has_access": False, "reason": "payment_required", "price": price}
+
+    return {
+        "has_access": True,
+        "stream_url": event.get("stream_url"),
+        "is_live": event.get("is_live", False),
+        "stream_platform": event.get("stream_platform", ""),
+    }
+
+
 @router.get("/{event_id}/sponsors")
 async def get_event_sponsors(event_id: str):
     """Get sponsors for an event (public)"""

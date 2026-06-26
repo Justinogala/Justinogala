@@ -119,6 +119,7 @@ const EventDetailPage = () => {
   const [reviews, setReviews] = useState([]);
   const [discussions, setDiscussions] = useState([]);
   const [sponsors, setSponsors] = useState([]);
+  const [streamAccess, setStreamAccess] = useState(null);
   const [newReview, setNewReview] = useState({ name: '', email: '', rating: 5, comment: '' });
   const [newPost, setNewPost] = useState({ author_name: '', author_email: '', content: '' });
   const { toast } = useToast();
@@ -139,6 +140,14 @@ const EventDetailPage = () => {
     fetch(`${API_BASE}/api/events/${eventId}/reviews`).then(r => r.ok ? r.json() : null).then(d => d && setReviews(d.reviews || []));
     fetch(`${API_BASE}/api/events/${eventId}/discussions`).then(r => r.ok ? r.json() : null).then(d => d && setDiscussions(d.posts || []));
     fetch(`${API_BASE}/api/events/${eventId}/sponsors`).then(r => r.ok ? r.json() : null).then(d => d && setSponsors(d.sponsors || []));
+
+    // Check livestream access
+    let userId = null;
+    try { userId = JSON.parse(localStorage.getItem('munal_auth') || '{}').id; } catch {}
+    const params = userId ? `?user_id=${userId}` : '';
+    fetch(`${API_BASE}/api/events/${eventId}/livestream-access${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setStreamAccess(d));
   }, [eventId]);
 
   const submitReview = async () => {
@@ -280,30 +289,46 @@ const EventDetailPage = () => {
                     </span>
                   )}
                 </div>
-                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black">
-                  {(() => {
-                    const url = event.stream_url;
-                    let embedUrl = url;
-                    // YouTube
-                    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/)|youtu\.be\/)([\w-]+)/);
-                    if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`;
-                    // Vimeo
-                    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-                    if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-                    return (
-                      <iframe
-                        src={embedUrl}
-                        className="absolute inset-0 w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        title="Event Livestream"
-                      />
-                    );
-                  })()}
-                </div>
-                {!event.is_live && event.stream_url && (
-                  <p className="text-xs text-gray-400 mt-2 text-center">Stream will go live when the event starts</p>
+                {streamAccess?.has_access ? (
+                  <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black">
+                    {(() => {
+                      const url = streamAccess.stream_url || event.stream_url;
+                      let embedUrl = url;
+                      const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/)|youtu\.be\/)([\w-]+)/);
+                      if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`;
+                      const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+                      if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+                      return <iframe src={embedUrl} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Event Livestream" />;
+                    })()}
+                  </div>
+                ) : streamAccess?.reason === 'login_required' ? (
+                  <div className="w-full aspect-video rounded-xl bg-gradient-to-br from-slate-900 to-violet-950 flex flex-col items-center justify-center text-white border border-gray-200 dark:border-gray-700">
+                    <Play className="w-12 h-12 text-violet-400 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Login Required</h3>
+                    <p className="text-sm text-gray-300 mb-4">Sign in to access the livestream</p>
+                    <a href="/login"><Button className="bg-violet-600 hover:bg-violet-700">Log In</Button></a>
+                  </div>
+                ) : streamAccess?.reason === 'payment_required' ? (
+                  <div className="w-full aspect-video rounded-xl bg-gradient-to-br from-slate-900 to-violet-950 flex flex-col items-center justify-center text-white border border-gray-200 dark:border-gray-700">
+                    <ExternalLink className="w-12 h-12 text-amber-400 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Payment Required</h3>
+                    <p className="text-sm text-gray-300 mb-4">This is a paid event ({streamAccess.price}). Pay to access the livestream.</p>
+                    <Button className="bg-amber-500 hover:bg-amber-600 text-black" onClick={() => setApplyOpen(true)}>Register & Pay</Button>
+                  </div>
+                ) : (
+                  <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-black">
+                    {(() => {
+                      const url = event.stream_url;
+                      let embedUrl = url;
+                      const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|live\/)|youtu\.be\/)([\w-]+)/);
+                      if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0`;
+                      const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+                      if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+                      return <iframe src={embedUrl} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Event Livestream" />;
+                    })()}
+                  </div>
                 )}
+                {!event.is_live && <p className="text-xs text-gray-400 mt-2 text-center">Stream will go live when the event starts</p>}
               </div>
             )}
 
