@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Award, Calendar, Flame, Clock, ArrowRight, GraduationCap, Star, Lock, Sparkles, Trophy, Play, Zap } from 'lucide-react';
+import { BookOpen, Award, Calendar, Flame, Clock, ArrowRight, GraduationCap, Star, Lock, Sparkles, Trophy, Play, Zap, Download, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -160,13 +160,17 @@ const AcademyDashboard = () => {
               {certificates.length > 0 ? (
                 <div className="space-y-2">
                   {certificates.slice(0, 5).map(cert => (
-                    <div key={cert.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
-                      <Award className="w-5 h-5 text-amber-500 shrink-0" />
-                      <div className="min-w-0">
+                    <Link key={cert.id} to={`/academy/certificates/${cert.id}`} className={cn("flex items-center gap-3 p-2.5 rounded-lg border transition-all hover:shadow-sm", cert.status === 'pass' ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800" : "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800")}>
+                      {cert.status === 'pass' ? <CheckCircle className="w-5 h-5 text-green-500 shrink-0" /> : <XCircle className="w-5 h-5 text-red-500 shrink-0" />}
+                      <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{cert.title}</p>
-                        <p className="text-[10px] text-gray-400">{cert.cert_number}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn("text-[10px] font-bold", cert.status === 'pass' ? "text-green-600" : "text-red-600")}>{cert.quiz_score || 0}% — {cert.status === 'pass' ? 'PASS' : 'FAIL'}</span>
+                          <span className="text-[10px] text-gray-400">{cert.cert_number}</span>
+                        </div>
                       </div>
-                    </div>
+                      <Download className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    </Link>
                   ))}
                 </div>
               ) : (

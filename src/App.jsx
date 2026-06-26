@@ -95,6 +95,7 @@ const AcademyDashboard = lazy(() => import('@/pages/AcademyDashboard'));
 const AcademyCourses = lazy(() => import('@/pages/AcademyCourses'));
 const AcademyCourseDetail = lazy(() => import('@/pages/AcademyCourseDetail'));
 const AcademySubscription = lazy(() => import('@/pages/AcademySubscription'));
+const AcademyCertificate = lazy(() => import('@/pages/AcademyCertificate'));
 
 // User Pages
 const UserDashboard = lazy(() => import('@/pages/user/UserDashboard')); 
@@ -424,6 +425,7 @@ function App() {
                               <Route path="/academy/courses" element={<AcademyCourses />} />
                               <Route path="/academy/courses/:courseId" element={<AcademyCourseDetail />} />
                               <Route path="/academy/subscription" element={<AcademySubscription />} />
+                              <Route path="/academy/certificates/:certId" element={<AcademyCertificate />} />
 
                               
                               {/* Industry Solution Pages (GEO) */}

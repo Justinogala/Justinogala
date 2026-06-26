@@ -362,9 +362,40 @@ async def complete_lesson(course_id: str, lesson_id: str, user=Depends(get_curre
                 "issued_at": datetime.now(timezone.utc).isoformat(),
             }
             await db.academy_certificates.insert_one(cert)
+            cert.pop("_id", None)
             logger.info(f"Certificate issued: user={user_id} course={course_id} score={avg_quiz_score}% {'PASS' if quiz_passed else 'FAIL'}")
+            return {"success": True, "progress": progress, "completed": True, "certificate": cert}
 
     return {"success": True, "progress": progress, "completed": progress >= 100}
+
+
+# ============== Certificates ==============
+
+@router.get("/certificates")
+async def list_user_certificates(user=Depends(get_current_user)):
+    """List all certificates for logged-in user"""
+    certs = await db.academy_certificates.find(
+        {"user_id": user.get("id")}, {"_id": 0}
+    ).sort("issued_at", -1).to_list(100)
+    return {"certificates": certs}
+
+
+@router.get("/certificates/{cert_id}")
+async def get_certificate(cert_id: str):
+    """Get a single certificate by ID (public for verification)"""
+    cert = await db.academy_certificates.find_one({"id": cert_id}, {"_id": 0})
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    return cert
+
+
+@router.get("/certificates/verify/{cert_number}")
+async def verify_certificate(cert_number: str):
+    """Verify a certificate by cert number (public)"""
+    cert = await db.academy_certificates.find_one({"cert_number": cert_number}, {"_id": 0})
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    return {"valid": True, "certificate": cert}
 
 
 # ============== Dashboard ==============

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Play, Check, Lock, Clock, Users, Award, ArrowLeft, ChevronDown, ChevronUp, Star, GraduationCap, Zap, Radio, HelpCircle, X, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { BookOpen, Play, Check, Lock, Clock, Users, Award, ArrowLeft, ChevronDown, ChevronUp, Star, GraduationCap, Zap, Radio, HelpCircle, X, CheckCircle, XCircle, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
@@ -24,6 +25,7 @@ const AcademyCourseDetail = () => {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [quizResult, setQuizResult] = useState(null);
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
+  const [earnedCert, setEarnedCert] = useState(null);
 
   const token = JSON.parse(localStorage.getItem('munal_sessions') || '{}').token;
 
@@ -80,6 +82,7 @@ const AcademyCourseDetail = () => {
       if (res.ok) {
         const d = await res.json();
         toast({ title: d.completed ? 'Course completed! Certificate earned!' : 'Lesson completed!' });
+        if (d.certificate) setEarnedCert(d.certificate);
         fetchCourse();
       }
     } catch { toast({ variant: 'destructive', title: 'Failed' }); }
@@ -286,7 +289,11 @@ const AcademyCourseDetail = () => {
                   </div>
                   <Progress value={course.progress} className="h-2 mb-3" />
                   {course.progress >= 100 ? (
-                    <Badge className="w-full justify-center py-2 bg-green-100 text-green-700 gap-1"><Award className="w-4 h-4" /> Course Completed!</Badge>
+                    <Link to={earnedCert ? `/academy/certificates/${earnedCert.id}` : '/academy'}>
+                      <Badge className="w-full justify-center py-2.5 bg-green-100 text-green-700 gap-1.5 cursor-pointer hover:bg-green-200 transition-colors">
+                        <Award className="w-4 h-4" /> View Certificate
+                      </Badge>
+                    </Link>
                   ) : (
                     <p className="text-xs text-gray-400 text-center">Keep going! You're doing great.</p>
                   )}
@@ -341,6 +348,40 @@ const AcademyCourseDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Certificate Earned Dialog */}
+      <Dialog open={!!earnedCert} onOpenChange={() => setEarnedCert(null)}>
+        <DialogContent className="max-w-md text-center" data-testid="cert-earned-dialog">
+          <div className="py-4">
+            <div className={cn("w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center", earnedCert?.status === 'pass' ? "bg-green-100" : "bg-red-100")}>
+              {earnedCert?.status === 'pass' ? <CheckCircle className="w-10 h-10 text-green-500" /> : <XCircle className="w-10 h-10 text-red-500" />}
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              {earnedCert?.status === 'pass' ? 'Congratulations!' : 'Course Completed'}
+            </h2>
+            <p className="text-gray-500 mb-4">
+              {earnedCert?.status === 'pass'
+                ? 'You have successfully passed the course!'
+                : `You completed the course but did not meet the ${earnedCert?.pass_threshold || 70}% passing threshold.`
+              }
+            </p>
+            <div className={cn("inline-flex items-center gap-2 px-4 py-2 rounded-full text-lg font-bold mb-6", earnedCert?.status === 'pass' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+              Score: {earnedCert?.quiz_score || 0}% — {earnedCert?.status === 'pass' ? 'PASS' : 'FAIL'}
+            </div>
+            <div className="space-y-2">
+              <Link to={`/academy/certificates/${earnedCert?.id}`}>
+                <Button className="w-full bg-violet-600 hover:bg-violet-700 gap-2">
+                  <Award className="w-4 h-4" /> View Certificate
+                </Button>
+              </Link>
+              <Button variant="outline" className="w-full gap-2" onClick={() => setEarnedCert(null)}>
+                Continue Learning
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );

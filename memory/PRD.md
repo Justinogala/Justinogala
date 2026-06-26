@@ -116,6 +116,18 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - Testing: 100% backend (11/11), 95% frontend verified — Iteration 158
 
 
+
+### Certificate Display & Download — June 26, 2026
+- **Certificate Page** (`/academy/certificates/:certId`): Full certificate display with pass/fail styling, quiz score badge, certificate number, issue date, pass threshold, verification status.
+  - Green border + "Certificate of Completion" for PASS, Red border + "Certificate of Participation" for FAIL
+  - **Download Certificate** button opens print-to-PDF with professional certificate layout (landscape, decorative borders, all metadata)
+  - **Copy Link** button for sharing/verification
+  - Public access (anyone with the link can verify)
+- **Certificate Earned Dialog**: Shows immediately after completing the last lesson quiz with score, pass/fail, and "View Certificate" button
+- **Dashboard Certificates**: Updated to show pass/fail badges (green checkmark / red X), quiz score %, cert number, and clickable link to certificate page with download icon
+- **Backend**: New endpoints `GET /api/academy/certificates`, `GET /api/academy/certificates/:id`, `GET /api/academy/certificates/verify/:cert_number`
+- **Complete lesson response** now returns `certificate` object when course is 100% complete
+
 ### Email Notifications + Hero Image + Rate Limits Fixed — June 25, 2026
 - **Email Notifications**: Host proposal triggers async emails to both submitter (confirmation) and admin (notification) via Resend. Event reminders sent hourly via APScheduler for events happening in 24h.
 - **Hero Image**: Replaced plain gradient with a conference photo background (`pexels-photo-9275222.jpeg`) with overlay gradient
