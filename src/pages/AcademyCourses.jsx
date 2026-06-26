@@ -21,7 +21,10 @@ const AcademyCourses = () => {
   const [level, setLevel] = useState('All');
   const [search, setSearch] = useState('');
   const [showPremiumOnly, setShowPremiumOnly] = useState(false);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const navigate = useNavigate();
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -29,16 +32,23 @@ const AcademyCourses = () => {
     if (level !== 'All') params.set('level', level);
     if (search) params.set('search', search);
     if (showPremiumOnly) params.set('is_premium', 'true');
+    params.set('limit', PAGE_SIZE);
+    params.set('offset', page * PAGE_SIZE);
 
     const token = JSON.parse(localStorage.getItem('munal_sessions') || '{}').token;
     const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     setLoading(true);
     fetch(`${API_BASE}/api/academy/courses?${params}`, { headers })
-      .then(r => r.ok ? r.json() : { courses: [] })
-      .then(d => setCourses(d.courses || []))
+      .then(r => r.ok ? r.json() : { courses: [], total: 0 })
+      .then(d => { setCourses(d.courses || []); setTotal(d.total || 0); })
       .finally(() => setLoading(false));
-  }, [category, level, search, showPremiumOnly]);
+  }, [category, level, search, showPremiumOnly, page]);
+
+  // Reset page when filters change
+  useEffect(() => { setPage(0); }, [category, level, search, showPremiumOnly]);
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
@@ -144,6 +154,26 @@ const AcademyCourses = () => {
             ))}
           </div>
         )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-10" data-testid="courses-pagination">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }} className="gap-1">
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button key={i} onClick={() => { setPage(i); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                className={cn("w-9 h-9 rounded-lg text-sm font-medium transition-all", page === i ? "bg-violet-600 text-white shadow-md" : "bg-white dark:bg-slate-900 text-gray-600 border border-gray-200 dark:border-gray-700 hover:border-violet-300")}
+                data-testid={`page-${i}`}>
+                {i + 1}
+              </button>
+            ))}
+            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 400, behavior: 'smooth' }); }} className="gap-1">
+              Next
+            </Button>
+          </div>
+        )}
+        {total > 0 && <p className="text-center text-xs text-gray-400 mt-3">Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} of {total} courses</p>}
       </section>
       <Footer />
     </div>
