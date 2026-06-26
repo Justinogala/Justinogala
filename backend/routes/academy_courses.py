@@ -75,7 +75,7 @@ class CourseUpdate(BaseModel):
 
 
 CATEGORIES = ["AI", "Cloud", "Cybersecurity", "DevOps", "Data Science",
-              "Software Engineering", "Product Management", "Prompt Engineering"]
+              "Software Engineering", "Product Management", "Prompt Engineering", "Healthcare"]
 
 
 # ============== Admin Routes ==============

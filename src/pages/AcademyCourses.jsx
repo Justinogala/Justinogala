@@ -11,7 +11,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 const API_BASE = window.location.origin;
-const CATEGORIES = ['All', 'AI', 'Prompt Engineering', 'Cloud', 'DevOps', 'Cybersecurity', 'Data Science', 'Software Engineering', 'Product Management'];
+const CATEGORIES = ['All', 'AI', 'Prompt Engineering', 'Cloud', 'DevOps', 'Cybersecurity', 'Data Science', 'Software Engineering', 'Product Management', 'Healthcare'];
 const LEVELS = ['All', 'beginner', 'intermediate', 'advanced'];
 
 const AcademyCourses = () => {
