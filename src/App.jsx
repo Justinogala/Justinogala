@@ -99,6 +99,7 @@ const AcademyCertificate = lazy(() => import('@/pages/AcademyCertificate'));
 const CapstoneProjects = lazy(() => import('@/pages/CapstoneProjects'));
 const CertificationPathways = lazy(() => import('@/pages/CertificationPathways'));
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
+const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 const PathwaysModule = lazy(() => import('@/pages/LearningPathways'));
 const PathwaysList = React.lazy(() => import('@/pages/LearningPathways').then(m => ({ default: m.PathwaysList })));
 const PathwayDetail = React.lazy(() => import('@/pages/LearningPathways').then(m => ({ default: m.PathwayDetail })));
@@ -437,6 +438,7 @@ function App() {
                               <Route path="/academy/capstone-projects" element={<CapstoneProjects />} />
                               <Route path="/academy/certifications" element={<CertificationPathways />} />
                               <Route path="/academy/profile/:userId" element={<PublicProfile />} />
+                              <Route path="/academy/leaderboard" element={<Leaderboard />} />
 
                               
                               {/* Industry Solution Pages (GEO) */}

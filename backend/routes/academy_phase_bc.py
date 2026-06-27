@@ -647,3 +647,82 @@ async def get_my_profile(user=Depends(get_current_user)):
     user_id = user.get("id")
     profile = await db.academy_profiles.find_one({"user_id": user_id}, {"_id": 0})
     return {"profile": profile, "user_id": user_id}
+
+
+# ============== Leaderboard ==============
+
+@router.get("/leaderboard")
+async def get_leaderboard(period: str = "all", limit: int = 25):
+    """Get academy leaderboard — top learners by courses, badges, streak"""
+
+    # Aggregate all enrolled users
+    enrollments = await db.course_enrollments.find({}, {"_id": 0, "user_id": 1, "progress": 1, "last_activity": 1}).to_list(5000)
+
+    user_stats = {}
+    for e in enrollments:
+        uid = e["user_id"]
+        if uid not in user_stats:
+            user_stats[uid] = {"courses_completed": 0, "courses_enrolled": 0, "activity_days": set()}
+        user_stats[uid]["courses_enrolled"] += 1
+        if e.get("progress", 0) >= 100:
+            user_stats[uid]["courses_completed"] += 1
+        if e.get("last_activity"):
+            user_stats[uid]["activity_days"].add(e["last_activity"][:10])
+
+    if not user_stats:
+        return {"leaderboard": [], "period": period}
+
+    # Get badge counts
+    badge_counts = {}
+    async for ub in db.academy_user_badges.find({}, {"_id": 0, "user_id": 1}):
+        badge_counts[ub["user_id"]] = badge_counts.get(ub["user_id"], 0) + 1
+
+    # Get cert counts
+    cert_counts = {}
+    async for cert in db.academy_certificates.find({"status": "pass"}, {"_id": 0, "user_id": 1}):
+        cert_counts[cert["user_id"]] = cert_counts.get(cert["user_id"], 0) + 1
+
+    # Build leaderboard entries
+    user_ids = list(user_stats.keys())
+    users_map = {}
+    async for u in db.users.find({"id": {"$in": user_ids}}, {"_id": 0, "id": 1, "name": 1, "avatar": 1}):
+        users_map[u["id"]] = u
+
+    # Check public profiles
+    public_profiles = {}
+    async for p in db.academy_profiles.find({"user_id": {"$in": user_ids}, "is_public": True}, {"_id": 0, "user_id": 1, "headline": 1}):
+        public_profiles[p["user_id"]] = p
+
+    entries = []
+    for uid, stats in user_stats.items():
+        user = users_map.get(uid)
+        if not user:
+            continue
+        streak = len(stats["activity_days"])
+        badges = badge_counts.get(uid, 0)
+        certs = cert_counts.get(uid, 0)
+        completed = stats["courses_completed"]
+
+        # Composite score: courses*10 + badges*5 + certs*8 + streak*1
+        score = completed * 10 + badges * 5 + certs * 8 + streak
+
+        profile = public_profiles.get(uid)
+        entries.append({
+            "user_id": uid,
+            "name": user.get("name", "Learner"),
+            "avatar": user.get("avatar", ""),
+            "headline": profile.get("headline", "") if profile else "",
+            "is_public": uid in public_profiles,
+            "courses_completed": completed,
+            "courses_enrolled": stats["courses_enrolled"],
+            "badges_earned": badges,
+            "certificates_earned": certs,
+            "streak_days": streak,
+            "score": score,
+        })
+
+    entries.sort(key=lambda x: x["score"], reverse=True)
+    for i, e in enumerate(entries):
+        e["rank"] = i + 1
+
+    return {"leaderboard": entries[:limit], "total_learners": len(entries), "period": period}

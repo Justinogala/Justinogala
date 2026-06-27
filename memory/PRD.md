@@ -378,6 +378,11 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Frontend**: `/app/src/pages/PublicProfile.jsx`, share buttons on `AcademyDashboardEnhanced.jsx`
 - **Auth Pages Fix**: Removed duplicate Munal logo from AuthSidebar (header now provides it)
 
+### Leaderboard — June 27, 2026
+- **Leaderboard Page**: `/academy/leaderboard` — ranks all learners by composite score (courses×10 + certs×8 + badges×5 + streak×1). Top 3 podium with crown/medal icons. Sort by Overall Score, Courses, Badges, or Streak. Highlights current user's row. "How Scoring Works" section.
+- **Backend**: `GET /api/academy/leaderboard` aggregates enrollments, badges, certificates, streak for all users
+- **Frontend**: `/app/src/pages/Leaderboard.jsx`, linked from Header Product dropdown + Dashboard Quick Links
+
 ## Upcoming Tasks
 - P1: Enterprise Team Seat Management
 - P2: Notification Integrations (email/SMS for course updates)

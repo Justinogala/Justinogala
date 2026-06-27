@@ -136,6 +136,7 @@ const Header = () => {
       { label: 'Learning Pathways', href: '/academy/pathways', icon: BookOpen },
       { label: 'Capstone Projects', href: '/academy/capstone-projects', icon: Code },
       { label: 'Certifications', href: '/academy/certifications', icon: Award },
+      { label: 'Leaderboard', href: '/academy/leaderboard', icon: Award },
       { label: 'Events', href: '/events', icon: Calendar },
       { label: 'Pricing', href: '/academy/subscription', icon: Zap },
       { label: 'Downloads', href: '/downloads/mobile-app', icon: Download },
