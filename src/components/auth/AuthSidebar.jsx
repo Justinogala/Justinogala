@@ -28,13 +28,6 @@ const AuthSidebar = ({ title, subtitle, features = [], showPartners = true }) =>
 
       <div className="relative z-10 flex flex-col h-full justify-between">
         <div>
-          <Link to="/" className="flex items-center gap-3 mb-16 hover:opacity-90 transition-opacity w-fit">
-             <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/30">
-               <span className="text-white font-bold text-xl">M</span>
-             </div>
-             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-700 to-purple-600">Munal</span>
-          </Link>
-
           <h1 className="text-4xl xl:text-5xl font-bold mb-6 leading-tight tracking-tight text-gray-900">
             {title}
           </h1>

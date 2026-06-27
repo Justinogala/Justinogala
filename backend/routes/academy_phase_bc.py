@@ -548,3 +548,102 @@ async def seed_phase_bc(user=Depends(get_current_user)):
             cert_count += 1
 
     return {"success": True, "pathways_created": pathway_count, "labs_created": lab_count, "cert_pathways_created": cert_count}
+
+
+# ============== Public Learner Profile ==============
+
+@router.post("/profile/toggle-public")
+async def toggle_public_profile(user=Depends(get_current_user)):
+    """Toggle public profile visibility"""
+    user_id = user.get("id")
+    profile = await db.academy_profiles.find_one({"user_id": user_id})
+    if profile:
+        new_public = not profile.get("is_public", False)
+        await db.academy_profiles.update_one({"user_id": user_id}, {"$set": {"is_public": new_public}})
+        return {"is_public": new_public}
+    else:
+        doc = {"id": str(uuid.uuid4()), "user_id": user_id, "is_public": True, "bio": "", "created_at": datetime.now(timezone.utc).isoformat()}
+        await db.academy_profiles.insert_one(doc)
+        return {"is_public": True}
+
+
+@router.post("/profile/update")
+async def update_profile(data: dict, user=Depends(get_current_user)):
+    """Update profile bio/headline"""
+    user_id = user.get("id")
+    now = datetime.now(timezone.utc).isoformat()
+    update = {}
+    if "bio" in data:
+        update["bio"] = data["bio"][:500]
+    if "headline" in data:
+        update["headline"] = data["headline"][:150]
+    if "linkedin_url" in data:
+        update["linkedin_url"] = data["linkedin_url"][:200]
+
+    if update:
+        update["updated_at"] = now
+        await db.academy_profiles.update_one(
+            {"user_id": user_id},
+            {"$set": update, "$setOnInsert": {"id": str(uuid.uuid4()), "user_id": user_id, "is_public": True, "created_at": now}},
+            upsert=True
+        )
+    profile = await db.academy_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    return {"profile": profile}
+
+
+@router.get("/profile/{user_id}")
+async def get_public_profile(user_id: str):
+    """Get a user's public learner profile"""
+    profile = await db.academy_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    if not profile or not profile.get("is_public", False):
+        raise HTTPException(status_code=404, detail="Profile not found or not public")
+
+    # Get user basic info
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "name": 1, "avatar": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Get completed courses
+    enrollments = await db.course_enrollments.find({"user_id": user_id, "progress": 100}).to_list(100)
+    completed_ids = [e["course_id"] for e in enrollments]
+    completed_courses = []
+    if completed_ids:
+        async for c in db.courses.find({"id": {"$in": completed_ids}}, {"_id": 0, "id": 1, "title": 1, "category": 1, "thumbnail": 1}):
+            completed_courses.append(c)
+
+    # Get certificates
+    certificates = await db.academy_certificates.find({"user_id": user_id, "status": "pass"}, {"_id": 0}).sort("issued_at", -1).to_list(50)
+
+    # Get badges
+    user_badges = await db.academy_user_badges.find({"user_id": user_id}, {"_id": 0}).to_list(50)
+    badge_map = {ub["badge_id"]: ub for ub in user_badges}
+    from routes.academy_phase_bc import BADGE_DEFINITIONS
+    badges = [{**b, "earned": True, "earned_at": badge_map[b["id"]].get("earned_at")} for b in BADGE_DEFINITIONS if b["id"] in badge_map]
+
+    # Capstone projects
+    projects = await db.academy_capstone_submissions.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(10)
+
+    # Stats
+    total_enrolled = await db.course_enrollments.count_documents({"user_id": user_id})
+
+    return {
+        "user": {**user, "headline": profile.get("headline", ""), "bio": profile.get("bio", ""), "linkedin_url": profile.get("linkedin_url", "")},
+        "completed_courses": completed_courses,
+        "certificates": certificates,
+        "badges": badges,
+        "capstone_projects": projects,
+        "stats": {
+            "courses_completed": len(completed_courses),
+            "certificates_earned": len(certificates),
+            "badges_earned": len(badges),
+            "courses_enrolled": total_enrolled,
+        }
+    }
+
+
+@router.get("/profile/me/data")
+async def get_my_profile(user=Depends(get_current_user)):
+    """Get own profile data"""
+    user_id = user.get("id")
+    profile = await db.academy_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    return {"profile": profile, "user_id": user_id}

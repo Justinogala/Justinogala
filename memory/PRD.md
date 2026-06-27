@@ -371,6 +371,13 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Frontend**: `/app/src/pages/AcademyDashboardEnhanced.jsx` — replaces old AcademyDashboard
 - **Backend**: Uses existing endpoints in `academy_phase_bc.py` — `/api/academy/dashboard/enhanced`, `/api/academy/badges/check`, `/api/academy/badges`
 
+### Public Learner Profile — June 27, 2026
+- **Public Profile Page**: `/academy/profile/{userId}` — showcases badges, certificates, completed courses, capstone projects. Purple gradient hero with avatar, headline, bio. LinkedIn link, Copy Link, Share to LinkedIn buttons.
+- **Profile Management**: Toggle public/private, update bio/headline/LinkedIn URL. Profile sharing button on enhanced dashboard.
+- **Backend**: 4 new endpoints in `academy_phase_bc.py` — `toggle-public`, `update`, `GET profile/{userId}`, `GET profile/me/data`
+- **Frontend**: `/app/src/pages/PublicProfile.jsx`, share buttons on `AcademyDashboardEnhanced.jsx`
+- **Auth Pages Fix**: Removed duplicate Munal logo from AuthSidebar (header now provides it)
+
 ## Upcoming Tasks
 - P1: Enterprise Team Seat Management
 - P2: Notification Integrations (email/SMS for course updates)

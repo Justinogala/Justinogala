@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
-import { Award, BookOpen, Clock, Flame, Trophy, Star, GraduationCap, ArrowRight, Loader2, Play, Map, CheckCircle, Calendar, Zap, MessageSquare, FlaskConical, Hammer } from 'lucide-react';
+import { Award, BookOpen, Clock, Flame, Trophy, Star, GraduationCap, ArrowRight, Loader2, Play, Map, CheckCircle, Calendar, Zap, MessageSquare, FlaskConical, Hammer, Share2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -28,11 +28,36 @@ const AcademyDashboardEnhanced = () => {
 
   const token = JSON.parse(localStorage.getItem('munal_sessions') || '{}').token;
 
+  const [profileData, setProfileData] = useState(null);
+
   useEffect(() => {
     if (!token) { navigate('/login'); return; }
     fetchDashboard();
     checkBadges();
+    fetchProfile();
   }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/academy/profile/me/data`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setProfileData(await res.json());
+    } catch {}
+  };
+
+  const togglePublicProfile = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/academy/profile/toggle-public`, {
+        method: 'POST', headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const d = await res.json();
+        toast({ title: d.is_public ? 'Profile is now public!' : 'Profile set to private' });
+        fetchProfile();
+      }
+    } catch {}
+  };
 
   const fetchDashboard = async () => {
     try {
@@ -106,6 +131,26 @@ const AcademyDashboardEnhanced = () => {
               <p className="text-[11px] text-gray-400">{s.sub}</p>
             </div>
           ))}
+        </div>
+
+        {/* Profile Sharing */}
+        <div className="flex items-center gap-3 mb-8 flex-wrap">
+          {profileData?.user_id && (
+            <Link to={`/academy/profile/${profileData.user_id}`}>
+              <Button variant="outline" size="sm" className="gap-2 text-xs" data-testid="view-profile-btn">
+                <User className="w-3.5 h-3.5" /> View Public Profile
+              </Button>
+            </Link>
+          )}
+          <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={togglePublicProfile} data-testid="toggle-profile-btn">
+            <Share2 className="w-3.5 h-3.5" /> {profileData?.profile?.is_public ? 'Make Private' : 'Make Public'}
+          </Button>
+          {profileData?.user_id && profileData?.profile?.is_public && (
+            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/academy/profile/${profileData.user_id}`); toast({ title: 'Profile link copied!' }); }}
+              className="text-xs text-violet-600 hover:text-violet-800 underline">
+              Copy share link
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
