@@ -409,6 +409,9 @@ api_router.include_router(academy_subscriptions_router)
 from routes.academy_features import router as academy_features_router
 api_router.include_router(academy_features_router)
 
+from routes.academy_phase_bc import router as academy_phase_bc_router
+api_router.include_router(academy_phase_bc_router)
+
 
 # ============== Include Main Router ==============
 

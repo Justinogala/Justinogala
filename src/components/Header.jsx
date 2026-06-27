@@ -6,7 +6,7 @@ import {
   Menu, X, ChevronDown, LogOut, Shield, Plus, Check,
   Mic, Video, Search, MessageSquare, Users, FileText, 
   BarChart, Calendar, Zap, LayoutGrid, Heart, Code, 
-  Briefcase, GraduationCap, AudioLines, Clapperboard,
+  Briefcase, GraduationCap, Award, AudioLines, Clapperboard,
   PenLine, FileOutput, AlertTriangle, CreditCard,
   Clock, Headphones, LayoutDashboard, CircleDot,
   FolderOpen, Bell, CheckCircle, Phone, GitBranch,
@@ -133,9 +133,11 @@ const Header = () => {
     'Product': [
       { label: 'Academy', href: '/academy', icon: GraduationCap },
       { label: 'Courses', href: '/academy/courses', icon: BookOpen },
+      { label: 'Learning Pathways', href: '/academy/pathways', icon: BookOpen },
+      { label: 'Capstone Projects', href: '/academy/capstone-projects', icon: Code },
+      { label: 'Certifications', href: '/academy/certifications', icon: Award },
       { label: 'Events', href: '/events', icon: Calendar },
       { label: 'Pricing', href: '/academy/subscription', icon: Zap },
-      { label: 'Documentation', href: '/resources/docs', icon: Code },
       { label: 'Downloads', href: '/downloads/mobile-app', icon: Download },
     ],
   };

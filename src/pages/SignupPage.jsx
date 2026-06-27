@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
 import AuthSidebar from '@/components/auth/AuthSidebar';
 import AuthFormContainer from '@/components/auth/AuthFormContainer';
+import Footer from '@/components/Footer';
 import { cn } from '@/lib/utils';
 
 const SignupPage = () => {
@@ -168,32 +169,33 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-950 lg:min-h-screen lg:flex lg:flex-row lg:items-stretch">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950">
       <Helmet>
         <title>Sign Up - Munal AI</title>
         <meta name="description" content="Create your Munal AI account — your all-in-one AI workspace for documents, meetings, and team collaboration." />
       </Helmet>
       
-      {/* Left Sidebar - Purple Gradient */}
-      <AuthSidebar 
-        title="Create your Munal AI account"
-        subtitle="Join teams using AI to streamline documents, automate workflows, and collaborate in real time."
-        features={[
-          { title: "Smart AI Workspace", description: "Documents, spreadsheets, recordings, and e-signatures — powered by AI." },
-          { title: "Enterprise-Ready Security", description: "Role-based access, audit logs, 2FA, and workspace isolation to keep your data safe." }
-        ]}
-      />
+      <div className="flex-1 lg:flex lg:flex-row lg:items-stretch">
+        {/* Left Sidebar - Purple Gradient */}
+        <AuthSidebar 
+          title="Create your Munal AI account"
+          subtitle="Join teams using AI to streamline documents, automate workflows, and collaborate in real time."
+          features={[
+            { title: "Smart AI Workspace", description: "Documents, spreadsheets, recordings, and e-signatures — powered by AI." },
+            { title: "Enterprise-Ready Security", description: "Role-based access, audit logs, 2FA, and workspace isolation to keep your data safe." }
+          ]}
+        />
 
-      {/* Right Form Section */}
-      <AuthFormContainer
-        heading="Create an account"
-        subheading="Start your Munal AI journey today. No credit card required."
-        footerLink={{
-          text: "Already have an account?",
-          linkText: "Log in",
-          onClick: () => navigate('/login')
-        }}
-      >
+        {/* Right Form Section */}
+        <AuthFormContainer
+          heading="Create an account"
+          subheading="Start your Munal AI journey today. No credit card required."
+          footerLink={{
+            text: "Already have an account?",
+            linkText: "Log in",
+            onClick: () => navigate('/login')
+          }}
+        >
         {authError && (
           <div className="bg-red-50 text-red-600 border border-red-200 p-4 rounded-xl flex items-start gap-3 text-sm animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -456,6 +458,8 @@ const SignupPage = () => {
           </div>
         </form>
       </AuthFormContainer>
+      </div>
+      <Footer />
     </div>
   );
 };

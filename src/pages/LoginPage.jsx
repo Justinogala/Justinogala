@@ -14,6 +14,7 @@ import AuthSidebar from '@/components/auth/AuthSidebar';
 import AuthFormContainer from '@/components/auth/AuthFormContainer';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
 import UserTwoFactorVerify from '@/components/UserTwoFactorVerify';
+import Footer from '@/components/Footer';
 
 const LoginPage = () => {
   const { login, loginWithSkip2FA } = useAuth();
@@ -127,7 +128,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-950 lg:min-h-screen lg:flex lg:flex-row lg:items-stretch">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950">
       <Helmet>
         <title>Login - Munal AI</title>
         <meta name="description" content="Log in to your Munal AI account for meeting intelligence." />
@@ -142,27 +143,28 @@ const LoginPage = () => {
         onPasswordChanged={handlePasswordChanged}
       />
       
-      {/* Left Sidebar - Purple Gradient */}
-      <AuthSidebar 
-        title="Sign in to Munal AI"
-        subtitle="Access your all-in-one AI workspace. Manage documents, collaborate with your team, and build smarter with AI."
-        features={[
-          { title: "AI-Powered Workspace", description: "Smart documents, spreadsheets, meetings, and recordings — all in one place." },
-          { title: "AI Chat & Builder", description: "Generate product architectures, get instant answers, and automate workflows with AI." },
-          { title: "Team Collaboration", description: "Real-time dashboards, shared workspaces, and seamless team communication." }
-        ]}
-      />
+      <div className="flex-1 lg:flex lg:flex-row lg:items-stretch">
+        {/* Left Sidebar - Purple Gradient */}
+        <AuthSidebar 
+          title="Sign in to Munal AI"
+          subtitle="Access your all-in-one AI workspace. Manage documents, collaborate with your team, and build smarter with AI."
+          features={[
+            { title: "AI-Powered Workspace", description: "Smart documents, spreadsheets, meetings, and recordings — all in one place." },
+            { title: "AI Chat & Builder", description: "Generate product architectures, get instant answers, and automate workflows with AI." },
+            { title: "Team Collaboration", description: "Real-time dashboards, shared workspaces, and seamless team communication." }
+          ]}
+        />
 
-      {/* Right Form Section */}
-      <AuthFormContainer
-        heading={show2FA ? "Verify Your Identity" : "Sign in"}
-        subheading={show2FA ? "Enter your two-factor authentication code to continue." : "Welcome back to Munal AI! Please enter your details."}
-        footerLink={show2FA ? null : {
-          text: "Don't have an account?",
-          linkText: "Sign up",
-          onClick: () => navigate('/signup')
-        }}
-      >
+        {/* Right Form Section */}
+        <AuthFormContainer
+          heading={show2FA ? "Verify Your Identity" : "Sign in"}
+          subheading={show2FA ? "Enter your two-factor authentication code to continue." : "Welcome back to Munal AI! Please enter your details."}
+          footerLink={show2FA ? null : {
+            text: "Don't have an account?",
+            linkText: "Sign up",
+            onClick: () => navigate('/signup')
+          }}
+        >
         {show2FA ? (
           <UserTwoFactorVerify
             userId={twoFactorData.userId}
@@ -264,6 +266,8 @@ const LoginPage = () => {
         </>
         )}
       </AuthFormContainer>
+      </div>
+      <Footer />
     </div>
   );
 };

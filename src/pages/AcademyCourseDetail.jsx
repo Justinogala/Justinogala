@@ -15,6 +15,7 @@ import AiTutor from '@/components/academy/AiTutor';
 import LessonSummary from '@/components/academy/LessonSummary';
 import Discussions from '@/components/academy/Discussions';
 import LessonResources from '@/components/academy/LessonResources';
+import PracticeLabs from '@/components/academy/PracticeLabs';
 
 const API_BASE = window.location.origin;
 
@@ -181,6 +182,7 @@ const AcademyCourseDetail = () => {
     { id: 'overview', label: 'Overview', icon: BookOpen },
     ...(course.enrolled ? [
       { id: 'summary', label: 'AI Summary & Notes', icon: null },
+      { id: 'labs', label: 'Practice Labs', icon: null },
       { id: 'discussions', label: 'Discussions', icon: MessageSquare },
     ] : []),
     { id: 'reviews', label: 'Reviews', icon: Star },
@@ -292,6 +294,10 @@ const AcademyCourseDetail = () => {
 
             {activeContentTab === 'discussions' && course.enrolled && (
               <Discussions courseId={courseId} lessonId={activeLesson?.id} token={token} enrolled={course.enrolled} />
+            )}
+
+            {activeContentTab === 'labs' && course.enrolled && (
+              <PracticeLabs courseId={courseId} token={token} enrolled={course.enrolled} />
             )}
 
             {/* Quiz Section (always visible when active lesson has quiz) */}
