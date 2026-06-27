@@ -15,6 +15,7 @@ import AuthFormContainer from '@/components/auth/AuthFormContainer';
 import ChangePasswordModal from '@/components/ChangePasswordModal';
 import UserTwoFactorVerify from '@/components/UserTwoFactorVerify';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
 
 const LoginPage = () => {
   const { login, loginWithSkip2FA } = useAuth();
@@ -134,6 +135,8 @@ const LoginPage = () => {
         <meta name="description" content="Log in to your Munal AI account for meeting intelligence." />
       </Helmet>
       
+      <Header />
+
       {/* Change Password Modal */}
       <ChangePasswordModal
         isOpen={showChangePassword}

@@ -13,6 +13,7 @@ import { API_URL } from '@/lib/api';
 import AuthSidebar from '@/components/auth/AuthSidebar';
 import AuthFormContainer from '@/components/auth/AuthFormContainer';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
 import { cn } from '@/lib/utils';
 
 const SignupPage = () => {
@@ -175,6 +176,8 @@ const SignupPage = () => {
         <meta name="description" content="Create your Munal AI account — your all-in-one AI workspace for documents, meetings, and team collaboration." />
       </Helmet>
       
+      <Header />
+
       <div className="flex-1 lg:flex lg:flex-row lg:items-stretch">
         {/* Left Sidebar - Purple Gradient */}
         <AuthSidebar 

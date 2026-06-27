@@ -364,11 +364,17 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Frontend**: 4 new pages (LearningPathways, CapstoneProjects, CertificationPathways) + PracticeLabs component on course detail
 - **Testing**: 14/14 backend tests + full e2e verification — Iteration 161
 
+### Academy Phase B — Badges, Enhanced Dashboard, Header on Auth Pages — June 27, 2026
+- **Header on Auth Pages**: Added full site Header (Munal logo, search, Features/Use Cases/Product/Contact/Login/Get Started nav) to both Login and Signup pages.
+- **Completion Badges**: 12 badge definitions (First Steps, Knowledge Seeker, Scholar, Quiz Ace, Week Warrior, Monthly Master, Reviewer, Contributor, Pathfinder, Lab Rat, Builder, Certified Pro). Auto-check/award on dashboard load via `/api/academy/badges/check`. Stored in `academy_user_badges`.
+- **Enhanced Progress Dashboard**: Replaced old dashboard at `/academy` with comprehensive layout: stat cards (courses/certificates/badges/hours), Continue Learning section, My Pathways progress, Completed Courses grid, 30-day Learning Streak Calendar, Badges grid with earned/locked states, Certificates list, Quick Links to all academy features.
+- **Frontend**: `/app/src/pages/AcademyDashboardEnhanced.jsx` — replaces old AcademyDashboard
+- **Backend**: Uses existing endpoints in `academy_phase_bc.py` — `/api/academy/dashboard/enhanced`, `/api/academy/badges/check`, `/api/academy/badges`
+
 ## Upcoming Tasks
-- Phase B: Completion Badges, Enhanced Progress Dashboard with streaks/stats
 - P1: Enterprise Team Seat Management
 - P2: Notification Integrations (email/SMS for course updates)
-- AI Builder: Mermaid diagram rendering in generated content
+- AI Builder: Mermaid diagram rendering
 
 ## Future/Backlog
 - AI Career Coach / Resume Reviewer

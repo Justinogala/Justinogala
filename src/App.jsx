@@ -91,7 +91,7 @@ const PaymentSuccessPage = lazy(() => import('@/pages/PaymentSuccessPage'));
 // Events Pages
 const EventsPage = lazy(() => import('@/pages/EventsPage'));
 const EventDetailPage = lazy(() => import('@/pages/EventDetailPage'));
-const AcademyDashboard = lazy(() => import('@/pages/AcademyDashboard'));
+const AcademyDashboard = lazy(() => import('@/pages/AcademyDashboardEnhanced'));
 const AcademyCourses = lazy(() => import('@/pages/AcademyCourses'));
 const AcademyCourseDetail = lazy(() => import('@/pages/AcademyCourseDetail'));
 const AcademySubscription = lazy(() => import('@/pages/AcademySubscription'));
