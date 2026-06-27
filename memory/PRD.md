@@ -355,9 +355,17 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Frontend Components**: `/app/src/components/academy/` — AiTutor.jsx, LessonSummary.jsx, Discussions.jsx, LessonResources.jsx
 - **Testing**: 17/17 backend tests + full e2e verification — Iteration 160
 
+### Academy Phase C — Practice Labs, Capstone Projects, Certification Pathways — June 27, 2026
+- **Learning Pathways**: 8 curated multi-course journeys (AI Engineer, Full-Stack Dev, Digital Marketing, Healthcare Tech, Cloud/DevOps, Designer, Finance/Business, Media Production). Pathway enrollment, progress tracking, ordered course lists.
+- **Practice Labs**: 61 hands-on labs seeded across AI, Software Engineering, Digital Marketing, Healthcare, Design courses. Submission with content + GitHub repo URL. Difficulty levels, time estimates, skill tags.
+- **Capstone Projects**: Full CRUD for user projects linked to Munal AI Builder. GitHub repo + demo URL support. Project status tracking (submitted/completed/reviewed).
+- **Certification Pathways**: 8 industry certifications (AWS Cloud Practitioner, Google Cloud Engineer, CompTIA Security+, Google UX Design, HubSpot Marketing, PMP, HIPAA, Meta Front-End). External links + prep course suggestions.
+- **Backend**: `/app/backend/routes/academy_phase_bc.py` — 12 endpoints (pathways CRUD, labs, capstone CRUD, certifications, badges)
+- **Frontend**: 4 new pages (LearningPathways, CapstoneProjects, CertificationPathways) + PracticeLabs component on course detail
+- **Testing**: 14/14 backend tests + full e2e verification — Iteration 161
+
 ## Upcoming Tasks
-- Phase B: Learning Playlists (curated multi-course pathways), Completion Badges, Enhanced Progress Dashboard
-- Phase C: Practice Labs, Capstone Projects, Certification Pathways
+- Phase B: Completion Badges, Enhanced Progress Dashboard with streaks/stats
 - P1: Enterprise Team Seat Management
 - P2: Notification Integrations (email/SMS for course updates)
 - AI Builder: Mermaid diagram rendering in generated content
