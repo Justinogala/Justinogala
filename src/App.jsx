@@ -100,9 +100,8 @@ const CapstoneProjects = lazy(() => import('@/pages/CapstoneProjects'));
 const CertificationPathways = lazy(() => import('@/pages/CertificationPathways'));
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
-const PathwaysModule = lazy(() => import('@/pages/LearningPathways'));
-const PathwaysList = React.lazy(() => import('@/pages/LearningPathways').then(m => ({ default: m.PathwaysList })));
-const PathwayDetail = React.lazy(() => import('@/pages/LearningPathways').then(m => ({ default: m.PathwayDetail })));
+const PathwaysList = lazy(() => import('@/pages/PathwaysList'));
+const PathwayDetail = lazy(() => import('@/pages/PathwayDetail'));
 
 // User Pages
 const UserDashboard = lazy(() => import('@/pages/user/UserDashboard')); 
