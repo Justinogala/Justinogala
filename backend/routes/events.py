@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Depends
 from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel, Field
-import uuid
+import uuid, os
 
 from config import db, logger
 from security import limiter
@@ -223,7 +223,7 @@ async def get_featured_programs():
 @router.post("/{event_id}/apply")
 @limiter.limit("10/minute")
 async def apply_to_event(request: Request, event_id: str, application: EventApplication):
-    """Submit application for an event"""
+    """Submit application for an event. For paid events, creates Stripe checkout."""
     event = await db.events.find_one({"id": event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -241,11 +241,81 @@ async def apply_to_event(request: Request, event_id: str, application: EventAppl
     }
 
     await db.event_applications.insert_one(app_doc)
-
     await db.events.update_one({"id": event_id}, {"$inc": {"registered": 1}})
 
     logger.info(f"Application submitted for event {event_id} by {application.email}")
-    return {"success": True, "application_id": app_doc["id"], "status": "submitted"}
+
+    # Check if paid event — create Stripe checkout
+    price_str = event.get("price", "Free")
+    is_paid = price_str and price_str != "Free"
+    checkout_url = None
+
+    if is_paid:
+        try:
+            amount = int(float(price_str.replace("$", "").replace(",", "").strip()) * 100)
+            if amount > 0:
+                settings = await db.admin_settings.find_one({"category": "stripe"})
+                stripe_key = settings.get("api_key", "") if settings else ""
+                if stripe_key:
+                    import stripe
+                    stripe.api_key = stripe_key
+                    frontend_url = os.environ.get("FRONTEND_URL", "https://munal.ai")
+                    payment_id = str(uuid.uuid4())
+
+                    session = stripe.checkout.Session.create(
+                        payment_method_types=["card"],
+                        line_items=[{
+                            "price_data": {
+                                "currency": "usd",
+                                "product_data": {
+                                    "name": event["title"],
+                                    "description": f"Event Registration - {event.get('event_format', 'Event')}",
+                                },
+                                "unit_amount": amount,
+                            },
+                            "quantity": 1,
+                        }],
+                        mode="payment",
+                        success_url=f"{frontend_url}/events/{event_id}?payment=success&session_id={{CHECKOUT_SESSION_ID}}",
+                        cancel_url=f"{frontend_url}/events/{event_id}?payment=cancelled",
+                        customer_email=application.email,
+                        metadata={
+                            "event_id": event_id,
+                            "payment_id": payment_id,
+                            "application_id": app_doc["id"],
+                            "applicant_name": application.name,
+                        }
+                    )
+
+                    await db.event_payments.insert_one({
+                        "id": payment_id,
+                        "event_id": event_id,
+                        "application_id": app_doc["id"],
+                        "email": application.email,
+                        "name": application.name,
+                        "amount": amount,
+                        "currency": "usd",
+                        "stripe_session_id": session.id,
+                        "status": "pending",
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    })
+
+                    checkout_url = session.url
+                    await db.event_applications.update_one(
+                        {"id": app_doc["id"]},
+                        {"$set": {"payment_status": "pending", "payment_id": payment_id}}
+                    )
+        except Exception as e:
+            logger.error(f"Stripe checkout for event {event_id} failed: {e}")
+
+    return {
+        "success": True,
+        "application_id": app_doc["id"],
+        "status": "submitted",
+        "is_paid": is_paid,
+        "checkout_url": checkout_url,
+        "price": price_str if is_paid else None,
+    }
 
 
 @router.get("/{event_id}/applications/count")

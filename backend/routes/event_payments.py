@@ -4,15 +4,23 @@ Stripe payment routes for paid events.
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from datetime import datetime, timezone
-import stripe
 import os
 import uuid
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from config import db, logger
 
 router = APIRouter(prefix="/events/payments", tags=["Event Payments"])
 
-stripe.api_key = os.environ.get("STRIPE_API_KEY", "")
+
+async def get_stripe_key():
+    """Get Stripe API key from admin settings"""
+    settings = await db.admin_settings.find_one({"category": "stripe"})
+    if settings and settings.get("api_key"):
+        return settings["api_key"]
+    return os.environ.get("STRIPE_API_KEY", "")
 
 
 class CheckoutRequest(BaseModel):
@@ -45,6 +53,11 @@ async def create_checkout_session(req: CheckoutRequest):
     payment_id = str(uuid.uuid4())
 
     try:
+        import stripe
+        stripe.api_key = await get_stripe_key()
+        if not stripe.api_key:
+            raise HTTPException(status_code=500, detail="Stripe is not configured")
+
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
@@ -86,7 +99,7 @@ async def create_checkout_session(req: CheckoutRequest):
         logger.info(f"Checkout session created for event {req.event_id}: {session.id}")
         return {"success": True, "checkout_url": session.url, "session_id": session.id, "payment_id": payment_id}
 
-    except stripe.error.StripeError as e:
+    except Exception as e:
         logger.error(f"Stripe error: {e}")
         raise HTTPException(status_code=500, detail=f"Payment error: {str(e)}")
 
@@ -95,6 +108,8 @@ async def create_checkout_session(req: CheckoutRequest):
 async def verify_payment(session_id: str):
     """Verify a payment session status"""
     try:
+        import stripe
+        stripe.api_key = await get_stripe_key()
         session = stripe.checkout.Session.retrieve(session_id)
         payment = await db.event_payments.find_one({"stripe_session_id": session_id})
 
@@ -110,7 +125,7 @@ async def verify_payment(session_id: str):
             "email": session.customer_email,
             "event_id": payment.get("event_id") if payment else None
         }
-    except stripe.error.StripeError as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 

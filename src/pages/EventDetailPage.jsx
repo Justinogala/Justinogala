@@ -42,7 +42,16 @@ const ApplicationModal = ({ open, onOpenChange, eventId, eventTitle }) => {
       const res = await fetch(`${API_BASE}/api/events/${eventId}/apply`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form)
       });
-      if (res.ok) { setSubmitted(true); toast({ title: 'Application submitted!' }); }
+      if (res.ok) {
+        const d = await res.json();
+        if (d.checkout_url) {
+          toast({ title: 'Redirecting to payment...' });
+          window.location.href = d.checkout_url;
+        } else {
+          setSubmitted(true);
+          toast({ title: 'Application submitted!' });
+        }
+      }
       else { const d = await res.json(); toast({ variant: 'destructive', title: d.detail || 'Failed to submit' }); }
     } catch { toast({ variant: 'destructive', title: 'Network error' }); }
     finally { setSubmitting(false); }
