@@ -29,11 +29,11 @@ const VOICES = [
 ];
 
 const DURATION_OPTIONS = [
-  { label: '1 min', value: 60, scenes: 2 },
-  { label: '2 min', value: 120, scenes: 4 },
-  { label: '3 min', value: 180, scenes: 6 },
-  { label: '4 min', value: 240, scenes: 8 },
-  { label: '5 min', value: 300, scenes: 10 },
+  { label: '1 min', value: 60, scenes: 5 },
+  { label: '2 min', value: 120, scenes: 10 },
+  { label: '3 min', value: 180, scenes: 15 },
+  { label: '4 min', value: 240, scenes: 20 },
+  { label: '5 min', value: 300, scenes: 25 },
 ];
 
 const TextToVideoPage = () => {
@@ -54,7 +54,7 @@ const TextToVideoPage = () => {
   const [model, setModel] = useState('sora-2');
   const [size, setSize] = useState('1280x720');
   const [targetDuration, setTargetDuration] = useState(180);
-  const [sceneLength, setSceneLength] = useState(30);
+  const [sceneLength, setSceneLength] = useState(12);
   const [voice, setVoice] = useState('nova');
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [previewingVoice, setPreviewingVoice] = useState(null);
@@ -312,7 +312,12 @@ const TextToVideoPage = () => {
 
                   <div className="space-y-2">
                     <div className="flex justify-between"><Label>Scene Length</Label><span className="text-xs font-semibold text-fuchsia-600">{sceneLength}s</span></div>
-                    <Slider value={[sceneLength]} onValueChange={([v]) => setSceneLength(v)} min={10} max={60} step={5} disabled={generating} />
+                    <div className="flex gap-2">
+                      {[4, 8, 12].map(d => (
+                        <Button key={d} variant={sceneLength === d ? 'default' : 'outline'} size="sm" onClick={() => setSceneLength(d)} disabled={generating}
+                          className={cn("flex-1", sceneLength === d && "bg-gradient-to-r from-fuchsia-500 to-pink-500 border-0")}>{d}s</Button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -420,7 +425,7 @@ const TextToVideoPage = () => {
                                 <Timer className="w-3 h-3 text-gray-400" />
                                 <select value={scene.duration} onChange={e => updateScene(i, 'duration', parseInt(e.target.value))}
                                   className="border rounded px-2 py-1 text-xs bg-background">
-                                  {[10,15,20,25,30,40,50,60].map(d => <option key={d} value={d}>{d}s</option>)}
+                                  {[4,8,12].map(d => <option key={d} value={d}>{d}s</option>)}
                                 </select>
                               </div>
                               <div className="flex items-center gap-1.5">

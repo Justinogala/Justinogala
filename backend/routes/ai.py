@@ -882,8 +882,11 @@ async def split_prompt_into_scenes(req: SceneSplitRequest):
         raise HTTPException(status_code=500, detail="Video service not configured")
 
     target = max(60, min(300, req.target_duration))
-    scene_len = max(10, min(60, req.scene_length))
-    num_scenes = max(2, target // scene_len)
+    scene_len = max(4, min(12, req.scene_length))
+    # Snap scene_len to valid Sora 2 values
+    valid_lens = [4, 8, 12]
+    scene_len = min(valid_lens, key=lambda x: abs(x - scene_len))
+    num_scenes = max(2, min(10, target // scene_len))
 
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     chat = LlmChat(
@@ -959,7 +962,7 @@ def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, a
             dur = min(60, max(4, scene.get("duration", 30)))
 
             # Snap to valid duration
-            valid = [4, 8, 12, 16, 20, 24, 30, 36, 48, 60]
+            valid = [4, 8, 12]
             dur = min(valid, key=lambda x: abs(x - dur))
 
             # Create video job
