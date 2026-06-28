@@ -607,10 +607,25 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
             video_gen = OpenAIVideoGeneration(api_key=api_key)
 
             video_jobs[job_id] = {"status": "generating", "progress": 30, "message": "Generating video (this may take a few minutes)..."}
-            video_bytes = video_gen.text_to_video(
-                prompt=prompt, model=model, size=size,
-                duration=duration, max_wait_time=600
-            )
+
+            max_retries = 3
+            video_bytes = None
+            for attempt in range(max_retries):
+                try:
+                    video_bytes = video_gen.text_to_video(
+                        prompt=prompt, model=model, size=size,
+                        duration=duration, max_wait_time=600
+                    )
+                    if video_bytes and len(video_bytes) > 100:
+                        break
+                    logger.warning(f"Video job {job_id} attempt {attempt+1} returned empty data")
+                    video_bytes = None
+                except Exception as e:
+                    logger.warning(f"Video job {job_id} attempt {attempt+1} failed: {e}")
+                    video_bytes = None
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(5 * (attempt + 1))
 
         if not video_bytes:
             video_jobs[job_id] = {"status": "failed", "error": "No video returned"}
@@ -874,7 +889,7 @@ def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, a
         video_jobs[job_id] = {"status": "generating", "progress": 5, "message": "Starting scene generation...", "scenes_total": len(scenes), "scenes_done": 0}
 
         def generate_single_scene(scene_idx, scene):
-            """Generate a single scene clip using Emergent"""
+            """Generate a single scene clip using Emergent with retries"""
             prompt_text = scene.get("prompt", "")
             dur = min(12, max(4, scene.get("duration", 8)))
 
@@ -882,17 +897,28 @@ def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, a
             valid = [4, 8, 12]
             dur = min(valid, key=lambda x: abs(x - dur))
 
-            video_gen = OpenAIVideoGeneration(api_key=api_key)
-            video_bytes = video_gen.text_to_video(
-                prompt=prompt_text, model=model, size=size,
-                duration=dur, max_wait_time=600
-            )
-            if not video_bytes:
-                raise Exception(f"Scene {scene_idx+1} returned no data")
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    video_gen = OpenAIVideoGeneration(api_key=api_key)
+                    video_bytes = video_gen.text_to_video(
+                        prompt=prompt_text, model=model, size=size,
+                        duration=dur, max_wait_time=600
+                    )
+                    if video_bytes and len(video_bytes) > 100:
+                        clip_path = f"/tmp/scene_{job_id}_{scene_idx}.mp4"
+                        video_gen.save_video(video_bytes, clip_path)
+                        return scene_idx, clip_path
+                    else:
+                        logger.warning(f"Scene {scene_idx+1} attempt {attempt+1} returned empty data")
+                except Exception as e:
+                    logger.warning(f"Scene {scene_idx+1} attempt {attempt+1} failed: {e}")
 
-            clip_path = f"/tmp/scene_{job_id}_{scene_idx}.mp4"
-            video_gen.save_video(video_bytes, clip_path)
-            return scene_idx, clip_path
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(5 * (attempt + 1))  # Backoff: 5s, 10s
+
+            raise Exception(f"Scene {scene_idx+1} failed after {max_retries} attempts")
 
         # Generate scenes in parallel (max 3 concurrent)
         clip_paths = [None] * len(scenes)
