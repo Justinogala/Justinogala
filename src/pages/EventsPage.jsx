@@ -307,8 +307,8 @@ const EventsPage = () => {
               {pastHighlights.map((ev, i) => (
                 <Link key={ev.id} to={`/events/${ev.id}`} className="group bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all" data-testid={`past-highlight-${i}`}>
                   <div className="flex items-start gap-3">
-                    {ev.banner ? (
-                      <img src={ev.banner} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" loading="lazy" />
+                    {(ev.banner || ev.image || ev.thumbnail) ? (
+                      <img src={ev.banner || ev.image || ev.thumbnail} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" loading="lazy" onError={e => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                     ) : (
                       <div className="w-14 h-14 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
                         <Calendar className="w-6 h-6 text-violet-400" />
