@@ -77,7 +77,7 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
   return (
     <motion.div 
       className={cn(
-        "flex flex-col h-full bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 border-r border-gray-200/50 dark:border-gray-800/50 transition-all duration-300",
+        "flex flex-col h-full bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 transition-all duration-300",
         isMobile ? "w-[280px] shadow-2xl" : collapsed ? "w-20" : "w-72",
         className
       )}
