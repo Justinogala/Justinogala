@@ -20,7 +20,7 @@ const PLAN_COLORS = {
 
 const ACADEMY_FEATURES = {
   Free: ['Access to free courses', 'Community discussions', 'Practice labs', 'Basic AI Tutor (limited)'],
-  Pro: ['All free courses + Pro courses', 'Unlimited AI Tutor', 'AI lesson summaries', 'Completion certificates', 'Learning pathways', 'Capstone projects'],
+  Pro: ['All free courses + Pro courses', 'Unlimited AI Tutor', 'AI lesson summaries', 'Completion certificates', 'Learning pathways'],
   Business: ['Everything in Pro', 'Team learning dashboards', 'Custom course creation', 'Priority support', 'Admin analytics'],
   Enterprise: ['Everything in Business', 'Dedicated account manager', 'Custom learning paths', 'SSO for teams', 'API access', 'White-label certificates'],
 };

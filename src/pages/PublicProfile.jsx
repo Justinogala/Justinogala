@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { useParams, Link } from 'react-router-dom';
-import { Award, BookOpen, Trophy, Loader2, GraduationCap, ExternalLink, Github, Globe, Hammer, Share2, CheckCircle, Linkedin, Copy, Check } from 'lucide-react';
+import { Award, BookOpen, Trophy, Loader2, GraduationCap, ExternalLink, Share2, CheckCircle, Linkedin, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -61,7 +61,7 @@ const PublicProfile = () => {
     </div>
   );
 
-  const { user, completed_courses, certificates, badges, capstone_projects, stats } = data;
+  const { user, completed_courses, certificates, badges, stats } = data;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
@@ -176,27 +176,6 @@ const PublicProfile = () => {
                     <Badge variant="secondary" className="text-[9px] mt-1">{c.category}</Badge>
                   </div>
                 </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Capstone Projects */}
-        {capstone_projects?.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Hammer className="w-5 h-5 text-orange-500" /> Capstone Projects ({capstone_projects.length})
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {capstone_projects.map(p => (
-                <div key={p.id} className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800">
-                  <h3 className="font-medium text-gray-900 dark:text-white">{p.title}</h3>
-                  {p.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{p.description}</p>}
-                  <div className="flex items-center gap-3 mt-3">
-                    {p.repo_url && <a href={p.repo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"><Github className="w-3.5 h-3.5" /> Code</a>}
-                    {p.demo_url && <a href={p.demo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"><Globe className="w-3.5 h-3.5" /> Demo</a>}
-                  </div>
-                </div>
               ))}
             </div>
           </div>

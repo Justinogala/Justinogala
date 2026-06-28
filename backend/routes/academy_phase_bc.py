@@ -1,5 +1,5 @@
 """
-Academy Phase B+C — Learning Pathways, Badges, Enhanced Dashboard, Practice Labs, Capstone Projects, Certification Pathways.
+Academy Phase B+C — Learning Pathways, Badges, Enhanced Dashboard, Practice Labs, Certification Pathways.
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import HTMLResponse
@@ -34,14 +34,6 @@ class PathwayCreate(BaseModel):
 class LabSubmission(BaseModel):
     content: str
     repo_url: str = ""
-
-
-class CapstoneSubmission(BaseModel):
-    title: str
-    description: str = ""
-    builder_project_id: str = ""
-    repo_url: str = ""
-    demo_url: str = ""
 
 
 # ============== Learning Pathways ==============
@@ -150,7 +142,6 @@ BADGE_DEFINITIONS = [
     {"id": "first_discussion", "title": "Contributor", "description": "Start a discussion thread", "icon": "message-square", "color": "#06B6D4", "category": "community"},
     {"id": "pathway_complete", "title": "Pathfinder", "description": "Complete a learning pathway", "icon": "map", "color": "#10B981", "category": "milestone"},
     {"id": "first_lab", "title": "Lab Rat", "description": "Submit your first practice lab", "icon": "flask-conical", "color": "#6366F1", "category": "achievement"},
-    {"id": "capstone_complete", "title": "Builder", "description": "Complete a capstone project", "icon": "hammer", "color": "#F97316", "category": "achievement"},
     {"id": "all_certs", "title": "Certified Pro", "description": "Earn 5 certificates with PASS status", "icon": "award", "color": "#EAB308", "category": "milestone"},
 ]
 
@@ -183,7 +174,6 @@ async def check_and_award_badges(user=Depends(get_current_user)):
     reviews = await db.course_reviews.count_documents({"user_id": user_id, "deleted": {"$ne": True}})
     discussions = await db.academy_discussions.count_documents({"user_id": user_id, "deleted": {"$ne": True}})
     labs = await db.academy_lab_submissions.count_documents({"user_id": user_id})
-    capstones = await db.academy_capstone_submissions.count_documents({"user_id": user_id, "status": "completed"})
 
     # Check quiz scores
     has_perfect_quiz = False
@@ -231,7 +221,6 @@ async def check_and_award_badges(user=Depends(get_current_user)):
         "first_discussion": discussions >= 1,
         "pathway_complete": pathway_complete,
         "first_lab": labs >= 1,
-        "capstone_complete": capstones >= 1,
         "all_certs": certs >= 5,
     }
 
@@ -313,7 +302,6 @@ async def get_enhanced_dashboard(user=Depends(get_current_user)):
 
     # Lab submissions count
     lab_count = await db.academy_lab_submissions.count_documents({"user_id": user_id})
-    capstone_count = await db.academy_capstone_submissions.count_documents({"user_id": user_id})
 
     return {
         "continue_learning": continue_learning,
@@ -331,7 +319,6 @@ async def get_enhanced_dashboard(user=Depends(get_current_user)):
             "total_hours": round(total_hours, 1),
             "badges_earned": len(user_badges),
             "labs_submitted": lab_count,
-            "capstones_completed": capstone_count,
         }
     }
 
@@ -388,203 +375,6 @@ async def submit_lab(course_id: str, lab_id: str, submission: LabSubmission, use
     await db.academy_lab_submissions.insert_one(doc)
     return {"success": True, "submission_id": doc["id"]}
 
-
-# ============== Capstone Projects ==============
-
-@router.get("/capstone-projects")
-async def list_capstone_projects(user=Depends(get_current_user)):
-    """List user's capstone project submissions"""
-    submissions = await db.academy_capstone_submissions.find(
-        {"user_id": user.get("id")}, {"_id": 0}
-    ).sort("created_at", -1).to_list(50)
-    return {"projects": submissions}
-
-
-@router.post("/capstone-projects")
-async def submit_capstone(submission: CapstoneSubmission, user=Depends(get_current_user)):
-    """Submit a capstone project and auto-generate a live demo"""
-    now = datetime.now(timezone.utc).isoformat()
-    doc = {
-        "id": str(uuid.uuid4()), "user_id": user.get("id"),
-        "user_name": user.get("name", ""), "title": submission.title,
-        "description": submission.description, "builder_project_id": submission.builder_project_id,
-        "repo_url": submission.repo_url, "demo_url": submission.demo_url,
-        "status": "submitted", "feedback": "", "created_at": now, "updated_at": now,
-        "demo_status": "generating", "demo_html": "",
-    }
-    await db.academy_capstone_submissions.insert_one(doc)
-    doc.pop("_id", None)
-
-    # Auto-generate demo in background
-    import asyncio
-    asyncio.create_task(_generate_capstone_demo(doc["id"], submission.title, submission.description))
-
-    return {"success": True, "project": doc}
-
-
-async def _generate_capstone_demo(project_id: str, title: str, description: str):
-    """Generate a full single-page HTML/CSS/JS app from capstone description"""
-    try:
-        api_key = os.environ.get("EMERGENT_LLM_KEY", "")
-        if not api_key:
-            await db.academy_capstone_submissions.update_one(
-                {"id": project_id}, {"$set": {"demo_status": "failed", "demo_error": "AI not configured"}}
-            )
-            return
-
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"capstone-demo-{project_id}",
-            system_message="""You are an expert full-stack web developer. Generate a complete, production-quality single-page web application as a single HTML file.
-
-Rules:
-- Return ONLY the complete HTML file content, no markdown, no explanations
-- Include ALL CSS inline in a <style> tag
-- Include ALL JavaScript inline in a <script> tag
-- Use modern CSS (flexbox, grid, variables, animations)
-- Use vanilla JavaScript (no frameworks needed since it's a single file)
-- Make it fully responsive and mobile-friendly
-- Add realistic sample data and interactive features
-- Use a professional, modern design with gradients, shadows, rounded corners
-- Include a header/nav, main content area, and footer
-- Add smooth transitions and hover effects
-- Make it look like a real production app, not a demo
-- The app should be fully functional with interactive elements (forms, buttons, modals, tabs, etc.)
-- Use Font Awesome CDN for icons: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">"""
-        ).with_model("openai", "gpt-5.5")
-
-        prompt = f"""Build a complete, interactive single-page web application for:
-
-Title: {title}
-Description: {description}
-
-Generate the FULL HTML file with embedded CSS and JavaScript. Make it look professional, modern, and fully functional with:
-- Interactive navigation and routing (use hash-based routing)
-- Dashboard/home view with stats and charts
-- At least 3-4 different views/sections
-- Forms with validation
-- Modals/dialogs
-- Responsive design
-- Dark/light color scheme with a professional palette
-- Sample data that makes the app look real and populated
-- Smooth animations and transitions
-
-Return ONLY the HTML code, starting with <!DOCTYPE html>."""
-
-        response = await chat.send_message(UserMessage(text=prompt))
-        html_content = response if isinstance(response, str) else getattr(response, "text", str(response))
-
-        # Clean up if wrapped in markdown
-        if html_content.strip().startswith("```"):
-            html_content = html_content.strip()
-            if html_content.startswith("```html"):
-                html_content = html_content[7:]
-            elif html_content.startswith("```"):
-                html_content = html_content[3:]
-            if html_content.endswith("```"):
-                html_content = html_content[:-3]
-            html_content = html_content.strip()
-
-        if not html_content.strip().startswith("<!DOCTYPE") and not html_content.strip().startswith("<html"):
-            # Try to find HTML content
-            start = html_content.find("<!DOCTYPE")
-            if start == -1:
-                start = html_content.find("<html")
-            if start >= 0:
-                html_content = html_content[start:]
-
-        await db.academy_capstone_submissions.update_one(
-            {"id": project_id},
-            {"$set": {"demo_status": "ready", "demo_html": html_content, "demo_generated_at": datetime.now(timezone.utc).isoformat()}}
-        )
-        logger.info(f"Capstone demo generated for {project_id}: {len(html_content)} chars")
-
-    except Exception as e:
-        logger.error(f"Capstone demo generation failed for {project_id}: {e}")
-        await db.academy_capstone_submissions.update_one(
-            {"id": project_id}, {"$set": {"demo_status": "failed", "demo_error": str(e)}}
-        )
-
-
-@router.post("/capstone-projects/{project_id}/regenerate-demo")
-async def regenerate_capstone_demo(project_id: str, user=Depends(get_current_user)):
-    """Regenerate the live demo for a capstone project"""
-    project = await db.academy_capstone_submissions.find_one(
-        {"id": project_id, "user_id": user.get("id")}, {"_id": 0}
-    )
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    await db.academy_capstone_submissions.update_one(
-        {"id": project_id}, {"$set": {"demo_status": "generating", "demo_html": ""}}
-    )
-
-    import asyncio
-    asyncio.create_task(_generate_capstone_demo(project_id, project["title"], project["description"]))
-
-    return {"success": True, "status": "generating"}
-
-
-@router.get("/capstone-projects/{project_id}/demo")
-async def serve_capstone_demo(project_id: str):
-    """Serve the generated demo as an HTML page (iframe-able)"""
-    project = await db.academy_capstone_submissions.find_one(
-        {"id": project_id}, {"_id": 0, "demo_html": 1, "demo_status": 1, "title": 1}
-    )
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    if project.get("demo_status") == "generating":
-        return HTMLResponse(content=f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Generating...</title>
-        <style>body{{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui;background:#f8f9fa;color:#666;}}
-        .wrap{{text-align:center}}.spinner{{width:40px;height:40px;border:4px solid #e0e0e0;border-top:4px solid #7C3AED;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;}}
-        @keyframes spin{{to{{transform:rotate(360deg)}}}}</style></head>
-        <body><div class="wrap"><div class="spinner"></div><h3>Generating Live Demo...</h3><p>AI is building your app. This usually takes 15-30 seconds.</p>
-        <script>setTimeout(()=>location.reload(),5000)</script></div></body></html>""", status_code=200)
-
-    if project.get("demo_status") == "failed":
-        return HTMLResponse(content=f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Demo Error</title>
-        <style>body{{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui;background:#fef2f2;color:#991b1b;}}
-        .wrap{{text-align:center;max-width:400px}}</style></head>
-        <body><div class="wrap"><h3>Demo Generation Failed</h3><p>Try regenerating the demo from your project page.</p></div></body></html>""", status_code=200)
-
-    html = project.get("demo_html", "")
-    if not html:
-        return HTMLResponse(content="<html><body><p>No demo available yet.</p></body></html>", status_code=200)
-
-    return HTMLResponse(content=html, status_code=200)
-
-
-@router.get("/capstone-projects/{project_id}/demo-status")
-async def get_capstone_demo_status(project_id: str):
-    """Check demo generation status"""
-    project = await db.academy_capstone_submissions.find_one(
-        {"id": project_id}, {"_id": 0, "demo_status": 1, "demo_generated_at": 1, "demo_error": 1}
-    )
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return {"status": project.get("demo_status", "none"), "generated_at": project.get("demo_generated_at"), "error": project.get("demo_error")}
-
-
-
-@router.put("/capstone-projects/{project_id}")
-async def update_capstone(project_id: str, submission: CapstoneSubmission, user=Depends(get_current_user)):
-    """Update a capstone project"""
-    result = await db.academy_capstone_submissions.update_one(
-        {"id": project_id, "user_id": user.get("id")},
-        {"$set": {
-            "title": submission.title, "description": submission.description,
-            "builder_project_id": submission.builder_project_id,
-            "repo_url": submission.repo_url, "demo_url": submission.demo_url,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }}
-    )
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Project not found")
-    updated = await db.academy_capstone_submissions.find_one({"id": project_id}, {"_id": 0})
-    return {"success": True, "project": updated}
 
 
 # ============== Certification Pathways ==============
@@ -774,9 +564,6 @@ async def get_public_profile(user_id: str):
     from routes.academy_phase_bc import BADGE_DEFINITIONS
     badges = [{**b, "earned": True, "earned_at": badge_map[b["id"]].get("earned_at")} for b in BADGE_DEFINITIONS if b["id"] in badge_map]
 
-    # Capstone projects
-    projects = await db.academy_capstone_submissions.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(10)
-
     # Stats
     total_enrolled = await db.course_enrollments.count_documents({"user_id": user_id})
 
@@ -785,7 +572,6 @@ async def get_public_profile(user_id: str):
         "completed_courses": completed_courses,
         "certificates": certificates,
         "badges": badges,
-        "capstone_projects": projects,
         "stats": {
             "courses_completed": len(completed_courses),
             "certificates_earned": len(certificates),

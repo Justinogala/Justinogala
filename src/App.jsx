@@ -96,7 +96,6 @@ const AcademyCourses = lazy(() => import('@/pages/AcademyCourses'));
 const AcademyCourseDetail = lazy(() => import('@/pages/AcademyCourseDetail'));
 const AcademySubscription = lazy(() => import('@/pages/AcademySubscription'));
 const AcademyCertificate = lazy(() => import('@/pages/AcademyCertificate'));
-const CapstoneProjects = lazy(() => import('@/pages/CapstoneProjects'));
 const CertificationPathways = lazy(() => import('@/pages/CertificationPathways'));
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
@@ -434,7 +433,6 @@ function App() {
                               <Route path="/academy/certificates/:certId" element={<AcademyCertificate />} />
                               <Route path="/academy/pathways" element={<PathwaysList />} />
                               <Route path="/academy/pathways/:pathwayId" element={<PathwayDetail />} />
-                              <Route path="/academy/capstone-projects" element={<CapstoneProjects />} />
                               <Route path="/academy/certifications" element={<CertificationPathways />} />
                               <Route path="/academy/profile/:userId" element={<PublicProfile />} />
                               <Route path="/academy/leaderboard" element={<Leaderboard />} />

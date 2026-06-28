@@ -133,7 +133,6 @@ const Header = () => {
       { label: 'Academy', href: '/academy', icon: GraduationCap },
       { label: 'Courses', href: '/academy/courses', icon: BookOpen },
       { label: 'Learning Pathways', href: '/academy/pathways', icon: BookOpen },
-      { label: 'Capstone Projects', href: '/academy/capstone-projects', icon: Code },
       { label: 'Certifications', href: '/academy/certifications', icon: Award },
       { label: 'Leaderboard', href: '/academy/leaderboard', icon: Award },
       { label: 'Events', href: '/events', icon: Calendar },

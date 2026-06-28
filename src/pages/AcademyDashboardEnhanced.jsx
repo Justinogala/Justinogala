@@ -322,11 +322,6 @@ const AcademyDashboardEnhanced = () => {
                 <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-indigo-600">Learning Pathways</span>
                 <ArrowRight className="w-3.5 h-3.5 text-gray-300 ml-auto" />
               </Link>
-              <Link to="/academy/capstone-projects" className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all group">
-                <Hammer className="w-4 h-4 text-orange-500" />
-                <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-orange-600">Capstone Projects</span>
-                <ArrowRight className="w-3.5 h-3.5 text-gray-300 ml-auto" />
-              </Link>
               <Link to="/academy/certifications" className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all group">
                 <Award className="w-4 h-4 text-emerald-500" />
                 <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-emerald-600">Certifications</span>

@@ -116,7 +116,6 @@ const PricingPage = () => {
         'AI lesson summaries',
         'Completion certificates',
         'Learning pathways',
-        'Capstone projects',
       ],
       cta: 'Start Pro',
       popular: true
@@ -226,7 +225,6 @@ const PricingPage = () => {
       { name: 'Completion certificates', free: false, pro: true, business: true, enterprise: true },
       { name: 'Learning pathways', free: false, pro: true, business: true, enterprise: true },
       { name: 'Practice labs', free: true, pro: true, business: true, enterprise: true },
-      { name: 'Capstone projects', free: false, pro: true, business: true, enterprise: true },
       { name: 'Team learning dashboards', free: false, pro: false, business: true, enterprise: true },
       { name: 'Custom learning paths', free: false, pro: false, business: false, enterprise: true },
       { name: 'White-label certificates', free: false, pro: false, business: false, enterprise: true }
