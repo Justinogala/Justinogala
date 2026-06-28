@@ -38,7 +38,6 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', gradient: 'from-blue-500 to-cyan-500' },
     { icon: BotMessageSquare, label: 'AI Chat', path: '/ai-chat', badge: 'NEW', gradient: 'from-violet-500 to-indigo-600' },
-    { icon: Sparkles, label: 'AI Features', path: '/ai-features', badge: 'NEW', gradient: 'from-fuchsia-500 to-violet-600' },
     { icon: CircleDot, label: 'Quick Record', path: '/quick-record', highlight: true, badge: 'NEW', gradient: 'from-rose-500 to-pink-500' },
     { icon: Volume2, label: 'Text to Audio', path: '/text-to-audio', gradient: 'from-violet-500 to-purple-500' },
     { icon: Calendar, label: 'Calendar', path: '/calendar', gradient: 'from-indigo-500 to-violet-500' },
