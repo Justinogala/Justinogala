@@ -1,18 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Check, Zap, Star, Crown, ArrowRight, Loader2, CreditCard, Calendar, Clock, AlertCircle, TrendingUp } from 'lucide-react';
+import { Check, X, Zap, Star, Crown, ArrowRight, Loader2, TrendingUp, Shield, GraduationCap, Video, Mic, Cloud, Users, Bot, MessageSquare, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
-import { getApiUrl, API_URL } from '@/lib/api';
+import { API_URL } from '@/lib/api';
+
+const PLAN_ICONS = { Free: Zap, Pro: Star, Business: TrendingUp, Enterprise: Crown };
+const PLAN_COLORS = {
+  Free: { accent: '#6366F1', bg: 'from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/20', border: 'border-indigo-200 dark:border-indigo-800' },
+  Pro: { accent: '#7C3AED', bg: 'from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20', border: 'border-violet-300 dark:border-violet-700' },
+  Business: { accent: '#2563EB', bg: 'from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20', border: 'border-blue-200 dark:border-blue-800' },
+  Enterprise: { accent: '#059669', bg: 'from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20', border: 'border-emerald-200 dark:border-emerald-800' },
+};
+
+const ACADEMY_FEATURES = {
+  Free: ['Access to free courses', 'Community discussions', 'Practice labs', 'Basic AI Tutor (limited)'],
+  Pro: ['All free courses + Pro courses', 'Unlimited AI Tutor', 'AI lesson summaries', 'Completion certificates', 'Learning pathways', 'Capstone projects'],
+  Business: ['Everything in Pro', 'Team learning dashboards', 'Custom course creation', 'Priority support', 'Admin analytics'],
+  Enterprise: ['Everything in Business', 'Dedicated account manager', 'Custom learning paths', 'SSO for teams', 'API access', 'White-label certificates'],
+};
 
 const UserPlansPage = () => {
   const { toast } = useToast();
@@ -21,481 +32,266 @@ const UserPlansPage = () => {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
   const [plans, setPlans] = useState([]);
-  const [subscription, setSubscription] = useState(null);
-  const [usage, setUsage] = useState(null);
-  const [currentPlan, setCurrentPlan] = useState({ name: 'Free', price_monthly: 0 });
+  const [currentPlanId, setCurrentPlanId] = useState('free');
 
-  // Fetch plans and user subscription
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch plans
         const plansRes = await fetch(`${API_URL}/api/payments/plans`);
         const plansData = await plansRes.json();
         setPlans(plansData.plans || []);
 
-        // Fetch user subscription if logged in
         if (user?.id) {
           const subRes = await fetch(`${API_URL}/api/payments/user/${user.id}/subscription`);
           const subData = await subRes.json();
-          setSubscription(subData.subscription);
-          setUsage(subData.usage);
-          if (subData.plan) {
-            setCurrentPlan(subData.plan);
-          }
+          if (subData.subscription) setCurrentPlanId(subData.subscription.plan_id || 'free');
         }
-      } catch (error) {
-        console.error('Error fetching plans:', error);
-        toast({ variant: 'destructive', title: 'Failed to load plans' });
-      }
+      } catch (e) { console.error(e); }
       setLoading(false);
     };
-
     fetchData();
-  }, [user?.id, toast]);
-
-  const getIcon = (planName) => {
-    const icons = {
-      'Free': Zap,
-      'Pro': Star,
-      'Business': TrendingUp,
-      'Enterprise': Crown
-    };
-    return icons[planName] || Zap;
-  };
+  }, [user?.id]);
 
   const handleUpgrade = async (plan) => {
     if (plan.price_monthly === 0) {
-      toast({
-        title: "Free Plan",
-        description: "You're already on the free plan or it's automatically available."
-      });
+      toast({ title: "You're on the Free plan", description: "This is your current plan." });
+      return;
+    }
+    if (!user) {
+      window.location.href = '/login';
       return;
     }
 
     setCheckoutLoading(plan.id);
-    
     try {
-      const response = await fetch(`${API_URL}/api/payments/checkout`, {
+      const res = await fetch(`${API_URL}/api/payments/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan_id: plan.id,
           billing_period: isAnnual ? 'yearly' : 'monthly',
           origin_url: window.location.origin,
-          user_id: user?.id || null,
-          user_email: user?.email || null
+          user_id: user.id,
+          user_email: user.email
         })
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to create checkout session');
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No checkout URL received');
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast({
-        variant: "destructive",
-        title: "Payment Error",
-        description: error.message || "Failed to initiate payment. Please try again."
-      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to create checkout');
+      if (data.url) window.location.href = data.url;
+      else throw new Error('No checkout URL received');
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Payment Error', description: e.message });
     } finally {
       setCheckoutLoading(null);
     }
   };
 
-  const handleCancelPlan = () => {
-    toast({
-      variant: "destructive",
-      title: "Cancel subscription",
-      description: "Please contact support to cancel your subscription."
-    });
-  };
+  if (loading) return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-6 h-6 animate-spin text-violet-500" />
+    </div>
+  );
 
-  const isCurrent = (planName) => planName === currentPlan.name;
-
-  const formatLimit = (value) => {
-    if (value === -1 || value === "Unlimited") return "Unlimited";
-    return value;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
+  const orderedPlans = ['free', 'pro', 'business', 'enterprise']
+    .map(id => plans.find(p => p.id === id))
+    .filter(Boolean);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto" data-testid="user-plans-page">
-      <Helmet><title>Plans & Billing | Munal</title></Helmet>
+    <div data-testid="plans-page">
+      <Helmet><title>Plans & Pricing | Munal AI</title></Helmet>
 
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Plans & Billing</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your subscription and track your usage</p>
+      <div className="text-center mb-10">
+        <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 mb-4 px-3 py-1">Pricing</Badge>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
+          Simple, transparent pricing
+        </h1>
+        <p className="text-gray-500 max-w-xl mx-auto mb-6">
+          Choose the plan that fits your needs. All plans include core features. Upgrade anytime.
+        </p>
+
+        {/* Billing Toggle */}
+        <div className="inline-flex items-center gap-3 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2" data-testid="billing-toggle">
+          <span className={cn("text-sm font-medium", !isAnnual ? "text-gray-900 dark:text-white" : "text-gray-400")}>Monthly</span>
+          <Switch checked={isAnnual} onCheckedChange={setIsAnnual} />
+          <span className={cn("text-sm font-medium", isAnnual ? "text-gray-900 dark:text-white" : "text-gray-400")}>
+            Annual
+          </span>
+          {isAnnual && <Badge className="bg-green-100 text-green-700 text-[10px] ml-1">Save 17%</Badge>}
+        </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="plans">Plans</TabsTrigger>
-          <TabsTrigger value="usage">Usage</TabsTrigger>
-        </TabsList>
+      {/* Plans Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-12">
+        {orderedPlans.map(plan => {
+          const isCurrent = plan.id === currentPlanId;
+          const isPopular = plan.is_popular;
+          const Icon = PLAN_ICONS[plan.name] || Zap;
+          const colors = PLAN_COLORS[plan.name] || PLAN_COLORS.Free;
+          const price = isAnnual ? Math.round((plan.price_annual || plan.price_monthly * 10) / 12) : plan.price_monthly;
+          const academyFeatures = ACADEMY_FEATURES[plan.name] || [];
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Current Plan Summary */}
-          <Card className="border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {React.createElement(getIcon(currentPlan.name), { className: "w-8 h-8 text-indigo-600" })}
-                  <div>
-                    <CardTitle className="text-xl">Current Plan: {currentPlan.name}</CardTitle>
-                    <CardDescription>
-                      {subscription?.renewal_date 
-                        ? `Next billing: ${new Date(subscription.renewal_date).toLocaleDateString()}`
-                        : currentPlan.price_monthly > 0 ? 'Active subscription' : 'Free tier - no billing'
-                      }
-                    </CardDescription>
-                  </div>
-                </div>
-                <Badge className="bg-indigo-600 text-white text-lg px-4 py-1">
-                  {currentPlan.price_monthly === 0 ? 'Free' : `$${currentPlan.price_monthly}/mo`}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    <Calendar className="w-4 h-4" />
-                    Meetings
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {usage?.meetings?.used || 0}/{formatLimit(usage?.meetings?.limit || 5)}
-                  </p>
-                </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    <Clock className="w-4 h-4" />
-                    Transcription
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {usage?.transcription_minutes?.used || 0}/{formatLimit(usage?.transcription_minutes?.limit || 30)} min
-                  </p>
-                </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    <TrendingUp className="w-4 h-4" />
-                    Storage
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {usage?.storage_gb?.used || 0}/{formatLimit(usage?.storage_gb?.limit || 1)} GB
-                  </p>
-                </div>
-                <div className="bg-white/60 dark:bg-slate-800/60 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    <CreditCard className="w-4 h-4" />
-                    Workspaces
-                  </div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {usage?.workspaces?.used || 1}/{formatLimit(usage?.workspaces?.limit || 1)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-            {currentPlan.price_monthly > 0 && (
-              <CardFooter className="flex justify-between border-t pt-4">
-                <Button variant="outline" onClick={handleCancelPlan} className="text-red-600 border-red-200 hover:bg-red-50">
-                  Cancel Subscription
-                </Button>
-                <Button variant="outline">
-                  Update Payment Method
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
+          return (
+            <div key={plan.id}
+              className={cn(
+                "relative rounded-2xl border-2 bg-white dark:bg-slate-900 overflow-hidden transition-all hover:shadow-xl",
+                isPopular ? "border-violet-500 dark:border-violet-400 shadow-lg shadow-violet-500/10 scale-[1.02]" : "border-gray-200 dark:border-gray-700",
+                isCurrent && "ring-2 ring-green-400 ring-offset-2"
+              )} data-testid={`plan-card-${plan.id}`}>
 
-          {/* Features included */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Features Included in {currentPlan.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {(currentPlan.features || [
-                  "5 meetings per month",
-                  "30 min transcription", 
-                  "1 GB cloud storage",
-                  "AI-powered transcription",
-                  "Instant video meetings",
-                  "Team chat messaging",
-                  "Calendar & scheduling",
-                  "Basic AI summaries"
-                ]).map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700 dark:text-gray-300">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Upgrade prompt for free users */}
-          {currentPlan.name === 'Free' && (
-            <Alert className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border-violet-200 dark:border-violet-800">
-              <Star className="h-5 w-5 text-violet-600" />
-              <AlertDescription className="text-violet-900 dark:text-violet-100">
-                <span className="font-semibold">Unlock more features!</span> Upgrade to Pro for 100 meetings/month, 
-                500 min transcription, voice chat, and priority support.
-                <Button size="sm" className="ml-4 bg-violet-600 hover:bg-violet-700" onClick={() => {
-                  const proPlan = plans.find(p => p.name === 'Pro');
-                  if (proPlan) handleUpgrade(proPlan);
-                }}>
-                  Upgrade Now <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-        </TabsContent>
-
-        {/* Plans Tab */}
-        <TabsContent value="plans" className="space-y-6">
-          {/* Annual Discount Banner */}
-          {!isAnnual && (
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-full">
-                  <Calendar className="w-5 h-5" />
+              {/* Popular badge */}
+              {isPopular && (
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-center py-1.5 text-xs font-semibold">
+                  Most Popular
                 </div>
-                <div>
-                  <p className="font-semibold">Save 17% with annual billing</p>
-                  <p className="text-sm text-green-100">Get 2 months free when you pay yearly</p>
+              )}
+              {isCurrent && !isPopular && (
+                <div className="absolute top-0 left-0 right-0 bg-green-500 text-white text-center py-1.5 text-xs font-semibold">
+                  Current Plan
+                </div>
+              )}
+
+              <div className={cn("p-6", (isPopular || isCurrent) && "pt-10")}>
+                {/* Icon + Name */}
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 bg-gradient-to-br", colors.bg)}>
+                  <Icon className="w-6 h-6" style={{ color: colors.accent }} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
+                <p className="text-sm text-gray-500 mt-1 mb-5">{plan.description}</p>
+
+                {/* Price */}
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-extrabold text-gray-900 dark:text-white">${price}</span>
+                    <span className="text-sm text-gray-400">/month</span>
+                  </div>
+                  {isAnnual && plan.price_monthly > 0 && (
+                    <p className="text-xs text-green-600 mt-1">
+                      ${plan.price_annual || plan.price_monthly * 10}/year — save ${(plan.price_monthly * 12) - (plan.price_annual || plan.price_monthly * 10)}
+                    </p>
+                  )}
+                </div>
+
+                {/* CTA Button */}
+                {isCurrent ? (
+                  <Button disabled className="w-full mb-6 gap-2" variant="outline" data-testid={`btn-current-${plan.id}`}>
+                    <Check className="w-4 h-4" /> Current Plan
+                  </Button>
+                ) : plan.price_monthly === 0 ? (
+                  <Button disabled className="w-full mb-6" variant="outline">Free Forever</Button>
+                ) : (
+                  <Button
+                    onClick={() => handleUpgrade(plan)}
+                    disabled={checkoutLoading === plan.id}
+                    className={cn("w-full mb-6 gap-2 font-semibold",
+                      isPopular ? "bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/20" : "bg-gray-900 hover:bg-gray-800 text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                    )} data-testid={`btn-upgrade-${plan.id}`}>
+                    {checkoutLoading === plan.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                    Upgrade
+                  </Button>
+                )}
+
+                {/* Platform Features */}
+                <div className="mb-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">Platform</p>
+                  <ul className="space-y-2">
+                    {(plan.features || []).slice(0, 7).map((f, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                    {(plan.features || []).length > 7 && (
+                      <li className="text-xs text-violet-600 font-medium cursor-pointer hover:underline">
+                        +{plan.features.length - 7} more features
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Academy Features */}
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 mb-2 flex items-center gap-1">
+                    <GraduationCap className="w-3 h-3" /> Academy
+                  </p>
+                  <ul className="space-y-2">
+                    {academyFeatures.map((f, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Check className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-              <Button 
-                variant="secondary" 
-                className="bg-white text-green-700 hover:bg-green-50"
-                onClick={() => setIsAnnual(true)}
-              >
-                Switch to Annual
-              </Button>
             </div>
-          )}
+          );
+        })}
+      </div>
 
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl">
-            <Label className={!isAnnual ? "font-semibold text-gray-900 dark:text-white" : "text-gray-500"}>Monthly</Label>
-            <Switch checked={isAnnual} onCheckedChange={setIsAnnual} className="data-[state=checked]:bg-green-600" />
-            <Label className={isAnnual ? "font-semibold text-gray-900 dark:text-white" : "text-gray-500"}>
-              Annual 
-              <Badge className="ml-2 bg-green-600 text-white animate-pulse">
-                Save 17%
-              </Badge>
-            </Label>
-          </div>
+      {/* Feature Comparison Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden mb-12">
+        <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Full Feature Comparison</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-800">
+                <th className="text-left px-6 py-3 text-gray-500 font-medium">Feature</th>
+                {orderedPlans.map(p => (
+                  <th key={p.id} className="text-center px-4 py-3 font-semibold text-gray-900 dark:text-white">{p.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
+              {[
+                { name: 'Video Meetings', values: ['5/mo', '50/mo', '150/mo', 'Unlimited'] },
+                { name: 'AI Transcription', values: ['30 min', '300 min', '1000 min', 'Unlimited'] },
+                { name: 'Cloud Storage', values: ['1 GB', '5 GB', '25 GB', '100 GB'] },
+                { name: 'Team Members', values: ['1', '5', '25', 'Unlimited'] },
+                { name: 'Workspaces', values: ['1', '3', '10', 'Unlimited'] },
+                { name: 'HD Recording', values: [false, true, true, true] },
+                { name: 'AI Chat & Builder', values: ['Basic', 'Full', 'Full', 'Full + API'] },
+                { name: 'Text-to-Video', values: ['4s', '8s', '24s', '60s'] },
+                { name: 'Academy Courses', values: ['Free only', 'All courses', 'All courses', 'All + Custom'] },
+                { name: 'AI Tutor', values: ['Limited', 'Unlimited', 'Unlimited', 'Unlimited'] },
+                { name: 'Certificates', values: [false, true, true, true] },
+                { name: 'Learning Pathways', values: [false, true, true, true] },
+                { name: 'Team Analytics', values: [false, false, true, true] },
+                { name: 'SSO/SAML', values: [false, false, false, true] },
+                { name: 'Dedicated Support', values: [false, false, false, true] },
+              ].map(row => (
+                <tr key={row.name} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20">
+                  <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{row.name}</td>
+                  {row.values.map((v, i) => (
+                    <td key={i} className="text-center px-4 py-3">
+                      {v === true ? <Check className="w-4 h-4 text-green-500 mx-auto" /> :
+                       v === false ? <X className="w-4 h-4 text-gray-300 mx-auto" /> :
+                       <span className="text-gray-700 dark:text-gray-300 font-medium">{v}</span>}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          {/* Plans Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {plans.map((plan) => {
-              const planIsCurrent = isCurrent(plan.name);
-              const price = isAnnual ? plan.price_annual : plan.price_monthly;
-              const monthlyEquivalent = isAnnual ? Math.round(price / 12) : price;
-              const monthlySavings = isAnnual && plan.price_monthly > 0 
-                ? Math.round(plan.price_monthly * 12 - price) 
-                : 0;
-              const Icon = getIcon(plan.name);
-              
-              return (
-                <Card 
-                  key={plan.id} 
-                  className={`relative ${plan.is_popular ? 'border-indigo-500 dark:border-indigo-400 shadow-lg scale-[1.02]' : ''} ${planIsCurrent ? 'ring-2 ring-green-500' : ''}`}
-                >
-                  {plan.is_popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-indigo-600 text-white">Most Popular</Badge>
-                    </div>
-                  )}
-                  {planIsCurrent && (
-                    <div className="absolute -top-3 right-4">
-                      <Badge className="bg-green-600 text-white">Current</Badge>
-                    </div>
-                  )}
-                  
-                  <CardHeader className="text-center pb-2">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent className="text-center">
-                    <div className="mb-6">
-                      <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                        ${monthlyEquivalent}
-                      </span>
-                      <span className="text-gray-500">/month</span>
-                      {isAnnual && price > 0 && (
-                        <>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Billed ${price}/year
-                          </p>
-                          <Badge className="mt-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                            Save ${monthlySavings}/year
-                          </Badge>
-                        </>
-                      )}
-                    </div>
-                    
-                    <ul className="space-y-2 text-left mb-6">
-                      {plan.features?.slice(0, 6).map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm">
-                          <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-600 dark:text-gray-300">{feature}</span>
-                        </li>
-                      ))}
-                      {plan.features?.length > 6 && (
-                        <li className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-                          +{plan.features.length - 6} more features
-                        </li>
-                      )}
-                    </ul>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      className={`w-full ${plan.is_popular ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
-                      variant={plan.is_popular ? 'default' : 'outline'}
-                      onClick={() => handleUpgrade(plan)}
-                      disabled={planIsCurrent || checkoutLoading === plan.id}
-                    >
-                      {checkoutLoading === plan.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : null}
-                      {planIsCurrent ? 'Current Plan' : price === 0 ? 'Get Started' : 'Upgrade'}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        {/* Usage Tab */}
-        <TabsContent value="usage" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Meetings Usage */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-indigo-500" />
-                  Meetings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Used this month</span>
-                    <span className="font-medium">{usage?.meetings?.used || 0} / {formatLimit(usage?.meetings?.limit)}</span>
-                  </div>
-                  <Progress value={usage?.meetings?.limit === -1 ? 0 : ((usage?.meetings?.used || 0) / (usage?.meetings?.limit || 5)) * 100} className="h-3" />
-                  <p className="text-xs text-gray-500">Resets on the 1st of each month</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Transcription Usage */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-purple-500" />
-                  Transcription Minutes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Used this month</span>
-                    <span className="font-medium">{usage?.transcription_minutes?.used || 0} / {formatLimit(usage?.transcription_minutes?.limit)} min</span>
-                  </div>
-                  <Progress value={usage?.transcription_minutes?.limit === -1 ? 0 : ((usage?.transcription_minutes?.used || 0) / (usage?.transcription_minutes?.limit || 30)) * 100} className="h-3" />
-                  <p className="text-xs text-gray-500">Resets on the 1st of each month</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Storage Usage */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-emerald-500" />
-                  Cloud Storage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Currently using</span>
-                    <span className="font-medium">{usage?.storage_gb?.used || 0} / {formatLimit(usage?.storage_gb?.limit)} GB</span>
-                  </div>
-                  <Progress value={((usage?.storage_gb?.used || 0) / (usage?.storage_gb?.limit || 1)) * 100} className="h-3" />
-                  <p className="text-xs text-gray-500">Includes files, recordings, and transcriptions</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Team Usage */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-amber-500" />
-                  Team & Workspaces
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Workspaces</span>
-                    <span className="font-medium">{usage?.workspaces?.used || 1} / {formatLimit(usage?.workspaces?.limit)}</span>
-                  </div>
-                  <Progress value={usage?.workspaces?.limit === -1 ? 0 : ((usage?.workspaces?.used || 1) / (usage?.workspaces?.limit || 1)) * 100} className="h-3" />
-                  <div className="flex justify-between text-sm mt-4">
-                    <span className="text-gray-600 dark:text-gray-400">Team Members</span>
-                    <span className="font-medium">{usage?.team_members?.used || 1} / {formatLimit(usage?.team_members?.limit)}</span>
-                  </div>
-                  <Progress value={usage?.team_members?.limit === -1 ? 0 : ((usage?.team_members?.used || 1) / (usage?.team_members?.limit || 1)) * 100} className="h-3" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Usage warning */}
-          {usage && (usage.meetings?.used / usage.meetings?.limit > 0.8 || usage.transcription_minutes?.used / usage.transcription_minutes?.limit > 0.8) && (
-            <Alert variant="warning" className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-              <AlertDescription className="text-amber-900 dark:text-amber-100">
-                You are approaching your usage limits. Consider upgrading your plan for uninterrupted service.
-              </AlertDescription>
-            </Alert>
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* Trust Section */}
+      <div className="text-center py-8 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-center gap-8 flex-wrap text-sm text-gray-400">
+          <span className="flex items-center gap-1.5"><Shield className="w-4 h-4" /> 256-bit SSL Encryption</span>
+          <span className="flex items-center gap-1.5"><CreditCard className="w-4 h-4" /> Secure Stripe Payments</span>
+          <span className="flex items-center gap-1.5"><ArrowRight className="w-4 h-4" /> Cancel Anytime</span>
+        </div>
+      </div>
     </div>
   );
 };
+
+// Need these imports for the trust section icons
+import { CreditCard } from 'lucide-react';
 
 export default UserPlansPage;
