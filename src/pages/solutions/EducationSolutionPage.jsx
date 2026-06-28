@@ -28,7 +28,7 @@ const EducationSolutionPage = () => (
       { title: "Staff Onboarding & Professional Development", description: "Generate training videos and orientation materials with AI text-to-video. Create audio guides for new faculty and teaching assistants." }
     ]}
     faqs={[
-      { q: "Can Munal AI transcribe faculty and board meetings?", a: "Yes. Munal AI uses OpenAI Whisper for real-time transcription and GPT-5.2 for automatic summaries with action items, decisions, and follow-ups — ideal for faculty senate, department, and board meetings." },
+      { q: "Can Munal AI transcribe faculty and board meetings?", a: "Yes. Munal AI uses OpenAI Whisper for real-time transcription and GPT-5.5 for automatic summaries with action items, decisions, and follow-ups — ideal for faculty senate, department, and board meetings." },
       { q: "How does scheduling work for educational institutions?", a: "Munal AI provides visual drag-and-drop scheduling with day, week, and month views. You can manage teaching schedules, exam invigilation, lab sessions, and administrative shifts with automated reminders and swap requests." },
       { q: "Is student data secure on Munal AI?", a: "Absolutely. Munal AI uses AES-256 encryption, two-factor authentication, role-based access control, and audit logging to protect sensitive student data in compliance with educational data protection requirements." },
       { q: "Can we use digital forms for student enrollment?", a: "Yes. Munal AI supports digital forms with legally binding eSignatures and multi-step approval workflows. You can create enrollment, registration, and consent forms that route through admissions, finance, and academic departments." },

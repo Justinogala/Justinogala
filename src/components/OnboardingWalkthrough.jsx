@@ -31,7 +31,7 @@ const STEPS = [
   },
   {
     title: 'AI Chat Assistant',
-    subtitle: 'Powered by GPT-5.2',
+    subtitle: 'Powered by GPT-5.5',
     description: 'Ask questions, get summaries, draft messages, or analyze documents. Your AI co-pilot is always ready to help.',
     icon: BotMessageSquare,
     gradient: 'from-violet-500 to-purple-600',

@@ -26,7 +26,7 @@ Modern teams are drowning in fragmented tools — one for video calls, another f
 
 ### Platform Highlights
 
-- **AI-Powered Meeting Intelligence** — Automatic transcription, speaker identification, action item extraction, and smart summaries powered by GPT-5.2
+- **AI-Powered Meeting Intelligence** — Automatic transcription, speaker identification, action item extraction, and smart summaries powered by GPT-5.5
 - **Unified Workspace** — Documents, presentations, spreadsheets, chat, video calls, and scheduling in one platform
 - **Advanced AI Chat Assistant** — Generate images, search the web, create charts, analyze documents, and produce downloadable files
 - **Enterprise Security** — Role-based access control, 2FA enforcement, audit logging, and encrypted data storage
@@ -87,7 +87,7 @@ Documents, spreadsheets, presentations, chat, video calls, scheduling, and AI as
 - **Data residency** controls for compliance requirements
 
 ### AI That Actually Works
-Munal's AI is powered by GPT-5.2 and purpose-built for workplace productivity:
+Munal's AI is powered by GPT-5.5 and purpose-built for workplace productivity:
 - Summarize hour-long meetings in 30 seconds
 - Generate professional documents from a simple prompt
 - Search the web for real-time information with source citations
@@ -164,7 +164,7 @@ Munal's meeting intelligence engine transforms every conversation into structure
 
 1. **Record** — Start a meeting via Munal's built-in video calling, or upload an audio/video file
 2. **Transcribe** — OpenAI Whisper converts speech to text with 98%+ accuracy
-3. **Analyze** — GPT-5.2 processes the transcript to extract insights
+3. **Analyze** — GPT-5.5 processes the transcript to extract insights
 4. **Deliver** — Results are available in real-time as the meeting progresses
 
 ### What You Get
@@ -200,7 +200,7 @@ Each meeting has a full-page transcript view (\`/meeting-transcripts/:id\`) with
         content: `
 ## AI Chat Assistant
 
-Munal's AI Chat is a full-featured AI assistant powered by GPT-5.2, capable of text generation, file analysis, image creation, web search, and data visualization.
+Munal's AI Chat is a full-featured AI assistant powered by GPT-5.5, capable of text generation, file analysis, image creation, web search, and data visualization.
 
 ### Capabilities
 

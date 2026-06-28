@@ -86,7 +86,7 @@ export default function FeatureAIChatPage() {
           ))}
         </div>
         <div className="p-3 border-t border-gray-100 dark:border-slate-800 text-center">
-          <span className="text-[10px] text-gray-400 dark:text-gray-600">Powered by GPT-5.2</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-600">Powered by GPT-5.5</span>
         </div>
       </div>
 
@@ -110,7 +110,7 @@ export default function FeatureAIChatPage() {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Munal AI Assistant</h2>
-              <p className="text-[10px] text-gray-400">GPT-5.2 · Always ready</p>
+              <p className="text-[10px] text-gray-400">GPT-5.5 · Always ready</p>
             </div>
           </div>
           <div className="ml-auto">
@@ -279,7 +279,7 @@ export default function FeatureAIChatPage() {
               </div>
 
               <div className="mt-5 flex items-center justify-center gap-4 text-[11px] text-gray-400">
-                <span className="flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> GPT-5.2</span>
+                <span className="flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> GPT-5.5</span>
                 <span className="flex items-center gap-1"><ImagePlus className="w-3.5 h-3.5" /> Image Gen</span>
                 <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> Web Search</span>
               </div>

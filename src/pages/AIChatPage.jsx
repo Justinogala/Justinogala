@@ -1097,7 +1097,7 @@ export default function AIChatPage() {
           )}
         </div>
         <div className="p-3 border-t border-gray-100 dark:border-slate-800 text-center">
-          <span className="text-[10px] text-gray-400 dark:text-gray-600">Powered by GPT-5.2</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-600">Powered by GPT-5.5</span>
         </div>
       </div>
 
@@ -1121,7 +1121,7 @@ export default function AIChatPage() {
             </div>
             <div>
               <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Munal AI Assistant</h2>
-              <p className="text-[10px] text-gray-400">GPT-5.2 · Always ready</p>
+              <p className="text-[10px] text-gray-400">GPT-5.5 · Always ready</p>
             </div>
           </div>
           <button onClick={() => setBuilderMode(true)}

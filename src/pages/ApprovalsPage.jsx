@@ -1142,7 +1142,7 @@ const ApprovalAnalytics = ({ userId }) => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-indigo-500" /> AI Insights
-              <Badge variant="outline" className="text-[9px] px-1.5 py-0">GPT-5.2</Badge>
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0">GPT-5.5</Badge>
             </CardTitle>
             <Button variant="outline" size="sm" onClick={fetchAIInsights} disabled={loadingAI} className="h-7 text-xs" data-testid="generate-ai-insights-btn">
               {loadingAI ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}

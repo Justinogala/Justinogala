@@ -14,7 +14,7 @@ def get_client(api_key: str = None) -> OpenAI:
     return OpenAI(api_key=key, base_url=PROXY_BASE_URL)
 
 
-def chat_completion(messages: list, model: str = "gpt-5.2", api_key: str = None, stream: bool = False, **kwargs):
+def chat_completion(messages: list, model: str = "gpt-5.5", api_key: str = None, stream: bool = False, **kwargs):
     client = get_client(api_key)
     return client.chat.completions.create(model=model, messages=messages, stream=stream, **kwargs)
 

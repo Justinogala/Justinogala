@@ -630,7 +630,7 @@ export default function BuilderView({ onSwitchToChat }) {
           ))}
         </div>
         <div className="p-3 border-t border-gray-100 dark:border-slate-800 text-center">
-          <span className="text-[10px] text-gray-400">AI Builder · GPT-5.2</span>
+          <span className="text-[10px] text-gray-400">AI Builder · GPT-5.5</span>
         </div>
       </div>
 

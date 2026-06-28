@@ -1414,7 +1414,7 @@ async def get_ai_insights(user_id: str = Query(...)):
             api_key=api_key,
             session_id=f"approval-insights-{user_id}",
             system_message="You are an AI analyst for a workplace approval management system. Provide concise, actionable insights based on the approval data. Use bullet points. Focus on: 1) Workflow health 2) Bottlenecks 3) Recommendations. Keep it under 200 words. Be specific with names and numbers."
-        ).with_model("openai", "gpt-5.2")
+        ).with_model("openai", "gpt-5.5")
 
         response = await chat.send_message(UserMessage(text=data_summary))
 
