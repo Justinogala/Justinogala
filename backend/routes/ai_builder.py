@@ -1087,7 +1087,7 @@ async def generate_section(project_id: str, section: str, user: dict = Depends(g
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": f"Generate the {SECTION_LABELS.get(section, section)} section now. Be comprehensive and specific."}
                 ],
-                model="gpt-5.2",
+                model="gpt-5.5",
                 api_key=EMERGENT_KEY,
                 stream=True,
                 max_tokens=4000,
@@ -1204,7 +1204,7 @@ async def generate_all_sections(project_id: str, user: dict = Depends(get_curren
                         {"role": "system", "content": prompt},
                         {"role": "user", "content": f"Generate the {SECTION_LABELS.get(section, section)} section now. Be comprehensive and specific."}
                     ],
-                    model="gpt-5.2",
+                    model="gpt-5.5",
                     api_key=EMERGENT_KEY,
                     stream=True,
                     max_tokens=4000,
@@ -1400,7 +1400,7 @@ Focus on questions about:
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": "Generate the clarifying questions as a JSON array."}
             ],
-            model="gpt-5.2",
+            model="gpt-5.5",
             api_key=EMERGENT_KEY,
             stream=False,
             max_tokens=1500,

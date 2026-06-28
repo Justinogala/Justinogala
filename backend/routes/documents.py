@@ -178,7 +178,7 @@ Make the content comprehensive, professional, and ready to use. Do NOT include <
             api_key=api_key,
             session_id=f"doc-gen-{uuid.uuid4()}",
             system_message=system_msg
-        ).with_model("openai", "gpt-5.2")
+        ).with_model("openai", "gpt-5.5")
 
         user_message = UserMessage(text=f"Create a professional document: {prompt}")
         content = await chat.send_message(user_message)

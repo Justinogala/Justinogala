@@ -448,7 +448,7 @@ Rules:
                 {"role": "system", "content": system},
                 {"role": "user", "content": req.prompt},
             ],
-            model="gpt-5.2",
+            model="gpt-5.5",
             api_key=EMERGENT_KEY,
         )
         raw = result.choices[0].message.content.strip()
@@ -567,7 +567,7 @@ Column references use letters (A, B, C...), row references use numbers (1, 2, 3.
             {"role": "system", "content": system},
             {"role": "user", "content": f"{req.description}{context_msg}"},
         ],
-        model="gpt-5.2",
+        model="gpt-5.5",
         api_key=EMERGENT_KEY,
     )
     formula = result.choices[0].message.content.strip()
@@ -611,7 +611,7 @@ SPREADSHEET DATA:
             {"role": "system", "content": system},
             {"role": "user", "content": req.message},
         ],
-        model="gpt-5.2",
+        model="gpt-5.5",
         api_key=EMERGENT_KEY,
     )
     return {"response": result.choices[0].message.content}
@@ -707,7 +707,7 @@ Example: ["value1", "value2", "value3"]
             {"role": "system", "content": system},
             {"role": "user", "content": f"Generate {req.row_count} more values for the '{req.column_name}' column following the pattern."},
         ],
-        model="gpt-5.2",
+        model="gpt-5.5",
         api_key=EMERGENT_KEY,
     )
     raw = result.choices[0].message.content.strip()
@@ -752,7 +752,7 @@ async def smart_action(sheet_id: str, req: SmartActionRequest, user: dict = Depe
             {"role": "system", "content": f"{prompt}\n\nReturn ONLY valid JSON array. No markdown, no explanation."},
             {"role": "user", "content": f"Process these values:\n{values_text}"},
         ],
-        model="gpt-5.2",
+        model="gpt-5.5",
         api_key=EMERGENT_KEY,
     )
     raw = result.choices[0].message.content.strip()
@@ -921,7 +921,7 @@ SPREADSHEET DATA:
                 {"role": "system", "content": system},
                 {"role": "user", "content": "Analyze this spreadsheet data and provide insights with chart suggestions."},
             ],
-            model="gpt-5.2",
+            model="gpt-5.5",
             api_key=EMERGENT_KEY,
         )
         raw = result.choices[0].message.content.strip()

@@ -52,7 +52,7 @@ def _generate(system: str, user_prompt: str) -> str:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user_prompt}
             ],
-            model="gpt-5.2",
+            model="gpt-5.5",
             api_key=api_key,
             max_tokens=1500,
             temperature=0.7

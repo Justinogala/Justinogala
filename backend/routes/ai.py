@@ -893,7 +893,7 @@ async def split_prompt_into_scenes(req: SceneSplitRequest):
         api_key=EMERGENT_LLM_KEY or api_key,
         session_id=f"scene-split-{uuid.uuid4()}",
         system_message="You are a professional video director. Split prompts into distinct visual scenes for AI video generation. Return ONLY valid JSON."
-    ).with_model("openai", "gpt-5.2")
+    ).with_model("openai", "gpt-5.5")
 
     split_prompt = f"""Split this video concept into exactly {num_scenes} scenes, each {scene_len} seconds long.
 
@@ -1353,7 +1353,7 @@ Return ONLY valid JSON in this exact format:
                 {"role": "system", "content": "You are an expert meeting analyst. Return ONLY valid JSON."},
                 {"role": "user", "content": insight_prompt},
             ],
-            model="gpt-5.2",
+            model="gpt-5.5",
             api_key=api_key,
         )
         import json

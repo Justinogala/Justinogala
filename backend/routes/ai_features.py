@@ -36,7 +36,7 @@ def _chat_sync(messages, max_tokens=1500):
             max_retries=0,
             timeout=15
         )
-        resp = client.chat.completions.create(model="gpt-5.2", messages=messages, max_tokens=max_tokens)
+        resp = client.chat.completions.create(model="gpt-5.5", messages=messages, max_tokens=max_tokens)
         return resp.choices[0].message.content
     except Exception as e:
         logger.warning(f"LLM call failed: {str(e)[:120]}")

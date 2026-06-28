@@ -204,7 +204,7 @@ User Profile:
                 {"role": "system", "content": "You are an AI event recommender for Munal AI Academy & Events. Given a user profile and available events, rank the top 5 most relevant events. Return ONLY a JSON array of event IDs in order of relevance, like: [\"id1\", \"id2\", \"id3\", \"id4\", \"id5\"]. No explanation."},
                 {"role": "user", "content": f"{user_profile}\n\nAvailable Events:\n{events_text}\n\nReturn the top 5 event IDs as a JSON array, most relevant first."}
             ],
-            model="gpt-5.2",
+            model="gpt-5.5",
             api_key=api_key,
             max_tokens=200,
             temperature=0.3

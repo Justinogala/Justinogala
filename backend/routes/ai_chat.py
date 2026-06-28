@@ -286,7 +286,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
             # Real streaming call via OpenAI SDK
             response = chat_completion(
                 messages=llm_messages,
-                model="gpt-5.2",
+                model="gpt-5.5",
                 api_key=EMERGENT_KEY,
                 stream=True,
             )
@@ -341,7 +341,7 @@ async def send_message(conv_id: str, body: dict, user: dict = Depends(get_curren
                     full_response = ""
                     search_resp = chat_completion(
                         messages=search_messages,
-                        model="gpt-5.2",
+                        model="gpt-5.5",
                         api_key=EMERGENT_KEY,
                         stream=True,
                     )
@@ -677,7 +677,7 @@ async def regenerate_response(conv_id: str, user: dict = Depends(get_current_use
 
             response = chat_completion(
                 messages=llm_messages,
-                model="gpt-5.2",
+                model="gpt-5.5",
                 api_key=EMERGENT_KEY,
                 stream=True,
             )

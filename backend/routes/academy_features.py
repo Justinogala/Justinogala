@@ -95,7 +95,7 @@ Guidelines:
 - Encourage the student and be supportive
 - Format your responses with markdown for readability
 - Keep answers focused and under 300 words unless the question requires more depth"""
-    ).with_model("openai", "gpt-5.2")
+    ).with_model("openai", "gpt-5.5")
 
     user_msg = UserMessage(text=msg.message)
     response = await chat.send_message(user_msg)
@@ -163,7 +163,7 @@ async def generate_lesson_summary(course_id: str, lesson_id: str, user=Depends(g
         api_key=api_key,
         session_id=f"summary-{course_id}-{lesson_id}",
         system_message="You are an expert educator creating concise, well-structured lesson summaries. Use markdown formatting."
-    ).with_model("openai", "gpt-5.2")
+    ).with_model("openai", "gpt-5.5")
 
     prompt = f"""Create a comprehensive study summary for this lesson:
 

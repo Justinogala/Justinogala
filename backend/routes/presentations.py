@@ -177,7 +177,7 @@ Generate 6-10 slides. Return ONLY valid JSON array, no markdown fences."""
             api_key=api_key,
             session_id=f"pres-gen-{uuid.uuid4()}",
             system_message=system_msg
-        ).with_model("openai", "gpt-5.2")
+        ).with_model("openai", "gpt-5.5")
 
         user_message = UserMessage(text=f"Create a presentation about: {prompt}")
         response = await chat.send_message(user_message)

@@ -605,7 +605,7 @@ async def ai_generate_course(req: AIGenerateRequest, user=Depends(get_current_us
         api_key=api_key,
         session_id=f"course-gen-{uuid.uuid4().hex[:8]}",
         system_message="You are an expert curriculum designer for an AI education platform. Generate structured course content in valid JSON format only. No markdown, no code blocks, just pure JSON."
-    ).with_model("openai", "gpt-5.2")
+    ).with_model("openai", "gpt-5.5")
 
     prompt = f"""Generate a comprehensive course outline for the topic: "{req.topic}"
 Level: {req.level}
@@ -680,7 +680,7 @@ async def ai_generate_quiz(req: AIQuizRequest, user=Depends(get_current_user)):
         api_key=api_key,
         session_id=f"quiz-gen-{uuid.uuid4().hex[:8]}",
         system_message="You are an expert educator creating assessment questions. Return only valid JSON. No markdown, no code blocks."
-    ).with_model("openai", "gpt-5.2")
+    ).with_model("openai", "gpt-5.5")
 
     prompt = f"""Generate {req.num_questions} multiple-choice quiz questions for:
 Course: "{req.course_title}"
