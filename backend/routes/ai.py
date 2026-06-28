@@ -541,159 +541,81 @@ class VideoGenerationRequest(BaseModel):
 
 
 async def get_video_api_key():
-    """Get the video generation API key from admin settings or fallback to env"""
-    # First try admin-configured key from database
-    settings = await db.admin_settings.find_one({"category": "video_api"})
-    if settings and settings.get("api_key"):
-        return settings["api_key"]
-    
-    # Fallback to environment variables
-    return EMERGENT_LLM_KEY or OPENAI_API_KEY
+    """Get the Emergent LLM key for video generation"""
+    return EMERGENT_LLM_KEY
 
 
 def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str, voice: str = "nova"):
-    """Synchronous video generation using OpenAI API directly (runs in thread pool)"""
-    import requests
-    import time
-    
+    """Synchronous video generation using Emergent's OpenAIVideoGeneration (runs in thread pool)"""
+    import os
+    from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+
     try:
         video_jobs[job_id] = {"status": "generating", "progress": 10, "message": "Starting video generation..."}
-        
+
         base_durations = [4, 8, 12]
         extended_durations = [24, 36, 48, 60]
-        
-        headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json'
-        }
-        
-        def create_video_job(prompt_text, dur):
-            """Create a video generation job with OpenAI API"""
-            response = requests.post(
-                'https://api.openai.com/v1/videos',
-                headers=headers,
-                json={
-                    'model': model,
-                    'prompt': prompt_text,
-                    'seconds': str(dur),
-                    'size': size
-                },
-                timeout=60
+
+        def generate_single_clip(clip_prompt, dur, clip_idx=0, total_clips=1):
+            """Generate a single video clip using Emergent"""
+            video_gen = OpenAIVideoGeneration(api_key=api_key)
+            video_bytes = video_gen.text_to_video(
+                prompt=clip_prompt, model=model, size=size,
+                duration=dur, max_wait_time=600
             )
-            if response.status_code not in [200, 201]:
-                raise Exception(f"API error: {response.text}")
-            return response.json()
-        
-        def poll_video_job(video_id, max_wait=600):
-            """Poll for video job completion"""
-            start_time = time.time()
-            while time.time() - start_time < max_wait:
-                response = requests.get(
-                    f'https://api.openai.com/v1/videos/{video_id}',
-                    headers=headers,
-                    timeout=30
-                )
-                if response.status_code != 200:
-                    raise Exception(f"Poll error: {response.text}")
-                
-                data = response.json()
-                status = data.get('status')
-                progress = data.get('progress', 0)
-                
-                if status == 'completed':
-                    return data
-                elif status == 'failed':
-                    raise Exception(f"Video generation failed: {data.get('error', 'Unknown error')}")
-                
-                time.sleep(5)
-            
-            raise Exception("Video generation timed out")
-        
-        def download_video(video_id):
-            """Download the generated video"""
-            response = requests.get(
-                f'https://api.openai.com/v1/videos/{video_id}/content',
-                headers=headers,
-                timeout=120
-            )
-            if response.status_code != 200:
-                raise Exception(f"Download error: {response.text}")
-            return response.content
-        
+            if not video_bytes:
+                raise Exception(f"Clip {clip_idx+1} returned no data")
+            clip_path = f"/tmp/clip_{job_id}_{clip_idx}.mp4"
+            video_gen.save_video(video_bytes, clip_path)
+            return clip_path, video_bytes
+
         if duration in extended_durations:
-            # Extended duration - generate multiple clips and stitch
             num_clips = duration // 12
             clip_duration = 12
             clip_paths = []
-            
+
             for i in range(num_clips):
                 video_jobs[job_id] = {
-                    "status": "generating", 
+                    "status": "generating",
                     "progress": 10 + (i * 70 // num_clips),
                     "message": f"Generating clip {i+1}/{num_clips}..."
                 }
-                
                 clip_prompt = f"Continuation of scene: {prompt}" if i > 0 else prompt
-                
-                # Create job
-                job_data = create_video_job(clip_prompt, clip_duration)
-                video_id = job_data['id']
-                
-                # Poll for completion
-                completed_data = poll_video_job(video_id)
-                
-                # Download video
-                clip_bytes = download_video(video_id)
-                
-                if not clip_bytes:
-                    video_jobs[job_id] = {"status": "failed", "error": f"Failed to download clip {i+1}"}
-                    return
-                
-                clip_path = f"/tmp/clip_{job_id}_{i}.mp4"
-                with open(clip_path, 'wb') as f:
-                    f.write(clip_bytes)
+                clip_path, _ = generate_single_clip(clip_prompt, clip_duration, i, num_clips)
                 clip_paths.append(clip_path)
-            
-            # Stitch clips
+
             video_jobs[job_id] = {"status": "generating", "progress": 90, "message": "Stitching clips..."}
             output_path = f"/tmp/video_{job_id}.mp4"
-            
+
             if not stitch_videos_with_ffmpeg(clip_paths, output_path):
                 video_jobs[job_id] = {"status": "failed", "error": "Failed to stitch clips"}
                 return
-            
+
             with open(output_path, 'rb') as f:
                 video_bytes = f.read()
-            import os
             os.remove(output_path)
             for cp in clip_paths:
-                try:
-                    os.remove(cp)
-                except Exception:
-                    pass
+                try: os.remove(cp)
+                except: pass
         else:
-            # Standard duration
-            video_jobs[job_id] = {"status": "generating", "progress": 20, "message": "Creating video job..."}
-            
-            # Create job
-            job_data = create_video_job(prompt, duration)
-            video_id = job_data['id']
-            
-            video_jobs[job_id] = {"status": "generating", "progress": 30, "message": "Generating video..."}
-            
-            # Poll for completion
-            completed_data = poll_video_job(video_id)
-            
-            video_jobs[job_id] = {"status": "generating", "progress": 80, "message": "Downloading video..."}
-            
-            # Download video
-            video_bytes = download_video(video_id)
-        
+            # Standard duration (4, 8, or 12)
+            # Snap to valid
+            valid = [4, 8, 12]
+            duration = min(valid, key=lambda x: abs(x - duration))
+
+            video_jobs[job_id] = {"status": "generating", "progress": 20, "message": "Creating video..."}
+            video_gen = OpenAIVideoGeneration(api_key=api_key)
+
+            video_jobs[job_id] = {"status": "generating", "progress": 30, "message": "Generating video (this may take a few minutes)..."}
+            video_bytes = video_gen.text_to_video(
+                prompt=prompt, model=model, size=size,
+                duration=duration, max_wait_time=600
+            )
+
         if not video_bytes:
             video_jobs[job_id] = {"status": "failed", "error": "No video returned"}
             return
-        
-        # Save result
+
         video_base64 = base64.b64encode(video_bytes).decode('utf-8')
         video_jobs[job_id] = {
             "status": "completed",
@@ -943,65 +865,36 @@ Return ONLY the JSON array, no markdown or explanation."""
 
 
 def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, api_key: str, voice: str = "nova"):
-    """Generate multiple scenes in parallel and stitch them together"""
-    import requests
-    import time
+    """Generate multiple scenes in parallel using Emergent and stitch them together"""
+    import os
     from concurrent.futures import ThreadPoolExecutor, as_completed
+    from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
 
     try:
         video_jobs[job_id] = {"status": "generating", "progress": 5, "message": "Starting scene generation...", "scenes_total": len(scenes), "scenes_done": 0}
 
-        headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json'
-        }
-
         def generate_single_scene(scene_idx, scene):
-            """Generate a single scene clip"""
+            """Generate a single scene clip using Emergent"""
             prompt_text = scene.get("prompt", "")
-            dur = min(60, max(4, scene.get("duration", 30)))
+            dur = min(12, max(4, scene.get("duration", 8)))
 
             # Snap to valid duration
             valid = [4, 8, 12]
             dur = min(valid, key=lambda x: abs(x - dur))
 
-            # Create video job
-            response = requests.post(
-                'https://api.openai.com/v1/videos',
-                headers=headers,
-                json={'model': model, 'prompt': prompt_text, 'seconds': str(dur), 'size': size},
-                timeout=60
+            video_gen = OpenAIVideoGeneration(api_key=api_key)
+            video_bytes = video_gen.text_to_video(
+                prompt=prompt_text, model=model, size=size,
+                duration=dur, max_wait_time=600
             )
-            if response.status_code not in [200, 201]:
-                raise Exception(f"Scene {scene_idx+1} API error: {response.text}")
-            vid_id = response.json()['id']
-
-            # Poll for completion
-            start = time.time()
-            while time.time() - start < 600:
-                r = requests.get(f'https://api.openai.com/v1/videos/{vid_id}', headers=headers, timeout=30)
-                if r.status_code != 200:
-                    raise Exception(f"Scene {scene_idx+1} poll error: {r.text}")
-                data = r.json()
-                if data.get('status') == 'completed':
-                    break
-                elif data.get('status') == 'failed':
-                    raise Exception(f"Scene {scene_idx+1} failed: {data.get('error')}")
-                time.sleep(5)
-            else:
-                raise Exception(f"Scene {scene_idx+1} timed out")
-
-            # Download
-            dl = requests.get(f'https://api.openai.com/v1/videos/{vid_id}/content', headers=headers, timeout=120)
-            if dl.status_code != 200:
-                raise Exception(f"Scene {scene_idx+1} download error: {dl.text}")
+            if not video_bytes:
+                raise Exception(f"Scene {scene_idx+1} returned no data")
 
             clip_path = f"/tmp/scene_{job_id}_{scene_idx}.mp4"
-            with open(clip_path, 'wb') as f:
-                f.write(dl.content)
+            video_gen.save_video(video_bytes, clip_path)
             return scene_idx, clip_path
 
-        # Generate scenes in parallel (max 3 concurrent to avoid rate limits)
+        # Generate scenes in parallel (max 3 concurrent)
         clip_paths = [None] * len(scenes)
         scenes_done = 0
 
