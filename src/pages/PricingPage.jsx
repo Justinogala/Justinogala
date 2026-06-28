@@ -84,6 +84,12 @@ const PricingPage = () => {
         { text: 'Text-to-Audio conversion (basic)', included: true },
         { text: 'Email support', included: true }
       ],
+      academyFeatures: [
+        'Access to free courses',
+        'Community discussions',
+        'Practice labs',
+        'Basic AI Tutor (limited)',
+      ],
       cta: 'Start Free',
       popular: false
     },
@@ -103,6 +109,14 @@ const PricingPage = () => {
         { text: 'Voice chat channels', included: true },
         { text: 'Text-to-Audio conversion', included: true },
         { text: 'Priority email support', included: true }
+      ],
+      academyFeatures: [
+        'All free + Pro courses',
+        'Unlimited AI Tutor',
+        'AI lesson summaries',
+        'Completion certificates',
+        'Learning pathways',
+        'Capstone projects',
       ],
       cta: 'Start Pro',
       popular: true
@@ -124,6 +138,13 @@ const PricingPage = () => {
         { text: 'Voice chat channels', included: true },
         { text: 'Priority support', included: true }
       ],
+      academyFeatures: [
+        'Everything in Pro',
+        'Team learning dashboards',
+        'Custom course creation',
+        'Admin analytics',
+        'Priority support',
+      ],
       cta: 'Start Business',
       popular: false
     },
@@ -143,6 +164,14 @@ const PricingPage = () => {
         { text: 'Unlimited team chat', included: true },
         { text: 'Voice chat channels', included: true },
         { text: '24/7 dedicated support', included: true }
+      ],
+      academyFeatures: [
+        'Everything in Business',
+        'Dedicated account manager',
+        'Custom learning paths',
+        'SSO for teams',
+        'API access',
+        'White-label certificates',
       ],
       cta: 'Contact Sales',
       popular: false
@@ -188,6 +217,19 @@ const PricingPage = () => {
       { name: 'Email support', free: true, pro: true, business: true, enterprise: true },
       { name: 'Priority support', free: false, pro: true, business: true, enterprise: true },
       { name: '24/7 dedicated support', free: false, pro: false, business: false, enterprise: true }
+    ]},
+    { category: 'Munal AI Academy', features: [
+      { name: 'Free courses', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Pro courses', free: false, pro: true, business: true, enterprise: true },
+      { name: 'AI Tutor', free: 'Limited', pro: 'Unlimited', business: 'Unlimited', enterprise: 'Unlimited' },
+      { name: 'AI Summaries & Notes', free: false, pro: true, business: true, enterprise: true },
+      { name: 'Completion certificates', free: false, pro: true, business: true, enterprise: true },
+      { name: 'Learning pathways', free: false, pro: true, business: true, enterprise: true },
+      { name: 'Practice labs', free: true, pro: true, business: true, enterprise: true },
+      { name: 'Capstone projects', free: false, pro: true, business: true, enterprise: true },
+      { name: 'Team learning dashboards', free: false, pro: false, business: true, enterprise: true },
+      { name: 'Custom learning paths', free: false, pro: false, business: false, enterprise: true },
+      { name: 'White-label certificates', free: false, pro: false, business: false, enterprise: true }
     ]}
   ];
 
@@ -292,7 +334,7 @@ const PricingPage = () => {
                         </div>
                       </div>
 
-                      <ul className="space-y-3 mb-8 flex-1">
+                      <ul className="space-y-3 mb-4 flex-1">
                         {tier.features.map((feature, i) => (
                           <li key={i} className="flex items-start gap-3">
                             {feature.included ? (
@@ -306,6 +348,20 @@ const PricingPage = () => {
                           </li>
                         ))}
                       </ul>
+
+                      {tier.academyFeatures && (
+                        <div className="pt-4 mb-6 border-t border-gray-100 dark:border-gray-800">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-3">Academy</p>
+                          <ul className="space-y-2">
+                            {tier.academyFeatures.map((f, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <Check className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+                                <span>{f}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                       <Button 
                         className="w-full h-12 text-base font-semibold"
