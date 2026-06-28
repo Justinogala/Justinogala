@@ -1019,6 +1019,33 @@ export default function AIChatPage() {
     }
   };
 
+  const handlePaste = async (e) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const fileItems = items.filter(item => item.kind === 'file');
+    if (!fileItems.length) return;
+
+    e.preventDefault();
+    setIsUploading(true);
+    for (const item of fileItems) {
+      const file = item.getAsFile();
+      if (!file) continue;
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch(`${API}/api/ai-chat/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${getToken()}` },
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUploadedFiles(prev => [...prev, data]);
+        }
+      } catch (err) { console.error('Paste upload failed:', err); }
+    }
+    setIsUploading(false);
+  };
+
   const selectPrompt = (prompt) => {
     setInput(prompt);
     inputRef.current?.focus();
@@ -1384,7 +1411,8 @@ export default function AIChatPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Message Munal AI..."
+                onPaste={handlePaste}
+                placeholder="Message Munal AI... (paste images/files with Ctrl+V)"
                 className="w-full resize-none rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-4 py-3 pr-12 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-shadow min-h-[48px] max-h-[200px]"
                 rows={1}
                 style={{ height: 'auto', minHeight: '48px' }}
