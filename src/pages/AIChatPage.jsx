@@ -1270,10 +1270,10 @@ export default function AIChatPage() {
             </div>
           )}
 
-          <div className="max-w-6xl mx-auto flex items-end gap-2">
+          <div className="max-w-4xl mx-auto flex items-end gap-2">
             {/* Storage quota indicator */}
             {storageQuota && storageQuota.usage_pct > 0 && (
-              <div className="absolute -top-6 left-0 right-0 max-w-6xl mx-auto flex items-center gap-2 px-1" data-testid="quota-indicator">
+              <div className="absolute -top-6 left-0 right-0 max-w-4xl mx-auto flex items-center gap-2 px-1" data-testid="quota-indicator">
                 <div className="flex-1 h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className={cn('h-full rounded-full transition-all', storageQuota.usage_pct > 90 ? 'bg-red-500' : storageQuota.usage_pct > 70 ? 'bg-amber-500' : 'bg-violet-500')} style={{ width: `${Math.min(storageQuota.usage_pct, 100)}%` }} />
                 </div>
