@@ -843,17 +843,249 @@ async def get_video_job_status(job_id: str):
 @router.get("/ai/video/status")
 async def get_video_generation_status():
     """Check if video generation service is available"""
-    api_key = EMERGENT_LLM_KEY or OPENAI_API_KEY
+    api_key = await get_video_api_key()
     return {
         "available": bool(api_key),
         "provider": "sora-2",
         "supported_sizes": ["1280x720", "1792x1024", "1024x1792", "1024x1024"],
         "supported_durations": {
             "base": [4, 8, 12],
-            "extended": [24, 36, 48, 60]
+            "extended": [24, 36, 48, 60],
+            "scene_based": [60, 120, 180, 240, 300]
         },
         "supported_models": ["sora-2", "sora-2-pro"],
-        "supported_voices": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+        "supported_voices": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+        "max_scene_duration": 300,
+    }
+
+
+# ============== Scene-Based Video Pipeline ==============
+
+class SceneSplitRequest(BaseModel):
+    prompt: str
+    target_duration: int = 180  # seconds (60-300)
+    scene_length: int = 30  # seconds per scene (10-60)
+
+
+class SceneGenerateRequest(BaseModel):
+    scenes: list  # [{prompt, duration}]
+    model: str = "sora-2"
+    size: str = "1280x720"
+    voice: str = "nova"
+
+
+@router.post("/ai/video/split-scenes")
+async def split_prompt_into_scenes(req: SceneSplitRequest):
+    """Use AI to split a prompt into multiple scenes for a long video"""
+    api_key = await get_video_api_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Video service not configured")
+
+    target = max(60, min(300, req.target_duration))
+    scene_len = max(10, min(60, req.scene_length))
+    num_scenes = max(2, target // scene_len)
+
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    chat = LlmChat(
+        api_key=EMERGENT_LLM_KEY or api_key,
+        session_id=f"scene-split-{uuid.uuid4()}",
+        system_message="You are a professional video director. Split prompts into distinct visual scenes for AI video generation. Return ONLY valid JSON."
+    ).with_model("openai", "gpt-5.2")
+
+    split_prompt = f"""Split this video concept into exactly {num_scenes} scenes, each {scene_len} seconds long.
+
+Video concept: "{req.prompt}"
+Total duration: {target} seconds
+
+Return a JSON array of scenes. Each scene should have:
+- "scene_number": integer
+- "prompt": detailed visual description for AI video generation (camera angles, lighting, movement, style)
+- "duration": {scene_len}
+- "transition": how this scene connects to the next ("cut", "fade", "dissolve")
+
+Rules:
+- Each prompt should be self-contained but flow naturally from the previous scene
+- Include specific visual details: camera movement, lighting, colors, mood
+- Make each scene visually distinct but part of a coherent narrative
+- Start the first scene with an establishing shot
+- End the last scene with a closing shot
+
+Return ONLY the JSON array, no markdown or explanation."""
+
+    response = await chat.send_message(UserMessage(text=split_prompt))
+    response_text = response if isinstance(response, str) else getattr(response, "text", str(response))
+
+    # Parse JSON from response
+    import json
+    try:
+        # Strip markdown if present
+        text = response_text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        scenes = json.loads(text)
+    except json.JSONDecodeError:
+        # Try to extract JSON array
+        start = text.find("[")
+        end = text.rfind("]") + 1
+        if start >= 0 and end > start:
+            scenes = json.loads(text[start:end])
+        else:
+            raise HTTPException(status_code=500, detail="Failed to parse scenes from AI response")
+
+    return {
+        "scenes": scenes,
+        "total_duration": sum(s.get("duration", scene_len) for s in scenes),
+        "scene_count": len(scenes),
+    }
+
+
+def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, api_key: str, voice: str = "nova"):
+    """Generate multiple scenes in parallel and stitch them together"""
+    import requests
+    import time
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    try:
+        video_jobs[job_id] = {"status": "generating", "progress": 5, "message": "Starting scene generation...", "scenes_total": len(scenes), "scenes_done": 0}
+
+        headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+
+        def generate_single_scene(scene_idx, scene):
+            """Generate a single scene clip"""
+            prompt_text = scene.get("prompt", "")
+            dur = min(60, max(4, scene.get("duration", 30)))
+
+            # Snap to valid duration
+            valid = [4, 8, 12, 16, 20, 24, 30, 36, 48, 60]
+            dur = min(valid, key=lambda x: abs(x - dur))
+
+            # Create video job
+            response = requests.post(
+                'https://api.openai.com/v1/videos',
+                headers=headers,
+                json={'model': model, 'prompt': prompt_text, 'seconds': str(dur), 'size': size},
+                timeout=60
+            )
+            if response.status_code not in [200, 201]:
+                raise Exception(f"Scene {scene_idx+1} API error: {response.text}")
+            vid_id = response.json()['id']
+
+            # Poll for completion
+            start = time.time()
+            while time.time() - start < 600:
+                r = requests.get(f'https://api.openai.com/v1/videos/{vid_id}', headers=headers, timeout=30)
+                if r.status_code != 200:
+                    raise Exception(f"Scene {scene_idx+1} poll error: {r.text}")
+                data = r.json()
+                if data.get('status') == 'completed':
+                    break
+                elif data.get('status') == 'failed':
+                    raise Exception(f"Scene {scene_idx+1} failed: {data.get('error')}")
+                time.sleep(5)
+            else:
+                raise Exception(f"Scene {scene_idx+1} timed out")
+
+            # Download
+            dl = requests.get(f'https://api.openai.com/v1/videos/{vid_id}/content', headers=headers, timeout=120)
+            if dl.status_code != 200:
+                raise Exception(f"Scene {scene_idx+1} download error: {dl.text}")
+
+            clip_path = f"/tmp/scene_{job_id}_{scene_idx}.mp4"
+            with open(clip_path, 'wb') as f:
+                f.write(dl.content)
+            return scene_idx, clip_path
+
+        # Generate scenes in parallel (max 3 concurrent to avoid rate limits)
+        clip_paths = [None] * len(scenes)
+        scenes_done = 0
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(generate_single_scene, i, s): i for i, s in enumerate(scenes)}
+            for future in as_completed(futures):
+                idx = futures[future]
+                try:
+                    scene_idx, path = future.result()
+                    clip_paths[scene_idx] = path
+                    scenes_done += 1
+                    pct = 10 + int((scenes_done / len(scenes)) * 75)
+                    video_jobs[job_id] = {
+                        "status": "generating", "progress": pct,
+                        "message": f"Scene {scenes_done}/{len(scenes)} complete",
+                        "scenes_total": len(scenes), "scenes_done": scenes_done
+                    }
+                except Exception as e:
+                    logger.error(f"Scene {idx} failed: {e}")
+                    video_jobs[job_id] = {"status": "failed", "error": str(e)}
+                    return
+
+        # Verify all clips
+        valid_clips = [p for p in clip_paths if p]
+        if len(valid_clips) < len(scenes):
+            video_jobs[job_id] = {"status": "failed", "error": f"Only {len(valid_clips)}/{len(scenes)} scenes generated"}
+            return
+
+        # Stitch
+        video_jobs[job_id] = {"status": "generating", "progress": 90, "message": "Stitching scenes together...", "scenes_total": len(scenes), "scenes_done": len(scenes)}
+        output_path = f"/tmp/final_{job_id}.mp4"
+
+        if not stitch_videos_with_ffmpeg(valid_clips, output_path):
+            video_jobs[job_id] = {"status": "failed", "error": "FFmpeg stitching failed"}
+            return
+
+        import os
+        with open(output_path, 'rb') as f:
+            video_bytes = f.read()
+        os.remove(output_path)
+
+        video_base64 = base64.b64encode(video_bytes).decode('utf-8')
+        total_dur = sum(s.get("duration", 30) for s in scenes)
+        video_jobs[job_id] = {
+            "status": "completed", "progress": 100,
+            "video_base64": video_base64, "size": size,
+            "duration": total_dur, "voice": voice,
+            "file_size": len(video_bytes),
+            "scenes_total": len(scenes), "scenes_done": len(scenes),
+        }
+        logger.info(f"Scene-based video {job_id} completed: {len(scenes)} scenes, {len(video_bytes)} bytes")
+
+    except Exception as e:
+        logger.error(f"Scene-based video {job_id} failed: {e}")
+        video_jobs[job_id] = {"status": "failed", "error": str(e)}
+
+
+@router.post("/ai/video/generate-scenes")
+async def generate_video_from_scenes(request: SceneGenerateRequest):
+    """Generate a long video from multiple scenes (parallel generation + FFmpeg stitch)"""
+    api_key = await get_video_api_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Video service not configured")
+
+    if not request.scenes or len(request.scenes) < 2:
+        raise HTTPException(status_code=400, detail="At least 2 scenes required")
+    if len(request.scenes) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 scenes per video")
+
+    job_id = str(uuid.uuid4())
+    video_jobs[job_id] = {"status": "queued", "progress": 0, "scenes_total": len(request.scenes), "scenes_done": 0}
+
+    video_executor.submit(
+        generate_scenes_parallel,
+        job_id, request.scenes, request.model, request.size, api_key, request.voice
+    )
+
+    total_dur = sum(s.get("duration", 30) for s in request.scenes)
+    logger.info(f"Scene-based job {job_id} started: {len(request.scenes)} scenes, ~{total_dur}s total")
+
+    return {
+        "success": True,
+        "job_id": job_id,
+        "status": "queued",
+        "scene_count": len(request.scenes),
+        "estimated_duration": total_dur,
+        "message": f"Generating {len(request.scenes)} scenes in parallel. Poll /api/ai/video/job/{job_id} for status."
     }
 
 

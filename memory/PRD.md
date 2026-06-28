@@ -383,6 +383,15 @@ Build a comprehensive AI-powered meeting companion platform with workspace manag
 - **Backend**: `GET /api/academy/leaderboard` aggregates enrollments, badges, certificates, streak for all users
 - **Frontend**: `/app/src/pages/Leaderboard.jsx`, linked from Header Product dropdown + Dashboard Quick Links
 
+### Scene-Based Video Pipeline — June 28, 2026
+- **Replaced Text-to-Video** with full Video Studio — supports videos up to 5 minutes via scene-based generation
+- **AI Scene Splitter**: `POST /api/ai/video/split-scenes` — GPT-5.2 splits a video concept into 2-10 detailed scenes with camera angles, lighting, transitions
+- **Parallel Generation**: `POST /api/ai/video/generate-scenes` — generates all scenes simultaneously (3 concurrent) via Sora 2 API, then auto-stitches with FFmpeg
+- **Pipeline UI**: 4-step flow (Concept → Scenes → Generate → Done) with editable scene prompts, per-scene duration/transition controls, real-time progress with scene dots
+- **Duration options**: 1min, 2min, 3min, 4min, 5min + configurable scene length (10-60s)
+- **Backend**: Added to `/app/backend/routes/ai.py` — 2 new endpoints + `generate_scenes_parallel()` function
+- **Frontend**: Replaced `/app/src/pages/TextToVideoPage.jsx` entirely
+
 ## Upcoming Tasks
 - P1: Enterprise Team Seat Management
 - P2: Notification Integrations (email/SMS for course updates)
