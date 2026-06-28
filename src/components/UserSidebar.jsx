@@ -41,7 +41,6 @@ const UserSidebar = ({ className, onClose, isMobile }) => {
     { icon: Sparkles, label: 'AI Features', path: '/ai-features', badge: 'NEW', gradient: 'from-fuchsia-500 to-violet-600' },
     { icon: CircleDot, label: 'Quick Record', path: '/quick-record', highlight: true, badge: 'NEW', gradient: 'from-rose-500 to-pink-500' },
     { icon: Volume2, label: 'Text to Audio', path: '/text-to-audio', gradient: 'from-violet-500 to-purple-500' },
-    { icon: Video, label: 'Text to Video', path: '/text-to-video', badge: 'NEW', gradient: 'from-fuchsia-500 to-pink-500' },
     { icon: Calendar, label: 'Calendar', path: '/calendar', gradient: 'from-indigo-500 to-violet-500' },
     { icon: Mic, label: 'Meetings', path: '/meetings', gradient: 'from-emerald-500 to-green-500' },
     { icon: FileText, label: 'Transcriptions', path: '/transcriptions', gradient: 'from-amber-500 to-orange-500' },
