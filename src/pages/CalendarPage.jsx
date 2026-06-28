@@ -261,6 +261,17 @@ const CalendarPage = () => {
     setShowEventModal(true);
   };
 
+  // Soft pastel tints for calendar cells — rotate by day-of-week
+  const DAY_TINTS = [
+    'bg-rose-50/60 dark:bg-rose-950/10',       // Sun
+    'bg-sky-50/60 dark:bg-sky-950/10',          // Mon
+    'bg-violet-50/60 dark:bg-violet-950/10',    // Tue
+    'bg-amber-50/60 dark:bg-amber-950/10',      // Wed
+    'bg-teal-50/60 dark:bg-teal-950/10',        // Thu
+    'bg-indigo-50/60 dark:bg-indigo-950/10',    // Fri
+    'bg-pink-50/60 dark:bg-pink-950/10',        // Sat
+  ];
+
   // Render calendar grid
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentDate);
@@ -275,27 +286,46 @@ const CalendarPage = () => {
     while (day <= endDate) {
       for (let i = 0; i < 7; i++) {
         const currentDay = day;
+        const dayOfWeek = currentDay.getDay();
         const dayEvents = events.filter(e => 
           isSameDay(parseISO(e.start_time), currentDay)
         );
+        const isToday = isSameDay(day, new Date());
+        const isCurrentMonth = isSameMonth(day, monthStart);
+        const hasEvents = dayEvents.length > 0;
         
         days.push(
           <div
             key={day.toString()}
             className={cn(
-              "min-h-[120px] border border-gray-100 dark:border-gray-800 p-2 cursor-pointer transition-all overflow-hidden",
-              !isSameMonth(day, monthStart) && "bg-gray-50/50 dark:bg-gray-900/50",
-              isSameDay(day, new Date()) && "bg-indigo-50/50 dark:bg-indigo-950/20 ring-1 ring-inset ring-indigo-500",
-              "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              "min-h-[120px] border border-gray-100 dark:border-gray-800/60 p-2 cursor-pointer transition-all duration-200 overflow-hidden relative group",
+              // Outside-month cells are muted
+              !isCurrentMonth && "bg-gray-50/80 dark:bg-gray-900/40 opacity-60",
+              // Current month cells get day-of-week tint
+              isCurrentMonth && !isToday && DAY_TINTS[dayOfWeek],
+              // Today gets a vivid highlight
+              isToday && "bg-gradient-to-br from-indigo-50 via-violet-50 to-purple-50 dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-purple-950/20 ring-2 ring-inset ring-indigo-400 dark:ring-indigo-500 shadow-sm",
+              // Days with events get a subtle left accent
+              hasEvents && isCurrentMonth && !isToday && "border-l-[3px] border-l-purple-400 dark:border-l-purple-500",
+              // Hover
+              "hover:shadow-md hover:scale-[1.01] hover:z-10 hover:bg-white/80 dark:hover:bg-slate-800/60"
             )}
             onClick={() => openCreateModal(currentDay)}
           >
+            {/* Subtle dot indicator for days with events */}
+            {hasEvents && !isToday && isCurrentMonth && (
+              <div className="absolute top-1.5 right-2 flex gap-0.5">
+                {dayEvents.slice(0, 3).map((e, idx) => (
+                  <div key={idx} className={cn("w-1.5 h-1.5 rounded-full", EVENT_COLORS[e.color]?.bg)} />
+                ))}
+              </div>
+            )}
             <div className="flex justify-between items-start mb-1">
               <span className={cn(
-                "text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full",
-                !isSameMonth(day, monthStart) && "text-gray-400 dark:text-gray-600",
-                isSameDay(day, new Date()) && "bg-indigo-600 text-white",
-                isSameMonth(day, monthStart) && !isSameDay(day, new Date()) && "text-gray-700 dark:text-gray-300"
+                "text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full transition-colors",
+                !isCurrentMonth && "text-gray-400 dark:text-gray-600",
+                isToday && "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-300/50 dark:shadow-indigo-800/50",
+                isCurrentMonth && !isToday && "text-gray-700 dark:text-gray-300 group-hover:bg-gray-200/60 dark:group-hover:bg-gray-700/40"
               )}>
                 {format(day, 'd')}
               </span>
@@ -305,9 +335,10 @@ const CalendarPage = () => {
                 <div
                   key={event.id}
                   className={cn(
-                    "text-xs leading-tight px-2 py-1 rounded truncate cursor-pointer font-medium",
+                    "text-xs leading-tight px-2 py-1 rounded-md truncate cursor-pointer font-medium border-l-2 transition-all hover:translate-x-0.5",
                     EVENT_COLORS[event.color]?.light,
-                    EVENT_COLORS[event.color]?.text
+                    EVENT_COLORS[event.color]?.text,
+                    EVENT_COLORS[event.color]?.border
                   )}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -319,7 +350,7 @@ const CalendarPage = () => {
                 </div>
               ))}
               {dayEvents.length > 3 && (
-                <div className="text-xs text-gray-500 px-2 font-medium">+{dayEvents.length - 3} more</div>
+                <div className="text-xs text-purple-500 dark:text-purple-400 px-2 font-semibold">+{dayEvents.length - 3} more</div>
               )}
             </div>
           </div>
@@ -437,8 +468,16 @@ const CalendarPage = () => {
           {view === 'month' && (
             <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
               <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-800">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <div key={day} className="text-center font-medium text-sm text-gray-500 dark:text-gray-400 py-3">
+                {[
+                  { day: 'Sun', color: 'text-rose-500' },
+                  { day: 'Mon', color: 'text-sky-500' },
+                  { day: 'Tue', color: 'text-violet-500' },
+                  { day: 'Wed', color: 'text-amber-500' },
+                  { day: 'Thu', color: 'text-teal-500' },
+                  { day: 'Fri', color: 'text-indigo-500' },
+                  { day: 'Sat', color: 'text-pink-500' },
+                ].map(({ day, color }) => (
+                  <div key={day} className={cn("text-center font-semibold text-sm py-3", color)}>
                     {day}
                   </div>
                 ))}
