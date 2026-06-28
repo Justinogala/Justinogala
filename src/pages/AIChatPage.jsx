@@ -107,6 +107,47 @@ function getStoredToken() {
   } catch { return null; }
 }
 
+function ImageFeedbackActions({ imageUrl, filename }) {
+  const [feedback, setFeedback] = useState(null);
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: filename || 'AI Generated Image', text: 'Check out this AI-generated image from Munal AI!', url: imageUrl }); } catch {}
+    } else {
+      navigator.clipboard.writeText(imageUrl);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-0.5" data-testid="image-feedback-actions">
+      <button
+        onClick={() => setFeedback(f => f === 'up' ? null : 'up')}
+        className={cn("p-1.5 rounded-md transition-colors", feedback === 'up' ? "text-green-500 bg-green-50 dark:bg-green-900/20" : "text-gray-400 hover:text-green-500 hover:bg-gray-200 dark:hover:bg-slate-600")}
+        title="Good image"
+        data-testid="image-thumbs-up"
+      >
+        <ThumbsUp className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={() => setFeedback(f => f === 'down' ? null : 'down')}
+        className={cn("p-1.5 rounded-md transition-colors", feedback === 'down' ? "text-red-500 bg-red-50 dark:bg-red-900/20" : "text-gray-400 hover:text-red-400 hover:bg-gray-200 dark:hover:bg-slate-600")}
+        title="Bad image"
+        data-testid="image-thumbs-down"
+      >
+        <ThumbsDown className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={handleShare}
+        className="p-1.5 rounded-md text-gray-400 hover:text-violet-500 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+        title="Share image"
+        data-testid="image-share"
+      >
+        <Share2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 function AuthenticatedImage({ src, alt, className }) {
   const [blobUrl, setBlobUrl] = useState(null);
 
@@ -172,9 +213,12 @@ function GeneratedFileDisplay({ file }) {
         <AuthenticatedImage src={fileUrl} alt={file.filename} className="w-full" />
         <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-slate-800">
           <span className="text-xs text-gray-500 truncate">{file.filename}</span>
-          <button onClick={handleDownload} className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 font-medium">
-            <Download className="w-3.5 h-3.5" /> Download
-          </button>
+          <div className="flex items-center gap-1">
+            <ImageFeedbackActions imageUrl={fileUrl} filename={file.filename} />
+            <button onClick={handleDownload} className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700 font-medium ml-1">
+              <Download className="w-3.5 h-3.5" /> Download
+            </button>
+          </div>
         </div>
       </div>
     );
