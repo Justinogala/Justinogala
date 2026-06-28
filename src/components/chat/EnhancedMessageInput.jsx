@@ -148,6 +148,29 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
     }
   };
 
+  const handlePaste = async (e) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const fileItems = items.filter(item => item.kind === 'file');
+    if (!fileItems.length) return;
+
+    e.preventDefault();
+    for (const item of fileItems) {
+      const file = item.getAsFile();
+      if (!file) continue;
+      try {
+        const result = await fileService.uploadFile(file, 'chat-attachments', file.type.startsWith('image/') ? 'image' : 'file');
+        if (result.success && result.data) {
+          handleAttachment({
+            type: file.type.startsWith('image/') ? 'image' : 'file',
+            url: result.data.url,
+            name: file.name,
+            size: result.data.size
+          });
+        }
+      } catch (err) { console.error('Paste upload failed:', err); }
+    }
+  };
+
   const hasContent = message.trim() || attachments.length > 0;
 
   return (
@@ -268,6 +291,7 @@ const EnhancedMessageInput = ({ onSendMessage, disabled, placeholder = "Type a m
             value={message}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             disabled={disabled}
