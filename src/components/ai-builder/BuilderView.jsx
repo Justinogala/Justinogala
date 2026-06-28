@@ -765,7 +765,7 @@ export default function BuilderView({ onSwitchToChat }) {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5" ref={contentRef} data-testid="section-content">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-6xl mx-auto">
                 {/* Section Header */}
                 <div className="flex items-center justify-between mb-4 gap-2">
                   <div className="flex items-center gap-3 min-w-0">

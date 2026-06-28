@@ -38,7 +38,10 @@ import {
   Download,
   ImagePlus,
   Globe,
-  ExternalLink
+  ExternalLink,
+  ThumbsUp,
+  ThumbsDown,
+  Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getApiUrl } from '@/lib/api';
@@ -165,7 +168,7 @@ function GeneratedFileDisplay({ file }) {
 
   if (file.type === 'image') {
     return (
-      <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 max-w-sm" data-testid="generated-image">
+      <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 max-w-2xl" data-testid="generated-image">
         <AuthenticatedImage src={fileUrl} alt={file.filename} className="w-full" />
         <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-slate-800">
           <span className="text-xs text-gray-500 truncate">{file.filename}</span>
@@ -296,6 +299,7 @@ function ImageGenDialog({ open, onClose, onSubmit }) {
 function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCurrentlyStreaming }) {
   const isUser = message.role === 'user';
   const [msgCopied, setMsgCopied] = useState(false);
+  const [msgFeedback, setMsgFeedback] = useState(null);
 
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(message.content || '');
@@ -310,7 +314,7 @@ function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCu
           <Bot className="w-4.5 h-4.5 text-white" />
         </div>
       )}
-      <div className={cn("max-w-[75%] min-w-0", isUser ? "order-1" : "")}>
+      <div className={cn("max-w-[90%] min-w-0", isUser ? "order-1" : "")}>
         {message.attachments?.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {message.attachments.map((att, i) => (
@@ -339,14 +343,14 @@ function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCu
               <span className="text-sm text-gray-400 dark:text-gray-500">{message.statusText || 'Thinking...'}</span>
             </div>
           ) : message.isStreaming ? (
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:my-0 prose-code:before:content-[''] prose-code:after:content-['']">
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:my-0 prose-code:before:content-[''] prose-code:after:content-[''] prose-img:max-w-2xl prose-img:rounded-xl">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: CodeBlock }}>
                 {message.content || ''}
               </ReactMarkdown>
               <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 rounded-sm" />
             </div>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:my-0 prose-code:before:content-[''] prose-code:after:content-['']">
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:my-0 prose-code:before:content-[''] prose-code:after:content-[''] prose-img:max-w-2xl prose-img:rounded-xl">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: CodeBlock }}>
                 {message.content}
               </ReactMarkdown>
@@ -373,6 +377,34 @@ function ChatMessage({ message, isLastAssistant, onRegenerate, isStreaming: isCu
               data-testid="copy-response-btn"
             >
               {msgCopied ? <CheckCheck className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => { setMsgFeedback(f => f === 'up' ? null : 'up'); }}
+              className={cn("p-1.5 rounded-md transition-colors", msgFeedback === 'up' ? "text-green-500 bg-green-50 dark:bg-green-900/20" : "text-gray-400 hover:text-green-500 hover:bg-gray-100 dark:hover:bg-slate-700")}
+              title="Good response"
+              data-testid="thumbs-up-btn"
+            >
+              <ThumbsUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => { setMsgFeedback(f => f === 'down' ? null : 'down'); }}
+              className={cn("p-1.5 rounded-md transition-colors", msgFeedback === 'down' ? "text-red-500 bg-red-50 dark:bg-red-900/20" : "text-gray-400 hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700")}
+              title="Bad response"
+              data-testid="thumbs-down-btn"
+            >
+              <ThumbsDown className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => {
+                const text = message.content || '';
+                if (navigator.share) { navigator.share({ title: 'Munal AI Response', text }); }
+                else { navigator.clipboard.writeText(text); setMsgCopied(true); setTimeout(() => setMsgCopied(false), 2000); }
+              }}
+              className="p-1.5 rounded-md text-gray-400 hover:text-violet-500 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              title="Share response"
+              data-testid="share-response-btn"
+            >
+              <Share2 className="w-3.5 h-3.5" />
             </button>
             {isLastAssistant && onRegenerate && !isCurrentlyStreaming && (
               <button
@@ -1186,7 +1218,7 @@ export default function AIChatPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 text-center max-w-md">
                 Ask me anything — from writing code and emails to brainstorming ideas and analyzing data.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-5xl w-full">
                 {suggestedPrompts.map((sp, i) => (
                   <button
                     key={i}
@@ -1205,7 +1237,7 @@ export default function AIChatPage() {
               <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto py-4">
+            <div className="max-w-6xl mx-auto py-4">
               {messages.map((msg, i) => {
                 const lastAssistantIdx = messages.reduce((acc, m, idx) => m.role === 'assistant' ? idx : acc, -1);
                 return (
@@ -1238,10 +1270,10 @@ export default function AIChatPage() {
             </div>
           )}
 
-          <div className="max-w-4xl mx-auto flex items-end gap-2">
+          <div className="max-w-6xl mx-auto flex items-end gap-2">
             {/* Storage quota indicator */}
             {storageQuota && storageQuota.usage_pct > 0 && (
-              <div className="absolute -top-6 left-0 right-0 max-w-4xl mx-auto flex items-center gap-2 px-1" data-testid="quota-indicator">
+              <div className="absolute -top-6 left-0 right-0 max-w-6xl mx-auto flex items-center gap-2 px-1" data-testid="quota-indicator">
                 <div className="flex-1 h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div className={cn('h-full rounded-full transition-all', storageQuota.usage_pct > 90 ? 'bg-red-500' : storageQuota.usage_pct > 70 ? 'bg-amber-500' : 'bg-violet-500')} style={{ width: `${Math.min(storageQuota.usage_pct, 100)}%` }} />
                 </div>
