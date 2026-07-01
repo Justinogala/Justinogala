@@ -523,7 +523,7 @@ async def delete_transcript(transcript_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ============== Video Generation (Sora 2) ==============
+# ============== Video Generation (Free AI Slideshow) ==============
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -534,120 +534,104 @@ video_executor = ThreadPoolExecutor(max_workers=2)
 
 class VideoGenerationRequest(BaseModel):
     prompt: str
-    size: str = "1280x720"  # 1280x720, 1792x1024, 1024x1792, 1024x1024
-    duration: int = 12  # Base: 4, 8, 12. Extended: 24, 36, 48, 60 (multi-clip)
-    model: str = "sora-2"  # sora-2 or sora-2-pro
-    voice: str = "nova"  # alloy, echo, fable, onyx, nova, shimmer
+    size: str = "1280x720"
+    duration: int = 12
+    model: str = "slideshow"
+    voice: str = "nova"
 
 
 async def get_video_api_key():
-    """Get the Emergent LLM key for video generation"""
+    """Get the Emergent LLM key for AI scene splitting"""
     return EMERGENT_LLM_KEY
 
 
-def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duration: int, api_key: str, voice: str = "nova"):
-    """Synchronous video generation using Emergent's OpenAIVideoGeneration (runs in thread pool)"""
-    import os
-    from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
-
+def fetch_stock_image(query: str, width: int = 1280, height: int = 720) -> str:
+    """Fetch a free stock image from Unsplash and save locally. Returns file path."""
+    import requests
     try:
-        video_jobs[job_id] = {"status": "generating", "progress": 10, "message": "Starting video generation..."}
-
-        base_durations = [4, 8, 12]
-        extended_durations = [24, 36, 48, 60]
-
-        def generate_single_clip(clip_prompt, dur, clip_idx=0, total_clips=1):
-            """Generate a single video clip using Emergent"""
-            video_gen = OpenAIVideoGeneration(api_key=api_key)
-            video_bytes = video_gen.text_to_video(
-                prompt=clip_prompt, model=model, size=size,
-                duration=dur, max_wait_time=600
-            )
-            if not video_bytes:
-                raise Exception(f"Clip {clip_idx+1} returned no data")
-            clip_path = f"/tmp/clip_{job_id}_{clip_idx}.mp4"
-            video_gen.save_video(video_bytes, clip_path)
-            return clip_path, video_bytes
-
-        if duration in extended_durations:
-            num_clips = duration // 12
-            clip_duration = 12
-            clip_paths = []
-
-            for i in range(num_clips):
-                video_jobs[job_id] = {
-                    "status": "generating",
-                    "progress": 10 + (i * 70 // num_clips),
-                    "message": f"Generating clip {i+1}/{num_clips}..."
-                }
-                clip_prompt = f"Continuation of scene: {prompt}" if i > 0 else prompt
-                clip_path, _ = generate_single_clip(clip_prompt, clip_duration, i, num_clips)
-                clip_paths.append(clip_path)
-
-            video_jobs[job_id] = {"status": "generating", "progress": 90, "message": "Stitching clips..."}
-            output_path = f"/tmp/video_{job_id}.mp4"
-
-            if not stitch_videos_with_ffmpeg(clip_paths, output_path):
-                video_jobs[job_id] = {"status": "failed", "error": "Failed to stitch clips"}
-                return
-
-            with open(output_path, 'rb') as f:
-                video_bytes = f.read()
-            os.remove(output_path)
-            for cp in clip_paths:
-                try: os.remove(cp)
-                except: pass
-        else:
-            # Standard duration (4, 8, or 12)
-            # Snap to valid
-            valid = [4, 8, 12]
-            duration = min(valid, key=lambda x: abs(x - duration))
-
-            video_jobs[job_id] = {"status": "generating", "progress": 20, "message": "Creating video..."}
-
-            video_jobs[job_id] = {"status": "generating", "progress": 30, "message": "Generating video (this may take a few minutes)..."}
-
-            max_retries = 3
-            video_bytes = None
-            for attempt in range(max_retries):
-                try:
-                    # IMPORTANT: Always create a NEW instance per attempt
-                    video_gen = OpenAIVideoGeneration(api_key=api_key)
-                    wait_time = 900 if duration >= 12 else 600
-                    video_bytes = video_gen.text_to_video(
-                        prompt=prompt, model=model, size=size,
-                        duration=duration, max_wait_time=wait_time
-                    )
-                    if video_bytes and len(video_bytes) > 100:
-                        break
-                    logger.warning(f"Video job {job_id} attempt {attempt+1} returned empty data")
-                    video_bytes = None
-                except Exception as e:
-                    logger.warning(f"Video job {job_id} attempt {attempt+1} failed: {e}")
-                    video_bytes = None
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(10 * (attempt + 1))
-
-        if not video_bytes:
-            video_jobs[job_id] = {"status": "failed", "error": "No video returned"}
-            return
-
-        video_base64 = base64.b64encode(video_bytes).decode('utf-8')
-        video_jobs[job_id] = {
-            "status": "completed",
-            "progress": 100,
-            "video_base64": video_base64,
-            "size": size,
-            "duration": duration,
-            "voice": voice,
-            "file_size": len(video_bytes)
-        }
-        logger.info(f"Video job {job_id} completed: {len(video_bytes)} bytes")
-        
+        # Use Unsplash source (no API key needed)
+        url = f"https://source.unsplash.com/{width}x{height}/?{requests.utils.quote(query)}"
+        resp = requests.get(url, timeout=15, allow_redirects=True)
+        if resp.status_code == 200 and len(resp.content) > 1000:
+            path = f"/tmp/img_{uuid.uuid4().hex[:8]}.jpg"
+            with open(path, 'wb') as f:
+                f.write(resp.content)
+            return path
     except Exception as e:
-        logger.error(f"Video job {job_id} failed: {e}")
-        video_jobs[job_id] = {"status": "failed", "error": str(e)}
+        logger.warning(f"Unsplash fetch failed for '{query}': {e}")
+
+    # Fallback: generate a colored gradient image with text using ffmpeg
+    path = f"/tmp/img_{uuid.uuid4().hex[:8]}.jpg"
+    import subprocess, random
+    colors = ["#1a1a2e", "#16213e", "#0f3460", "#533483", "#2b2d42", "#264653", "#2a9d8f"]
+    color = random.choice(colors)
+    cmd = [
+        'ffmpeg', '-y', '-f', 'lavfi', '-i',
+        f"color=c={color}:s={width}x{height}:d=1",
+        '-frames:v', '1', path
+    ]
+    subprocess.run(cmd, capture_output=True, timeout=10)
+    return path
+
+
+def create_scene_clip(scene_idx: int, job_id: str, prompt: str, image_keyword: str, duration: int, width: int, height: int) -> str:
+    """Create a single scene clip with Ken Burns effect + text overlay using FFmpeg."""
+    import subprocess
+
+    # Fetch image
+    img_path = fetch_stock_image(image_keyword, width, height)
+
+    clip_path = f"/tmp/clip_{job_id}_{scene_idx}.mp4"
+
+    # Truncate text for overlay (max 80 chars per line, 2 lines)
+    words = prompt.split()
+    line1 = ""
+    line2 = ""
+    for w in words:
+        if len(line1) < 60:
+            line1 += (" " if line1 else "") + w
+        elif len(line2) < 60:
+            line2 += (" " if line2 else "") + w
+    overlay_text = line1 + ("\\n" + line2 if line2 else "")
+    # Escape special chars for FFmpeg drawtext
+    overlay_text = overlay_text.replace("'", "\\'").replace(":", "\\:")
+
+    # Ken Burns: slow zoom from 1.0 to 1.15 over the duration
+    fps = 24
+    total_frames = duration * fps
+    filter_complex = (
+        f"[0:v]scale={width*2}:{height*2},"
+        f"zoompan=z='1+0.15*on/{total_frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={total_frames}:s={width}x{height}:fps={fps},"
+        f"fade=t=in:st=0:d=0.5,fade=t=out:st={duration-0.5}:d=0.5,"
+        f"drawtext=text='{overlay_text}':fontsize={int(height/18)}:fontcolor=white:borderw=3:bordercolor=black@0.7:"
+        f"x=(w-text_w)/2:y=h-h/5:font=Sans"
+        f"[v]"
+    )
+
+    cmd = [
+        'ffmpeg', '-y',
+        '-loop', '1', '-i', img_path,
+        '-filter_complex', filter_complex,
+        '-map', '[v]',
+        '-t', str(duration),
+        '-c:v', 'libx264', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart',
+        clip_path
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, timeout=120)
+    # Cleanup image
+    try:
+        import os
+        os.remove(img_path)
+    except:
+        pass
+
+    if result.returncode != 0:
+        logger.error(f"FFmpeg scene clip failed: {result.stderr.decode()[:500]}")
+        raise Exception(f"Failed to create clip for scene {scene_idx+1}")
+
+    return clip_path
 
 
 def stitch_videos_with_ffmpeg(video_paths: list, output_path: str) -> bool:
@@ -785,16 +769,15 @@ async def get_video_generation_status():
     api_key = await get_video_api_key()
     return {
         "available": bool(api_key),
-        "provider": "sora-2",
-        "supported_sizes": ["1280x720", "1792x1024", "1024x1792", "1024x1024"],
+        "provider": "ai-slideshow",
+        "supported_sizes": ["1280x720", "1920x1080"],
         "supported_durations": {
-            "base": [4, 8, 12],
-            "extended": [24, 36, 48, 60],
             "scene_based": [60, 120, 180, 240, 300]
         },
-        "supported_models": ["sora-2", "sora-2-pro"],
+        "supported_models": ["slideshow"],
         "supported_voices": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
         "max_scene_duration": 300,
+        "free": True,
     }
 
 
@@ -802,71 +785,59 @@ async def get_video_generation_status():
 
 class SceneSplitRequest(BaseModel):
     prompt: str
-    target_duration: int = 180  # seconds (60-300)
-    scene_length: int = 30  # seconds per scene (10-60)
+    target_duration: int = 180
+    scene_length: int = 30
 
 
 class SceneGenerateRequest(BaseModel):
-    scenes: list  # [{prompt, duration}]
-    model: str = "sora-2"
+    scenes: list
     size: str = "1280x720"
     voice: str = "nova"
 
 
 @router.post("/ai/video/split-scenes")
 async def split_prompt_into_scenes(req: SceneSplitRequest):
-    """Use AI to split a prompt into multiple scenes for a long video"""
+    """Use AI to split a prompt into multiple scenes with image keywords"""
     api_key = await get_video_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="Video service not configured")
 
-    target = max(60, min(300, req.target_duration))
-    scene_len = max(4, min(12, req.scene_length))
-    # Snap scene_len to valid Sora 2 values
-    valid_lens = [4, 8, 12]
-    scene_len = min(valid_lens, key=lambda x: abs(x - scene_len))
+    target = max(30, min(300, req.target_duration))
+    scene_len = max(5, min(30, req.scene_length))
     num_scenes = max(2, min(10, target // scene_len))
 
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY or api_key,
         session_id=f"scene-split-{uuid.uuid4()}",
-        system_message="You are a professional video director. Split prompts into distinct visual scenes for AI video generation. Return ONLY valid JSON."
+        system_message="You are a professional video director. Split prompts into visual scenes for slideshow videos. Return ONLY valid JSON."
     ).with_model("openai", "gpt-5.5")
 
-    split_prompt = f"""Split this video concept into exactly {num_scenes} scenes, each {scene_len} seconds long.
+    split_prompt = f"""Split this video concept into exactly {num_scenes} scenes for a slideshow video.
 
 Video concept: "{req.prompt}"
-Total duration: {target} seconds
+Each scene is {scene_len} seconds with a stock photo + text overlay.
 
-Return a JSON array of scenes. Each scene should have:
+Return a JSON array. Each scene needs:
 - "scene_number": integer
-- "prompt": detailed visual description for AI video generation (camera angles, lighting, movement, style)
+- "prompt": short caption text shown on screen (max 15 words)
+- "image_keyword": 2-3 word search term for finding a matching stock photo (e.g. "sunset beach", "office team", "city skyline")
 - "duration": {scene_len}
-- "transition": how this scene connects to the next ("cut", "fade", "dissolve")
+- "transition": "fade" or "cut"
 
-Rules:
-- Each prompt should be self-contained but flow naturally from the previous scene
-- Include specific visual details: camera movement, lighting, colors, mood
-- Make each scene visually distinct but part of a coherent narrative
-- Start the first scene with an establishing shot
-- End the last scene with a closing shot
-
-Return ONLY the JSON array, no markdown or explanation."""
+Make each scene visually distinct. The image_keyword must describe what the viewer should SEE.
+Return ONLY the JSON array."""
 
     response = await chat.send_message(UserMessage(text=split_prompt))
     response_text = response if isinstance(response, str) else getattr(response, "text", str(response))
 
-    # Parse JSON from response
     import json
     try:
-        # Strip markdown if present
         text = response_text.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         scenes = json.loads(text)
     except json.JSONDecodeError:
-        # Try to extract JSON array
         start = text.find("[")
         end = text.rfind("]") + 1
         if start >= 0 and end > start:
@@ -881,94 +852,56 @@ Return ONLY the JSON array, no markdown or explanation."""
     }
 
 
-def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, api_key: str, voice: str = "nova"):
-    """Generate multiple scenes in parallel using Emergent and stitch them together"""
-    import os
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    from emergentintegrations.llm.openai.video_generation import OpenAIVideoGeneration
+def generate_slideshow_video(job_id: str, scenes: list, size: str, voice: str = "nova"):
+    """Generate a slideshow video from scenes using stock images + FFmpeg (FREE, no API cost)"""
+    import os, subprocess
 
     try:
-        video_jobs[job_id] = {"status": "generating", "progress": 5, "message": "Starting scene generation...", "scenes_total": len(scenes), "scenes_done": 0}
+        w, h = [int(x) for x in size.split("x")]
+        video_jobs[job_id] = {"status": "generating", "progress": 5, "message": "Fetching images for scenes...", "scenes_total": len(scenes), "scenes_done": 0}
 
-        def generate_single_scene(scene_idx, scene):
-            """Generate a single scene clip using Emergent with retries"""
-            prompt_text = scene.get("prompt", "")
-            dur = min(12, max(4, scene.get("duration", 8)))
+        clip_paths = []
+        for i, scene in enumerate(scenes):
+            video_jobs[job_id] = {
+                "status": "generating",
+                "progress": 5 + int((i / len(scenes)) * 70),
+                "message": f"Creating scene {i+1}/{len(scenes)}...",
+                "scenes_total": len(scenes), "scenes_done": i
+            }
 
-            # Snap to valid duration
-            valid = [4, 8, 12]
-            dur = min(valid, key=lambda x: abs(x - dur))
+            prompt_text = scene.get("prompt", "Scene")
+            image_kw = scene.get("image_keyword", prompt_text.split()[0] if prompt_text else "abstract")
+            dur = max(3, min(30, scene.get("duration", 10)))
 
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    # IMPORTANT: Always create a NEW instance per attempt
-                    video_gen = OpenAIVideoGeneration(api_key=api_key)
-                    wait_time = 900 if dur >= 12 else 600
-                    video_bytes = video_gen.text_to_video(
-                        prompt=prompt_text, model=model, size=size,
-                        duration=dur, max_wait_time=wait_time
-                    )
-                    if video_bytes and len(video_bytes) > 100:
-                        clip_path = f"/tmp/scene_{job_id}_{scene_idx}.mp4"
-                        video_gen.save_video(video_bytes, clip_path)
-                        logger.info(f"Scene {scene_idx+1} generated: {len(video_bytes)} bytes")
-                        return scene_idx, clip_path
-                    else:
-                        logger.warning(f"Scene {scene_idx+1} attempt {attempt+1} returned empty data")
-                except Exception as e:
-                    logger.warning(f"Scene {scene_idx+1} attempt {attempt+1} failed: {e}")
+            try:
+                clip_path = create_scene_clip(i, job_id, prompt_text, image_kw, dur, w, h)
+                clip_paths.append(clip_path)
+            except Exception as e:
+                logger.error(f"Scene {i+1} failed: {e}")
+                video_jobs[job_id] = {"status": "failed", "error": f"Scene {i+1} failed: {e}"}
+                return
 
-                if attempt < max_retries - 1:
-                    import time
-                    time.sleep(10 * (attempt + 1))  # Backoff: 10s, 20s
-
-            raise Exception(f"Scene {scene_idx+1} failed after {max_retries} attempts")
-
-        # Generate scenes in parallel (max 2 concurrent to avoid rate limits)
-        clip_paths = [None] * len(scenes)
-        scenes_done = 0
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = {executor.submit(generate_single_scene, i, s): i for i, s in enumerate(scenes)}
-            for future in as_completed(futures):
-                idx = futures[future]
-                try:
-                    scene_idx, path = future.result()
-                    clip_paths[scene_idx] = path
-                    scenes_done += 1
-                    pct = 10 + int((scenes_done / len(scenes)) * 75)
-                    video_jobs[job_id] = {
-                        "status": "generating", "progress": pct,
-                        "message": f"Scene {scenes_done}/{len(scenes)} complete",
-                        "scenes_total": len(scenes), "scenes_done": scenes_done
-                    }
-                except Exception as e:
-                    logger.error(f"Scene {idx} failed: {e}")
-                    video_jobs[job_id] = {"status": "failed", "error": str(e)}
-                    return
-
-        # Verify all clips
-        valid_clips = [p for p in clip_paths if p]
-        if len(valid_clips) < len(scenes):
-            video_jobs[job_id] = {"status": "failed", "error": f"Only {len(valid_clips)}/{len(scenes)} scenes generated"}
+        if not clip_paths:
+            video_jobs[job_id] = {"status": "failed", "error": "No clips generated"}
             return
 
-        # Stitch
-        video_jobs[job_id] = {"status": "generating", "progress": 90, "message": "Stitching scenes together...", "scenes_total": len(scenes), "scenes_done": len(scenes)}
+        # Stitch all clips
+        video_jobs[job_id] = {"status": "generating", "progress": 85, "message": "Stitching scenes together...", "scenes_total": len(scenes), "scenes_done": len(scenes)}
         output_path = f"/tmp/final_{job_id}.mp4"
 
-        if not stitch_videos_with_ffmpeg(valid_clips, output_path):
-            video_jobs[job_id] = {"status": "failed", "error": "FFmpeg stitching failed"}
+        if not stitch_videos_with_ffmpeg(clip_paths, output_path):
+            video_jobs[job_id] = {"status": "failed", "error": "Failed to stitch video clips"}
             return
 
-        import os
         with open(output_path, 'rb') as f:
             video_bytes = f.read()
-        os.remove(output_path)
+        try:
+            os.remove(output_path)
+        except:
+            pass
 
         video_base64 = base64.b64encode(video_bytes).decode('utf-8')
-        total_dur = sum(s.get("duration", 30) for s in scenes)
+        total_dur = sum(s.get("duration", 10) for s in scenes)
         video_jobs[job_id] = {
             "status": "completed", "progress": 100,
             "video_base64": video_base64, "size": size,
@@ -976,16 +909,16 @@ def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, a
             "file_size": len(video_bytes),
             "scenes_total": len(scenes), "scenes_done": len(scenes),
         }
-        logger.info(f"Scene-based video {job_id} completed: {len(scenes)} scenes, {len(video_bytes)} bytes")
+        logger.info(f"Slideshow video {job_id} completed: {len(scenes)} scenes, {len(video_bytes)} bytes")
 
     except Exception as e:
-        logger.error(f"Scene-based video {job_id} failed: {e}")
+        logger.error(f"Slideshow video {job_id} failed: {e}")
         video_jobs[job_id] = {"status": "failed", "error": str(e)}
 
 
 @router.post("/ai/video/generate-scenes")
 async def generate_video_from_scenes(request: SceneGenerateRequest):
-    """Generate a long video from multiple scenes (parallel generation + FFmpeg stitch)"""
+    """Generate a slideshow video from scenes (FREE - stock images + FFmpeg)"""
     api_key = await get_video_api_key()
     if not api_key:
         raise HTTPException(status_code=500, detail="Video service not configured")
@@ -999,12 +932,12 @@ async def generate_video_from_scenes(request: SceneGenerateRequest):
     video_jobs[job_id] = {"status": "queued", "progress": 0, "scenes_total": len(request.scenes), "scenes_done": 0}
 
     video_executor.submit(
-        generate_scenes_parallel,
-        job_id, request.scenes, request.model, request.size, api_key, request.voice
+        generate_slideshow_video,
+        job_id, request.scenes, request.size, request.voice
     )
 
-    total_dur = sum(s.get("duration", 30) for s in request.scenes)
-    logger.info(f"Scene-based job {job_id} started: {len(request.scenes)} scenes, ~{total_dur}s total")
+    total_dur = sum(s.get("duration", 10) for s in request.scenes)
+    logger.info(f"Slideshow job {job_id} started: {len(request.scenes)} scenes, ~{total_dur}s total")
 
     return {
         "success": True,
@@ -1012,7 +945,7 @@ async def generate_video_from_scenes(request: SceneGenerateRequest):
         "status": "queued",
         "scene_count": len(request.scenes),
         "estimated_duration": total_dur,
-        "message": f"Generating {len(request.scenes)} scenes in parallel. Poll /api/ai/video/job/{job_id} for status."
+        "message": f"Generating {len(request.scenes)}-scene slideshow video. Poll /api/ai/video/job/{job_id} for status."
     }
 
 

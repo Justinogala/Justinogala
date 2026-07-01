@@ -29,11 +29,10 @@ const VOICES = [
 ];
 
 const DURATION_OPTIONS = [
+  { label: '30 sec', value: 30, scenes: 3 },
   { label: '1 min', value: 60, scenes: 5 },
-  { label: '2 min', value: 120, scenes: 10 },
-  { label: '3 min', value: 180, scenes: 15 },
-  { label: '4 min', value: 240, scenes: 20 },
-  { label: '5 min', value: 300, scenes: 25 },
+  { label: '2 min', value: 120, scenes: 8 },
+  { label: '3 min', value: 180, scenes: 10 },
 ];
 
 const TextToVideoPage = () => {
@@ -51,10 +50,9 @@ const TextToVideoPage = () => {
   const [serviceAvailable, setServiceAvailable] = useState(true);
 
   // Settings
-  const [model, setModel] = useState('sora-2');
   const [size, setSize] = useState('1280x720');
-  const [targetDuration, setTargetDuration] = useState(180);
-  const [sceneLength, setSceneLength] = useState(12);
+  const [targetDuration, setTargetDuration] = useState(60);
+  const [sceneLength, setSceneLength] = useState(10);
   const [voice, setVoice] = useState('nova');
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [previewingVoice, setPreviewingVoice] = useState(null);
@@ -131,7 +129,7 @@ const TextToVideoPage = () => {
     try {
       const res = await fetch(`${API_URL}/api/ai/video/generate-scenes`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenes, model, size, voice })
+        body: JSON.stringify({ scenes, size, voice })
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
       const d = await res.json();
@@ -180,7 +178,7 @@ const TextToVideoPage = () => {
   const removeScene = (idx) => setScenes(prev => prev.filter((_, i) => i !== idx));
 
   const addScene = () => {
-    setScenes(prev => [...prev, { scene_number: prev.length + 1, prompt: '', duration: sceneLength, transition: 'cut' }]);
+    setScenes(prev => [...prev, { scene_number: prev.length + 1, prompt: '', image_keyword: '', duration: sceneLength, transition: 'fade' }]);
   };
 
   const handleDownload = (videoB64, filename) => {
@@ -236,10 +234,10 @@ const TextToVideoPage = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Video Studio</h1>
-              <p className="text-gray-500 dark:text-gray-400">Create videos up to 5 minutes with AI scene generation</p>
+              <p className="text-gray-500 dark:text-gray-400">Create slideshow videos with AI scene generation — completely free</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <Badge className="bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white border-0"><Sparkles className="w-3 h-3 mr-1" />Sora 2</Badge>
+              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0"><Sparkles className="w-3 h-3 mr-1" />Free</Badge>
               <Button variant="outline" onClick={() => setShowHistory(true)} className="gap-2" data-testid="history-btn"><History className="w-4 h-4" />History</Button>
             </div>
           </div>
@@ -273,32 +271,19 @@ const TextToVideoPage = () => {
                 <CardHeader><CardTitle className="text-base flex items-center gap-2"><Settings2 className="w-4 h-4" /> Settings</CardTitle></CardHeader>
                 <CardContent className="space-y-5 pt-0">
                   <div className="space-y-2">
-                    <Label>Model</Label>
-                    <Select value={model} onValueChange={setModel} disabled={generating}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sora-2"><div className="flex items-center gap-2"><Film className="w-4 h-4" /> Sora 2 <Badge variant="secondary" className="text-[10px]">Standard</Badge></div></SelectItem>
-                        <SelectItem value="sora-2-pro"><div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-500" /> Sora 2 Pro <Badge className="text-[10px] bg-amber-500 text-white border-0">HD</Badge></div></SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label>Resolution</Label>
                     <Select value={size} onValueChange={setSize} disabled={generating}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="1280x720"><div className="flex items-center gap-2"><RectangleHorizontal className="w-4 h-4" /> HD 720p (16:9)</div></SelectItem>
-                        <SelectItem value="1792x1024"><div className="flex items-center gap-2"><RectangleHorizontal className="w-4 h-4" /> Widescreen (16:9)</div></SelectItem>
-                        <SelectItem value="1024x1792"><div className="flex items-center gap-2"><RectangleVertical className="w-4 h-4" /> Portrait (9:16)</div></SelectItem>
-                        <SelectItem value="1024x1024"><div className="flex items-center gap-2"><Square className="w-4 h-4" /> Square (1:1)</div></SelectItem>
+                        <SelectItem value="1920x1080"><div className="flex items-center gap-2"><RectangleHorizontal className="w-4 h-4" /> Full HD 1080p (16:9)</div></SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
                     <Label>Target Duration</Label>
-                    <div className="grid grid-cols-5 gap-1.5">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {DURATION_OPTIONS.map(d => (
                         <Button key={d.value} variant={targetDuration === d.value ? 'default' : 'outline'} size="sm"
                           onClick={() => setTargetDuration(d.value)} disabled={generating}
@@ -313,7 +298,7 @@ const TextToVideoPage = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between"><Label>Scene Length</Label><span className="text-xs font-semibold text-fuchsia-600">{sceneLength}s</span></div>
                     <div className="flex gap-2">
-                      {[4, 8, 12].map(d => (
+                      {[5, 8, 10, 15].map(d => (
                         <Button key={d} variant={sceneLength === d ? 'default' : 'outline'} size="sm" onClick={() => setSceneLength(d)} disabled={generating}
                           className={cn("flex-1", sceneLength === d && "bg-gradient-to-r from-fuchsia-500 to-pink-500 border-0")}>{d}s</Button>
                       ))}
@@ -355,15 +340,15 @@ const TextToVideoPage = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-fuchsia-50 to-pink-50 dark:from-fuchsia-950/30 dark:to-pink-950/30 border-fuchsia-200">
+              <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200">
                 <CardContent className="p-4">
-                  <h4 className="font-semibold text-sm mb-2 text-fuchsia-700"><Sparkles className="w-4 h-4 inline mr-1" />How It Works</h4>
+                  <h4 className="font-semibold text-sm mb-2 text-emerald-700"><Sparkles className="w-4 h-4 inline mr-1" />How It Works — 100% Free</h4>
                   <ol className="text-xs text-gray-600 dark:text-gray-400 space-y-1.5 list-decimal pl-4">
                     <li>Write your video concept</li>
                     <li>AI splits it into {Math.ceil(targetDuration / sceneLength)} visual scenes</li>
-                    <li>Review & edit each scene prompt</li>
-                    <li>All scenes generate in parallel</li>
-                    <li>Auto-stitched into one video</li>
+                    <li>Review & edit each scene and image keywords</li>
+                    <li>Stock photos + Ken Burns effects + text overlays</li>
+                    <li>Auto-stitched into one polished video</li>
                   </ol>
                 </CardContent>
               </Card>
@@ -419,20 +404,25 @@ const TextToVideoPage = () => {
                           </div>
                           <div className="flex-1 space-y-2">
                             <Textarea value={scene.prompt} onChange={e => updateScene(i, 'prompt', e.target.value)}
-                              rows={3} className="text-sm resize-none" placeholder="Describe this scene..." />
+                              rows={2} className="text-sm resize-none" placeholder="Caption text for this scene..." />
                             <div className="flex items-center gap-3 text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-gray-400">Image:</span>
+                                <input value={scene.image_keyword || ''} onChange={e => updateScene(i, 'image_keyword', e.target.value)}
+                                  className="border rounded px-2 py-1 text-xs bg-background w-32" placeholder="e.g. sunset beach" />
+                              </div>
                               <div className="flex items-center gap-1.5">
                                 <Timer className="w-3 h-3 text-gray-400" />
                                 <select value={scene.duration} onChange={e => updateScene(i, 'duration', parseInt(e.target.value))}
                                   className="border rounded px-2 py-1 text-xs bg-background">
-                                  {[4,8,12].map(d => <option key={d} value={d}>{d}s</option>)}
+                                  {[5,8,10,15].map(d => <option key={d} value={d}>{d}s</option>)}
                                 </select>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-gray-400">Transition:</span>
-                                <select value={scene.transition || 'cut'} onChange={e => updateScene(i, 'transition', e.target.value)}
+                                <select value={scene.transition || 'fade'} onChange={e => updateScene(i, 'transition', e.target.value)}
                                   className="border rounded px-2 py-1 text-xs bg-background">
-                                  {['cut', 'fade', 'dissolve'].map(t => <option key={t} value={t}>{t}</option>)}
+                                  {['cut', 'fade'].map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                               </div>
                             </div>
