@@ -604,7 +604,6 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
             duration = min(valid, key=lambda x: abs(x - duration))
 
             video_jobs[job_id] = {"status": "generating", "progress": 20, "message": "Creating video..."}
-            video_gen = OpenAIVideoGeneration(api_key=api_key)
 
             video_jobs[job_id] = {"status": "generating", "progress": 30, "message": "Generating video (this may take a few minutes)..."}
 
@@ -612,9 +611,12 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
             video_bytes = None
             for attempt in range(max_retries):
                 try:
+                    # IMPORTANT: Always create a NEW instance per attempt
+                    video_gen = OpenAIVideoGeneration(api_key=api_key)
+                    wait_time = 900 if duration >= 12 else 600
                     video_bytes = video_gen.text_to_video(
                         prompt=prompt, model=model, size=size,
-                        duration=duration, max_wait_time=600
+                        duration=duration, max_wait_time=wait_time
                     )
                     if video_bytes and len(video_bytes) > 100:
                         break
@@ -625,7 +627,7 @@ def generate_video_sync(job_id: str, prompt: str, model: str, size: str, duratio
                     video_bytes = None
                 if attempt < max_retries - 1:
                     import time
-                    time.sleep(5 * (attempt + 1))
+                    time.sleep(10 * (attempt + 1))
 
         if not video_bytes:
             video_jobs[job_id] = {"status": "failed", "error": "No video returned"}
@@ -900,14 +902,17 @@ def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, a
             max_retries = 3
             for attempt in range(max_retries):
                 try:
+                    # IMPORTANT: Always create a NEW instance per attempt
                     video_gen = OpenAIVideoGeneration(api_key=api_key)
+                    wait_time = 900 if dur >= 12 else 600
                     video_bytes = video_gen.text_to_video(
                         prompt=prompt_text, model=model, size=size,
-                        duration=dur, max_wait_time=600
+                        duration=dur, max_wait_time=wait_time
                     )
                     if video_bytes and len(video_bytes) > 100:
                         clip_path = f"/tmp/scene_{job_id}_{scene_idx}.mp4"
                         video_gen.save_video(video_bytes, clip_path)
+                        logger.info(f"Scene {scene_idx+1} generated: {len(video_bytes)} bytes")
                         return scene_idx, clip_path
                     else:
                         logger.warning(f"Scene {scene_idx+1} attempt {attempt+1} returned empty data")
@@ -916,15 +921,15 @@ def generate_scenes_parallel(job_id: str, scenes: list, model: str, size: str, a
 
                 if attempt < max_retries - 1:
                     import time
-                    time.sleep(5 * (attempt + 1))  # Backoff: 5s, 10s
+                    time.sleep(10 * (attempt + 1))  # Backoff: 10s, 20s
 
             raise Exception(f"Scene {scene_idx+1} failed after {max_retries} attempts")
 
-        # Generate scenes in parallel (max 3 concurrent)
+        # Generate scenes in parallel (max 2 concurrent to avoid rate limits)
         clip_paths = [None] * len(scenes)
         scenes_done = 0
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             futures = {executor.submit(generate_single_scene, i, s): i for i, s in enumerate(scenes)}
             for future in as_completed(futures):
                 idx = futures[future]

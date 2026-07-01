@@ -134,7 +134,7 @@ if (fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
 } else {
   console.log('[startup] No dist/ found, building production frontend...');
   try {
-    execSync('cd /app && node node_modules/.bin/vite build', { stdio: 'inherit' });
+    execSync('cd /app && NODE_OPTIONS="--max-old-space-size=4096" node node_modules/.bin/vite build', { stdio: 'inherit' });
     appReady = true;
     console.log('[startup] Build complete, serving static files');
   } catch (e) {
