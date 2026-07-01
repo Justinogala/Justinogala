@@ -14,6 +14,16 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
 import logging
+import subprocess
+import shutil
+
+# Ensure ffmpeg is installed (required for video generation)
+if not shutil.which('ffmpeg'):
+    try:
+        subprocess.run(['apt-get', 'update', '-qq'], capture_output=True, timeout=60)
+        subprocess.run(['apt-get', 'install', '-y', '-qq', 'ffmpeg'], capture_output=True, timeout=120)
+    except Exception:
+        pass  # Non-fatal — video generation will fail gracefully
 
 # ============== Configuration ==============
 
