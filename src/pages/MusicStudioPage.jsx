@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import {
   Music, Sparkles, Download, Play, Pause, Loader2, Clock, Trash2,
   History, Wand2, Volume2, Timer, RefreshCw, Guitar, Disc3,
-  CreditCard, Coins, ChevronRight, FileText
+  CreditCard, Coins, ChevronRight, FileText, ThumbsUp, ThumbsDown, Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,16 +28,24 @@ const getToken = () => {
 const authHeaders = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` });
 
 const PRESETS = [
-  { label: 'Cinematic', prompt: 'An epic cinematic orchestral score with sweeping strings, brass, and thundering drums', icon: '🎬' },
+  { label: 'Afrobeat', prompt: 'Afrobeat song with infectious grooves, talking drums, highlife guitar licks, and Afro-pop vocals', icon: '🥁' },
+  { label: 'Amapiano', prompt: 'Amapiano track with deep log drums, jazzy piano chords, shakers, and a smooth South African groove', icon: '🇿🇦' },
+  { label: 'Reggae', prompt: 'Reggae song with offbeat rhythm guitar, deep bass, one drop drumming, and positive vibes', icon: '🟢' },
+  { label: 'Dancehall', prompt: 'Dancehall riddim with heavy bass, fast-paced drums, digital synths, and Caribbean energy', icon: '🔥' },
   { label: 'Lo-Fi', prompt: 'Chill lo-fi hip hop beat with soft piano, vinyl crackle, and a relaxing late-night vibe', icon: '🎧' },
-  { label: 'Corporate', prompt: 'Upbeat corporate background music with light piano, acoustic guitar, and positive energy', icon: '💼' },
-  { label: 'Electronic', prompt: 'Modern electronic dance music with pulsing synths, deep bass, and driving beats', icon: '🎹' },
-  { label: 'Ambient', prompt: 'Peaceful ambient soundscape with soft pads, gentle piano, and nature-inspired textures', icon: '🌊' },
-  { label: 'Jazz', prompt: 'Smooth jazz with saxophone, upright bass, brushed drums, and a warm evening feel', icon: '🎷' },
-  { label: 'Rock', prompt: 'Energetic rock instrumental with electric guitar riffs, powerful drums, and driving bass', icon: '🎸' },
-  { label: 'Pop', prompt: 'Catchy pop song with upbeat melody, modern production, and feel-good energy', icon: '🎤' },
   { label: 'Hip Hop', prompt: 'Hard-hitting hip hop beat with 808 bass, crisp hi-hats, and trap-style production', icon: '🎙️' },
+  { label: 'R&B', prompt: 'Smooth R&B track with silky vocals, lush harmonies, slow groove, and romantic mood', icon: '💜' },
+  { label: 'Pop', prompt: 'Catchy pop song with upbeat melody, modern production, and feel-good energy', icon: '🎤' },
+  { label: 'Gospel', prompt: 'Uplifting gospel song with powerful choir harmonies, organ, and spiritual energy', icon: '🙏' },
+  { label: 'Jazz', prompt: 'Smooth jazz with saxophone, upright bass, brushed drums, and a warm evening feel', icon: '🎷' },
+  { label: 'Cinematic', prompt: 'An epic cinematic orchestral score with sweeping strings, brass, and thundering drums', icon: '🎬' },
+  { label: 'Electronic', prompt: 'Modern electronic dance music with pulsing synths, deep bass, and driving beats', icon: '🎹' },
+  { label: 'Rock', prompt: 'Energetic rock instrumental with electric guitar riffs, powerful drums, and driving bass', icon: '🎸' },
+  { label: 'Latin', prompt: 'Latin reggaeton track with dembow rhythm, catchy melodic hook, and tropical vibes', icon: '🌴' },
+  { label: 'Country', prompt: 'Country song with acoustic guitar, pedal steel, fiddle, and heartfelt storytelling', icon: '🤠' },
   { label: 'Classical', prompt: 'Beautiful classical piano piece with emotional melodies and dynamic expression', icon: '🎼' },
+  { label: 'Afro Fusion', prompt: 'Afro fusion blending Afrobeat with electronic elements, deep bass, and world music textures', icon: '🌍' },
+  { label: 'Corporate', prompt: 'Upbeat corporate background music with light piano, acoustic guitar, and positive energy', icon: '💼' },
 ];
 
 const SFX_PRESETS = [
@@ -389,6 +397,76 @@ const MusicStudioPage = () => {
             )}
           </div>
         </div>
+
+        {/* My Library — Suno-style track list */}
+        {history.length > 0 && (
+          <div className="mt-8" data-testid="music-library">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Music className="w-5 h-5 text-fuchsia-500" /> My Library
+              <Badge variant="secondary" className="text-xs">{history.length} tracks</Badge>
+            </h2>
+            <div className="space-y-3">
+              {history.map((item, idx) => {
+                const colors = ['from-orange-400 to-amber-500', 'from-emerald-400 to-green-500', 'from-fuchsia-400 to-purple-500', 'from-cyan-400 to-blue-500', 'from-rose-400 to-pink-500', 'from-violet-400 to-indigo-500'];
+                const color = colors[idx % colors.length];
+                const sections = ['INTRO', 'VERSE 1', 'PRE...', 'CHORUS', 'VERSE 2', 'PRE...', 'CHO...', 'BRIDGE', 'FINAL...'];
+                const dur = item.duration || 120;
+
+                return (
+                  <div key={item.id} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-lg transition-shadow group">
+                    {/* Track header */}
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <button onClick={() => playHistoryItem(item.id)}
+                        className="w-10 h-10 rounded-full bg-gradient-to-r from-fuchsia-500 to-purple-600 flex items-center justify-center text-white shadow-md hover:scale-110 transition-transform shrink-0">
+                        <Play className="w-4 h-4 ml-0.5" />
+                      </button>
+                      {item.image_url && (
+                        <img src={item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">{item.title || item.prompt?.slice(0, 40)}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+                          {item.tags && <span className="truncate max-w-[200px]">{item.tags.slice(0, 50)}</span>}
+                          <span>{Math.floor(dur / 60)}:{String(Math.round(dur % 60)).padStart(2, '0')}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-green-500 transition-colors"><ThumbsUp className="w-3.5 h-3.5" /></button>
+                        <button className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-red-400 transition-colors"><ThumbsDown className="w-3.5 h-3.5" /></button>
+                        <button className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-fuchsia-500 transition-colors"><Share2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={async () => {
+                          const res = await fetch(`${API_URL}/api/music-studio/history/${item.id}`, { headers: authHeaders() });
+                          if (res.ok) { const d = await res.json(); if (d.audio_base64) handleDownload(d.audio_base64, `${item.title || 'track'}.mp3`); }
+                        }} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-fuchsia-500 transition-colors"><Download className="w-3.5 h-3.5" /></button>
+                        <button onClick={async () => {
+                          await fetch(`${API_URL}/api/music-studio/history/${item.id}`, { method: 'DELETE', headers: authHeaders() });
+                          loadHistory();
+                        }} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </div>
+                    {/* Waveform visualization — Suno style */}
+                    <div className={cn("mx-4 mb-3 rounded-lg overflow-hidden bg-gradient-to-r", color, "p-0.5")}>
+                      <div className="flex h-16 gap-[1px]">
+                        {sections.slice(0, Math.max(4, Math.min(9, Math.round(dur / 15)))).map((section, si) => (
+                          <div key={si} className="flex-1 relative bg-black/20 rounded-sm overflow-hidden">
+                            <span className="absolute top-1 left-1 text-[8px] font-bold text-white/90 z-10 uppercase tracking-wider">{section}</span>
+                            <div className="absolute inset-0 flex items-end gap-[0.5px] px-0.5 pt-4 pb-0.5">
+                              {Array.from({ length: 20 }, (_, bi) => {
+                                const seed = (item.id?.charCodeAt(si * 3 + bi) || bi * 7) + si * 13 + bi;
+                                const h = 25 + (Math.sin(seed * 0.7) * 30) + ((seed * 17) % 40);
+                                return <div key={bi} className="flex-1 rounded-t-sm bg-white/50" style={{ height: `${h}%` }} />;
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Buy Credits Dialog */}
