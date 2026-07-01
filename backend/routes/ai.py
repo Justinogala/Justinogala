@@ -14,6 +14,25 @@ from config import logger, db
 
 router = APIRouter(tags=["AI"])
 
+# Get ffmpeg binary path (system preferred for full filter support, pip-bundled as fallback)
+def _get_ffmpeg():
+    import shutil
+    # Prefer system ffmpeg (has drawtext, full filters)
+    sys_ffmpeg = shutil.which('ffmpeg')
+    if sys_ffmpeg:
+        return sys_ffmpeg
+    # Fallback to pip-bundled (missing some filters like drawtext)
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except ImportError:
+        pass
+    return 'ffmpeg'
+
+FFMPEG = _get_ffmpeg()
+import shutil as _shutil
+FFPROBE = _shutil.which('ffprobe') or None
+
 # OpenAI configuration
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
@@ -359,7 +378,7 @@ async def transcribe_recording(request: RecordingTranscriptionRequest):
                 
                 # Extract audio using ffmpeg (compress to mp3 at lower bitrate)
                 ffmpeg_cmd = [
-                    'ffmpeg', '-y',
+                    FFMPEG, '-y',
                     '-i', video_temp_path,
                     '-vn',  # No video
                     '-acodec', 'libmp3lame',
@@ -567,7 +586,7 @@ def fetch_stock_image(query: str, width: int = 1280, height: int = 720) -> str:
     colors = ["#1a1a2e", "#16213e", "#0f3460", "#533483", "#2b2d42", "#264653", "#2a9d8f"]
     color = random.choice(colors)
     cmd = [
-        'ffmpeg', '-y', '-f', 'lavfi', '-i',
+        FFMPEG, '-y', '-f', 'lavfi', '-i',
         f"color=c={color}:s={width}x{height}:d=1",
         '-frames:v', '1', path
     ]
@@ -605,11 +624,21 @@ def create_scene_clip(scene_idx: int, job_id: str, prompt: str, image_keyword: s
         # If TTS exists, adjust duration to match audio length
         if audio_path:
             try:
-                probe = subprocess.run(
-                    ['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', audio_path],
-                    capture_output=True, text=True, timeout=10
-                )
-                audio_dur = float(probe.stdout.strip())
+                if FFPROBE:
+                    probe = subprocess.run(
+                        [FFPROBE, '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', audio_path],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    audio_dur = float(probe.stdout.strip())
+                else:
+                    # Use ffmpeg to get duration when ffprobe unavailable
+                    probe = subprocess.run(
+                        [FFMPEG, '-i', audio_path, '-f', 'null', '-'],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    import re
+                    m = re.search(r'Duration: (\d+):(\d+):(\d+\.\d+)', probe.stderr)
+                    audio_dur = float(m.group(1))*3600 + float(m.group(2))*60 + float(m.group(3)) if m else duration
                 duration = max(duration, int(audio_dur) + 1)
             except:
                 pass
@@ -639,7 +668,7 @@ def create_scene_clip(scene_idx: int, job_id: str, prompt: str, image_keyword: s
         f"x=(w-text_w)/2:y=h-h/6:font=Sans"
     )
 
-    cmd = ['ffmpeg', '-y', '-loop', '1', '-i', img_path]
+    cmd = [FFMPEG, '-y', '-loop', '1', '-i', img_path]
 
     if audio_path:
         cmd += ['-i', audio_path]
@@ -678,7 +707,7 @@ def create_scene_clip(scene_idx: int, job_id: str, prompt: str, image_keyword: s
             )
             img_path2 = fetch_stock_image(image_keyword, width, height)
             cmd2 = [
-                'ffmpeg', '-y', '-loop', '1', '-i', img_path2,
+                FFMPEG, '-y', '-loop', '1', '-i', img_path2,
                 '-filter_complex', simple_filter, '-map', '[v]',
                 '-t', str(duration), '-c:v', 'libx264', '-preset', 'fast', '-pix_fmt', 'yuv420p',
                 '-movflags', '+faststart', clip_path
@@ -708,7 +737,7 @@ def stitch_videos_with_ffmpeg(video_paths: list, output_path: str) -> bool:
     try:
         # Use ffmpeg concat demuxer for seamless stitching
         cmd = [
-            'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+            FFMPEG, '-y', '-f', 'concat', '-safe', '0',
             '-i', list_file,
             '-c', 'copy',  # Copy without re-encoding for speed
             output_path
@@ -725,6 +754,135 @@ def stitch_videos_with_ffmpeg(video_paths: list, output_path: str) -> bool:
     except Exception as e:
         logger.error(f"FFmpeg stitching error: {e}")
         return False
+
+
+# ============== Background Music (FFmpeg-synthesized, royalty-free) ==============
+
+MUSIC_MOODS = {
+    "calm": {"notes": [261.63, 329.63, 392.00, 523.25], "tempo": 0.8, "wave": "sine"},
+    "upbeat": {"notes": [329.63, 392.00, 440.00, 523.25, 587.33], "tempo": 0.4, "wave": "sine"},
+    "cinematic": {"notes": [196.00, 246.94, 293.66, 349.23, 392.00], "tempo": 1.2, "wave": "sine"},
+    "corporate": {"notes": [261.63, 293.66, 329.63, 392.00, 440.00], "tempo": 0.6, "wave": "sine"},
+    "inspirational": {"notes": [293.66, 349.23, 440.00, 523.25, 587.33], "tempo": 0.7, "wave": "sine"},
+    "ambient": {"notes": [220.00, 261.63, 329.63, 440.00], "tempo": 1.5, "wave": "sine"},
+}
+
+# Map keywords to moods for auto-selection
+MOOD_KEYWORDS = {
+    "calm": ["nature", "peaceful", "relax", "meditation", "sleep", "ocean", "forest", "yoga", "spa", "water"],
+    "upbeat": ["fun", "happy", "party", "dance", "celebrate", "sport", "game", "play", "energy", "fitness"],
+    "cinematic": ["epic", "movie", "drama", "war", "history", "adventure", "space", "hero", "battle", "journey"],
+    "corporate": ["business", "office", "team", "work", "meeting", "startup", "company", "professional", "finance", "tech"],
+    "inspirational": ["motivation", "success", "dream", "goal", "education", "learn", "grow", "future", "innovation", "ai"],
+    "ambient": ["abstract", "art", "design", "minimal", "modern", "digital", "creative", "code", "data", "science"],
+}
+
+
+def detect_music_mood(scenes: list) -> str:
+    """Auto-detect the best music mood from scene content."""
+    all_text = " ".join(s.get("prompt", "") + " " + s.get("image_keyword", "") for s in scenes).lower()
+    scores = {}
+    for mood, keywords in MOOD_KEYWORDS.items():
+        scores[mood] = sum(1 for kw in keywords if kw in all_text)
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else "ambient"
+
+
+def generate_background_music(duration: int, mood: str = "ambient") -> str:
+    """Generate a simple ambient background music track using FFmpeg audio synthesis."""
+    import subprocess, random, os
+
+    config = MUSIC_MOODS.get(mood, MUSIC_MOODS["ambient"])
+    notes = config["notes"]
+    tempo = config["tempo"]
+    music_path = f"/tmp/bgm_{uuid.uuid4().hex[:8]}.mp3"
+
+    # Generate individual note files then concatenate
+    note_files = []
+    t = 0
+    note_idx = 0
+    while t < duration + 2:
+        freq = notes[note_idx % len(notes)]
+        note_dur = round(tempo + random.uniform(-0.1, 0.15), 2)
+        note_path = f"/tmp/note_{uuid.uuid4().hex[:6]}.wav"
+        cmd = [
+            FFMPEG, '-y', '-f', 'lavfi', '-i',
+            f"sine=frequency={freq}:duration={note_dur}:sample_rate=44100",
+            '-af', f"afade=t=in:d=0.08,afade=t=out:st={max(0, note_dur-0.1)}:d=0.1,volume=0.15",
+            note_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, timeout=10)
+        if result.returncode == 0:
+            note_files.append(note_path)
+        t += note_dur
+        note_idx += 1
+
+    if not note_files:
+        return None
+
+    # Concatenate all notes
+    list_file = f"/tmp/notes_list_{uuid.uuid4().hex[:6]}.txt"
+    with open(list_file, 'w') as f:
+        for nf in note_files:
+            f.write(f"file '{nf}'\n")
+
+    raw_music = f"/tmp/bgm_raw_{uuid.uuid4().hex[:6]}.mp3"
+    cmd = [
+        FFMPEG, '-y', '-f', 'concat', '-safe', '0', '-i', list_file,
+        '-af', f"afade=t=in:d=1.5,afade=t=out:st={max(0, duration-2)}:d=2.0",
+        '-t', str(duration),
+        '-c:a', 'libmp3lame', '-b:a', '96k',
+        music_path
+    ]
+    result = subprocess.run(cmd, capture_output=True, timeout=30)
+
+    # Cleanup
+    try: os.remove(list_file)
+    except: pass
+    for nf in note_files:
+        try: os.remove(nf)
+        except: pass
+
+    if result.returncode == 0:
+        return music_path
+    logger.warning(f"Background music concat failed: {result.stderr.decode()[:200]}")
+    return None
+
+
+def mix_video_with_music(video_path: str, music_path: str, output_path: str) -> bool:
+    """Mix background music into a video, keeping existing audio (TTS narration) if present."""
+    import subprocess
+
+    # First check if video has audio
+    probe_cmd = [FFMPEG, '-i', video_path, '-f', 'null', '-']
+    probe = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=10)
+    has_audio = 'Audio:' in probe.stderr
+
+    if has_audio:
+        cmd = [
+            FFMPEG, '-y',
+            '-i', video_path,
+            '-i', music_path,
+            '-filter_complex',
+            '[0:a][1:a]amix=inputs=2:duration=first:dropout_transition=2[a]',
+            '-map', '0:v', '-map', '[a]',
+            '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
+            '-movflags', '+faststart',
+            output_path
+        ]
+    else:
+        cmd = [
+            FFMPEG, '-y',
+            '-i', video_path,
+            '-i', music_path,
+            '-map', '0:v', '-map', '1:a',
+            '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
+            '-shortest', '-movflags', '+faststart',
+            output_path
+        ]
+
+    result = subprocess.run(cmd, capture_output=True, timeout=120)
+    return result.returncode == 0
 
 
 @router.post("/ai/video/generate")
@@ -954,6 +1112,21 @@ def generate_slideshow_video(job_id: str, scenes: list, size: str, voice: str = 
             video_jobs[job_id] = {"status": "failed", "error": "Failed to stitch video clips"}
             return
 
+        # Add background music
+        total_dur = sum(s.get("duration", 10) for s in scenes)
+        video_jobs[job_id] = {"status": "generating", "progress": 92, "message": "Adding background music...", "scenes_total": len(scenes), "scenes_done": len(scenes)}
+        mood = detect_music_mood(scenes)
+        music_path = generate_background_music(total_dur, mood)
+        if music_path:
+            final_with_music = f"/tmp/final_music_{job_id}.mp4"
+            if mix_video_with_music(output_path, music_path, final_with_music):
+                try: os.remove(output_path)
+                except: pass
+                output_path = final_with_music
+                logger.info(f"Background music ({mood}) added to video {job_id}")
+            try: os.remove(music_path)
+            except: pass
+
         with open(output_path, 'rb') as f:
             video_bytes = f.read()
         try:
@@ -962,15 +1135,15 @@ def generate_slideshow_video(job_id: str, scenes: list, size: str, voice: str = 
             pass
 
         video_base64 = base64.b64encode(video_bytes).decode('utf-8')
-        total_dur = sum(s.get("duration", 10) for s in scenes)
         video_jobs[job_id] = {
             "status": "completed", "progress": 100,
             "video_base64": video_base64, "size": size,
             "duration": total_dur, "voice": voice,
             "file_size": len(video_bytes),
             "scenes_total": len(scenes), "scenes_done": len(scenes),
+            "music_mood": mood,
         }
-        logger.info(f"Slideshow video {job_id} completed: {len(scenes)} scenes, {len(video_bytes)} bytes")
+        logger.info(f"Slideshow video {job_id} completed: {len(scenes)} scenes, mood={mood}, {len(video_bytes)} bytes")
 
     except Exception as e:
         logger.error(f"Slideshow video {job_id} failed: {e}")
