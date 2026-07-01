@@ -41,7 +41,7 @@ const MusicStudioPage = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
   const [type, setType] = useState('music');
-  const [durationMs, setDurationMs] = useState(30000);
+  const [durationMs, setDurationMs] = useState(15000);
   const [instrumental, setInstrumental] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [audioData, setAudioData] = useState(null);
@@ -163,9 +163,9 @@ const MusicStudioPage = () => {
 
         {/* Type Tabs */}
         <div className="flex gap-2">
-          <Button variant={type === 'music' ? 'default' : 'outline'} onClick={() => { setType('music'); setDurationMs(30000); }}
+          <Button variant={type === 'music' ? 'default' : 'outline'} onClick={() => { setType('music'); setDurationMs(15000); }}
             className={cn("gap-2", type === 'music' && "bg-gradient-to-r from-fuchsia-600 to-purple-600")} data-testid="tab-music">
-            <Music className="w-4 h-4" /> Music
+            <Music className="w-4 h-4" /> Music (up to 30s)
           </Button>
           <Button variant={type === 'sfx' ? 'default' : 'outline'} onClick={() => { setType('sfx'); setDurationMs(10000); }}
             className={cn("gap-2", type === 'sfx' && "bg-gradient-to-r from-amber-500 to-orange-500")} data-testid="tab-sfx">
@@ -187,31 +187,23 @@ const MusicStudioPage = () => {
                   <Slider
                     value={[durationMs]}
                     onValueChange={v => setDurationMs(v[0])}
-                    min={type === 'music' ? 3000 : 500}
-                    max={type === 'music' ? 120000 : 30000}
-                    step={type === 'music' ? 1000 : 500}
+                    min={1000}
+                    max={30000}
+                    step={1000}
                     disabled={generating}
                     className="[&_[role=slider]]:bg-fuchsia-500"
                   />
-                  {type === 'music' && (
-                    <div className="flex gap-1.5 flex-wrap">
-                      {[10000, 30000, 60000, 120000].map(ms => (
-                        <Button key={ms} variant={durationMs === ms ? 'default' : 'outline'} size="sm"
-                          onClick={() => setDurationMs(ms)} disabled={generating}
-                          className={cn("text-xs", durationMs === ms && "bg-fuchsia-600")}>
-                          {ms / 1000}s
-                        </Button>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[5000, 10000, 15000, 20000, 30000].map(ms => (
+                      <Button key={ms} variant={durationMs === ms ? 'default' : 'outline'} size="sm"
+                        onClick={() => setDurationMs(ms)} disabled={generating}
+                        className={cn("text-xs", durationMs === ms && "bg-fuchsia-600")}>
+                        {ms / 1000}s
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
-                {type === 'music' && (
-                  <div className="flex items-center justify-between">
-                    <Label>Instrumental only</Label>
-                    <Switch checked={instrumental} onCheckedChange={setInstrumental} disabled={generating} />
-                  </div>
-                )}
               </CardContent>
             </Card>
 

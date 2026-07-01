@@ -48,13 +48,10 @@ async def generate_music(request: MusicGenerateRequest):
     if not ELEVENLABS_API_KEY:
         raise HTTPException(status_code=500, detail="Music Studio not configured. Missing ElevenLabs API key.")
 
-    if request.type == "music":
-        if request.duration_ms < 3000 or request.duration_ms > 600000:
-            raise HTTPException(status_code=400, detail="Music duration must be between 3,000ms and 600,000ms (10 min)")
-    else:
-        dur_s = request.duration_ms / 1000
-        if dur_s < 0.5 or dur_s > 30:
-            raise HTTPException(status_code=400, detail="Sound effect duration must be between 0.5s and 30s")
+    # SFX API max is 30 seconds
+    dur_s = request.duration_ms / 1000
+    if dur_s < 0.5 or dur_s > 30:
+        raise HTTPException(status_code=400, detail="Duration must be between 0.5s and 30s")
 
     try:
         from elevenlabs.client import ElevenLabs
@@ -62,22 +59,14 @@ async def generate_music(request: MusicGenerateRequest):
 
         audio_data = b""
 
-        if request.type == "music":
-            track = client.music.compose(
-                prompt=request.prompt,
-                music_length_ms=request.duration_ms,
-                force_instrumental=request.instrumental,
-            )
-            for chunk in track:
-                audio_data += chunk
-        else:
-            sfx = client.text_to_sound_effects.convert(
-                text=request.prompt,
-                duration_seconds=request.duration_ms / 1000,
-                prompt_influence=0.3,
-            )
-            for chunk in sfx:
-                audio_data += chunk
+        # Use sound effects API for both music and sfx (free tier compatible)
+        sfx = client.text_to_sound_effects.convert(
+            text=request.prompt,
+            duration_seconds=min(30, request.duration_ms / 1000),
+            prompt_influence=0.3,
+        )
+        for chunk in sfx:
+            audio_data += chunk
 
         if not audio_data or len(audio_data) < 100:
             raise Exception("ElevenLabs returned empty audio")
