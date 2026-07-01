@@ -138,6 +138,7 @@ const RecentChatsPage = lazy(() => import('@/pages/RecentChatsPage'));
 const QuickRecordPage = lazy(() => import('@/pages/QuickRecordPage'));
 const TextToAudioPage = lazy(() => import('@/pages/user/TextToAudioPage'));
 const TextToVideoPage = lazy(() => import('@/pages/TextToVideoPage'));
+const MusicStudioPage = lazy(() => import('@/pages/MusicStudioPage'));
 const MessageSettingsPage = lazy(() => import('@/pages/MessageSettingsPage'));
 
 // Video & Meetings
@@ -475,6 +476,7 @@ function App() {
                                 <Route path="/quick-record" element={<QuickRecordPage />} />
                                 <Route path="/text-to-audio" element={<TextToAudioPage />} />
                                 <Route path="/text-to-video" element={<TextToVideoPage />} />
+                                <Route path="/music-studio" element={<MusicStudioPage />} />
                                 <Route path="/reports" element={<ReportsPage />} />
                                 <Route path="/meetings" element={<MeetingsPage />} />
                                 <Route path="/meeting/:id" element={<MeetingDetailPage />} />

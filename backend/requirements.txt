@@ -30,6 +30,7 @@ dnspython==2.8.0
 duckduckgo_search==8.1.1
 EbookLib==0.20
 ecdsa==0.19.1
+elevenlabs==2.56.0
 email-validator==2.3.0
 emergentintegrations==0.1.1
 et_xmlfile==2.0.0

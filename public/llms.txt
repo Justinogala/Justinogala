@@ -43,6 +43,7 @@
 - [Messages - Admin | Munal AI](/adminmessages): No description available
 - [Messages | Munal](/chatmessages): No description available
 - [Munal - Transform Your Meetings](/home): No description available
+- [Munal Music Studio | Munal AI](/musicstudio): No description available
 - [My Learning Dashboard | Munal AI Academy](/academydashboardenhanced): No description available
 - [My Meetings - Munal](/meetinglist): No description available
 - [My Profile - Munal](/userprofile): No description available
