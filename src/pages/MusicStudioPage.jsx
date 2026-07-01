@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Helmet } from 'react-helmet';
 import {
   Music, Sparkles, Download, Play, Pause, Loader2, Clock, Trash2,
-  History, Wand2, Volume2, Timer, RefreshCw, Mic2, Guitar, Disc3
+  History, Wand2, Volume2, Timer, RefreshCw, Guitar, Disc3,
+  CreditCard, Coins, ChevronRight, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +17,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/api';
 import PageTransition from '@/components/PageTransition';
+
+const getToken = () => localStorage.getItem('token');
+const authHeaders = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` });
 
 const PRESETS = [
   { label: 'Cinematic', prompt: 'An epic cinematic orchestral score with sweeping strings, brass, and thundering drums', icon: '🎬' },
@@ -39,6 +43,13 @@ const SFX_PRESETS = [
   { label: 'Fire Crackling', prompt: 'Warm fireplace with wood crackling and popping' },
 ];
 
+const CREDIT_PACKAGES = [
+  { id: 'credits_1000', credits: 1000, price: 10, label: '1,000 Credits', songs: '~20 songs' },
+  { id: 'credits_3000', credits: 3000, price: 25, label: '3,000 Credits', songs: '~60 songs', save: '20%' },
+  { id: 'credits_7500', credits: 7500, price: 50, label: '7,500 Credits', songs: '~150 songs', save: '25%' },
+  { id: 'credits_18000', credits: 18000, price: 100, label: '18,000 Credits', songs: '~360 songs', save: '40%' },
+];
+
 const MusicStudioPage = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
@@ -48,34 +59,75 @@ const MusicStudioPage = () => {
   const [title, setTitle] = useState('');
   const [style, setStyle] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [jobId, setJobId] = useState(null);
   const [audioData, setAudioData] = useState(null);
   const [playing, setPlaying] = useState(false);
-  const [available, setAvailable] = useState(true);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const [credits, setCredits] = useState(0);
+  const [isFreeUser, setIsFreeUser] = useState(false);
   const [progressMsg, setProgressMsg] = useState('');
+  const [purchasing, setPurchasing] = useState(null);
   const audioRef = useRef(null);
   const pollRef = useRef(null);
 
+  const loadCredits = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/music-studio/credits`, { headers: authHeaders() });
+      if (res.ok) { const d = await res.json(); setCredits(d.credits); setIsFreeUser(d.is_free); }
+    } catch {}
+  }, []);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/music-studio/history?limit=20`, { headers: authHeaders() });
+      if (res.ok) { const d = await res.json(); setHistory(d.items || []); }
+    } catch {}
+  }, []);
+
   useEffect(() => {
-    fetch(`${API_URL}/api/music-studio/status`).then(r => r.json()).then(d => setAvailable(d.available)).catch(() => setAvailable(false));
+    loadCredits();
     loadHistory();
+    // Check for credit purchase success
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('credits') === 'success') {
+      const sessionId = params.get('session_id');
+      if (sessionId) {
+        fetch(`${API_URL}/api/music-studio/verify-purchase?session_id=${sessionId}`, { headers: authHeaders() })
+          .then(r => r.json()).then(d => {
+            if (d.success) {
+              toast({ title: `${d.credits_added?.toLocaleString() || ''} Munal Credits added!` });
+              setCredits(d.credits);
+            }
+          });
+        window.history.replaceState({}, '', '/music-studio');
+      }
+    }
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  const loadHistory = async () => {
-    setHistoryLoading(true);
+  const handlePurchase = async (packageId) => {
+    setPurchasing(packageId);
     try {
-      const res = await fetch(`${API_URL}/api/music-studio/history?limit=20`);
-      if (res.ok) { const d = await res.json(); setHistory(d.items || []); }
-    } catch {}
-    setHistoryLoading(false);
+      const res = await fetch(`${API_URL}/api/music-studio/purchase-credits`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ package_id: packageId })
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
+      const d = await res.json();
+      if (d.checkout_url) window.location.href = d.checkout_url;
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Purchase failed', description: e.message });
+    } finally { setPurchasing(null); }
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) { toast({ variant: 'destructive', title: 'Enter a description first' }); return; }
+    if (!prompt.trim()) return;
+    if (!isFreeUser && credits < 50 && type === 'music') {
+      setShowBuyCredits(true);
+      toast({ variant: 'destructive', title: 'Insufficient credits', description: 'Purchase Munal Credits to generate music' });
+      return;
+    }
     setGenerating(true);
     setAudioData(null);
     setProgressMsg('Submitting to Suno AI...');
@@ -83,65 +135,44 @@ const MusicStudioPage = () => {
     try {
       const body = { prompt, instrumental, custom_mode: customMode, title, style, type };
       const res = await fetch(`${API_URL}/api/music-studio/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
       });
-
-      if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Failed'); }
+      if (!res.ok) {
+        const e = await res.json();
+        if (res.status === 402) { setShowBuyCredits(true); }
+        throw new Error(e.detail || 'Failed');
+      }
       const d = await res.json();
+      if (d.credits_remaining !== undefined) setCredits(d.credits_remaining);
 
       if (d.status === 'completed') {
-        // SFX returns immediately
-        setAudioData(d);
-        setGenerating(false);
-        toast({ title: 'Sound effect generated!' });
-        loadHistory();
+        setAudioData(d); setGenerating(false);
+        loadCredits(); loadHistory();
         return;
       }
 
-      // Music: start polling
-      setJobId(d.job_id);
       setProgressMsg('Suno AI is composing your music...');
-      toast({ title: 'Music generation started!' });
-
       pollRef.current = setInterval(async () => {
         try {
-          const sr = await fetch(`${API_URL}/api/music-studio/job/${d.job_id}`);
+          const sr = await fetch(`${API_URL}/api/music-studio/job/${d.job_id}`, { headers: authHeaders() });
           const sd = await sr.json();
-
           if (sd.status === 'completed') {
             clearInterval(pollRef.current);
-            setAudioData(sd);
-            setGenerating(false);
-            setProgressMsg('');
-            toast({ title: 'Music generated!' });
-            loadHistory();
+            setAudioData(sd); setGenerating(false); setProgressMsg('');
+            loadCredits(); loadHistory();
           } else if (sd.status === 'failed') {
             clearInterval(pollRef.current);
-            setGenerating(false);
-            setProgressMsg('');
+            setGenerating(false); setProgressMsg('');
             toast({ variant: 'destructive', title: 'Generation failed', description: sd.error });
           } else {
-            setProgressMsg(sd.message || 'Composing your music...');
+            setProgressMsg(sd.message || 'Composing...');
           }
         } catch {}
       }, 4000);
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        if (pollRef.current) {
-          clearInterval(pollRef.current);
-          setGenerating(false);
-          setProgressMsg('');
-          toast({ variant: 'destructive', title: 'Generation timed out' });
-        }
-      }, 300000);
-
+      setTimeout(() => { if (pollRef.current) { clearInterval(pollRef.current); setGenerating(false); setProgressMsg(''); } }, 300000);
     } catch (e) {
       toast({ variant: 'destructive', title: 'Generation failed', description: e.message });
-      setGenerating(false);
-      setProgressMsg('');
+      setGenerating(false); setProgressMsg('');
     }
   };
 
@@ -153,8 +184,7 @@ const MusicStudioPage = () => {
     const audio = new Audio(`data:audio/mpeg;base64,${data}`);
     audioRef.current = audio;
     audio.onended = () => setPlaying(false);
-    audio.play();
-    setPlaying(true);
+    audio.play(); setPlaying(true);
   };
 
   const handleDownload = (b64, name) => {
@@ -163,25 +193,14 @@ const MusicStudioPage = () => {
     const link = document.createElement('a');
     link.href = `data:audio/mpeg;base64,${data}`;
     link.download = name || `munal-music-${Date.now()}.mp3`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
   const playHistoryItem = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/api/music-studio/history/${id}`);
-      if (res.ok) {
-        const d = await res.json();
-        if (d.audio_base64) handlePlay(d.audio_base64);
-        else if (d.audio_url) { window.open(d.audio_url, '_blank'); }
-      }
+      const res = await fetch(`${API_URL}/api/music-studio/history/${id}`, { headers: authHeaders() });
+      if (res.ok) { const d = await res.json(); if (d.audio_base64) handlePlay(d.audio_base64); }
     } catch {}
-  };
-
-  const deleteHistoryItem = async (id) => {
-    await fetch(`${API_URL}/api/music-studio/history/${id}`, { method: 'DELETE' });
-    loadHistory();
   };
 
   return (
@@ -190,18 +209,30 @@ const MusicStudioPage = () => {
       <div className="max-w-6xl mx-auto space-y-6" data-testid="music-studio-page">
 
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center shadow-lg shadow-fuchsia-500/30">
             <Music className="w-6 h-6 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Munal Music Studio</h1>
-            <p className="text-sm text-gray-500">AI-powered music & sound effects — describe it, Suno creates it</p>
+            <p className="text-sm text-gray-500">AI-powered music generation — describe it, we create it</p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Badge className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white border-0">
-              <Sparkles className="w-3 h-3 mr-1" />Suno AI
-            </Badge>
+          <div className="ml-auto flex items-center gap-2 flex-wrap">
+            {/* Credits badge */}
+            {isFreeUser ? (
+              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 px-3 py-1">
+                <Sparkles className="w-3 h-3 mr-1" /> Unlimited Access
+              </Badge>
+            ) : (
+              <button onClick={() => setShowBuyCredits(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 border border-amber-200 dark:border-amber-800 hover:shadow-md transition-all"
+                data-testid="credits-badge">
+                <Coins className="w-4 h-4 text-amber-500" />
+                <span className="font-bold text-amber-700 dark:text-amber-400">{credits.toLocaleString()}</span>
+                <span className="text-xs text-amber-600 dark:text-amber-500">Credits</span>
+                <ChevronRight className="w-3 h-3 text-amber-400" />
+              </button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setShowHistory(true)} className="gap-1.5" data-testid="music-history-btn">
               <History className="w-4 h-4" /> History
             </Button>
@@ -212,16 +243,16 @@ const MusicStudioPage = () => {
         <div className="flex gap-2">
           <Button variant={type === 'music' ? 'default' : 'outline'} onClick={() => setType('music')}
             className={cn("gap-2", type === 'music' && "bg-gradient-to-r from-fuchsia-600 to-purple-600")} data-testid="tab-music">
-            <Music className="w-4 h-4" /> Music
+            <Music className="w-4 h-4" /> Music <Badge variant="secondary" className="text-[10px] ml-1">50 credits</Badge>
           </Button>
           <Button variant={type === 'sfx' ? 'default' : 'outline'} onClick={() => setType('sfx')}
             className={cn("gap-2", type === 'sfx' && "bg-gradient-to-r from-amber-500 to-orange-500")} data-testid="tab-sfx">
-            <Volume2 className="w-4 h-4" /> Sound Effects
+            <Volume2 className="w-4 h-4" /> Sound Effects <Badge variant="secondary" className="text-[10px] ml-1">10 credits</Badge>
           </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Settings + Presets */}
+          {/* Left */}
           <div className="space-y-4">
             {type === 'music' && (
               <Card>
@@ -237,21 +268,13 @@ const MusicStudioPage = () => {
                   </div>
                   {customMode && (
                     <div className="space-y-3 pt-1">
-                      <div>
-                        <Label className="text-xs">Song Title</Label>
-                        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="My Song" disabled={generating} className="mt-1" data-testid="song-title" />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Style / Genre</Label>
-                        <Input value={style} onChange={e => setStyle(e.target.value)} placeholder="Pop, Upbeat, 120 BPM" disabled={generating} className="mt-1" data-testid="song-style" />
-                      </div>
+                      <div><Label className="text-xs">Song Title</Label><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="My Song" disabled={generating} className="mt-1" /></div>
+                      <div><Label className="text-xs">Style / Genre</Label><Input value={style} onChange={e => setStyle(e.target.value)} placeholder="Pop, Upbeat, 120 BPM" disabled={generating} className="mt-1" /></div>
                     </div>
                   )}
                 </CardContent>
               </Card>
             )}
-
-            {/* Presets */}
             <Card>
               <CardHeader><CardTitle className="text-base flex items-center gap-2"><Wand2 className="w-4 h-4" /> Quick Presets</CardTitle></CardHeader>
               <CardContent className="pt-0">
@@ -269,42 +292,31 @@ const MusicStudioPage = () => {
             </Card>
           </div>
 
-          {/* Right: Prompt + Result */}
+          {/* Right */}
           <div className="lg:col-span-2 space-y-4">
             <Card>
               <CardContent className="p-5 space-y-4">
-                <Label className="text-base font-semibold">
-                  {type === 'music' ? 'Describe your music' : 'Describe the sound effect'}
-                </Label>
-                <Textarea
-                  value={prompt} onChange={e => setPrompt(e.target.value)} rows={4}
-                  placeholder={type === 'music'
-                    ? "e.g. A chill lo-fi beat with soft piano, vinyl crackle, and a warm late-night atmosphere..."
-                    : "e.g. Thunder rumbling with light rain on a tin roof..."}
-                  disabled={generating} className="text-sm resize-none" data-testid="music-prompt"
-                />
-                <Button onClick={handleGenerate} disabled={generating || !prompt.trim() || !available}
+                <Label className="text-base font-semibold">{type === 'music' ? 'Describe your music' : 'Describe the sound effect'}</Label>
+                <Textarea value={prompt} onChange={e => setPrompt(e.target.value)} rows={4}
+                  placeholder={type === 'music' ? "e.g. A chill lo-fi beat with soft piano and vinyl crackle..." : "e.g. Thunder rumbling with light rain..."}
+                  disabled={generating} className="text-sm resize-none" data-testid="music-prompt" />
+                <Button onClick={handleGenerate} disabled={generating || !prompt.trim()}
                   className="w-full gap-2 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-700 hover:to-purple-700 h-11"
                   data-testid="generate-music-btn">
-                  {generating ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> {progressMsg || 'Generating...'}</>
-                  ) : (
-                    <><Sparkles className="w-4 h-4" /> Generate {type === 'music' ? 'Music' : 'Sound Effect'}</>
-                  )}
+                  {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> {progressMsg || 'Generating...'}</> :
+                    <><Sparkles className="w-4 h-4" /> Generate {type === 'music' ? 'Music' : 'Sound Effect'}</>}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Generating state */}
             {generating && (
               <Card className="border-fuchsia-200 dark:border-fuchsia-800">
                 <CardContent className="p-8 text-center">
                   <div className="w-20 h-20 rounded-full bg-gradient-to-r from-fuchsia-500 to-purple-600 flex items-center justify-center mx-auto mb-4 animate-pulse shadow-lg shadow-fuchsia-500/30">
                     <Music className="w-10 h-10 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Suno AI is composing...</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Composing your music...</h3>
                   <p className="text-sm text-gray-500">{progressMsg || 'This usually takes 30-60 seconds'}</p>
-                  {/* Animated bars */}
                   <div className="flex items-end justify-center gap-1 mt-6 h-12">
                     {Array.from({ length: 20 }, (_, i) => (
                       <div key={i} className="w-1.5 bg-gradient-to-t from-fuchsia-400 to-purple-400 rounded-t-sm animate-pulse"
@@ -315,54 +327,102 @@ const MusicStudioPage = () => {
               </Card>
             )}
 
-            {/* Result */}
+            {/* Result with Lyrics */}
             {audioData && !generating && (
               <Card className="overflow-hidden border-fuchsia-200 dark:border-fuchsia-800" data-testid="music-result">
                 <div className="bg-gradient-to-br from-fuchsia-50 to-purple-50 dark:from-fuchsia-950/30 dark:to-purple-950/30 p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <button onClick={() => handlePlay()}
-                      className="w-14 h-14 rounded-full bg-gradient-to-r from-fuchsia-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-fuchsia-500/30 hover:scale-105 transition-transform"
-                      data-testid="play-music-btn">
-                      {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-                    </button>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 dark:text-white text-sm">{audioData.title || prompt.slice(0, 60)}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                        {audioData.duration > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Math.round(audioData.duration)}s</span>}
-                        {audioData.file_size > 0 && <span>{(audioData.file_size / 1024).toFixed(0)} KB</span>}
-                        <Badge variant="secondary" className="text-[10px]">{audioData.type === 'sfx' ? 'SFX' : 'Music'}</Badge>
+                  <div className="flex items-start gap-4 mb-4">
+                    {audioData.image_url && (
+                      <img src={audioData.image_url} alt={audioData.title} className="w-20 h-20 rounded-xl object-cover shadow-md" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => handlePlay()}
+                          className="w-12 h-12 rounded-full bg-gradient-to-r from-fuchsia-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-fuchsia-500/30 hover:scale-105 transition-transform shrink-0"
+                          data-testid="play-music-btn">
+                          {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                        </button>
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white">{audioData.title || prompt.slice(0, 50)}</p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
+                            {audioData.duration > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Math.floor(audioData.duration / 60)}:{String(Math.round(audioData.duration % 60)).padStart(2, '0')}</span>}
+                            {audioData.file_size > 0 && <span>{(audioData.file_size / 1024 / 1024).toFixed(1)} MB</span>}
+                            {audioData.tags && <Badge variant="secondary" className="text-[10px]">{audioData.tags.slice(0, 40)}</Badge>}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                       <Button variant="outline" size="sm" onClick={() => handleDownload()} className="gap-1.5" data-testid="download-music-btn">
                         <Download className="w-3.5 h-3.5" /> Download
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => { setAudioData(null); setPrompt(''); }} className="gap-1.5">
-                        <RefreshCw className="w-3.5 h-3.5" /> New
-                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => { setAudioData(null); setPrompt(''); }}><RefreshCw className="w-3.5 h-3.5" /></Button>
                     </div>
                   </div>
-                  {/* Waveform visual */}
-                  <div className="h-16 flex items-end gap-[2px] opacity-70">
+                  {/* Waveform */}
+                  <div className="h-14 flex items-end gap-[2px] opacity-60 mb-2">
                     {Array.from({ length: 80 }, (_, i) => (
                       <div key={i} className="flex-1 bg-gradient-to-t from-fuchsia-400 to-purple-400 rounded-t-sm transition-all"
                         style={{ height: `${20 + Math.sin(i * 0.3) * 30 + Math.random() * 20}%`, opacity: playing ? 1 : 0.5 }} />
                     ))}
                   </div>
                 </div>
+
+                {/* Lyrics Section */}
+                {audioData.lyrics && audioData.lyrics.trim() && (
+                  <div className="p-5 border-t border-fuchsia-100 dark:border-fuchsia-900/30" data-testid="lyrics-section">
+                    <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-fuchsia-500" /> Lyrics
+                    </h4>
+                    <pre className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 max-h-60 overflow-y-auto">
+                      {audioData.lyrics}
+                    </pre>
+                  </div>
+                )}
               </Card>
             )}
           </div>
         </div>
       </div>
 
+      {/* Buy Credits Dialog */}
+      <Dialog open={showBuyCredits} onOpenChange={setShowBuyCredits}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Coins className="w-5 h-5 text-amber-500" /> Buy Munal Credits</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500 -mt-2">Credits are used to generate music and sound effects. They never expire.</p>
+          <div className="space-y-3 mt-2">
+            {CREDIT_PACKAGES.map(pkg => (
+              <button key={pkg.id} onClick={() => handlePurchase(pkg.id)} disabled={!!purchasing}
+                className={cn(
+                  "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all hover:shadow-md text-left",
+                  purchasing === pkg.id ? "border-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/20" : "border-gray-200 dark:border-gray-700 hover:border-fuchsia-300"
+                )} data-testid={`buy-${pkg.id}`}>
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-sm">
+                  ${pkg.price}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 dark:text-white">{pkg.label}</span>
+                    {pkg.save && <Badge className="bg-emerald-100 text-emerald-700 text-[10px] border-0">Save {pkg.save}</Badge>}
+                  </div>
+                  <span className="text-xs text-gray-500">{pkg.songs}</span>
+                </div>
+                {purchasing === pkg.id ? <Loader2 className="w-5 h-5 animate-spin text-fuchsia-500" /> :
+                  <CreditCard className="w-5 h-5 text-gray-400" />}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-gray-400 text-center mt-2">Secure payment via Stripe. Credits are non-refundable.</p>
+        </DialogContent>
+      </Dialog>
+
       {/* History Dialog */}
       <Dialog open={showHistory} onOpenChange={setShowHistory}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Generation History</DialogTitle></DialogHeader>
-          {historyLoading ? (
-            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-fuchsia-500" /></div>
-          ) : history.length === 0 ? (
+          {history.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No generations yet</p>
           ) : (
             <div className="space-y-2">
@@ -376,12 +436,12 @@ const MusicStudioPage = () => {
                     <p className="text-sm font-medium truncate">{item.title || item.prompt}</p>
                     <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
                       <Badge variant="secondary" className="text-[9px]">{item.type}</Badge>
-                      {item.duration > 0 && <span>{Math.round(item.duration)}s</span>}
-                      {item.file_size > 0 && <span>{(item.file_size / 1024).toFixed(0)} KB</span>}
+                      {item.duration > 0 && <span>{Math.floor(item.duration / 60)}:{String(Math.round(item.duration % 60)).padStart(2, '0')}</span>}
                       <span>{new Date(item.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => deleteHistoryItem(item.id)}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400"
+                    onClick={async () => { await fetch(`${API_URL}/api/music-studio/history/${item.id}`, { method: 'DELETE', headers: authHeaders() }); loadHistory(); }}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
