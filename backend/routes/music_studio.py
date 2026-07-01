@@ -21,7 +21,7 @@ ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 CREDITS_PER_SONG = 50
 
 # Users exempt from credit checks
-FREE_ACCESS_EMAILS = ["info@kollabri.com"]
+FREE_ACCESS_EMAILS = ["info@kollabri.com", "admin@munal.com"]
 
 # Credit packages
 CREDIT_PACKAGES = [
