@@ -546,22 +546,23 @@ async def get_video_api_key():
 
 
 def fetch_stock_image(query: str, width: int = 1280, height: int = 720) -> str:
-    """Fetch a free stock image from Unsplash and save locally. Returns file path."""
-    import requests
+    """Fetch a free stock image and save locally. Returns file path."""
+    import requests, hashlib
+    path = f"/tmp/img_{uuid.uuid4().hex[:8]}.jpg"
+
+    # Use Picsum with a seed based on query for consistent-ish results
     try:
-        # Use Unsplash source (no API key needed)
-        url = f"https://source.unsplash.com/{width}x{height}/?{requests.utils.quote(query)}"
+        seed = hashlib.md5(query.encode()).hexdigest()[:8]
+        url = f"https://picsum.photos/seed/{seed}/{width}/{height}"
         resp = requests.get(url, timeout=15, allow_redirects=True)
         if resp.status_code == 200 and len(resp.content) > 1000:
-            path = f"/tmp/img_{uuid.uuid4().hex[:8]}.jpg"
             with open(path, 'wb') as f:
                 f.write(resp.content)
             return path
     except Exception as e:
-        logger.warning(f"Unsplash fetch failed for '{query}': {e}")
+        logger.warning(f"Picsum fetch failed: {e}")
 
-    # Fallback: generate a colored gradient image with text using ffmpeg
-    path = f"/tmp/img_{uuid.uuid4().hex[:8]}.jpg"
+    # Fallback: generate a gradient image with ffmpeg
     import subprocess, random
     colors = ["#1a1a2e", "#16213e", "#0f3460", "#533483", "#2b2d42", "#264653", "#2a9d8f"]
     color = random.choice(colors)
@@ -574,62 +575,121 @@ def fetch_stock_image(query: str, width: int = 1280, height: int = 720) -> str:
     return path
 
 
-def create_scene_clip(scene_idx: int, job_id: str, prompt: str, image_keyword: str, duration: int, width: int, height: int) -> str:
-    """Create a single scene clip with Ken Burns effect + text overlay using FFmpeg."""
-    import subprocess
+def generate_tts_audio(text: str, voice: str, api_key: str) -> str:
+    """Generate TTS audio for a scene and save to file. Returns file path."""
+    try:
+        from llm_client import text_to_speech
+        response = text_to_speech(text=text, voice=voice, model="tts-1", api_key=api_key)
+        audio_bytes = response.content
+        if audio_bytes and len(audio_bytes) > 100:
+            audio_path = f"/tmp/tts_{uuid.uuid4().hex[:8]}.mp3"
+            with open(audio_path, 'wb') as f:
+                f.write(audio_bytes)
+            return audio_path
+    except Exception as e:
+        logger.warning(f"TTS generation failed: {e}")
+    return None
+
+
+def create_scene_clip(scene_idx: int, job_id: str, prompt: str, image_keyword: str, duration: int, width: int, height: int, voice: str = "nova", api_key: str = "") -> str:
+    """Create a single scene clip with Ken Burns effect + text overlay + optional TTS narration."""
+    import subprocess, os
 
     # Fetch image
     img_path = fetch_stock_image(image_keyword, width, height)
 
+    # Generate TTS narration for this scene
+    audio_path = None
+    if api_key and prompt:
+        audio_path = generate_tts_audio(prompt, voice, api_key)
+        # If TTS exists, adjust duration to match audio length
+        if audio_path:
+            try:
+                probe = subprocess.run(
+                    ['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', audio_path],
+                    capture_output=True, text=True, timeout=10
+                )
+                audio_dur = float(probe.stdout.strip())
+                duration = max(duration, int(audio_dur) + 1)
+            except:
+                pass
+
     clip_path = f"/tmp/clip_{job_id}_{scene_idx}.mp4"
 
-    # Truncate text for overlay (max 80 chars per line, 2 lines)
+    # Truncate text for overlay
     words = prompt.split()
-    line1 = ""
-    line2 = ""
+    line1, line2 = "", ""
     for w in words:
-        if len(line1) < 60:
+        if len(line1) < 50:
             line1 += (" " if line1 else "") + w
-        elif len(line2) < 60:
+        elif len(line2) < 50:
             line2 += (" " if line2 else "") + w
     overlay_text = line1 + ("\\n" + line2 if line2 else "")
-    # Escape special chars for FFmpeg drawtext
-    overlay_text = overlay_text.replace("'", "\\'").replace(":", "\\:")
+    overlay_text = overlay_text.replace("'", "\\'").replace(":", "\\:").replace('"', '\\"')
 
-    # Ken Burns: slow zoom from 1.0 to 1.15 over the duration
     fps = 24
     total_frames = duration * fps
+
+    # Build FFmpeg command
     filter_complex = (
         f"[0:v]scale={width*2}:{height*2},"
-        f"zoompan=z='1+0.15*on/{total_frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={total_frames}:s={width}x{height}:fps={fps},"
-        f"fade=t=in:st=0:d=0.5,fade=t=out:st={duration-0.5}:d=0.5,"
-        f"drawtext=text='{overlay_text}':fontsize={int(height/18)}:fontcolor=white:borderw=3:bordercolor=black@0.7:"
-        f"x=(w-text_w)/2:y=h-h/5:font=Sans"
-        f"[v]"
+        f"zoompan=z='1+0.12*on/{total_frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={total_frames}:s={width}x{height}:fps={fps},"
+        f"fade=t=in:st=0:d=0.8,fade=t=out:st={duration-0.8}:d=0.8,"
+        f"drawtext=text='{overlay_text}':fontsize={int(height/20)}:fontcolor=white:borderw=3:bordercolor=black@0.8:"
+        f"x=(w-text_w)/2:y=h-h/6:font=Sans"
     )
 
-    cmd = [
-        'ffmpeg', '-y',
-        '-loop', '1', '-i', img_path,
-        '-filter_complex', filter_complex,
-        '-map', '[v]',
+    cmd = ['ffmpeg', '-y', '-loop', '1', '-i', img_path]
+
+    if audio_path:
+        cmd += ['-i', audio_path]
+        filter_complex += "[v];[v][1:a]concat=n=1:v=1:a=1[outv][outa]"
+        cmd += ['-filter_complex', filter_complex, '-map', '[outv]', '-map', '[outa]']
+    else:
+        filter_complex += "[v]"
+        cmd += ['-filter_complex', filter_complex, '-map', '[v]']
+
+    cmd += [
         '-t', str(duration),
         '-c:v', 'libx264', '-preset', 'fast', '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart',
-        clip_path
     ]
+    if audio_path:
+        cmd += ['-c:a', 'aac', '-b:a', '128k']
+    cmd += ['-movflags', '+faststart', clip_path]
 
     result = subprocess.run(cmd, capture_output=True, timeout=120)
-    # Cleanup image
-    try:
-        import os
-        os.remove(img_path)
-    except:
-        pass
+
+    # Cleanup
+    for p in [img_path, audio_path]:
+        if p:
+            try: os.remove(p)
+            except: pass
 
     if result.returncode != 0:
-        logger.error(f"FFmpeg scene clip failed: {result.stderr.decode()[:500]}")
-        raise Exception(f"Failed to create clip for scene {scene_idx+1}")
+        # Retry without audio if it failed
+        if audio_path:
+            logger.warning(f"Scene {scene_idx+1} failed with audio, retrying without...")
+            simple_filter = (
+                f"[0:v]scale={width*2}:{height*2},"
+                f"zoompan=z='1+0.12*on/{total_frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={total_frames}:s={width}x{height}:fps={fps},"
+                f"fade=t=in:st=0:d=0.8,fade=t=out:st={duration-0.8}:d=0.8,"
+                f"drawtext=text='{overlay_text}':fontsize={int(height/20)}:fontcolor=white:borderw=3:bordercolor=black@0.8:"
+                f"x=(w-text_w)/2:y=h-h/6:font=Sans[v]"
+            )
+            img_path2 = fetch_stock_image(image_keyword, width, height)
+            cmd2 = [
+                'ffmpeg', '-y', '-loop', '1', '-i', img_path2,
+                '-filter_complex', simple_filter, '-map', '[v]',
+                '-t', str(duration), '-c:v', 'libx264', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+                '-movflags', '+faststart', clip_path
+            ]
+            result2 = subprocess.run(cmd2, capture_output=True, timeout=120)
+            try: os.remove(img_path2)
+            except: pass
+            if result2.returncode != 0:
+                raise Exception(f"Scene {scene_idx+1} FFmpeg failed: {result2.stderr.decode()[:300]}")
+        else:
+            raise Exception(f"Scene {scene_idx+1} FFmpeg failed: {result.stderr.decode()[:300]}")
 
     return clip_path
 
@@ -853,19 +913,20 @@ Return ONLY the JSON array."""
 
 
 def generate_slideshow_video(job_id: str, scenes: list, size: str, voice: str = "nova"):
-    """Generate a slideshow video from scenes using stock images + FFmpeg (FREE, no API cost)"""
+    """Generate a slideshow video from scenes using stock images + TTS + FFmpeg (FREE images, minimal TTS cost)"""
     import os, subprocess
 
     try:
         w, h = [int(x) for x in size.split("x")]
-        video_jobs[job_id] = {"status": "generating", "progress": 5, "message": "Fetching images for scenes...", "scenes_total": len(scenes), "scenes_done": 0}
+        api_key = EMERGENT_LLM_KEY or ""
+        video_jobs[job_id] = {"status": "generating", "progress": 5, "message": "Creating scenes with images and narration...", "scenes_total": len(scenes), "scenes_done": 0}
 
         clip_paths = []
         for i, scene in enumerate(scenes):
             video_jobs[job_id] = {
                 "status": "generating",
-                "progress": 5 + int((i / len(scenes)) * 70),
-                "message": f"Creating scene {i+1}/{len(scenes)}...",
+                "progress": 5 + int((i / len(scenes)) * 75),
+                "message": f"Scene {i+1}/{len(scenes)}: fetching image & generating voice...",
                 "scenes_total": len(scenes), "scenes_done": i
             }
 
@@ -874,7 +935,7 @@ def generate_slideshow_video(job_id: str, scenes: list, size: str, voice: str = 
             dur = max(3, min(30, scene.get("duration", 10)))
 
             try:
-                clip_path = create_scene_clip(i, job_id, prompt_text, image_kw, dur, w, h)
+                clip_path = create_scene_clip(i, job_id, prompt_text, image_kw, dur, w, h, voice, api_key)
                 clip_paths.append(clip_path)
             except Exception as e:
                 logger.error(f"Scene {i+1} failed: {e}")
