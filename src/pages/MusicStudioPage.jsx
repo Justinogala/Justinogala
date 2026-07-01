@@ -18,7 +18,13 @@ import { cn } from '@/lib/utils';
 import { API_URL } from '@/lib/api';
 import PageTransition from '@/components/PageTransition';
 
-const getToken = () => localStorage.getItem('token');
+const getToken = () => {
+  try {
+    const session = JSON.parse(localStorage.getItem('munal_sessions') || '{}');
+    if (session.token) return session.token;
+  } catch {}
+  return localStorage.getItem('token') || localStorage.getItem('admin_token') || '';
+};
 const authHeaders = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` });
 
 const PRESETS = [
