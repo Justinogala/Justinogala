@@ -95,13 +95,60 @@ async def music_studio_status():
 
 @router.get("/music-studio/credits")
 async def get_credits(user=Depends(get_current_user)):
+    free = is_free_user(user)
+    # Auto-grant 999999 credits to free users if not already set
+    if free:
+        existing = await db.music_credits.find_one({"user_id": user["id"]})
+        if not existing or existing.get("credits", 0) < 999999:
+            await db.music_credits.update_one(
+                {"user_id": user["id"]},
+                {"$set": {"credits": 999999, "updated_at": datetime.now(timezone.utc).isoformat()},
+                 "$setOnInsert": {"user_id": user["id"], "created_at": datetime.now(timezone.utc).isoformat()}},
+                upsert=True
+            )
     credits = await get_user_credits(user["id"])
+    logger.info(f"Credits check: email={user.get('email')} is_free={free} credits={credits}")
     return {
         "credits": credits,
-        "is_free": is_free_user(user),
+        "is_free": free,
         "credits_per_song": CREDITS_PER_SONG,
-        "songs_remaining": credits // CREDITS_PER_SONG if not is_free_user(user) else 999999,
+        "songs_remaining": credits // CREDITS_PER_SONG if not free else 999999,
     }
+
+
+class AdminAddCreditsRequest(BaseModel):
+    email: str
+    credits: int
+
+
+@router.post("/music-studio/admin/add-credits")
+async def admin_add_credits(req: AdminAddCreditsRequest, user=Depends(get_current_user)):
+    """Admin-only: Add credits to any user by email"""
+    if user.get("role") not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    target_user = await db.users.find_one({"email": req.email}, {"_id": 0, "id": 1, "email": 1})
+    if not target_user:
+        raise HTTPException(status_code=404, detail=f"User {req.email} not found")
+
+    new_balance = await add_credits(target_user["id"], req.credits)
+    logger.info(f"Admin {user.get('email')} added {req.credits} credits to {req.email} (new balance: {new_balance})")
+    return {"success": True, "email": req.email, "credits_added": req.credits, "new_balance": new_balance}
+
+
+@router.get("/music-studio/admin/user-credits")
+async def admin_list_user_credits(user=Depends(get_current_user)):
+    """Admin-only: List all users with credits"""
+    if user.get("role") not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    credit_records = await db.music_credits.find({}, {"_id": 0}).to_list(100)
+    for rec in credit_records:
+        u = await db.users.find_one({"id": rec["user_id"]}, {"_id": 0, "email": 1, "name": 1})
+        if u:
+            rec["email"] = u.get("email", "")
+            rec["name"] = u.get("name", "")
+    return {"users": credit_records}
 
 
 @router.post("/music-studio/purchase-credits")
