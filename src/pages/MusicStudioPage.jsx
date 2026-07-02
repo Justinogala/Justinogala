@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet';
 import {
   Music, Sparkles, Download, Play, Pause, Loader2, Clock, Trash2,
   History, Wand2, Volume2, Timer, RefreshCw, Guitar, Disc3,
-  CreditCard, Coins, ChevronRight, FileText, ThumbsUp, ThumbsDown, Share2
+  CreditCard, Coins, ChevronRight, FileText, ThumbsUp, ThumbsDown, Share2, Save
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -85,6 +85,8 @@ const MusicStudioPage = () => {
   const audioRef = useRef(null);
   const pollRef = useRef(null);
 
+  const [saved, setSaved] = useState(false);
+
   const loadCredits = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/music-studio/credits`, { headers: authHeaders() });
@@ -145,6 +147,7 @@ const MusicStudioPage = () => {
     }
     setGenerating(true);
     setAudioData(null);
+    setSaved(false);
     setProgressMsg('Submitting to Suno AI...');
 
     try {
@@ -215,6 +218,13 @@ const MusicStudioPage = () => {
       link.target = '_blank';
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
+  };
+
+  const handleSave = async () => {
+    if (!audioData) return;
+    setSaved(true);
+    toast({ title: 'Saved to My Library!' });
+    loadHistory();
   };
 
   const playHistoryItem = async (id) => {
@@ -377,10 +387,15 @@ const MusicStudioPage = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
+                      <Button size="sm" onClick={handleSave} disabled={saved}
+                        className={cn("gap-1.5", saved ? "bg-emerald-500 hover:bg-emerald-500 text-white" : "bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white")}
+                        data-testid="save-music-btn">
+                        <Save className="w-3.5 h-3.5" /> {saved ? 'Saved' : 'Save to Library'}
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => handleDownload(audioData.audio_base64, null, audioData.audio_url)} className="gap-1.5" data-testid="download-music-btn">
                         <Download className="w-3.5 h-3.5" /> Download
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => { setAudioData(null); setPrompt(''); }}><RefreshCw className="w-3.5 h-3.5" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => { setAudioData(null); setPrompt(''); setSaved(false); }}><RefreshCw className="w-3.5 h-3.5" /></Button>
                     </div>
                   </div>
                   {/* Waveform */}
