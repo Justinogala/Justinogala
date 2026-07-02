@@ -371,23 +371,14 @@ async def get_music_job_status(job_id: str):
         if not dl_url:
             return {"status": "generating", "message": "Suno AI is composing your music..."}
 
-        # Download audio in background and store
-        audio_b64 = ""
-        file_size = 0
-        try:
-            audio_res = requests.get(dl_url, timeout=120)
-            if audio_res.status_code == 200 and len(audio_res.content) > 100:
-                audio_b64 = base64.b64encode(audio_res.content).decode('utf-8')
-                file_size = len(audio_res.content)
-                if not duration:
-                    duration = round(file_size / 16000, 1)  # rough estimate
-        except Exception as e:
-            logger.warning(f"Audio download failed: {e}")
+        # Estimate duration from metadata or default
+        if not duration:
+            duration = 120  # default ~2min
 
         job.update({
             "status": "completed",
             "audio_url": dl_url,
-            "file_size": file_size,
+            "file_size": 0,
             "title": title,
             "image_url": image_url,
             "duration": duration,
@@ -395,7 +386,7 @@ async def get_music_job_status(job_id: str):
             "lyrics": lyrics,
         })
 
-        # Save to history with audio
+        # Save to history (download audio in background for history playback)
         doc = {
             "id": job_id,
             "user_id": job.get("user_id"),
@@ -406,22 +397,41 @@ async def get_music_job_status(job_id: str):
             "audio_url": dl_url,
             "image_url": image_url,
             "duration": duration,
-            "file_size": file_size,
+            "file_size": 0,
             "tags": tags,
             "lyrics": lyrics,
-            "audio_base64": audio_b64,
+            "audio_base64": "",
             "created_at": job.get("created_at"),
         }
         await db.music_studio_history.insert_one(doc)
-        logger.info(f"Suno job {job_id} completed: {file_size} bytes, title='{title}'")
+        logger.info(f"Suno job {job_id} completed: title='{title}', url={dl_url[:60]}")
 
-        # Return without audio_base64 in poll (too large), frontend fetches from history
+        # Download audio async and update DB later (don't block the response)
+        import asyncio
+        asyncio.create_task(_download_and_store_audio(job_id, dl_url))
+
         music_jobs[job_id] = job
         return job
 
     except Exception as e:
         logger.warning(f"Poll error for {job_id}: {e}")
         return {"status": "generating", "message": "Checking status..."}
+
+
+async def _download_and_store_audio(job_id: str, url: str):
+    """Download audio from URL and store base64 in DB (runs in background)"""
+    try:
+        audio_res = requests.get(url, timeout=120)
+        if audio_res.status_code == 200 and len(audio_res.content) > 100:
+            audio_b64 = base64.b64encode(audio_res.content).decode('utf-8')
+            await db.music_studio_history.update_one(
+                {"id": job_id},
+                {"$set": {"audio_base64": audio_b64, "file_size": len(audio_res.content)}}
+            )
+            logger.info(f"Audio downloaded for {job_id}: {len(audio_res.content)} bytes")
+    except Exception as e:
+        logger.warning(f"Background audio download failed for {job_id}: {e}")
+
 
 
 async def _generate_sfx(prompt: str, user: dict):
