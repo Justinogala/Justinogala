@@ -190,30 +190,39 @@ const MusicStudioPage = () => {
     }
   };
 
-  const handlePlay = (b64) => {
-    const data = b64 || audioData?.audio_base64;
-    if (!data) return;
+  const handlePlay = (b64, url) => {
+    const src = b64 ? `data:audio/mpeg;base64,${b64}` : url;
+    if (!src) return;
     if (playing && audioRef.current) { audioRef.current.pause(); setPlaying(false); return; }
     if (audioRef.current) audioRef.current.pause();
-    const audio = new Audio(`data:audio/mpeg;base64,${data}`);
+    const audio = new Audio(src);
     audioRef.current = audio;
     audio.onended = () => setPlaying(false);
     audio.play(); setPlaying(true);
   };
 
-  const handleDownload = (b64, name) => {
-    const data = b64 || audioData?.audio_base64;
-    if (!data) return;
-    const link = document.createElement('a');
-    link.href = `data:audio/mpeg;base64,${data}`;
-    link.download = name || `munal-music-${Date.now()}.mp3`;
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  const handleDownload = (b64, name, url) => {
+    if (b64) {
+      const link = document.createElement('a');
+      link.href = `data:audio/mpeg;base64,${b64}`;
+      link.download = name || `munal-music-${Date.now()}.mp3`;
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    } else if (url) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name || `munal-music-${Date.now()}.mp3`;
+      link.target = '_blank';
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
   };
 
   const playHistoryItem = async (id) => {
     try {
       const res = await fetch(`${API_URL}/api/music-studio/history/${id}`, { headers: authHeaders() });
-      if (res.ok) { const d = await res.json(); if (d.audio_base64) handlePlay(d.audio_base64); }
+      if (res.ok) {
+        const d = await res.json();
+        handlePlay(d.audio_base64, d.audio_url);
+      }
     } catch {}
   };
 
@@ -351,7 +360,7 @@ const MusicStudioPage = () => {
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
-                        <button onClick={() => handlePlay()}
+                        <button onClick={() => handlePlay(audioData.audio_base64, audioData.audio_url)}
                           className="w-12 h-12 rounded-full bg-gradient-to-r from-fuchsia-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-fuchsia-500/30 hover:scale-105 transition-transform shrink-0"
                           data-testid="play-music-btn">
                           {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
@@ -367,7 +376,7 @@ const MusicStudioPage = () => {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <Button variant="outline" size="sm" onClick={() => handleDownload()} className="gap-1.5" data-testid="download-music-btn">
+                      <Button variant="outline" size="sm" onClick={() => handleDownload(audioData.audio_base64, null, audioData.audio_url)} className="gap-1.5" data-testid="download-music-btn">
                         <Download className="w-3.5 h-3.5" /> Download
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => { setAudioData(null); setPrompt(''); }}><RefreshCw className="w-3.5 h-3.5" /></Button>

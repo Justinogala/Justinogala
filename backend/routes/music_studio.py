@@ -366,26 +366,27 @@ async def get_music_job_status(job_id: str):
         if lyrics == "[Instrumental]":
             lyrics = ""
 
-        if not audio_url and not stream_url:
+        # Song is ready if we have any audio URL
+        dl_url = audio_url or stream_url
+        if not dl_url:
             return {"status": "generating", "message": "Suno AI is composing your music..."}
 
-        # Download audio
+        # Download audio in background and store
         audio_b64 = ""
         file_size = 0
-        dl_url = audio_url or stream_url
-        if dl_url:
-            try:
-                audio_res = requests.get(dl_url, timeout=60)
-                if audio_res.status_code == 200 and len(audio_res.content) > 100:
-                    audio_b64 = base64.b64encode(audio_res.content).decode('utf-8')
-                    file_size = len(audio_res.content)
-            except Exception as e:
-                logger.warning(f"Audio download failed: {e}")
+        try:
+            audio_res = requests.get(dl_url, timeout=120)
+            if audio_res.status_code == 200 and len(audio_res.content) > 100:
+                audio_b64 = base64.b64encode(audio_res.content).decode('utf-8')
+                file_size = len(audio_res.content)
+                if not duration:
+                    duration = round(file_size / 16000, 1)  # rough estimate
+        except Exception as e:
+            logger.warning(f"Audio download failed: {e}")
 
         job.update({
             "status": "completed",
-            "audio_url": audio_url or stream_url,
-            "audio_base64": audio_b64,
+            "audio_url": dl_url,
             "file_size": file_size,
             "title": title,
             "image_url": image_url,
@@ -394,7 +395,7 @@ async def get_music_job_status(job_id: str):
             "lyrics": lyrics,
         })
 
-        # Save to history
+        # Save to history with audio
         doc = {
             "id": job_id,
             "user_id": job.get("user_id"),
@@ -402,7 +403,7 @@ async def get_music_job_status(job_id: str):
             "prompt": job.get("prompt", ""),
             "title": title,
             "instrumental": job.get("instrumental", False),
-            "audio_url": audio_url or stream_url,
+            "audio_url": dl_url,
             "image_url": image_url,
             "duration": duration,
             "file_size": file_size,
@@ -414,6 +415,7 @@ async def get_music_job_status(job_id: str):
         await db.music_studio_history.insert_one(doc)
         logger.info(f"Suno job {job_id} completed: {file_size} bytes, title='{title}'")
 
+        # Return without audio_base64 in poll (too large), frontend fetches from history
         music_jobs[job_id] = job
         return job
 
