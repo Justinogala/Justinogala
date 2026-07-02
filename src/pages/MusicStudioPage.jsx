@@ -96,7 +96,8 @@ const MusicStudioPage = () => {
     try {
       const res = await fetch(`${API_URL}/api/music-studio/history?limit=20`, { headers: authHeaders() });
       if (res.ok) { const d = await res.json(); setHistory(d.items || []); }
-    } catch {}
+      else { console.warn('Music history failed:', res.status); }
+    } catch (e) { console.warn('Music history error:', e); }
   }, []);
 
   useEffect(() => {
@@ -408,12 +409,14 @@ const MusicStudioPage = () => {
         </div>
 
         {/* My Library — Suno-style track list */}
-        {history.length > 0 && (
-          <div className="mt-8" data-testid="music-library">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Music className="w-5 h-5 text-fuchsia-500" /> My Library
-              <Badge variant="secondary" className="text-xs">{history.length} tracks</Badge>
-            </h2>
+        <div className="mt-8" data-testid="music-library">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Music className="w-5 h-5 text-fuchsia-500" /> My Library
+            {history.length > 0 && <Badge variant="secondary" className="text-xs">{history.length} tracks</Badge>}
+          </h2>
+          {history.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-gray-400"><Music className="w-8 h-8 mx-auto mb-2 opacity-40" /><p>Your generated music will appear here</p></CardContent></Card>
+          ) : (
             <div className="space-y-3">
               {history.map((item, idx) => {
                 const colors = ['from-orange-400 to-amber-500', 'from-emerald-400 to-green-500', 'from-fuchsia-400 to-purple-500', 'from-cyan-400 to-blue-500', 'from-rose-400 to-pink-500', 'from-violet-400 to-indigo-500'];
@@ -474,8 +477,8 @@ const MusicStudioPage = () => {
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Buy Credits Dialog */}
